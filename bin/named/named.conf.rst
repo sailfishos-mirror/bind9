@@ -451,6 +451,7 @@ OPTIONS
   	try-tcp-refresh boolean;
   	update-check-ksk boolean;
   	use-alt-transfer-source boolean;
+  	use-dns64 boolean;
   	use-v4-udp-ports { portrange; ... };
   	use-v6-udp-ports { portrange; ... };
   	v6-bias integer;
@@ -850,6 +851,7 @@ VIEW
   	try-tcp-refresh boolean;
   	update-check-ksk boolean;
   	use-alt-transfer-source boolean;
+  	use-dns64 boolean;
   	v6-bias integer;
   	validate-except { string; ... };
   	zero-no-soa-ttl boolean;
