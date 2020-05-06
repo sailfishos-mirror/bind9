@@ -4626,7 +4626,6 @@ cache_zonecut_callback(dns_rbtnode_t *node, dns_name_t *name, void *arg) {
 	rdatasetheader_t *dname_header, *sigdname_header;
 	isc_result_t result;
 	nodelock_t *lock;
-	isc_rwlocktype_t locktype;
 
 	/* XXX comment */
 
@@ -4638,8 +4637,7 @@ cache_zonecut_callback(dns_rbtnode_t *node, dns_name_t *name, void *arg) {
 	UNUSED(name);
 
 	lock = &(search->rbtdb->node_locks[node->locknum].lock);
-	locktype = isc_rwlocktype_read;
-	NODE_LOCK(lock, locktype);
+	NODE_LOCK(lock, isc_rwlocktype_read);
 
 	/*
 	 * Look for a DNAME or RRSIG DNAME rdataset.
@@ -4649,8 +4647,8 @@ cache_zonecut_callback(dns_rbtnode_t *node, dns_name_t *name, void *arg) {
 	header_prev = NULL;
 	for (header = node->data; header != NULL; header = header_next) {
 		header_next = header->next;
-		if (check_stale_header(node, header, locktype, search,
-				       &header_prev)) {
+		if (check_stale_header(node, header, isc_rwlocktype_read,
+				       search, &header_prev)) {
 			/* Do nothing. */
 		} else if (header->type == dns_rdatatype_dname &&
 			   EXISTS(header)) {
@@ -4683,7 +4681,7 @@ cache_zonecut_callback(dns_rbtnode_t *node, dns_name_t *name, void *arg) {
 		result = DNS_R_CONTINUE;
 	}
 
-	NODE_UNLOCK(lock, locktype);
+	NODE_UNLOCK(lock, isc_rwlocktype_read);
 
 	return (result);
 }
@@ -4840,7 +4838,6 @@ find_coveringnsec(rbtdb_search_t *search, dns_dbnode_t **nodep,
 	dns_name_t *name, *origin;
 	rbtdb_rdatatype_t matchtype, sigmatchtype;
 	nodelock_t *lock;
-	isc_rwlocktype_t locktype;
 	dns_rbtnodechain_t chain;
 
 	chain = search->chain;
@@ -4857,9 +4854,8 @@ find_coveringnsec(rbtdb_search_t *search, dns_dbnode_t **nodep,
 		if (result != ISC_R_SUCCESS) {
 			return (result);
 		}
-		locktype = isc_rwlocktype_read;
 		lock = &(search->rbtdb->node_locks[node->locknum].lock);
-		NODE_LOCK(lock, locktype);
+		NODE_LOCK(lock, isc_rwlocktype_read);
 		found = NULL;
 		foundsig = NULL;
 		empty_node = true;
@@ -4867,8 +4863,9 @@ find_coveringnsec(rbtdb_search_t *search, dns_dbnode_t **nodep,
 		for (header = node->data; header != NULL; header = header_next)
 		{
 			header_next = header->next;
-			if (check_stale_header(node, header, locktype,
-					       search, &header_prev)) {
+			if (check_stale_header(node, header,
+					       isc_rwlocktype_read, search,
+					       &header_prev)) {
 				continue;
 			}
 			if (NONEXISTENT(header) ||
@@ -4913,7 +4910,7 @@ find_coveringnsec(rbtdb_search_t *search, dns_dbnode_t **nodep,
 			result = dns_rbtnodechain_prev(&chain, NULL, NULL);
 		}
 	unlock_node:
-		NODE_UNLOCK(lock, locktype);
+		NODE_UNLOCK(lock, isc_rwlocktype_read);
 	} while (empty_node && result == ISC_R_SUCCESS);
 	return (result);
 }
