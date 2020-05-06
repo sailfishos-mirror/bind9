@@ -4515,9 +4515,8 @@ zone_findzonecut(dns_db_t *db, const dns_name_t *name, unsigned int options,
 
 static bool
 check_stale_header(dns_rbtnode_t *node, rdatasetheader_t *header,
-		   isc_rwlocktype_t *locktype, nodelock_t *lock,
-		   rbtdb_search_t *search, rdatasetheader_t **header_prev) {
-	UNUSED(lock);
+		   isc_rwlocktype_t locktype, rbtdb_search_t *search,
+		   rdatasetheader_t **header_prev) {
 	if (!ACTIVE(header, search->now)) {
 		dns_ttl_t stale = header->rdh_ttl +
 				  search->rbtdb->serve_stale_ttl;
@@ -4577,17 +4576,16 @@ check_stale_header(dns_rbtnode_t *node, rdatasetheader_t *header,
 		 * cleaned up later.
 		 */
 		if ((header->rdh_ttl < search->now - RBTDB_VIRTUAL) &&
-		    (*locktype == isc_rwlocktype_write))
+		    (locktype == isc_rwlocktype_write))
 		{
 			/*
-			 * We update the node's status only when we can
-			 * get write access; otherwise, we leave others
+			 * We update the node's status only when we have
+			 * write access; otherwise, we leave others
 			 * to this work.  Periodical cleaning will
 			 * eventually take the job as the last resort.
 			 * We won't downgrade the lock, since other
 			 * rdatasets are probably stale, too.
 			 */
-			*locktype = isc_rwlocktype_write;
 
 			if (isc_refcount_current(&node->references) == 0) {
 				isc_mem_t *mctx;
@@ -4651,7 +4649,7 @@ cache_zonecut_callback(dns_rbtnode_t *node, dns_name_t *name, void *arg) {
 	header_prev = NULL;
 	for (header = node->data; header != NULL; header = header_next) {
 		header_next = header->next;
-		if (check_stale_header(node, header, &locktype, lock, search,
+		if (check_stale_header(node, header, locktype, search,
 				       &header_prev)) {
 			/* Do nothing. */
 		} else if (header->type == dns_rdatatype_dname &&
@@ -4726,7 +4724,7 @@ find_deepest_zonecut(rbtdb_search_t *search, dns_rbtnode_t *node,
 		for (header = node->data; header != NULL; header = header_next)
 		{
 			header_next = header->next;
-			if (check_stale_header(node, header, &locktype, lock,
+			if (check_stale_header(node, header, locktype,
 					       search, &header_prev)) {
 				/* Do nothing. */
 			} else if (EXISTS(header)) {
@@ -4869,7 +4867,7 @@ find_coveringnsec(rbtdb_search_t *search, dns_dbnode_t **nodep,
 		for (header = node->data; header != NULL; header = header_next)
 		{
 			header_next = header->next;
-			if (check_stale_header(node, header, &locktype, lock,
+			if (check_stale_header(node, header, locktype,
 					       search, &header_prev)) {
 				continue;
 			}
@@ -5030,7 +5028,7 @@ cache_find(dns_db_t *db, const dns_name_t *name, dns_dbversion_t *version,
 	header_prev = NULL;
 	for (header = node->data; header != NULL; header = header_next) {
 		header_next = header->next;
-		if (check_stale_header(node, header, &locktype, lock, &search,
+		if (check_stale_header(node, header, locktype, &search,
 				       &header_prev)) {
 			/* Do nothing. */
 		} else if (EXISTS(header) && !ANCIENT(header)) {
@@ -5346,7 +5344,7 @@ cache_findzonecut(dns_db_t *db, const dns_name_t *name, unsigned int options,
 	header_prev = NULL;
 	for (header = node->data; header != NULL; header = header_next) {
 		header_next = header->next;
-		if (check_stale_header(node, header, &locktype, lock, &search,
+		if (check_stale_header(node, header, locktype, &search,
 				       &header_prev)) {
 			/* Do nothing. */
 		} else if (EXISTS(header)) {
