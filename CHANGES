@@ -1,3 +1,6 @@
+5547.	[protocol]	Add support for HTTPS and SVCB records types.
+			[GL #1132]
+
 5596.	[func]		Client-side support for DNS-over-HTTPS (DoH) has
 			been added to dig. "dig +https" can now query
 			a server via HTTP/2. [GL #1641]

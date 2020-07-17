@@ -32,6 +32,8 @@ New Features
   obsolete (due to a key rollover). Default is 90 days, and the feature can
   be disabled by setting it to 0. [GL #2408]
 
+- Add support for HTTPS and SVCB records types. [GL #1132]
+
 Removed Features
 ~~~~~~~~~~~~~~~~
 
