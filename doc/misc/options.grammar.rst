@@ -278,6 +278,8 @@
   	tcp-initial-timeout <integer>;
   	tcp-keepalive-timeout <integer>;
   	tcp-listen-queue <integer>;
+  	tcp-receive-buffer <integer>;
+  	tcp-send-buffer <integer>;
   	tkey-dhkey <quoted_string> <integer>;
   	tkey-domain <quoted_string>;
   	tkey-gssapi-credential <quoted_string>;
@@ -294,6 +296,8 @@
   	transfers-per-ns <integer>;
   	trust-anchor-telemetry <boolean>; // experimental
   	try-tcp-refresh <boolean>;
+  	udp-receive-buffer <integer>;
+  	udp-send-buffer <integer>;
   	update-check-ksk <boolean>;
   	use-alt-transfer-source <boolean>;
   	use-v4-udp-ports { <portrange>; ... };
