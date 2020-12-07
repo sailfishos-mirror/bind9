@@ -17,6 +17,8 @@
 #define RRTYPE_SVCB_ATTRIBUTES (DNS_RDATATYPEATTR_FOLLOWADDITIONAL)
 
 #define SVCB_MAN_KEY 0
+#define MAX_CNAMES 16	/* See ns/query.c MAX_RESTARTS */
+
 /*
  * Service Binding Parameter Registry
  */
@@ -1101,7 +1103,7 @@ generic_additionaldata_in_svcb(ARGS_ADDLDATA) {
 		/*
 		 * Stop following a potentially infinite CNAME chain.
 		 */
-		if (!done && cnames++ > 20) {
+		if (!done && cnames++ > MAX_CNAMES) {
 			return (ISC_R_SUCCESS);
 		}
 	} while (!done);
