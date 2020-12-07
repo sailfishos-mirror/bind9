@@ -405,7 +405,7 @@ svcsortkeys(isc_buffer_t *target, unsigned int used) {
 			if (mankey != 0) {
 				/* Is this the last mandatory key? */
 				if (key1 != mankey || man.length != 0) {
-					return (DNS_R_INCONSISTENT);
+					return (DNS_R_INCONSISTENTRR);
 				}
 			} else if (key1 == SVCB_MAN_KEY) {
 				/* Lone mandatory field. */
@@ -468,7 +468,7 @@ svcsortkeys(isc_buffer_t *target, unsigned int used) {
 		 */
 		if (mankey != 0) {
 			if (key1 > mankey) {
-				return (DNS_R_INCONSISTENT);
+				return (DNS_R_INCONSISTENTRR);
 			}
 			if (key1 == mankey) {
 				if (man.length >= 2) {
