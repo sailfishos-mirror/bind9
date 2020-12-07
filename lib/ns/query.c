@@ -2048,7 +2048,7 @@ addname:
 	 * Add additional for additional?
 	 */
 	if (trdataset != NULL && dns_rdatatype_followadditional(type)) {
-		if (client->additionaldepth++ < 20) {
+		if (client->additionaldepth++ < MAX_RESTARTS) {
 			eresult = dns_rdataset_additionaldata(
 				trdataset, fname, query_additional_cb, qctx);
 		}
