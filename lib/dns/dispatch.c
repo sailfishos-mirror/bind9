@@ -3085,8 +3085,9 @@ dns_dispatch_addresponse(dns_dispatch_t *disp, unsigned int options,
 	}
 
 	/*
-	 * Try somewhat hard to find an unique ID unless FIXEDID is set
-	 * in which case we use the id passed in via *idp.
+	 * Try somewhat hard to find a unique ID, unless
+	 * DNS_DISPATCHOPT_FIXEDID is set, in which case we
+	 * use the ID passed in via *idp.
 	 */
 	LOCK(&qid->lock);
 	if ((options & DNS_DISPATCHOPT_FIXEDID) != 0) {
@@ -3100,9 +3101,6 @@ dns_dispatch_addresponse(dns_dispatch_t *disp, unsigned int options,
 		bucket = dns_hash(qid, dest, id, localport);
 		if (entry_search(qid, dest, id, localport, bucket) == NULL) {
 			ok = true;
-			break;
-		}
-		if ((disp->attributes & DNS_DISPATCHATTR_FIXEDID) != 0) {
 			break;
 		}
 		id += qid->qid_increment;
