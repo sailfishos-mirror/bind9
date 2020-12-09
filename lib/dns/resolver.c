@@ -2180,7 +2180,7 @@ fctx_query(fetchctx_t *fctx, dns_adbaddrinfo_t *addrinfo,
 			attrmask |= DNS_DISPATCHATTR_IPV6;
 			result = dns_dispatch_getudp(
 				res->dispatchmgr, res->socketmgr, res->taskmgr,
-				&addr, 4096, 20000, 32768, 16411, 16433, attrs,
+				&addr, 20000, 32768, 16411, 16433, attrs,
 				attrmask, &query->dispatch);
 			if (result != ISC_R_SUCCESS) {
 				goto cleanup_query;
