@@ -98,7 +98,6 @@
 
 #define MAXCMD	     (128 * 1024)
 #define MAXWIRE	     (64 * 1024)
-#define PACKETSIZE   ((64 * 1024) - 1)
 #define INITTEXT     (2 * 1024)
 #define MAXTEXT	     (128 * 1024)
 #define FIND_TIMEOUT 5
@@ -951,8 +950,8 @@ setup_system(void) {
 		attrs |= DNS_DISPATCHATTR_IPV6;
 		isc_sockaddr_any6(&bind_any6);
 		result = dns_dispatch_getudp(dispatchmgr, socketmgr, taskmgr,
-					     &bind_any6, PACKETSIZE, 4, 2, 3, 5,
-					     attrs, attrmask, &dispatchv6);
+					     &bind_any6, 4, 2, 3, 5, attrs,
+					     attrmask, &dispatchv6);
 		check_result(result, "dns_dispatch_getudp (v6)");
 	}
 
@@ -962,8 +961,8 @@ setup_system(void) {
 		attrs |= DNS_DISPATCHATTR_IPV4;
 		isc_sockaddr_any(&bind_any);
 		result = dns_dispatch_getudp(dispatchmgr, socketmgr, taskmgr,
-					     &bind_any, PACKETSIZE, 4, 2, 3, 5,
-					     attrs, attrmask, &dispatchv4);
+					     &bind_any, 4, 2, 3, 5, attrs,
+					     attrmask, &dispatchv4);
 		check_result(result, "dns_dispatch_getudp (v4)");
 	}
 

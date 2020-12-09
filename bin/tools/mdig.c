@@ -2168,9 +2168,8 @@ main(int argc, char *argv[]) {
 		   DNS_DISPATCHATTR_IPV4 | DNS_DISPATCHATTR_IPV6;
 	dispatchvx = NULL;
 	RUNCHECK(dns_dispatch_getudp(dispatchmgr, socketmgr, taskmgr,
-				     have_src ? &srcaddr : &bind_any, 4096, 100,
-				     100, 17, 19, attrs, attrmask,
-				     &dispatchvx));
+				     have_src ? &srcaddr : &bind_any, 100, 100,
+				     17, 19, attrs, attrmask, &dispatchvx));
 	requestmgr = NULL;
 	RUNCHECK(dns_requestmgr_create(
 		mctx, timermgr, socketmgr, taskmgr, dispatchmgr,
