@@ -311,7 +311,7 @@ dispatch_free(dns_dispatch_t **dispp);
 static isc_result_t
 get_udpsocket(dns_dispatchmgr_t *mgr, dns_dispatch_t *disp,
 	      isc_socketmgr_t *sockmgr, const isc_sockaddr_t *localaddr,
-	      isc_socket_t **sockp, isc_socket_t *dup_socket, bool duponly);
+	      isc_socket_t **sockp, isc_socket_t *dup_socket);
 static isc_result_t
 dispatch_createudp(dns_dispatchmgr_t *mgr, isc_socketmgr_t *sockmgr,
 		   isc_taskmgr_t *taskmgr, const isc_sockaddr_t *localaddr,
@@ -2686,7 +2686,7 @@ createudp:
 static isc_result_t
 get_udpsocket(dns_dispatchmgr_t *mgr, dns_dispatch_t *disp,
 	      isc_socketmgr_t *sockmgr, const isc_sockaddr_t *localaddr,
-	      isc_socket_t **sockp, isc_socket_t *dup_socket, bool duponly) {
+	      isc_socket_t **sockp, isc_socket_t *dup_socket) {
 	unsigned int i, j;
 	isc_socket_t *held[DNS_DISPATCH_HELD];
 	isc_sockaddr_t localaddr_bound;
@@ -2746,7 +2746,7 @@ get_udpsocket(dns_dispatchmgr_t *mgr, dns_dispatch_t *disp,
 		/* Allow to reuse address for non-random ports. */
 		result = open_socket(sockmgr, localaddr,
 				     ISC_SOCKET_REUSEADDRESS, &sock, dup_socket,
-				     duponly);
+				     true);
 
 		if (result == ISC_R_SUCCESS) {
 			*sockp = sock;
@@ -2803,10 +2803,7 @@ dispatch_createudp(dns_dispatchmgr_t *mgr, isc_socketmgr_t *sockmgr,
 	dns_dispatch_t *disp;
 	isc_socket_t *sock = NULL;
 	int i = 0;
-	bool duponly = ((attributes & DNS_DISPATCHATTR_CANREUSE) == 0);
 
-	/* This is an attribute needed only at creation time */
-	attributes &= ~DNS_DISPATCHATTR_CANREUSE;
 	/*
 	 * dispatch_allocate() checks mgr for us.
 	 */
@@ -2820,7 +2817,7 @@ dispatch_createudp(dns_dispatchmgr_t *mgr, isc_socketmgr_t *sockmgr,
 
 	if ((attributes & DNS_DISPATCHATTR_EXCLUSIVE) == 0) {
 		result = get_udpsocket(mgr, disp, sockmgr, localaddr, &sock,
-				       dup_socket, duponly);
+				       dup_socket);
 		if (result != ISC_R_SUCCESS) {
 			goto deallocate_dispatch;
 		}
