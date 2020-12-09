@@ -219,10 +219,8 @@ struct dns_dispatch {
 	unsigned int refcount;		  /*%< number of users */
 	dns_dispatchevent_t *failsafe_ev; /*%< failsafe cancel event */
 	unsigned int shutting_down : 1, shutdown_out : 1, connected : 1,
-		tcpmsg_valid : 1, recv_pending : 1; /*%< is a
-						     * recv()
-						     * pending?
-						     * */
+		tcpmsg_valid : 1, recv_pending : 1; /*%< is a recv() pending? *
+						     */
 	isc_result_t shutdown_why;
 	ISC_LIST(dispsocket_t) activesockets;
 	ISC_LIST(dispsocket_t) inactivesockets;
@@ -2600,13 +2598,12 @@ dns_dispatch_gettcp(dns_dispatchmgr_t *mgr, const isc_sockaddr_t *destaddr,
 }
 
 isc_result_t
-dns_dispatch_getudp_dup(dns_dispatchmgr_t *mgr, isc_socketmgr_t *sockmgr,
-			isc_taskmgr_t *taskmgr, const isc_sockaddr_t *localaddr,
-			unsigned int buffersize, unsigned int maxbuffers,
-			unsigned int maxrequests, unsigned int buckets,
-			unsigned int increment, unsigned int attributes,
-			unsigned int mask, dns_dispatch_t **dispp,
-			dns_dispatch_t *dup_dispatch) {
+dns_dispatch_getudp(dns_dispatchmgr_t *mgr, isc_socketmgr_t *sockmgr,
+		    isc_taskmgr_t *taskmgr, const isc_sockaddr_t *localaddr,
+		    unsigned int buffersize, unsigned int maxbuffers,
+		    unsigned int maxrequests, unsigned int buckets,
+		    unsigned int increment, unsigned int attributes,
+		    unsigned int mask, dns_dispatch_t **dispp) {
 	isc_result_t result;
 	dns_dispatch_t *disp = NULL;
 
@@ -2634,46 +2631,38 @@ dns_dispatch_getudp_dup(dns_dispatchmgr_t *mgr, isc_socketmgr_t *sockmgr,
 		goto createudp;
 	}
 
-	/*
-	 * See if we have a dispatcher that matches.
-	 */
-	if (dup_dispatch == NULL) {
-		result = dispatch_find(mgr, localaddr, attributes, mask, &disp);
-		if (result == ISC_R_SUCCESS) {
-			disp->refcount++;
+	result = dispatch_find(mgr, localaddr, attributes, mask, &disp);
+	if (result == ISC_R_SUCCESS) {
+		disp->refcount++;
 
-			if (disp->maxrequests < maxrequests) {
-				disp->maxrequests = maxrequests;
-			}
-
-			if ((disp->attributes & DNS_DISPATCHATTR_NOLISTEN) ==
-				    0 &&
-			    (attributes & DNS_DISPATCHATTR_NOLISTEN) != 0)
-			{
-				disp->attributes |= DNS_DISPATCHATTR_NOLISTEN;
-				if (disp->recv_pending != 0) {
-					isc_socket_cancel(disp->socket,
-							  disp->task[0],
-							  ISC_SOCKCANCEL_RECV);
-				}
-			}
-
-			UNLOCK(&disp->lock);
-			UNLOCK(&mgr->lock);
-
-			*dispp = disp;
-
-			return (ISC_R_SUCCESS);
+		if (disp->maxrequests < maxrequests) {
+			disp->maxrequests = maxrequests;
 		}
+
+		if ((disp->attributes & DNS_DISPATCHATTR_NOLISTEN) == 0 &&
+		    (attributes & DNS_DISPATCHATTR_NOLISTEN) != 0)
+		{
+			disp->attributes |= DNS_DISPATCHATTR_NOLISTEN;
+			if (disp->recv_pending != 0) {
+				isc_socket_cancel(disp->socket, disp->task[0],
+						  ISC_SOCKCANCEL_RECV);
+			}
+		}
+
+		UNLOCK(&disp->lock);
+		UNLOCK(&mgr->lock);
+
+		*dispp = disp;
+
+		return (ISC_R_SUCCESS);
 	}
 
 createudp:
 	/*
 	 * Nope, create one.
 	 */
-	result = dispatch_createudp(
-		mgr, sockmgr, taskmgr, localaddr, maxrequests, attributes,
-		&disp, dup_dispatch == NULL ? NULL : dup_dispatch->socket);
+	result = dispatch_createudp(mgr, sockmgr, taskmgr, localaddr,
+				    maxrequests, attributes, &disp, NULL);
 
 	if (result != ISC_R_SUCCESS) {
 		UNLOCK(&mgr->lock);
@@ -2684,19 +2673,6 @@ createudp:
 	*dispp = disp;
 
 	return (ISC_R_SUCCESS);
-}
-
-isc_result_t
-dns_dispatch_getudp(dns_dispatchmgr_t *mgr, isc_socketmgr_t *sockmgr,
-		    isc_taskmgr_t *taskmgr, const isc_sockaddr_t *localaddr,
-		    unsigned int buffersize, unsigned int maxbuffers,
-		    unsigned int maxrequests, unsigned int buckets,
-		    unsigned int increment, unsigned int attributes,
-		    unsigned int mask, dns_dispatch_t **dispp) {
-	return (dns_dispatch_getudp_dup(mgr, sockmgr, taskmgr, localaddr,
-					buffersize, maxbuffers, maxrequests,
-					buckets, increment, attributes, mask,
-					dispp, NULL));
 }
 
 /*
@@ -3487,26 +3463,6 @@ dns_dispatch_getlocaladdress(dns_dispatch_t *disp, isc_sockaddr_t *addrp) {
 	return (ISC_R_NOTIMPLEMENTED);
 }
 
-void
-dns_dispatch_cancel(dns_dispatch_t *disp) {
-	REQUIRE(VALID_DISPATCH(disp));
-
-	LOCK(&disp->lock);
-
-	if (disp->shutting_down == 1) {
-		UNLOCK(&disp->lock);
-		return;
-	}
-
-	disp->shutdown_why = ISC_R_CANCELED;
-	disp->shutting_down = 1;
-	do_cancel(disp);
-
-	UNLOCK(&disp->lock);
-
-	return;
-}
-
 unsigned int
 dns_dispatch_getattributes(dns_dispatch_t *disp) {
 	REQUIRE(VALID_DISPATCH(disp));
@@ -3555,43 +3511,6 @@ dns_dispatch_changeattributes(dns_dispatch_t *disp, unsigned int attributes,
 	disp->attributes &= ~mask;
 	disp->attributes |= (attributes & mask);
 	UNLOCK(&disp->lock);
-}
-
-void
-dns_dispatch_importrecv(dns_dispatch_t *disp, isc_event_t *event) {
-	void *buf;
-	isc_socketevent_t *sevent, *newsevent;
-
-	REQUIRE(VALID_DISPATCH(disp));
-	REQUIRE(event != NULL);
-
-	if ((disp->attributes & DNS_DISPATCHATTR_NOLISTEN) == 0) {
-		return;
-	}
-
-	sevent = (isc_socketevent_t *)event;
-	INSIST(sevent->n <= disp->mgr->buffersize);
-
-	newsevent = (isc_socketevent_t *)isc_event_allocate(
-		disp->mgr->mctx, NULL, DNS_EVENT_IMPORTRECVDONE, udp_shrecv,
-		disp, sizeof(isc_socketevent_t));
-
-	buf = allocate_udp_buffer(disp);
-	if (buf == NULL) {
-		isc_event_free(ISC_EVENT_PTR(&newsevent));
-		return;
-	}
-	memmove(buf, sevent->region.base, sevent->n);
-	newsevent->region.base = buf;
-	newsevent->region.length = disp->mgr->buffersize;
-	newsevent->n = sevent->n;
-	newsevent->result = sevent->result;
-	newsevent->address = sevent->address;
-	newsevent->timestamp = sevent->timestamp;
-	newsevent->pktinfo = sevent->pktinfo;
-	newsevent->attributes = sevent->attributes;
-
-	isc_task_send(disp->task[0], ISC_EVENT_PTR(&newsevent));
 }
 
 dns_dispatch_t *
@@ -3706,30 +3625,3 @@ dns_dispatchset_destroy(dns_dispatchset_t **dsetp) {
 	isc_mutex_destroy(&dset->lock);
 	isc_mem_putanddetach(&dset->mctx, dset, sizeof(dns_dispatchset_t));
 }
-
-void
-dns_dispatch_setdscp(dns_dispatch_t *disp, isc_dscp_t dscp) {
-	REQUIRE(VALID_DISPATCH(disp));
-	disp->dscp = dscp;
-}
-
-isc_dscp_t
-dns_dispatch_getdscp(dns_dispatch_t *disp) {
-	REQUIRE(VALID_DISPATCH(disp));
-	return (disp->dscp);
-}
-
-#if 0
-void
-dns_dispatchmgr_dump(dns_dispatchmgr_t *mgr) {
-	dns_dispatch_t *disp;
-	char foo[1024];
-
-	disp = ISC_LIST_HEAD(mgr->list);
-	while (disp != NULL) {
-		isc_sockaddr_format(&disp->local, foo, sizeof(foo));
-		printf("\tdispatch %p, addr %s\n", disp, foo);
-		disp = ISC_LIST_NEXT(disp, link);
-	}
-}
-#endif /* if 0 */
