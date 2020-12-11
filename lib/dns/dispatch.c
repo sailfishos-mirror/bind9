@@ -1509,10 +1509,6 @@ startrecv(dns_dispatch_t *disp, dispsocket_t *dispsock) {
 		return (ISC_R_SUCCESS);
 	}
 
-	if ((disp->attributes & DNS_DISPATCHATTR_NOLISTEN) != 0) {
-		return (ISC_R_SUCCESS);
-	}
-
 	if (disp->recv_pending != 0 && dispsock == NULL) {
 		return (ISC_R_SUCCESS);
 	}
@@ -2505,16 +2501,6 @@ dns_dispatch_getudp(dns_dispatchmgr_t *mgr, isc_socketmgr_t *sockmgr,
 			disp->maxrequests = maxrequests;
 		}
 
-		if ((disp->attributes & DNS_DISPATCHATTR_NOLISTEN) == 0 &&
-		    (attributes & DNS_DISPATCHATTR_NOLISTEN) != 0)
-		{
-			disp->attributes |= DNS_DISPATCHATTR_NOLISTEN;
-			if (disp->recv_pending != 0) {
-				isc_socket_cancel(disp->socket, disp->task[0],
-						  ISC_SOCKCANCEL_RECV);
-			}
-		}
-
 		UNLOCK(&disp->lock);
 		UNLOCK(&mgr->lock);
 
@@ -3317,29 +3303,8 @@ dns_dispatch_changeattributes(dns_dispatch_t *disp, unsigned int attributes,
 	REQUIRE(VALID_DISPATCH(disp));
 	/* Exclusive attribute can only be set on creation */
 	REQUIRE((attributes & DNS_DISPATCHATTR_EXCLUSIVE) == 0);
-	/* Also, a dispatch with randomport specified cannot start listening */
-	REQUIRE((disp->attributes & DNS_DISPATCHATTR_EXCLUSIVE) == 0 ||
-		(attributes & DNS_DISPATCHATTR_NOLISTEN) == 0);
 
 	LOCK(&disp->lock);
-
-	if ((mask & DNS_DISPATCHATTR_NOLISTEN) != 0) {
-		if ((disp->attributes & DNS_DISPATCHATTR_NOLISTEN) != 0 &&
-		    (attributes & DNS_DISPATCHATTR_NOLISTEN) == 0)
-		{
-			disp->attributes &= ~DNS_DISPATCHATTR_NOLISTEN;
-			(void)startrecv(disp, NULL);
-		} else if ((disp->attributes & DNS_DISPATCHATTR_NOLISTEN) ==
-				   0 &&
-			   (attributes & DNS_DISPATCHATTR_NOLISTEN) != 0)
-		{
-			disp->attributes |= DNS_DISPATCHATTR_NOLISTEN;
-			if (disp->recv_pending != 0) {
-				isc_socket_cancel(disp->socket, disp->task[0],
-						  ISC_SOCKCANCEL_RECV);
-			}
-		}
-	}
 
 	disp->attributes &= ~mask;
 	disp->attributes |= (attributes & mask);
