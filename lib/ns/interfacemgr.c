@@ -86,7 +86,6 @@ struct ns_interfacemgr {
 	ISC_LIST(ns_interface_t) interfaces; /*%< List of interfaces. */
 	ISC_LIST(isc_sockaddr_t) listenon;
 	int backlog;		  /*%< Listen queue size */
-	unsigned int udpdisp;	  /*%< UDP dispatch count */
 	atomic_bool shuttingdown; /*%< Interfacemgr is shutting
 				   * down */
 #ifdef USE_ROUTE_SOCKET
@@ -183,8 +182,8 @@ ns_interfacemgr_create(isc_mem_t *mctx, ns_server_t *sctx,
 		       isc_taskmgr_t *taskmgr, isc_timermgr_t *timermgr,
 		       isc_socketmgr_t *socketmgr, isc_nm_t *nm,
 		       dns_dispatchmgr_t *dispatchmgr, isc_task_t *task,
-		       unsigned int udpdisp, dns_geoip_databases_t *geoip,
-		       int ncpus, ns_interfacemgr_t **mgrp) {
+		       dns_geoip_databases_t *geoip, int ncpus,
+		       ns_interfacemgr_t **mgrp) {
 	isc_result_t result;
 	ns_interfacemgr_t *mgr;
 
@@ -220,7 +219,6 @@ ns_interfacemgr_create(isc_mem_t *mctx, ns_server_t *sctx,
 	mgr->generation = 1;
 	mgr->listenon4 = NULL;
 	mgr->listenon6 = NULL;
-	mgr->udpdisp = udpdisp;
 	mgr->ncpus = ncpus;
 	atomic_init(&mgr->shuttingdown, false);
 
@@ -391,7 +389,6 @@ ns_interface_create(ns_interfacemgr_t *mgr, isc_sockaddr_t *addr,
 		    const char *name, ns_interface_t **ifpret) {
 	ns_interface_t *ifp;
 	isc_result_t result;
-	int disp;
 
 	REQUIRE(NS_INTERFACEMGR_VALID(mgr));
 
@@ -403,10 +400,6 @@ ns_interface_create(ns_interfacemgr_t *mgr, isc_sockaddr_t *addr,
 	strlcpy(ifp->name, name, sizeof(ifp->name));
 
 	isc_mutex_init(&ifp->lock);
-
-	for (disp = 0; disp < MAX_UDP_DISPATCH; disp++) {
-		ifp->udpdispatch[disp] = NULL;
-	}
 
 	/*
 	 * Create a single TCP client object.  It will replace itself
@@ -694,15 +687,6 @@ ns_interface_destroy(ns_interface_t *ifp) {
 	isc_mem_t *mctx = ifp->mgr->mctx;
 
 	ns_interface_shutdown(ifp);
-
-	for (int disp = 0; disp < ifp->nudpdispatch; disp++) {
-		if (ifp->udpdispatch[disp] != NULL) {
-			dns_dispatch_changeattributes(
-				ifp->udpdispatch[disp], 0,
-				DNS_DISPATCHATTR_NOLISTEN);
-			dns_dispatch_detach(&(ifp->udpdispatch[disp]));
-		}
-	}
 
 	if (ifp->tcpsocket != NULL) {
 		isc_socket_detach(&ifp->tcpsocket);

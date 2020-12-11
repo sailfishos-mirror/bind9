@@ -253,8 +253,8 @@ create_managers(void) {
 	CHECK(dns_dispatchmgr_create(mctx, &dispatchmgr));
 
 	CHECK(ns_interfacemgr_create(mctx, sctx, taskmgr, timermgr, socketmgr,
-				     nm, dispatchmgr, maintask, ncpus, NULL,
-				     ncpus, &interfacemgr));
+				     nm, dispatchmgr, maintask, NULL, ncpus,
+				     &interfacemgr));
 
 	CHECK(ns_listenlist_default(mctx, port, -1, true, &listenon));
 	ns_interfacemgr_setlistenon4(interfacemgr, listenon);
