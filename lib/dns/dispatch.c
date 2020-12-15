@@ -155,7 +155,6 @@ struct dispsocket {
 	isc_socket_t *socket;
 	dns_dispatch_t *disp;
 	isc_sockaddr_t host;
-	in_port_t localport; /* XXX: should be removed later */
 	dispportentry_t *portentry;
 	dns_dispentry_t *resp;
 	isc_task_t *task;
