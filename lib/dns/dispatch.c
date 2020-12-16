@@ -785,7 +785,6 @@ destroy_dispsocket(dns_dispatch_t *disp, dispsocket_t **dispsockp) {
 	disp->nsockets--;
 	dispsock->magic = 0;
 	if (dispsock->portentry != NULL) {
-		/* socket_search() tests and dereferences portentry. */
 		LOCK(&qid->lock);
 		deref_portentry(disp, &dispsock->portentry);
 		UNLOCK(&qid->lock);
@@ -824,7 +823,7 @@ deactivate_dispsocket(dns_dispatch_t *disp, dispsocket_t *dispsock) {
 	}
 
 	INSIST(dispsock->portentry != NULL);
-	/* socket_search() tests and dereferences portentry. */
+
 	LOCK(&qid->lock);
 	deref_portentry(disp, &dispsock->portentry);
 	UNLOCK(&qid->lock);
@@ -1619,6 +1618,55 @@ create_default_portset(isc_mem_t *mctx, isc_portset_t **portsetp) {
 	isc_portset_addrange(*portsetp, 1024, 65535);
 }
 
+static isc_result_t
+setavailports(dns_dispatchmgr_t *mgr, isc_portset_t *v4portset,
+	      isc_portset_t *v6portset) {
+	in_port_t *v4ports, *v6ports, p = 0;
+	unsigned int nv4ports, nv6ports, i4 = 0, i6 = 0;
+
+	nv4ports = isc_portset_nports(v4portset);
+	nv6ports = isc_portset_nports(v6portset);
+
+	v4ports = NULL;
+	if (nv4ports != 0) {
+		v4ports = isc_mem_get(mgr->mctx, sizeof(in_port_t) * nv4ports);
+	}
+	v6ports = NULL;
+	if (nv6ports != 0) {
+		v6ports = isc_mem_get(mgr->mctx, sizeof(in_port_t) * nv6ports);
+	}
+
+	do {
+		if (isc_portset_isset(v4portset, p)) {
+			INSIST(i4 < nv4ports);
+			v4ports[i4++] = p;
+		}
+		if (isc_portset_isset(v6portset, p)) {
+			INSIST(i6 < nv6ports);
+			v6ports[i6++] = p;
+		}
+	} while (p++ < 65535);
+	INSIST(i4 == nv4ports && i6 == nv6ports);
+
+	PORTBUFLOCK(mgr);
+	if (mgr->v4ports != NULL) {
+		isc_mem_put(mgr->mctx, mgr->v4ports,
+			    mgr->nv4ports * sizeof(in_port_t));
+	}
+	mgr->v4ports = v4ports;
+	mgr->nv4ports = nv4ports;
+
+	if (mgr->v6ports != NULL) {
+		isc_mem_put(mgr->mctx, mgr->v6ports,
+			    mgr->nv6ports * sizeof(in_port_t));
+	}
+	mgr->v6ports = v6ports;
+	mgr->nv6ports = nv6ports;
+	PORTBUFUNLOCK(mgr);
+
+	return (ISC_R_SUCCESS);
+}
+
 /*
  * Publics.
  */
@@ -1683,19 +1731,15 @@ dns_dispatchmgr_create(isc_mem_t *mctx, dns_dispatchmgr_t **mgrp) {
 
 	ISC_LIST_INIT(mgr->list);
 
-	/*
-	 * dns_dispatchmgr_setavailports() requires mgr to be valid,
-	 * so we set magic first and then set up the default port range.
-	 */
-	mgr->magic = DNS_DISPATCHMGR_MAGIC;
-
 	create_default_portset(mctx, &v4portset);
 	create_default_portset(mctx, &v6portset);
 
-	dns_dispatchmgr_setavailports(mgr, v4portset, v6portset);
+	setavailports(mgr, v4portset, v6portset);
 
 	isc_portset_destroy(mctx, &v4portset);
 	isc_portset_destroy(mctx, &v6portset);
+
+	mgr->magic = DNS_DISPATCHMGR_MAGIC;
 
 	*mgrp = mgr;
 	return (ISC_R_SUCCESS);
@@ -1719,55 +1763,8 @@ dns_dispatchmgr_getblackhole(dns_dispatchmgr_t *mgr) {
 isc_result_t
 dns_dispatchmgr_setavailports(dns_dispatchmgr_t *mgr, isc_portset_t *v4portset,
 			      isc_portset_t *v6portset) {
-	in_port_t *v4ports, *v6ports, p;
-	unsigned int nv4ports, nv6ports, i4, i6;
-
 	REQUIRE(VALID_DISPATCHMGR(mgr));
-
-	nv4ports = isc_portset_nports(v4portset);
-	nv6ports = isc_portset_nports(v6portset);
-
-	v4ports = NULL;
-	if (nv4ports != 0) {
-		v4ports = isc_mem_get(mgr->mctx, sizeof(in_port_t) * nv4ports);
-	}
-	v6ports = NULL;
-	if (nv6ports != 0) {
-		v6ports = isc_mem_get(mgr->mctx, sizeof(in_port_t) * nv6ports);
-	}
-
-	p = 0;
-	i4 = 0;
-	i6 = 0;
-	do {
-		if (isc_portset_isset(v4portset, p)) {
-			INSIST(i4 < nv4ports);
-			v4ports[i4++] = p;
-		}
-		if (isc_portset_isset(v6portset, p)) {
-			INSIST(i6 < nv6ports);
-			v6ports[i6++] = p;
-		}
-	} while (p++ < 65535);
-	INSIST(i4 == nv4ports && i6 == nv6ports);
-
-	PORTBUFLOCK(mgr);
-	if (mgr->v4ports != NULL) {
-		isc_mem_put(mgr->mctx, mgr->v4ports,
-			    mgr->nv4ports * sizeof(in_port_t));
-	}
-	mgr->v4ports = v4ports;
-	mgr->nv4ports = nv4ports;
-
-	if (mgr->v6ports != NULL) {
-		isc_mem_put(mgr->mctx, mgr->v6ports,
-			    mgr->nv6ports * sizeof(in_port_t));
-	}
-	mgr->v6ports = v6ports;
-	mgr->nv6ports = nv6ports;
-	PORTBUFUNLOCK(mgr);
-
-	return (ISC_R_SUCCESS);
+	return (setavailports(mgr, v4portset, v6portset));
 }
 
 static isc_result_t
