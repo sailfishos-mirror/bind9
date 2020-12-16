@@ -542,7 +542,7 @@ retrieve unknown keys.
 [4] Compliance is with loading and serving of A6 records only. A6 records were moved
 to the experimental category by :rfc:`3363`.
 
-[5] Minimally covering NSEC records are accepted but not generated.
+[5] Minimally Covering NSEC records are accepted but not generated.
 
 [6] BIND 9 interoperates with correctly designed experiments.
 

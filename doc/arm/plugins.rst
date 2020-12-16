@@ -14,7 +14,7 @@ Plugins
 -------
 
 Plugins are a mechanism to extend the functionality of ``named`` using
-dynamically loadable libraries. By using plugins, core server
+dynamically loadable libraries. By using plugins, the core server
 functionality can be kept simple for the majority of users; more complex
 code implementing optional features need only be installed by users that
 need those features.

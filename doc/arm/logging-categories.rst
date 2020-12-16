@@ -43,7 +43,7 @@
     Note: eventually ``named`` will have to stop treating such timeouts as due to :rfc:`1034` non-compliance and start treating it as plain packet loss. Falsely classifying packet loss as due to :rfc:`1034` non-compliance impacts DNSSEC validation, which requires EDNS for the DNSSEC records to be returned.
 
 ``general``
-    Catch-all for many things that still are not classified into categories.
+    A catch-all for many things that still are not classified into categories.
 
 ``lame-servers``
     Misconfigurations in remote servers, discovered by BIND 9 when trying to query those servers during resolution.
@@ -58,7 +58,7 @@
     NSID options received from upstream servers.
 
 ``queries``
-    Location where queries should be logged.
+    A location where queries should be logged.
     
     At startup, specifying the category ``queries`` also enables query logging unless the ``querylog`` option has been specified.
     
@@ -75,7 +75,7 @@
     Information about queries that resulted in some failure.
 
 ``rate-limit``
-    Start, periodic, and final notices of the rate limiting of a stream of responses that are logged at ``info`` severity in this category. These messages include a hash value of the domain name of the response and the name itself, except when there is insufficient memory to record the name for the final notice. The final notice is normally delayed until about one minute after rate limiting stops. A lack of memory can hurry the final notice, which is indicated by an initial asterisk (\*). Various internal events are logged at debug level 1 and higher.
+    Start, periodic, and final notices of the rate-limiting of a stream of responses that are logged at ``info`` severity in this category. These messages include a hash value of the domain name of the response and the name itself, except when there is insufficient memory to record the name for the final notice. The final notice is normally delayed until about one minute after rate limiting stops. A lack of memory can hurry the final notice, which is indicated by an initial asterisk (\*). Various internal events are logged at debug level 1 and higher.
     
     Rate limiting of individual requests is logged in the ``query-errors`` category.
 

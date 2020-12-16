@@ -72,7 +72,7 @@ All changes made to a zone using dynamic update are stored in the zone's
 journal file. This file is automatically created by the server when the
 first dynamic update takes place. The name of the journal file is formed
 by appending the extension ``.jnl`` to the name of the corresponding
-zone file, unless specifically overridden. The journal file is in a
+zone file unless specifically overridden. The journal file is in a
 binary format and should not be edited manually.
 
 The server also occasionally writes ("dumps") the complete contents
@@ -205,7 +205,7 @@ servers (``www.example.com`` and ``ftp.example.com``) and mail exchange
 (MX) records (``a.mx.example.com`` and ``b.mx.example.com``).
 
 In addition, the public ``site1.example.com`` and ``site2.example.com`` zones should
-have special MX records that contain wildcard (``*``) records pointing to
+have special MX records that contain a wildcard (``*``) records pointing to
 the bastion hosts. This is needed because external mail servers
 have no other way of determining how to deliver mail to those internal
 hosts. With the wildcard records, the mail is delivered to the
@@ -612,7 +612,7 @@ recommended that zone keys use a cryptographic algorithm designated as
 RSASHA256 and ECDSAP256SHA256; ECDSAP256SHA256 is recommended for
 current and future deployments.
 
-The following command generates a ECDSAP256SHA256 key for the
+The following command generates an ECDSAP256SHA256 key for the
 ``child.example`` zone:
 
 ``dnssec-keygen -a ECDSAP256SHA256 -n ZONE child.example.``
@@ -804,7 +804,7 @@ A6 records.
 For IPv6 reverse lookups, BIND 9 supports the traditional "nibble"
 format used in the ``ip6.arpa`` domain, as well as the older, deprecated
 ``ip6.int`` domain. Older versions of BIND 9 supported the "binary label"
-(also known as "bitstring") format, but support of binary labels has
+(also known as "bitstring") format, but the support of binary labels has
 been completely removed per :rfc:`3363`. Many applications in BIND 9 do not
 understand the binary label format at all anymore, and return an
 error if one is given. In particular, an authoritative BIND 9 name server will
@@ -834,7 +834,7 @@ Address-to-Name Lookups Using Nibble Format
 
 When looking up an address in nibble format, the address components are
 simply reversed, just as in IPv4, and ``ip6.arpa.`` is appended to the
-resulting name. For example, the following would provide reverse name
+resulting name. For example, the following would provide a reverse name
 lookup for a host with address ``2001:db8::1``:
 
 ::

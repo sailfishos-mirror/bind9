@@ -53,7 +53,7 @@ policy zone is configured as a normal zone and also listed in a
 
 To use the catalog zone feature to serve a new member zone:
 
--  Set up the the member zone to be served on the primary as normal. This
+-  Set up the member zone to be served on the primary as normal. This
    can be done by editing ``named.conf`` or by running
    ``rndc addzone``.
 
@@ -125,8 +125,8 @@ specified in any order.
    ``zone-directory`` is assumed to be relative to the working directory.
 
 ``min-update-interval``
-   This option sets the minimum interval between
-   processing of updates to catalog zones, in seconds. If an update to a
+   This option sets the minimum interval between the processing of
+   updates to catalog zones, in seconds. If an update to a
    catalog zone (for example, via IXFR) happens less than
    ``min-update-interval`` seconds after the most recent update, the
    changes are not carried out until this interval has elapsed. The

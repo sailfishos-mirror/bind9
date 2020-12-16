@@ -30,7 +30,7 @@ A Caching-only Name Server
 The following sample configuration is appropriate for a caching-only
 name server for use by clients internal to a corporation. All queries
 from outside clients are refused using the ``allow-query`` option.
-The same effect can be achieved using suitable firewall
+The same effect can be achieved using a suitable firewall
 rules.
 
 ::
