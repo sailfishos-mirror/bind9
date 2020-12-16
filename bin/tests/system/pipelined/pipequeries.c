@@ -211,7 +211,7 @@ main(int argc, char *argv[]) {
 	isc_timermgr_t *timermgr;
 	isc_socketmgr_t *socketmgr;
 	dns_dispatchmgr_t *dispatchmgr;
-	unsigned int attrs, attrmask;
+	unsigned int attrs;
 	dns_dispatch_t *dispatchv4;
 	dns_view_t *view;
 	uint16_t port = PORT;
@@ -290,12 +290,10 @@ main(int argc, char *argv[]) {
 
 	attrs = DNS_DISPATCHATTR_UDP | DNS_DISPATCHATTR_MAKEQUERY |
 		DNS_DISPATCHATTR_IPV4;
-	attrmask = DNS_DISPATCHATTR_UDP | DNS_DISPATCHATTR_TCP |
-		   DNS_DISPATCHATTR_IPV4 | DNS_DISPATCHATTR_IPV6;
 	dispatchv4 = NULL;
-	RUNCHECK(dns_dispatch_getudp(dispatchmgr, socketmgr, taskmgr,
-				     have_src ? &srcaddr : &bind_any, 4, 2, 3,
-				     5, attrs, attrmask, &dispatchv4));
+	RUNCHECK(dns_dispatch_createudp(dispatchmgr, socketmgr, taskmgr,
+					have_src ? &srcaddr : &bind_any, 4, 2,
+					3, 5, attrs, &dispatchv4));
 	requestmgr = NULL;
 	RUNCHECK(dns_requestmgr_create(mctx, timermgr, socketmgr, taskmgr,
 				       dispatchmgr, dispatchv4, NULL,
