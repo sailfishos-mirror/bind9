@@ -1366,10 +1366,10 @@ tcp_recv(isc_task_t *task, isc_event_t *ev_in) {
 	resp = entry_search(qid, &tcpmsg->address, id, disp->localport, bucket);
 	dispatch_log(disp, LVL(90), "search for response in bucket %d: %s",
 		     bucket, (resp == NULL ? "not found" : "found"));
-
 	if (resp == NULL) {
 		goto unlock;
 	}
+
 	queue_response = resp->item_out;
 	rev = allocate_devent(disp);
 
@@ -2417,8 +2417,8 @@ dns_dispatch_addresponse(dns_dispatch_t *disp, unsigned int options,
 	unsigned int bucket;
 	in_port_t localport = 0;
 	dns_messageid_t id;
-	int i;
-	bool ok;
+	int i = 0;
+	bool ok = false;
 	dns_qid_t *qid = NULL;
 	dispsocket_t *dispsocket = NULL;
 	isc_result_t result;
@@ -2492,21 +2492,22 @@ dns_dispatch_addresponse(dns_dispatch_t *disp, unsigned int options,
 	}
 
 	/*
-	 * Try somewhat hard to find a unique ID, unless
-	 * DNS_DISPATCHOPT_FIXEDID is set, in which case we
-	 * use the ID passed in via *idp.
+	 * Try somewhat hard to find a unique ID. Start with
+	 * a random number unless DNS_DISPATCHOPT_FIXEDID is set,
+	 * in which case we start with the ID passed in via *idp.
 	 */
-	LOCK(&qid->lock);
 	if ((options & DNS_DISPATCHOPT_FIXEDID) != 0) {
 		id = *idp;
 	} else {
 		id = (dns_messageid_t)isc_random16();
 	}
-	ok = false;
-	i = 0;
+
+	LOCK(&qid->lock);
 	do {
+		dns_dispentry_t *entry = NULL;
 		bucket = dns_hash(qid, dest, id, localport);
-		if (entry_search(qid, dest, id, localport, bucket) == NULL) {
+		entry = entry_search(qid, dest, id, localport, bucket);
+		if (entry == NULL) {
 			ok = true;
 			break;
 		}
