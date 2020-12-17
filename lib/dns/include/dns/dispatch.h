@@ -207,7 +207,6 @@ dns_dispatchmgr_setstats(dns_dispatchmgr_t *mgr, isc_stats_t *stats);
 isc_result_t
 dns_dispatch_createudp(dns_dispatchmgr_t *mgr, isc_socketmgr_t *sockmgr,
 		       isc_taskmgr_t *taskmgr, const isc_sockaddr_t *localaddr,
-		       unsigned int maxbuffers, unsigned int maxrequests,
 		       unsigned int buckets, unsigned int increment,
 		       unsigned int attributes, dns_dispatch_t **dispp);
 /*%<
@@ -238,7 +237,6 @@ isc_result_t
 dns_dispatch_createtcp(dns_dispatchmgr_t *mgr, isc_socket_t *sock,
 		       isc_taskmgr_t *taskmgr, const isc_sockaddr_t *localaddr,
 		       const isc_sockaddr_t *destaddr, unsigned int buffersize,
-		       unsigned int maxbuffers, unsigned int maxrequests,
 		       unsigned int buckets, unsigned int increment,
 		       unsigned int attributes, dns_dispatch_t **dispp);
 /*%<
