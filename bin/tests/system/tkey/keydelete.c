@@ -139,7 +139,6 @@ main(int argc, char **argv) {
 	isc_timermgr_t *timermgr;
 	isc_socketmgr_t *socketmgr;
 	isc_socket_t *sock;
-	unsigned int attrs;
 	isc_sockaddr_t bind_any;
 	dns_dispatchmgr_t *dispatchmgr;
 	dns_dispatch_t *dispatchv4;
@@ -188,10 +187,9 @@ main(int argc, char **argv) {
 	dispatchmgr = NULL;
 	RUNCHECK(dns_dispatchmgr_create(mctx, &dispatchmgr));
 	isc_sockaddr_any(&bind_any);
-	attrs = DNS_DISPATCHATTR_UDP | DNS_DISPATCHATTR_IPV4;
 	dispatchv4 = NULL;
 	RUNCHECK(dns_dispatch_getudp(dispatchmgr, socketmgr, taskmgr, &bind_any,
-				     4, 2, 3, 5, attrs, &dispatchv4));
+				     4, 2, 3, 5, 0, &dispatchv4));
 	requestmgr = NULL;
 	RUNCHECK(dns_requestmgr_create(mctx, timermgr, socketmgr, taskmgr,
 				       dispatchmgr, dispatchv4, NULL,

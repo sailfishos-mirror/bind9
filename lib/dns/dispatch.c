@@ -111,8 +111,6 @@ struct dns_dispatchmgr {
 #define MGR_SHUTTINGDOWN       0x00000001U
 #define MGR_IS_SHUTTINGDOWN(l) (((l)->state & MGR_SHUTTINGDOWN) != 0)
 
-#define IS_PRIVATE(d) (((d)->attributes & DNS_DISPATCHATTR_PRIVATE) != 0)
-
 struct dns_dispentry {
 	unsigned int magic;
 	dns_dispatch_t *disp;
@@ -1795,7 +1793,8 @@ dispatchmgr_setudp(dns_dispatchmgr_t *mgr, unsigned int maxbuffers,
 		maxbuffers = 8;
 	}
 
-	/* Adjust buffer pool if needed
+	/*
+	 * Adjust buffer pool if needed
 	 *
 	 * We only increase maxbuffers to avoid accidental buffer
 	 * shortage.  Ideally we'd separate the manager-wide maximum
@@ -2015,18 +2014,16 @@ dns_dispatch_createtcp(dns_dispatchmgr_t *mgr, isc_socket_t *sock,
 		       unsigned int attributes, dns_dispatch_t **dispp) {
 	isc_result_t result;
 	dns_dispatch_t *disp = NULL;
+	int pf;
 
 	UNUSED(maxbuffers);
 	UNUSED(buffersize);
 
 	REQUIRE(VALID_DISPATCHMGR(mgr));
 	REQUIRE(isc_socket_gettype(sock) == isc_sockettype_tcp);
-	REQUIRE((attributes & DNS_DISPATCHATTR_TCP) != 0);
-	REQUIRE((attributes & DNS_DISPATCHATTR_UDP) == 0);
 
-	if (destaddr == NULL) {
-		attributes |= DNS_DISPATCHATTR_PRIVATE; /* XXXMLG */
-	}
+	attributes |= DNS_DISPATCHATTR_TCP;
+	attributes &= ~DNS_DISPATCHATTR_UDP;
 
 	LOCK(&mgr->lock);
 
@@ -2066,17 +2063,18 @@ dns_dispatch_createtcp(dns_dispatchmgr_t *mgr, isc_socket_t *sock,
 	dns_tcpmsg_init(mgr->mctx, disp->socket, &disp->tcpmsg);
 	disp->tcpmsg_valid = 1;
 
-	disp->attributes = attributes;
-
 	if (destaddr == NULL) {
 		(void)isc_socket_getpeername(sock, &disp->peer);
+		attributes |= DNS_DISPATCHATTR_PRIVATE;
 	} else {
 		disp->peer = *destaddr;
 	}
 
+	pf = isc_sockaddr_pf(&disp->peer);
+
 	if (localaddr == NULL) {
 		if (destaddr != NULL) {
-			switch (isc_sockaddr_pf(destaddr)) {
+			switch (pf) {
 			case AF_INET:
 				isc_sockaddr_any(&disp->local);
 				break;
@@ -2090,6 +2088,22 @@ dns_dispatch_createtcp(dns_dispatchmgr_t *mgr, isc_socket_t *sock,
 	} else {
 		disp->local = *localaddr;
 	}
+
+	switch (pf) {
+	case PF_INET:
+		attributes |= DNS_DISPATCHATTR_IPV4;
+		break;
+
+	case PF_INET6:
+		attributes |= DNS_DISPATCHATTR_IPV6;
+		break;
+
+	default:
+		result = ISC_R_NOTIMPLEMENTED;
+		goto kill_socket;
+	}
+
+	disp->attributes = attributes;
 
 	/*
 	 * Append it to the dispatcher list.
@@ -2215,7 +2229,9 @@ dns_dispatch_createudp(dns_dispatchmgr_t *mgr, isc_socketmgr_t *sockmgr,
 	REQUIRE(buckets < 2097169); /* next prime > 65536 * 32 */
 	REQUIRE(increment > buckets);
 	REQUIRE(dispp != NULL && *dispp == NULL);
-	REQUIRE((attributes & DNS_DISPATCHATTR_TCP) == 0);
+
+	attributes |= DNS_DISPATCHATTR_UDP;
+	attributes &= ~DNS_DISPATCHATTR_TCP;
 
 	result = dispatchmgr_setudp(mgr, maxbuffers, maxrequests, buckets,
 				    increment);
@@ -2246,7 +2262,7 @@ dispatch_createudp(dns_dispatchmgr_t *mgr, isc_socketmgr_t *sockmgr,
 	dns_dispatch_t *disp = NULL;
 	isc_socket_t *sock = NULL;
 	isc_sockaddr_t sa_any;
-	int i = 0;
+	int pf, i = 0;
 
 	/*
 	 * dispatch_allocate() checks mgr for us.
@@ -2257,6 +2273,8 @@ dispatch_createudp(dns_dispatchmgr_t *mgr, isc_socketmgr_t *sockmgr,
 		return (result);
 	}
 
+	pf = isc_sockaddr_pf(localaddr);
+
 	disp->socktype = isc_sockettype_udp;
 
 	/*
@@ -2265,7 +2283,7 @@ dispatch_createudp(dns_dispatchmgr_t *mgr, isc_socketmgr_t *sockmgr,
 	 * but we don't keep it open; sockets used for sending requests
 	 * will be created later on demand.
 	 */
-	isc_sockaddr_anyofpf(&sa_any, isc_sockaddr_pf(localaddr));
+	isc_sockaddr_anyofpf(&sa_any, pf);
 	if (!isc_sockaddr_eqaddr(&sa_any, localaddr)) {
 		result = open_socket(sockmgr, localaddr, 0, &sock, NULL);
 		if (sock != NULL) {
@@ -2329,6 +2347,21 @@ dispatch_createudp(dns_dispatchmgr_t *mgr, isc_socketmgr_t *sockmgr,
 
 	attributes &= ~DNS_DISPATCHATTR_TCP;
 	attributes |= DNS_DISPATCHATTR_UDP;
+
+	switch (pf) {
+	case PF_INET:
+		attributes |= DNS_DISPATCHATTR_IPV4;
+		break;
+
+	case PF_INET6:
+		attributes |= DNS_DISPATCHATTR_IPV6;
+		break;
+
+	default:
+		result = ISC_R_NOTIMPLEMENTED;
+		goto kill_socket;
+	}
+
 	disp->attributes = attributes;
 
 	/*
