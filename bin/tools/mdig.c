@@ -2152,8 +2152,8 @@ main(int argc, char *argv[]) {
 		isc_sockaddr_any6(&bind_any);
 	}
 	RUNCHECK(dns_dispatch_createudp(dispatchmgr, socketmgr, taskmgr,
-					have_src ? &srcaddr : &bind_any, 100,
-					100, 17, 19, 0, &dispatchvx));
+					have_src ? &srcaddr : &bind_any, 17, 19,
+					0, &dispatchvx));
 	requestmgr = NULL;
 	RUNCHECK(dns_requestmgr_create(
 		mctx, timermgr, socketmgr, taskmgr, dispatchmgr,

@@ -536,9 +536,9 @@ tcp_dispatch(bool newtcp, dns_requestmgr_t *requestmgr,
 	}
 
 	isc_socket_dscp(sock, dscp);
-	result = dns_dispatch_createtcp(
-		requestmgr->dispatchmgr, sock, requestmgr->taskmgr, srcaddr,
-		destaddr, 4096, 32768, 32768, 16411, 16433, 0, dispatchp);
+	result = dns_dispatch_createtcp(requestmgr->dispatchmgr, sock,
+					requestmgr->taskmgr, srcaddr, destaddr,
+					4096, 16411, 16433, 0, dispatchp);
 
 cleanup:
 	isc_socket_detach(&sock);
@@ -570,10 +570,9 @@ udp_dispatch(dns_requestmgr_t *requestmgr, const isc_sockaddr_t *srcaddr,
 		return (ISC_R_SUCCESS);
 	}
 
-	return (dns_dispatch_createudp(requestmgr->dispatchmgr,
-				       requestmgr->socketmgr,
-				       requestmgr->taskmgr, srcaddr, 32768,
-				       32768, 16411, 16433, 0, dispatchp));
+	return (dns_dispatch_createudp(
+		requestmgr->dispatchmgr, requestmgr->socketmgr,
+		requestmgr->taskmgr, srcaddr, 16411, 16433, 0, dispatchp));
 }
 
 static isc_result_t

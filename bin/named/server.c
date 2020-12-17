@@ -161,10 +161,8 @@
 
 #ifdef TUNE_LARGE
 #define RESOLVER_NTASKS_PERCPU 32
-#define UDPBUFFERS	       32768
 #else
 #define RESOLVER_NTASKS_PERCPU 8
-#define UDPBUFFERS	       4096
 #endif /* TUNE_LARGE */
 
 #define MAX_TCP_TIMEOUT 65535
@@ -1250,7 +1248,6 @@ get_view_querysource_dispatch(const cfg_obj_t **maps, int af,
 	isc_sockaddr_t sa;
 	unsigned int attrs = 0;
 	const cfg_obj_t *obj = NULL;
-	unsigned int maxdispatchbuffers = UDPBUFFERS;
 	isc_dscp_t dscp = -1;
 
 	switch (af) {
@@ -1306,9 +1303,9 @@ get_view_querysource_dispatch(const cfg_obj_t **maps, int af,
 		}
 	}
 
-	result = dns_dispatch_createudp(
-		named_g_dispatchmgr, named_g_socketmgr, named_g_taskmgr, &sa,
-		maxdispatchbuffers, 32768, 16411, 16433, attrs, &disp);
+	result = dns_dispatch_createudp(named_g_dispatchmgr, named_g_socketmgr,
+					named_g_taskmgr, &sa, 16411, 16433,
+					attrs, &disp);
 	if (result != ISC_R_SUCCESS) {
 		isc_sockaddr_t any;
 		char buf[ISC_SOCKADDR_FORMATSIZE];
@@ -10402,9 +10399,8 @@ named_add_reserved_dispatch(named_server_t *server,
 	dispatch->dispatch = NULL;
 
 	result = dns_dispatch_createudp(named_g_dispatchmgr, named_g_socketmgr,
-					named_g_taskmgr, &dispatch->addr,
-					UDPBUFFERS, 32768, 16411, 16433, attrs,
-					&dispatch->dispatch);
+					named_g_taskmgr, &dispatch->addr, 16411,
+					16433, attrs, &dispatch->dispatch);
 	if (result != ISC_R_SUCCESS) {
 		goto cleanup;
 	}

@@ -289,8 +289,8 @@ main(int argc, char *argv[]) {
 
 	dispatchv4 = NULL;
 	RUNCHECK(dns_dispatch_createudp(dispatchmgr, socketmgr, taskmgr,
-					have_src ? &srcaddr : &bind_any, 4, 2,
-					3, 5, 0, &dispatchv4));
+					have_src ? &srcaddr : &bind_any, 3, 5,
+					0, &dispatchv4));
 	requestmgr = NULL;
 	RUNCHECK(dns_requestmgr_create(mctx, timermgr, socketmgr, taskmgr,
 				       dispatchmgr, dispatchv4, NULL,

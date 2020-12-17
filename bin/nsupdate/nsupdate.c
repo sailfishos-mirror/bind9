@@ -943,7 +943,7 @@ setup_system(void) {
 	if (have_ipv6) {
 		isc_sockaddr_any6(&bind_any6);
 		result = dns_dispatch_createudp(dispatchmgr, socketmgr, taskmgr,
-						&bind_any6, 4, 2, 3, 5, 0,
+						&bind_any6, 3, 5, 0,
 						&dispatchv6);
 		check_result(result, "dns_dispatch_createudp (v6)");
 	}
@@ -951,7 +951,7 @@ setup_system(void) {
 	if (have_ipv4) {
 		isc_sockaddr_any(&bind_any);
 		result = dns_dispatch_createudp(dispatchmgr, socketmgr, taskmgr,
-						&bind_any, 4, 2, 3, 5, 0,
+						&bind_any, 3, 5, 0,
 						&dispatchv4);
 		check_result(result, "dns_dispatch_createudp (v4)");
 	}
