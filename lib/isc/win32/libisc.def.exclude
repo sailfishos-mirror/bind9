@@ -10,7 +10,6 @@ isc_socket_connect
 isc_socket_create
 isc_socket_detach
 isc_socket_dscp
-isc_socket_dup
 isc_socket_fdwatchcreate
 isc_socket_fdwatchpoke
 isc_socket_filter

@@ -310,8 +310,7 @@ static void
 qid_destroy(isc_mem_t *mctx, dns_qid_t **qidp);
 static isc_result_t
 open_socket(isc_socketmgr_t *mgr, const isc_sockaddr_t *local,
-	    unsigned int options, isc_socket_t **sockp,
-	    isc_socket_t *dup_socket);
+	    unsigned int options, isc_socket_t **sockp);
 
 #define LVL(x) ISC_LOG_DEBUG(x)
 
@@ -644,7 +643,7 @@ get_dispsocket(dns_dispatch_t *disp, const isc_sockaddr_t *dest,
 		}
 		UNLOCK(&qid->lock);
 		result = open_socket(sockmgr, &localaddr,
-				     ISC_SOCKET_REUSEADDRESS, &sock, NULL);
+				     ISC_SOCKET_REUSEADDRESS, &sock);
 		if (result == ISC_R_SUCCESS) {
 			break;
 		} else if (result == ISC_R_NOPERM) {
@@ -1463,8 +1462,7 @@ destroy_mgr(dns_dispatchmgr_t **mgrp) {
 
 static isc_result_t
 open_socket(isc_socketmgr_t *mgr, const isc_sockaddr_t *local,
-	    unsigned int options, isc_socket_t **sockp,
-	    isc_socket_t *dup_socket) {
+	    unsigned int options, isc_socket_t **sockp) {
 	isc_socket_t *sock = NULL;
 	isc_result_t result;
 
@@ -1474,15 +1472,6 @@ open_socket(isc_socketmgr_t *mgr, const isc_sockaddr_t *local,
 		if (result != ISC_R_SUCCESS) {
 			return (result);
 		}
-	} else if (dup_socket != NULL && !isc_socket_hasreuseport()) {
-		result = isc_socket_dup(dup_socket, &sock);
-		if (result != ISC_R_SUCCESS) {
-			return (result);
-		}
-
-		isc_socket_setname(sock, "dispatcher", NULL);
-		*sockp = sock;
-		return (ISC_R_SUCCESS);
 	} else {
 		result = isc_socket_create(mgr, isc_sockaddr_pf(local),
 					   isc_sockettype_udp, &sock);
@@ -2073,7 +2062,7 @@ dispatch_createudp(dns_dispatchmgr_t *mgr, isc_socketmgr_t *sockmgr,
 	 */
 	isc_sockaddr_anyofpf(&sa_any, pf);
 	if (!isc_sockaddr_eqaddr(&sa_any, localaddr)) {
-		result = open_socket(sockmgr, localaddr, 0, &sock, NULL);
+		result = open_socket(sockmgr, localaddr, 0, &sock);
 		if (sock != NULL) {
 			isc_socket_detach(&sock);
 		}

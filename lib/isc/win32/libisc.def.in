@@ -77,7 +77,6 @@ isc_socket_connect
 isc_socket_create
 isc_socket_detach
 isc_socket_dscp
-isc_socket_dup
 isc_socket_filter
 isc_socket_getfd
 isc_socket_getname
