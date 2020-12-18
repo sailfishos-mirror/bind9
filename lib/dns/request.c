@@ -538,7 +538,7 @@ tcp_dispatch(bool newtcp, dns_requestmgr_t *requestmgr,
 	isc_socket_dscp(sock, dscp);
 	result = dns_dispatch_createtcp(requestmgr->dispatchmgr, sock,
 					requestmgr->taskmgr, srcaddr, destaddr,
-					4096, 0, dispatchp);
+					0, dispatchp);
 
 cleanup:
 	isc_socket_detach(&sock);
