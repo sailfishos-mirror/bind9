@@ -642,6 +642,7 @@ get_dispsocket(dns_dispatch_t *disp, const isc_sockaddr_t *dest,
 			continue;
 		}
 		UNLOCK(&qid->lock);
+
 		result = open_socket(sockmgr, &localaddr,
 				     ISC_SOCKET_REUSEADDRESS, &sock);
 		if (result == ISC_R_SUCCESS) {
@@ -1748,8 +1749,9 @@ qid_destroy(isc_mem_t *mctx, dns_qid_t **qidp) {
 /*
  * Allocate and set important limits.
  */
-static isc_result_t
-dispatch_allocate(dns_dispatchmgr_t *mgr, dns_dispatch_t **dispp) {
+static void
+dispatch_allocate(dns_dispatchmgr_t *mgr, isc_sockettype_t type, int pf,
+		  unsigned int attributes, dns_dispatch_t **dispp) {
 	dns_dispatch_t *disp = NULL;
 
 	REQUIRE(VALID_DISPATCHMGR(mgr));
@@ -1762,18 +1764,50 @@ dispatch_allocate(dns_dispatchmgr_t *mgr, dns_dispatch_t **dispp) {
 
 	disp = isc_mempool_get(mgr->dpool);
 	*disp = (dns_dispatch_t){ .mgr = mgr,
+				  .socktype = type,
 				  .shutdown_why = ISC_R_UNEXPECTED };
 	isc_refcount_init(&disp->refcount, 1);
 	ISC_LINK_INIT(disp, link);
 	ISC_LIST_INIT(disp->activesockets);
 	ISC_LIST_INIT(disp->inactivesockets);
 
+	switch (type) {
+	case isc_sockettype_tcp:
+		disp->attributes |= DNS_DISPATCHATTR_TCP;
+		break;
+	case isc_sockettype_udp:
+		disp->attributes |= DNS_DISPATCHATTR_UDP;
+		break;
+	default:
+		INSIST(0);
+		ISC_UNREACHABLE();
+	}
+
+	switch (pf) {
+	case PF_INET:
+		disp->attributes |= DNS_DISPATCHATTR_IPV4;
+		break;
+	case PF_INET6:
+		disp->attributes |= DNS_DISPATCHATTR_IPV6;
+		break;
+	default:
+		INSIST(0);
+		ISC_UNREACHABLE();
+	}
+
+	/*
+	 * Set whatever attributes were passed in that haven't been
+	 * reset automatically by the code above.
+	 */
+	attributes &= ~(DNS_DISPATCHATTR_UDP | DNS_DISPATCHATTR_TCP |
+			DNS_DISPATCHATTR_IPV4 | DNS_DISPATCHATTR_IPV6);
+	disp->attributes |= attributes;
+
 	isc_mutex_init(&disp->lock);
 	disp->failsafe_ev = allocate_devent(disp);
 	disp->magic = DISPATCH_MAGIC;
 
 	*dispp = disp;
-	return (ISC_R_SUCCESS);
 }
 
 /*
@@ -1812,30 +1846,38 @@ dispatch_free(dns_dispatch_t **dispp) {
 }
 
 isc_result_t
-dns_dispatch_createtcp(dns_dispatchmgr_t *mgr, isc_socket_t *sock,
+dns_dispatch_createtcp(dns_dispatchmgr_t *mgr, isc_socketmgr_t *sockmgr,
 		       isc_taskmgr_t *taskmgr, const isc_sockaddr_t *localaddr,
 		       const isc_sockaddr_t *destaddr, unsigned int attributes,
-		       dns_dispatch_t **dispp) {
+		       isc_dscp_t dscp, dns_dispatch_t **dispp) {
 	isc_result_t result;
 	dns_dispatch_t *disp = NULL;
+	isc_sockaddr_t src;
 	int pf;
 
 	REQUIRE(VALID_DISPATCHMGR(mgr));
-	REQUIRE(isc_socket_gettype(sock) == isc_sockettype_tcp);
-
-	attributes |= DNS_DISPATCHATTR_TCP;
-	attributes &= ~DNS_DISPATCHATTR_UDP;
+	REQUIRE(sockmgr != NULL);
+	REQUIRE(destaddr != NULL);
 
 	LOCK(&mgr->lock);
 
-	result = dispatch_allocate(mgr, &disp);
-	if (result != ISC_R_SUCCESS) {
-		UNLOCK(&mgr->lock);
-		return (result);
-	}
+	pf = isc_sockaddr_pf(destaddr);
+	dispatch_allocate(mgr, isc_sockettype_tcp, pf, attributes, &disp);
 
-	disp->socktype = isc_sockettype_tcp;
-	isc_socket_attach(sock, &disp->socket);
+	disp->peer = *destaddr;
+
+	if (localaddr != NULL) {
+		disp->local = *localaddr;
+	} else {
+		switch (pf) {
+		case AF_INET:
+			isc_sockaddr_any(&disp->local);
+			break;
+		case AF_INET6:
+			isc_sockaddr_any6(&disp->local);
+			break;
+		}
+	}
 
 	disp->ntasks = 1;
 	disp->task[0] = NULL;
@@ -1843,6 +1885,26 @@ dns_dispatch_createtcp(dns_dispatchmgr_t *mgr, isc_socket_t *sock,
 	if (result != ISC_R_SUCCESS) {
 		goto cleanup;
 	}
+
+	result = isc_socket_create(sockmgr, isc_sockaddr_pf(destaddr),
+				   isc_sockettype_tcp, &disp->socket);
+	if (result != ISC_R_SUCCESS) {
+		goto cleanup;
+	}
+
+	if (localaddr == NULL) {
+		isc_sockaddr_anyofpf(&src, pf);
+	} else {
+		src = *localaddr;
+		isc_sockaddr_setport(&src, 0);
+	}
+
+	result = isc_socket_bind(disp->socket, &src, 0);
+	if (result != ISC_R_SUCCESS) {
+		goto cleanup;
+	}
+
+	isc_socket_dscp(disp->socket, dscp);
 
 	disp->ctlevent =
 		isc_event_allocate(mgr->mctx, disp, DNS_EVENT_DISPATCHCONTROL,
@@ -1852,48 +1914,6 @@ dns_dispatch_createtcp(dns_dispatchmgr_t *mgr, isc_socket_t *sock,
 
 	dns_tcpmsg_init(mgr->mctx, disp->socket, &disp->tcpmsg);
 	disp->tcpmsg_valid = 1;
-
-	if (destaddr == NULL) {
-		(void)isc_socket_getpeername(sock, &disp->peer);
-		attributes |= DNS_DISPATCHATTR_PRIVATE;
-	} else {
-		disp->peer = *destaddr;
-	}
-
-	pf = isc_sockaddr_pf(&disp->peer);
-
-	if (localaddr == NULL) {
-		if (destaddr != NULL) {
-			switch (pf) {
-			case AF_INET:
-				isc_sockaddr_any(&disp->local);
-				break;
-			case AF_INET6:
-				isc_sockaddr_any6(&disp->local);
-				break;
-			}
-		} else {
-			(void)isc_socket_getsockname(sock, &disp->local);
-		}
-	} else {
-		disp->local = *localaddr;
-	}
-
-	switch (pf) {
-	case PF_INET:
-		attributes |= DNS_DISPATCHATTR_IPV4;
-		break;
-
-	case PF_INET6:
-		attributes |= DNS_DISPATCHATTR_IPV6;
-		break;
-
-	default:
-		result = ISC_R_NOTIMPLEMENTED;
-		goto cleanup;
-	}
-
-	disp->attributes = attributes;
 
 	/*
 	 * Append it to the dispatcher list.
@@ -1998,6 +2018,7 @@ dns_dispatch_gettcp(dns_dispatchmgr_t *mgr, const isc_sockaddr_t *destaddr,
 		disp = ISC_LIST_NEXT(disp, link);
 	}
 	UNLOCK(&mgr->lock);
+
 	return (match ? ISC_R_SUCCESS : ISC_R_NOTFOUND);
 }
 
@@ -2014,21 +2035,15 @@ dns_dispatch_createudp(dns_dispatchmgr_t *mgr, isc_socketmgr_t *sockmgr,
 	REQUIRE(taskmgr != NULL);
 	REQUIRE(dispp != NULL && *dispp == NULL);
 
-	attributes |= DNS_DISPATCHATTR_UDP;
-	attributes &= ~DNS_DISPATCHATTR_TCP;
-
 	LOCK(&mgr->lock);
 	result = dispatch_createudp(mgr, sockmgr, taskmgr, localaddr,
 				    attributes, &disp);
-	if (result != ISC_R_SUCCESS) {
-		UNLOCK(&mgr->lock);
-		return (result);
+	if (result == ISC_R_SUCCESS) {
+		*dispp = disp;
 	}
-
 	UNLOCK(&mgr->lock);
-	*dispp = disp;
 
-	return (ISC_R_SUCCESS);
+	return (result);
 }
 
 static isc_result_t
@@ -2041,18 +2056,8 @@ dispatch_createudp(dns_dispatchmgr_t *mgr, isc_socketmgr_t *sockmgr,
 	isc_sockaddr_t sa_any;
 	int pf, i = 0;
 
-	/*
-	 * dispatch_allocate() checks mgr for us.
-	 */
-	disp = NULL;
-	result = dispatch_allocate(mgr, &disp);
-	if (result != ISC_R_SUCCESS) {
-		return (result);
-	}
-
 	pf = isc_sockaddr_pf(localaddr);
-
-	disp->socktype = isc_sockettype_udp;
+	dispatch_allocate(mgr, isc_sockettype_udp, pf, attributes, &disp);
 
 	/*
 	 * For dispatches with a specified source address, we open a
@@ -2110,25 +2115,6 @@ dispatch_createudp(dns_dispatchmgr_t *mgr, isc_socketmgr_t *sockmgr,
 	isc_mempool_setfreemax(disp->sepool, 32768);
 	isc_mempool_associatelock(disp->sepool, &disp->sepool_lock);
 	isc_mempool_setfillcount(disp->sepool, 16);
-
-	attributes &= ~DNS_DISPATCHATTR_TCP;
-	attributes |= DNS_DISPATCHATTR_UDP;
-
-	switch (pf) {
-	case PF_INET:
-		attributes |= DNS_DISPATCHATTR_IPV4;
-		break;
-
-	case PF_INET6:
-		attributes |= DNS_DISPATCHATTR_IPV6;
-		break;
-
-	default:
-		result = ISC_R_NOTIMPLEMENTED;
-		goto kill_socket;
-	}
-
-	disp->attributes = attributes;
 
 	/*
 	 * Append it to the dispatcher list.
