@@ -307,10 +307,8 @@ cleanup:
 static isc_result_t
 getudpdispatch(int family, dns_dispatchmgr_t *dispatchmgr,
 	       isc_socketmgr_t *socketmgr, isc_taskmgr_t *taskmgr,
-	       bool is_shared, dns_dispatch_t **dispp,
-	       const isc_sockaddr_t *localaddr) {
+	       dns_dispatch_t **dispp, const isc_sockaddr_t *localaddr) {
 	dns_dispatch_t *disp = NULL;
-	unsigned buckets, increment;
 	isc_result_t result;
 	isc_sockaddr_t anyaddr;
 
@@ -319,12 +317,8 @@ getudpdispatch(int family, dns_dispatchmgr_t *dispatchmgr,
 		localaddr = &anyaddr;
 	}
 
-	buckets = is_shared ? 16411 : 3;
-	increment = is_shared ? 16433 : 5;
-
 	result = dns_dispatch_createudp(dispatchmgr, socketmgr, taskmgr,
-					localaddr, buckets, increment, 0,
-					&disp);
+					localaddr, 0, &disp);
 	if (result == ISC_R_SUCCESS) {
 		*dispp = disp;
 	}
@@ -500,7 +494,7 @@ dns_client_createx(isc_mem_t *mctx, isc_appctx_t *actx, isc_taskmgr_t *taskmgr,
 	client->dispatchv4 = NULL;
 	if (localaddr4 != NULL || localaddr6 == NULL) {
 		result = getudpdispatch(AF_INET, dispatchmgr, socketmgr,
-					taskmgr, true, &dispatchv4, localaddr4);
+					taskmgr, &dispatchv4, localaddr4);
 		if (result == ISC_R_SUCCESS) {
 			client->dispatchv4 = dispatchv4;
 		}
@@ -509,7 +503,7 @@ dns_client_createx(isc_mem_t *mctx, isc_appctx_t *actx, isc_taskmgr_t *taskmgr,
 	client->dispatchv6 = NULL;
 	if (localaddr6 != NULL || localaddr4 == NULL) {
 		result = getudpdispatch(AF_INET6, dispatchmgr, socketmgr,
-					taskmgr, true, &dispatchv6, localaddr6);
+					taskmgr, &dispatchv6, localaddr6);
 		if (result == ISC_R_SUCCESS) {
 			client->dispatchv6 = dispatchv6;
 		}

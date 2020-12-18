@@ -188,8 +188,8 @@ main(int argc, char **argv) {
 	RUNCHECK(dns_dispatchmgr_create(mctx, &dispatchmgr));
 	isc_sockaddr_any(&bind_any);
 	dispatchv4 = NULL;
-	RUNCHECK(dns_dispatch_getudp(dispatchmgr, socketmgr, taskmgr, &bind_any,
-				     3, 5, 0, &dispatchv4));
+	RUNCHECK(dns_dispatch_createudp(dispatchmgr, socketmgr, taskmgr,
+					&bind_any, 0, &dispatchv4));
 	requestmgr = NULL;
 	RUNCHECK(dns_requestmgr_create(mctx, timermgr, socketmgr, taskmgr,
 				       dispatchmgr, dispatchv4, NULL,
