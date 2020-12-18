@@ -273,8 +273,7 @@ struct isc_socket {
 	unsigned int listener : 1,		    /* listener socket */
 		connected : 1, pending_connect : 1, /* connect
 						     * pending */
-		bound  : 1,			    /* bound to local addr */
-		dupped : 1;	     /* created by isc_socket_dup() */
+		bound : 1;			    /* bound to local addr */
 	unsigned int pending_iocp;   /* Should equal the counters below.
 				      * Debug. */
 	unsigned int pending_recv;   /* Number of outstanding recv() calls.
@@ -358,7 +357,7 @@ enum { SOCKET_RECV, SOCKET_SEND, SOCKET_ACCEPT, SOCKET_CONNECT };
 
 static isc_result_t
 socket_create(isc_socketmgr_t *manager0, int pf, isc_sockettype_t type,
-	      isc_socket_t **socketp, isc_socket_t *dup_socket);
+	      isc_socket_t **socketp);
 static isc_threadresult_t WINAPI
 SocketIoThread(LPVOID ThreadContext);
 static void
@@ -1399,7 +1398,6 @@ allocate_socket(isc_socketmgr_t *manager, isc_sockettype_t type,
 	sock->connected = 0;
 	sock->pending_connect = 0;
 	sock->bound = 0;
-	sock->dupped = 0;
 	memset(sock->name, 0, sizeof(sock->name)); /* zero the name field */
 	_set_state(sock, SOCK_INITIALIZED);
 
@@ -1549,7 +1547,7 @@ free_socket(isc_socket_t **sockp, int lineno) {
  */
 static isc_result_t
 socket_create(isc_socketmgr_t *manager, int pf, isc_sockettype_t type,
-	      isc_socket_t **socketp, isc_socket_t *dup_socket) {
+	      isc_socket_t **socketp) {
 	isc_socket_t *sock = NULL;
 	isc_result_t result;
 #if defined(USE_CMSG)
@@ -1701,29 +1699,6 @@ socket_create(isc_socketmgr_t *manager, int pf, isc_sockettype_t type,
 
 	iocompletionport_update(sock);
 
-	if (dup_socket) {
-#ifndef ISC_ALLOW_MAPPED
-		isc_socket_ipv6only(sock, true);
-#endif /* ifndef ISC_ALLOW_MAPPED */
-
-		if (dup_socket->bound) {
-			isc_sockaddr_t local;
-
-			result = isc_socket_getsockname(dup_socket, &local);
-			if (result != ISC_R_SUCCESS) {
-				isc_socket_close(sock);
-				return (result);
-			}
-			result = isc_socket_bind(sock, &local,
-						 ISC_SOCKET_REUSEADDRESS);
-			if (result != ISC_R_SUCCESS) {
-				isc_socket_close(sock);
-				return (result);
-			}
-		}
-		sock->dupped = 1;
-	}
-
 	/*
 	 * Note we don't have to lock the socket like we normally would because
 	 * there are no external references to it yet.
@@ -1743,15 +1718,6 @@ isc_result_t
 isc_socket_create(isc_socketmgr_t *manager, int pf, isc_sockettype_t type,
 		  isc_socket_t **socketp) {
 	return (socket_create(manager, pf, type, socketp, NULL));
-}
-
-isc_result_t
-isc_socket_dup(isc_socket_t *sock, isc_socket_t **socketp) {
-	REQUIRE(VALID_SOCKET(sock));
-	REQUIRE(socketp != NULL && *socketp == NULL);
-
-	return (socket_create(sock->manager, sock->pf, sock->type, socketp,
-			      sock));
 }
 
 isc_result_t
@@ -2981,7 +2947,6 @@ isc_socket_bind(isc_socket_t *sock, const isc_sockaddr_t *sockaddr,
 	}
 
 	INSIST(!sock->bound);
-	INSIST(!sock->dupped);
 
 	if (sock->pf != sockaddr->type.sa.sa_family) {
 		UNLOCK(&sock->lock);
