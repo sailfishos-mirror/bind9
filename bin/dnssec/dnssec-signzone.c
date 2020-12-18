@@ -131,8 +131,9 @@ static int jitter = 0;
 static bool tryverify = false;
 static bool printstats = false;
 static isc_mem_t *mctx = NULL;
-static dns_ttl_t zone_soa_min_ttl;
+static dns_ttl_t zone_soa_minimum;
 static dns_ttl_t soa_ttl;
+static dns_ttl_t nsec_ttl;
 static FILE *outfp = NULL;
 static char *tempfile = NULL;
 static const dns_master_style_t *masterstyle;
@@ -1334,10 +1335,11 @@ get_soa_ttls(void) {
 	result = dns_rdataset_first(&soaset);
 	check_result(result, "dns_rdataset_first");
 	dns_rdataset_current(&soaset, &rdata);
-	zone_soa_min_ttl = dns_soa_getminimum(&rdata);
+	zone_soa_minimum = dns_soa_getminimum(&rdata);
 	soa_ttl = soaset.ttl;
+	nsec_ttl = ISC_MIN(zone_soa_minimum, soa_ttl);
 	if (set_maxttl) {
-		zone_soa_min_ttl = ISC_MIN(zone_soa_min_ttl, maxttl);
+		zone_soa_minimum = ISC_MIN(zone_soa_minimum, maxttl);
 		soa_ttl = ISC_MIN(soa_ttl, maxttl);
 	}
 	dns_rdataset_disassociate(&soaset);
@@ -1945,7 +1947,7 @@ nsecify(void) {
 		}
 		dns_dbiterator_pause(dbiter);
 		result = dns_nsec_build(gdb, gversion, node, nextname,
-					zone_soa_min_ttl);
+					nsec_ttl);
 		check_result(result, "dns_nsec_build()");
 		dns_db_detachnode(gdb, &node);
 	}
@@ -2542,7 +2544,7 @@ nsec3ify(unsigned int hashalg, dns_iterations_t iterations,
 		 */
 		dns_dbiterator_pause(dbiter);
 		addnsec3(name, node, salt, salt_len, iterations, hashlist,
-			 zone_soa_min_ttl);
+			 nsec_ttl);
 		dns_db_detachnode(gdb, &node);
 		/*
 		 * Add NSEC3's for empty nodes.  Use closest encloser logic.
@@ -2553,7 +2555,7 @@ nsec3ify(unsigned int hashalg, dns_iterations_t iterations,
 			count--;
 			dns_name_split(nextname, count, NULL, nextname);
 			addnsec3(nextname, NULL, salt, salt_len, iterations,
-				 hashlist, zone_soa_min_ttl);
+				 hashlist, nsec_ttl);
 		}
 	}
 	dns_dbiterator_destroy(&dbiter);
@@ -3081,8 +3083,8 @@ writeset(const char *prefix, dns_rdatatype_t type) {
 						      name, 0, &ds, &tuple);
 		} else {
 			result = dns_difftuple_create(
-				mctx, DNS_DIFFOP_ADDRESIGN, gorigin,
-				zone_soa_min_ttl, &rdata, &tuple);
+				mctx, DNS_DIFFOP_ADDRESIGN, gorigin, nsec_ttl,
+				&rdata, &tuple);
 		}
 		check_result(result, "dns_difftuple_create");
 		dns_diff_append(&diff, &tuple);
@@ -3199,7 +3201,7 @@ usage(void) {
 		"\t\tpath to PKCS#11 provider library "
 		"(default is %s)\n",
 		PK11_LIB_LOCATION);
-#else  /* if USE_PKCS11 */
+#else /* if USE_PKCS11 */
 	fprintf(stderr, "\t\tname of an OpenSSL engine to use\n");
 #endif /* if USE_PKCS11 */
 	fprintf(stderr, "\t-P:\t");

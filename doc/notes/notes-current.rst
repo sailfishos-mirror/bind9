@@ -64,6 +64,9 @@ Feature Changes
   ``dnsssec-signzone`` now prints a warning message, and ``named`` logs
   a warning, when such a fallback happens. [GL #2058]
 
+- Implement ``draft-vandijk-dnsop-nsec-ttl``, NSEC(3) TTL values are now set to
+  the minimum of the SOA MINIMUM value and the SOA TTL. [GL #2347].
+
 Bug Fixes
 ~~~~~~~~~
 
