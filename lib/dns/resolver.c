@@ -2998,8 +2998,8 @@ resquery_connected(isc_task_t *task, isc_event_t *event) {
 			attrs = DNS_DISPATCHATTR_CONNECTED;
 			result = dns_dispatch_createtcp(
 				query->dispatchmgr, query->tcpsocket,
-				query->fctx->res->taskmgr, NULL, NULL, 4096,
-				attrs, &query->dispatch);
+				query->fctx->res->taskmgr, NULL, NULL, attrs,
+				&query->dispatch);
 
 			/*
 			 * Regardless of whether dns_dispatch_create()

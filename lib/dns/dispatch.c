@@ -194,10 +194,6 @@ struct dns_dispentry {
 #define DNS_QID_INCREMENT 16433
 #endif /* ifndef DNS_QID_INCREMENT */
 
-/*%
- * Number of tasks for each dispatch that use separate sockets for different
- * transactions.  This must be a power of 2 as it will divide 32 bit numbers
- */
 struct dispsocket {
 	unsigned int magic;
 	isc_socket_t *socket;
@@ -221,8 +217,6 @@ struct dispportentry {
 	isc_refcount_t refs;
 	ISC_LINK(struct dispportentry) link;
 };
-
-#define INVALID_BUCKET (0xffffdead)
 
 /*%
  * Number of tasks for each dispatch that use separate sockets for different
@@ -1970,13 +1964,11 @@ dispatch_free(dns_dispatch_t **dispp) {
 isc_result_t
 dns_dispatch_createtcp(dns_dispatchmgr_t *mgr, isc_socket_t *sock,
 		       isc_taskmgr_t *taskmgr, const isc_sockaddr_t *localaddr,
-		       const isc_sockaddr_t *destaddr, unsigned int buffersize,
-		       unsigned int attributes, dns_dispatch_t **dispp) {
+		       const isc_sockaddr_t *destaddr, unsigned int attributes,
+		       dns_dispatch_t **dispp) {
 	isc_result_t result;
 	dns_dispatch_t *disp = NULL;
 	int pf;
-
-	UNUSED(buffersize);
 
 	REQUIRE(VALID_DISPATCHMGR(mgr));
 	REQUIRE(isc_socket_gettype(sock) == isc_sockettype_tcp);
