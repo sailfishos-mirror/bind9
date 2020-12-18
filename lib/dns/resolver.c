@@ -2154,7 +2154,7 @@ fctx_query(fetchctx_t *fctx, dns_adbaddrinfo_t *addrinfo,
 			}
 			result = dns_dispatch_createudp(
 				res->dispatchmgr, res->socketmgr, res->taskmgr,
-				&addr, 16411, 16433, 0, &query->dispatch);
+				&addr, 0, &query->dispatch);
 			if (result != ISC_R_SUCCESS) {
 				goto cleanup_query;
 			}
@@ -2998,8 +2998,8 @@ resquery_connected(isc_task_t *task, isc_event_t *event) {
 			attrs = DNS_DISPATCHATTR_CONNECTED;
 			result = dns_dispatch_createtcp(
 				query->dispatchmgr, query->tcpsocket,
-				query->fctx->res->taskmgr, NULL, NULL, 4096, 1,
-				3, attrs, &query->dispatch);
+				query->fctx->res->taskmgr, NULL, NULL, 4096,
+				attrs, &query->dispatch);
 
 			/*
 			 * Regardless of whether dns_dispatch_create()
