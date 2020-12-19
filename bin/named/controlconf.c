@@ -1054,6 +1054,8 @@ update_listener(named_controls_t *cp, controllistener_t **listenerp,
 			      socktext, isc_result_totext(result));
 	}
 
+#if 0
+	/* XXX: no unix socket support yet */
 	if (result == ISC_R_SUCCESS && type == isc_socktype_unix) {
 		uint32_t perm, owner, group;
 		perm = cfg_obj_asuint32(cfg_tuple_get(control, "perm"));
@@ -1077,6 +1079,7 @@ update_listener(named_controls_t *cp, controllistener_t **listenerp,
 				    socktext);
 		}
 	}
+#endif
 
 	*listenerp = listener;
 }

@@ -71,7 +71,6 @@
 #include <dns/name.h>
 #include <dns/rdataclass.h>
 #include <dns/rdatatype.h>
-#include <dns/tcpmsg.h>
 #include <dns/types.h>
 
 #include <ns/query.h>
