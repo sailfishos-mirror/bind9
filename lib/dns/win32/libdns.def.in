@@ -268,6 +268,7 @@ dns_dispatch_cancel
 dns_dispatch_changeattributes
 dns_dispatch_createtcp
 dns_dispatch_createudp
+dns_dispatch_connect
 dns_dispatch_detach
 dns_dispatch_getattributes
 dns_dispatch_getentrysocket
