@@ -277,6 +277,7 @@ dns_dispatch_getnext
 dns_dispatch_getsocket
 dns_dispatch_gettcp
 dns_dispatch_removeresponse
+dns_dispatch_send
 dns_dispatch_starttcp
 dns_dispentry_getlocaladdress
 dns_dispatchmgr_create
