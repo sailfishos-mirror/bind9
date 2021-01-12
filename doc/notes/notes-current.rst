@@ -34,7 +34,6 @@ Removed Features
 Feature Changes
 ~~~~~~~~~~~~~~~
 
-- None.
 
 Bug Fixes
 ~~~~~~~~~
@@ -42,12 +41,12 @@ Bug Fixes
 - If an invalid key name (e.g. "a..b") was specified in a ``primaries``
   list in ``named.conf``, the wrong size was passed to ``isc_mem_put()``,
   which resulted in the returned memory being put on the wrong freed
-  list. This has been fixed. [GL #2460]
+  list. This has been fixed. :gl:`#2460`
 
 - If an outgoing packet would exceed max-udp-size, it would be dropped instead
   of sending a proper response back.  Rollback setting the IP_DONTFRAG on the
   UDP sockets that we enabled during the DNS Flag Day 2020 to fix this issue.
-  [GL #2487]
+  :gl:`#2487`
 
 - An invalid direction field (not one of 'N'/'S' or 'E'/'W') in a LOC record
-  triggered an INSIST failure. [GL #2499]
+  triggered an INSIST failure. :gl:`#2499`
