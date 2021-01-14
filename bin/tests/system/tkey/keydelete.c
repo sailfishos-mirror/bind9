@@ -17,10 +17,10 @@
 #include <isc/hash.h>
 #include <isc/log.h>
 #include <isc/mem.h>
+#include <isc/netmgr.h>
 #include <isc/print.h>
 #include <isc/random.h>
 #include <isc/sockaddr.h>
-#include <isc/socket.h>
 #include <isc/task.h>
 #include <isc/timer.h>
 #include <isc/util.h>
@@ -53,18 +53,18 @@
 
 #define TIMEOUT 30
 
-static char *ip_address;
+static char *ip_address = NULL;
 static int port;
-static isc_mem_t *mctx;
-static dns_tsigkey_t *tsigkey;
-static dns_tsig_keyring_t *ring;
-static dns_requestmgr_t *requestmgr;
+static isc_mem_t *mctx = NULL;
+static dns_tsigkey_t *tsigkey = NULL;
+static dns_tsig_keyring_t *ring = NULL;
+static dns_requestmgr_t *requestmgr = NULL;
 
 static void
 recvquery(isc_task_t *task, isc_event_t *event) {
 	dns_requestevent_t *reqev = (dns_requestevent_t *)event;
 	isc_result_t result;
-	dns_message_t *query, *response;
+	dns_message_t *query = NULL, *response = NULL;
 
 	UNUSED(task);
 
@@ -78,7 +78,6 @@ recvquery(isc_task_t *task, isc_event_t *event) {
 
 	query = reqev->ev_arg;
 
-	response = NULL;
 	dns_message_create(mctx, DNS_MESSAGE_INTENTPARSE, &response);
 
 	result = dns_request_getresponse(reqev->request, response,
@@ -108,8 +107,8 @@ sendquery(isc_task_t *task, isc_event_t *event) {
 	struct in_addr inaddr;
 	isc_sockaddr_t address;
 	isc_result_t result;
-	dns_message_t *query;
-	dns_request_t *request;
+	dns_message_t *query = NULL;
+	dns_request_t *request = NULL;
 
 	isc_event_free(&event);
 
@@ -119,13 +118,11 @@ sendquery(isc_task_t *task, isc_event_t *event) {
 	}
 	isc_sockaddr_fromin(&address, &inaddr, port);
 
-	query = NULL;
 	dns_message_create(mctx, DNS_MESSAGE_INTENTRENDER, &query);
 
 	result = dns_tkey_builddeletequery(query, tsigkey);
 	CHECK("dns_tkey_builddeletequery", result);
 
-	request = NULL;
 	result = dns_request_create(requestmgr, query, &address,
 				    DNS_REQUESTOPT_TCP, tsigkey, TIMEOUT, task,
 				    recvquery, query, &request);
@@ -134,20 +131,18 @@ sendquery(isc_task_t *task, isc_event_t *event) {
 
 int
 main(int argc, char **argv) {
-	char *keyname;
-	isc_taskmgr_t *taskmgr;
-	isc_timermgr_t *timermgr;
-	isc_socketmgr_t *socketmgr;
-	isc_socket_t *sock;
+	char *keyname = NULL;
+	isc_taskmgr_t *taskmgr = NULL;
+	isc_timermgr_t *timermgr = NULL;
 	isc_sockaddr_t bind_any;
-	dns_dispatchmgr_t *dispatchmgr;
-	dns_dispatch_t *dispatchv4;
-	dns_view_t *view;
-	dns_tkeyctx_t *tctx;
-	dst_key_t *dstkey;
-	isc_log_t *log;
-	isc_logconfig_t *logconfig;
-	isc_task_t *task;
+	dns_dispatchmgr_t *dispatchmgr = NULL;
+	dns_dispatch_t *dispatchv4 = NULL;
+	dns_view_t *view = NULL;
+	dns_tkeyctx_t *tctx = NULL;
+	dst_key_t *dstkey = NULL;
+	isc_log_t *log = NULL;
+	isc_logconfig_t *logconfig = NULL;
+	isc_task_t *task = NULL;
 	isc_result_t result;
 	int type;
 
@@ -167,50 +162,33 @@ main(int argc, char **argv) {
 
 	dns_result_register();
 
-	mctx = NULL;
 	isc_mem_create(&mctx);
 
-	log = NULL;
-	logconfig = NULL;
 	isc_log_create(mctx, &log, &logconfig);
 
 	RUNCHECK(dst_lib_init(mctx, NULL));
 
-	taskmgr = NULL;
 	RUNCHECK(isc_taskmgr_create(mctx, 1, 0, NULL, &taskmgr));
-	task = NULL;
 	RUNCHECK(isc_task_create(taskmgr, 0, &task));
-	timermgr = NULL;
 	RUNCHECK(isc_timermgr_create(mctx, &timermgr));
-	socketmgr = NULL;
-	RUNCHECK(isc_socketmgr_create(mctx, &socketmgr));
-	dispatchmgr = NULL;
-	RUNCHECK(dns_dispatchmgr_create(mctx, &dispatchmgr));
-	isc_sockaddr_any(&bind_any);
-	dispatchv4 = NULL;
-	RUNCHECK(dns_dispatch_createudp(dispatchmgr, socketmgr, taskmgr,
-					&bind_any, 0, &dispatchv4));
-	requestmgr = NULL;
-	RUNCHECK(dns_requestmgr_create(mctx, timermgr, socketmgr, taskmgr,
-				       dispatchmgr, dispatchv4, NULL,
-				       &requestmgr));
 
-	ring = NULL;
+	nm = isc_nm_start(mctx, 1);
+	RUNCHECK(dns_dispatchmgr_create(mctx, nm, &dispatchmgr));
+
+	isc_sockaddr_any(&bind_any);
+	RUNCHECK(dns_dispatch_createudp(dispatchmgr, taskmgr, &bind_any, 0,
+					&dispatchv4));
+	RUNCHECK(dns_requestmgr_create(mctx, timermgr, taskmgr, dispatchmgr,
+				       dispatchv4, NULL, &requestmgr));
+
 	RUNCHECK(dns_tsigkeyring_create(mctx, &ring));
-	tctx = NULL;
 	RUNCHECK(dns_tkeyctx_create(mctx, &tctx));
 
-	view = NULL;
 	RUNCHECK(dns_view_create(mctx, 0, "_test", &view));
 	dns_view_setkeyring(view, ring);
 
-	sock = NULL;
-	RUNCHECK(isc_socket_create(socketmgr, PF_INET, isc_sockettype_udp,
-				   &sock));
-
 	RUNCHECK(isc_app_onrun(mctx, task, sendquery, NULL));
 
-	dstkey = NULL;
 	type = DST_TYPE_PUBLIC | DST_TYPE_PRIVATE | DST_TYPE_KEY;
 	result = dst_key_fromnamedfile(keyname, NULL, type, mctx, &dstkey);
 	CHECK("dst_key_fromnamedfile", result);
@@ -229,9 +207,8 @@ main(int argc, char **argv) {
 	isc_task_shutdown(task);
 	isc_task_detach(&task);
 	isc_taskmgr_destroy(&taskmgr);
-	isc_socket_detach(&sock);
-	isc_socketmgr_destroy(&socketmgr);
 	isc_timermgr_destroy(&timermgr);
+	isc_nm_destroy(&nm);
 
 	dns_tsigkeyring_detach(&ring);
 

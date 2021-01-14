@@ -155,9 +155,8 @@ dns_client_create(dns_client_t **clientp, unsigned int options);
 
 isc_result_t
 dns_client_createx(isc_mem_t *mctx, isc_appctx_t *actx, isc_taskmgr_t *taskmgr,
-		   isc_socketmgr_t *socketmgr, isc_timermgr_t *timermgr,
-		   unsigned int options, dns_client_t **clientp,
-		   const isc_sockaddr_t *localaddr4,
+		   isc_nm_t *nm, isc_timermgr_t *timermgr, unsigned int options,
+		   dns_client_t **clientp, const isc_sockaddr_t *localaddr4,
 		   const isc_sockaddr_t *localaddr6);
 /*%<
  * Create a DNS client.  These functions create a new client object with
@@ -187,7 +186,7 @@ dns_client_createx(isc_mem_t *mctx, isc_appctx_t *actx, isc_taskmgr_t *taskmgr,
  *
  *\li	'taskmgr' is a valid task manager.
  *
- *\li	'socketmgr' is a valid socket manager.
+ *\li	'nm' is a valid network manager.
  *
  *\li	'timermgr' is a valid timer manager.
  *

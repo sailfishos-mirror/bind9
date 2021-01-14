@@ -89,7 +89,7 @@ struct dns_client {
 	isc_appctx_t *actx;
 	isc_taskmgr_t *taskmgr;
 	isc_task_t *task;
-	isc_socketmgr_t *socketmgr;
+	isc_nm_t *nm;
 	isc_timermgr_t *timermgr;
 	dns_dispatchmgr_t *dispatchmgr;
 	dns_dispatch_t *dispatchv4;
@@ -306,8 +306,8 @@ cleanup:
 
 static isc_result_t
 getudpdispatch(int family, dns_dispatchmgr_t *dispatchmgr,
-	       isc_socketmgr_t *socketmgr, isc_taskmgr_t *taskmgr,
-	       dns_dispatch_t **dispp, const isc_sockaddr_t *localaddr) {
+	       isc_taskmgr_t *taskmgr, dns_dispatch_t **dispp,
+	       const isc_sockaddr_t *localaddr) {
 	dns_dispatch_t *disp = NULL;
 	isc_result_t result;
 	isc_sockaddr_t anyaddr;
@@ -317,8 +317,8 @@ getudpdispatch(int family, dns_dispatchmgr_t *dispatchmgr,
 		localaddr = &anyaddr;
 	}
 
-	result = dns_dispatch_createudp(dispatchmgr, socketmgr, taskmgr,
-					localaddr, 0, &disp);
+	result = dns_dispatch_createudp(dispatchmgr, taskmgr, localaddr, 0,
+					&disp);
 	if (result == ISC_R_SUCCESS) {
 		*dispp = disp;
 	}
@@ -328,10 +328,9 @@ getudpdispatch(int family, dns_dispatchmgr_t *dispatchmgr,
 
 static isc_result_t
 createview(isc_mem_t *mctx, dns_rdataclass_t rdclass, isc_taskmgr_t *taskmgr,
-	   unsigned int ntasks, isc_socketmgr_t *socketmgr,
-	   isc_timermgr_t *timermgr, dns_dispatchmgr_t *dispatchmgr,
-	   dns_dispatch_t *dispatchv4, dns_dispatch_t *dispatchv6,
-	   dns_view_t **viewp) {
+	   unsigned int ntasks, isc_nm_t *nm, isc_timermgr_t *timermgr,
+	   dns_dispatchmgr_t *dispatchmgr, dns_dispatch_t *dispatchv4,
+	   dns_dispatch_t *dispatchv6, dns_view_t **viewp) {
 	isc_result_t result;
 	dns_view_t *view = NULL;
 
@@ -347,8 +346,8 @@ createview(isc_mem_t *mctx, dns_rdataclass_t rdclass, isc_taskmgr_t *taskmgr,
 		return (result);
 	}
 
-	result = dns_view_createresolver(view, taskmgr, ntasks, 1, socketmgr,
-					 timermgr, 0, dispatchmgr, dispatchv4,
+	result = dns_view_createresolver(view, taskmgr, ntasks, 1, nm, timermgr,
+					 0, dispatchmgr, dispatchv4,
 					 dispatchv6);
 	if (result != ISC_R_SUCCESS) {
 		dns_view_detach(&view);
@@ -372,7 +371,7 @@ dns_client_create(dns_client_t **clientp, unsigned int options) {
 	isc_mem_t *mctx = NULL;
 	isc_appctx_t *actx = NULL;
 	isc_taskmgr_t *taskmgr = NULL;
-	isc_socketmgr_t *socketmgr = NULL;
+	isc_nm_t *nm = NULL;
 	isc_timermgr_t *timermgr = NULL;
 #if 0
 	/* XXXMPA add debug logging support */
@@ -394,32 +393,23 @@ dns_client_create(dns_client_t **clientp, unsigned int options) {
 	if (result != ISC_R_SUCCESS) {
 		goto cleanup;
 	}
-	result = isc_socketmgr_createinctx(mctx, &socketmgr);
-	if (result != ISC_R_SUCCESS) {
-		goto cleanup;
-	}
 	result = isc_timermgr_createinctx(mctx, &timermgr);
 	if (result != ISC_R_SUCCESS) {
 		goto cleanup;
 	}
-#if 0
-	isc_log_create(mctx, &lctx, &logconfig);
-	isc_log_setcontext(lctx);
-	dns_log_init(lctx);
-	dns_log_setcontext(lctx);
-	result = isc_log_usechannel(logconfig, "default_debug", NULL, NULL);
-	if (result != ISC_R_SUCCESS) {
-		goto cleanup;
-	}
-	isc_log_setdebuglevel(lctx, logdebuglevel);
-#endif /* if 0 */
-	result = dns_client_createx(mctx, actx, taskmgr, socketmgr, timermgr,
-				    options, clientp, NULL, NULL);
+
+	nm = isc_nm_start(mctx, 1);
+
+	result = dns_client_createx(mctx, actx, taskmgr, nm, timermgr, options,
+				    clientp, NULL, NULL);
 	if (result != ISC_R_SUCCESS) {
 		goto cleanup;
 	}
 
 	(*clientp)->attributes |= DNS_CLIENTATTR_OWNCTX;
+
+	/* client now holds nm references, don't detach it here */
+	nm = NULL;
 
 	/* client has its own reference to mctx, so we can detach it here */
 	isc_mem_detach(&mctx);
@@ -433,8 +423,8 @@ cleanup:
 	if (timermgr != NULL) {
 		isc_timermgr_destroy(&timermgr);
 	}
-	if (socketmgr != NULL) {
-		isc_socketmgr_destroy(&socketmgr);
+	if (nm != NULL) {
+		isc_nm_destroy(&nm);
 	}
 	if (actx != NULL) {
 		isc_appctx_destroy(&actx);
@@ -446,9 +436,8 @@ cleanup:
 
 isc_result_t
 dns_client_createx(isc_mem_t *mctx, isc_appctx_t *actx, isc_taskmgr_t *taskmgr,
-		   isc_socketmgr_t *socketmgr, isc_timermgr_t *timermgr,
-		   unsigned int options, dns_client_t **clientp,
-		   const isc_sockaddr_t *localaddr4,
+		   isc_nm_t *nm, isc_timermgr_t *timermgr, unsigned int options,
+		   dns_client_t **clientp, const isc_sockaddr_t *localaddr4,
 		   const isc_sockaddr_t *localaddr6) {
 	dns_client_t *client;
 	isc_result_t result;
@@ -460,27 +449,24 @@ dns_client_createx(isc_mem_t *mctx, isc_appctx_t *actx, isc_taskmgr_t *taskmgr,
 	REQUIRE(mctx != NULL);
 	REQUIRE(taskmgr != NULL);
 	REQUIRE(timermgr != NULL);
-	REQUIRE(socketmgr != NULL);
+	REQUIRE(nm != NULL);
 	REQUIRE(clientp != NULL && *clientp == NULL);
 
 	UNUSED(options);
 
 	client = isc_mem_get(mctx, sizeof(*client));
+	*client = (dns_client_t){
+		.actx = actx, .taskmgr = taskmgr, .timermgr = timermgr, .nm = nm
+	};
 
 	isc_mutex_init(&client->lock);
 
-	client->actx = actx;
-	client->taskmgr = taskmgr;
-	client->socketmgr = socketmgr;
-	client->timermgr = timermgr;
-
-	client->task = NULL;
 	result = isc_task_create(client->taskmgr, 0, &client->task);
 	if (result != ISC_R_SUCCESS) {
 		goto cleanup_lock;
 	}
 
-	result = dns_dispatchmgr_create(mctx, &dispatchmgr);
+	result = dns_dispatchmgr_create(mctx, nm, &dispatchmgr);
 	if (result != ISC_R_SUCCESS) {
 		goto cleanup_task;
 	}
@@ -493,8 +479,8 @@ dns_client_createx(isc_mem_t *mctx, isc_appctx_t *actx, isc_taskmgr_t *taskmgr,
 	 */
 	client->dispatchv4 = NULL;
 	if (localaddr4 != NULL || localaddr6 == NULL) {
-		result = getudpdispatch(AF_INET, dispatchmgr, socketmgr,
-					taskmgr, &dispatchv4, localaddr4);
+		result = getudpdispatch(AF_INET, dispatchmgr, taskmgr,
+					&dispatchv4, localaddr4);
 		if (result == ISC_R_SUCCESS) {
 			client->dispatchv4 = dispatchv4;
 		}
@@ -502,8 +488,8 @@ dns_client_createx(isc_mem_t *mctx, isc_appctx_t *actx, isc_taskmgr_t *taskmgr,
 
 	client->dispatchv6 = NULL;
 	if (localaddr6 != NULL || localaddr4 == NULL) {
-		result = getudpdispatch(AF_INET6, dispatchmgr, socketmgr,
-					taskmgr, &dispatchv6, localaddr6);
+		result = getudpdispatch(AF_INET6, dispatchmgr, taskmgr,
+					&dispatchv6, localaddr6);
 		if (result == ISC_R_SUCCESS) {
 			client->dispatchv6 = dispatchv6;
 		}
@@ -519,8 +505,8 @@ dns_client_createx(isc_mem_t *mctx, isc_appctx_t *actx, isc_taskmgr_t *taskmgr,
 
 	/* Create the default view for class IN */
 	result = createview(mctx, dns_rdataclass_in, taskmgr, RESOLVER_NTASKS,
-			    socketmgr, timermgr, dispatchmgr, dispatchv4,
-			    dispatchv6, &view);
+			    nm, timermgr, dispatchmgr, dispatchv4, dispatchv6,
+			    &view);
 	if (result != ISC_R_SUCCESS) {
 		goto cleanup_references;
 	}
@@ -534,7 +520,6 @@ dns_client_createx(isc_mem_t *mctx, isc_appctx_t *actx, isc_taskmgr_t *taskmgr,
 	ISC_LIST_INIT(client->reqctxs);
 	ISC_LIST_INIT(client->updatectxs);
 
-	client->mctx = NULL;
 	isc_mem_attach(mctx, &client->mctx);
 
 	client->update_timeout = DEF_UPDATE_TIMEOUT;
@@ -542,7 +527,6 @@ dns_client_createx(isc_mem_t *mctx, isc_appctx_t *actx, isc_taskmgr_t *taskmgr,
 	client->update_udpretries = DEF_UPDATE_UDPRETRIES;
 	client->find_timeout = DEF_FIND_TIMEOUT;
 	client->find_udpretries = DEF_FIND_UDPRETRIES;
-	client->attributes = 0;
 
 	client->magic = DNS_CLIENT_MAGIC;
 
@@ -599,7 +583,7 @@ destroyclient(dns_client_t *client) {
 	if ((client->attributes & DNS_CLIENTATTR_OWNCTX) != 0) {
 		isc_taskmgr_destroy(&client->taskmgr);
 		isc_timermgr_destroy(&client->timermgr);
-		isc_socketmgr_destroy(&client->socketmgr);
+		isc_nm_destroy(&client->nm);
 
 		isc_app_ctxfinish(client->actx);
 		isc_appctx_destroy(&client->actx);

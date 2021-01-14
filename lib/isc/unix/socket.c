@@ -2604,7 +2604,7 @@ isc_socket_close(isc_socket_t *sock0) {
 	int fd;
 	isc__socketmgr_t *manager;
 	isc__socketthread_t *thread;
-	fflush(stdout);
+
 	REQUIRE(VALID_SOCKET(sock));
 
 	LOCK(&sock->lock);

@@ -74,14 +74,12 @@ make_dispatchset(unsigned int ndisps) {
 	}
 
 	isc_sockaddr_any(&any);
-	result = dns_dispatch_createudp(dispatchmgr, socketmgr, taskmgr, &any,
-					0, &disp);
+	result = dns_dispatch_createudp(dispatchmgr, taskmgr, &any, 0, &disp);
 	if (result != ISC_R_SUCCESS) {
 		return (result);
 	}
 
-	result = dns_dispatchset_create(dt_mctx, socketmgr, taskmgr, disp,
-					&dset, ndisps);
+	result = dns_dispatchset_create(dt_mctx, taskmgr, disp, &dset, ndisps);
 	dns_dispatch_detach(&disp);
 
 	return (result);
@@ -270,8 +268,8 @@ dispatch_getnext(void **state) {
 
 	ina.s_addr = htonl(INADDR_LOOPBACK);
 	isc_sockaddr_fromin(&local, &ina, 0);
-	result = dns_dispatch_createudp(dispatchmgr, socketmgr, taskmgr, &local,
-					0, &dispatch);
+	result = dns_dispatch_createudp(dispatchmgr, taskmgr, &local, 0,
+					&dispatch);
 	assert_int_equal(result, ISC_R_SUCCESS);
 
 	/*
@@ -295,7 +293,7 @@ dispatch_getnext(void **state) {
 	assert_int_equal(result, ISC_R_SUCCESS);
 
 	result = dns_dispatch_addresponse(dispatch, 0, &local, task, response,
-					  NULL, &id, &dispentry, socketmgr);
+					  NULL, &id, &dispentry);
 	assert_int_equal(result, ISC_R_SUCCESS);
 
 	memset(message, 0, sizeof(message));

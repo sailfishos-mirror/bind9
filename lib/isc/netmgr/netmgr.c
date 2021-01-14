@@ -2361,6 +2361,39 @@ isc__nm_socket_dontfrag(uv_os_sock_t fd, sa_family_t sa_family) {
 	return (ISC_R_NOTIMPLEMENTED);
 }
 
+isc_result_t
+isc_nm_checkaddr(const isc_sockaddr_t *addr, isc_socktype_t type) {
+	int proto, fd, r;
+
+	REQUIRE(addr != NULL);
+
+	switch (type) {
+	case isc_socktype_tcp:
+		proto = SOCK_STREAM;
+		break;
+	case isc_socktype_udp:
+		proto = SOCK_DGRAM;
+		break;
+	default:
+		return (ISC_R_NOTIMPLEMENTED);
+	}
+
+	fd = socket(isc_sockaddr_pf(addr), proto, 0);
+	if (fd < 0) {
+		return (isc_errno_toresult(errno));
+	}
+
+	r = bind(fd, (const struct sockaddr *)&addr->type.sa,
+		 sizeof(addr->type.sin6));
+	if (r < 0) {
+		close(fd);
+		return (isc_errno_toresult(errno));
+	}
+
+	close(fd);
+	return (ISC_R_SUCCESS);
+}
+
 #if defined(_WIN32)
 #define TIMEOUT_TYPE	DWORD
 #define TIMEOUT_DIV	1000

@@ -70,17 +70,13 @@ dispatch_query(struct query_trans *trans);
 
 static void
 ctxs_destroy(isc_mem_t **mctxp, isc_appctx_t **actxp, isc_taskmgr_t **taskmgrp,
-	     isc_socketmgr_t **socketmgrp, isc_timermgr_t **timermgrp) {
+	     isc_timermgr_t **timermgrp) {
 	if (*taskmgrp != NULL) {
 		isc_taskmgr_destroy(taskmgrp);
 	}
 
 	if (*timermgrp != NULL) {
 		isc_timermgr_destroy(timermgrp);
-	}
-
-	if (*socketmgrp != NULL) {
-		isc_socketmgr_destroy(socketmgrp);
 	}
 
 	if (*actxp != NULL) {
@@ -94,7 +90,7 @@ ctxs_destroy(isc_mem_t **mctxp, isc_appctx_t **actxp, isc_taskmgr_t **taskmgrp,
 
 static isc_result_t
 ctxs_init(isc_mem_t **mctxp, isc_appctx_t **actxp, isc_taskmgr_t **taskmgrp,
-	  isc_socketmgr_t **socketmgrp, isc_timermgr_t **timermgrp) {
+	  isc_timermgr_t **timermgrp) {
 	isc_result_t result;
 
 	isc_mem_create(mctxp);
@@ -109,11 +105,6 @@ ctxs_init(isc_mem_t **mctxp, isc_appctx_t **actxp, isc_taskmgr_t **taskmgrp,
 		goto fail;
 	}
 
-	result = isc_socketmgr_createinctx(*mctxp, socketmgrp);
-	if (result != ISC_R_SUCCESS) {
-		goto fail;
-	}
-
 	result = isc_timermgr_createinctx(*mctxp, timermgrp);
 	if (result != ISC_R_SUCCESS) {
 		goto fail;
@@ -122,7 +113,7 @@ ctxs_init(isc_mem_t **mctxp, isc_appctx_t **actxp, isc_taskmgr_t **taskmgrp,
 	return (ISC_R_SUCCESS);
 
 fail:
-	ctxs_destroy(mctxp, actxp, taskmgrp, socketmgrp, timermgrp);
+	ctxs_destroy(mctxp, actxp, taskmgrp, timermgrp);
 
 	return (result);
 }
@@ -270,8 +261,8 @@ main(int argc, char *argv[]) {
 	isc_textregion_t tr;
 	isc_mem_t *mctx = NULL;
 	isc_taskmgr_t *taskmgr = NULL;
-	isc_socketmgr_t *socketmgr = NULL;
 	isc_timermgr_t *timermgr = NULL;
+	isc_nm_t *nm = NULL;
 	int nservers = 0;
 	const char *serveraddr[MAX_SERVERS];
 	isc_sockaddr_t sa[MAX_SERVERS];
@@ -335,16 +326,18 @@ main(int argc, char *argv[]) {
 		exit(1);
 	}
 
-	result = ctxs_init(&mctx, &query_actx, &taskmgr, &socketmgr, &timermgr);
+	result = ctxs_init(&mctx, &query_actx, &taskmgr, &timermgr);
 	if (result != ISC_R_SUCCESS) {
 		fprintf(stderr, "ctx create failed: %u\n", result);
 		exit(1);
 	}
 
+	nm = isc_nm_start(mctx, 1);
+
 	isc_app_ctxstart(query_actx);
 
-	result = dns_client_createx(mctx, query_actx, taskmgr, socketmgr,
-				    timermgr, 0, &client, NULL, NULL);
+	result = dns_client_createx(mctx, query_actx, taskmgr, nm, timermgr, 0,
+				    &client, NULL, NULL);
 	if (result != ISC_R_SUCCESS) {
 		fprintf(stderr, "dns_client_createx failed: %u\n", result);
 		exit(1);
@@ -404,7 +397,8 @@ main(int argc, char *argv[]) {
 	dns_client_destroy(&client);
 	dns_lib_shutdown();
 	isc_app_ctxfinish(query_actx);
-	ctxs_destroy(&mctx, &query_actx, &taskmgr, &socketmgr, &timermgr);
+	ctxs_destroy(&mctx, &query_actx, &taskmgr, &timermgr);
+	isc_nm_destroy(&nm);
 
 	return (0);
 }

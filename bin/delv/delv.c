@@ -36,6 +36,7 @@
 #include <isc/log.h>
 #include <isc/md.h>
 #include <isc/mem.h>
+#include <isc/netmgr.h>
 #ifdef WIN32
 #include <isc/ntpaths.h>
 #endif /* ifdef WIN32 */
@@ -1737,8 +1738,8 @@ main(int argc, char *argv[]) {
 	unsigned int resopt;
 	isc_appctx_t *actx = NULL;
 	isc_taskmgr_t *taskmgr = NULL;
-	isc_socketmgr_t *socketmgr = NULL;
 	isc_timermgr_t *timermgr = NULL;
+	isc_nm_t *nm = NULL;
 	dns_master_style_t *style = NULL;
 #ifndef WIN32
 	struct sigaction sa;
@@ -1760,8 +1761,9 @@ main(int argc, char *argv[]) {
 
 	CHECK(isc_appctx_create(mctx, &actx));
 	CHECK(isc_taskmgr_createinctx(mctx, 1, 0, &taskmgr));
-	CHECK(isc_socketmgr_createinctx(mctx, &socketmgr));
 	CHECK(isc_timermgr_createinctx(mctx, &timermgr));
+
+	nm = isc_nm_start(mctx, 1);
 
 	parse_args(argc, argv);
 
@@ -1781,7 +1783,7 @@ main(int argc, char *argv[]) {
 #endif /* ifndef WIN32 */
 
 	/* Create client */
-	result = dns_client_createx(mctx, actx, taskmgr, socketmgr, timermgr, 0,
+	result = dns_client_createx(mctx, actx, taskmgr, nm, timermgr, 0,
 				    &client, srcaddr4, srcaddr6);
 	if (result != ISC_R_SUCCESS) {
 		delv_log(ISC_LOG_ERROR, "dns_client_create: %s",
@@ -1870,8 +1872,8 @@ cleanup:
 	if (timermgr != NULL) {
 		isc_timermgr_destroy(&timermgr);
 	}
-	if (socketmgr != NULL) {
-		isc_socketmgr_destroy(&socketmgr);
+	if (nm != NULL) {
+		isc_nm_destroy(&nm);
 	}
 	if (actx != NULL) {
 		isc_appctx_destroy(&actx);

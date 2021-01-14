@@ -33,6 +33,7 @@
 #include <isc/hex.h>
 #include <isc/lex.h>
 #include <isc/mem.h>
+#include <isc/netmgr.h>
 #include <isc/os.h>
 #include <isc/print.h>
 #include <isc/socket.h>
@@ -67,6 +68,7 @@ isc_taskmgr_t *taskmgr = NULL;
 isc_task_t *maintask = NULL;
 isc_timermgr_t *timermgr = NULL;
 isc_socketmgr_t *socketmgr = NULL;
+isc_socketmgr_t *nm = NULL;
 dns_zonemgr_t *zonemgr = NULL;
 bool app_running = false;
 int ncpus;
@@ -103,6 +105,9 @@ cleanup_managers(void) {
 	if (timermgr != NULL) {
 		isc_timermgr_destroy(&timermgr);
 	}
+	if (nm != NULL) {
+		isc_nm_destroy(&nm);
+	}
 	if (app_running) {
 		isc_app_finish();
 	}
@@ -117,6 +122,7 @@ create_managers(void) {
 	CHECK(isc_timermgr_create(dt_mctx, &timermgr));
 	CHECK(isc_socketmgr_create(dt_mctx, &socketmgr));
 	CHECK(isc_task_create(taskmgr, 0, &maintask));
+	nm = isc_nm_start(dt_mctx, ncpus);
 	return (ISC_R_SUCCESS);
 
 cleanup:

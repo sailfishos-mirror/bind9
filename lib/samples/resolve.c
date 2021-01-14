@@ -30,9 +30,9 @@
 #include <isc/commandline.h>
 #include <isc/lib.h>
 #include <isc/mem.h>
+#include <isc/netmgr.h>
 #include <isc/print.h>
 #include <isc/sockaddr.h>
-#include <isc/socket.h>
 #include <isc/task.h>
 #include <isc/timer.h>
 #include <isc/util.h>
@@ -247,7 +247,7 @@ main(int argc, char *argv[]) {
 	isc_mem_t *mctx = NULL;
 	isc_appctx_t *actx = NULL;
 	isc_taskmgr_t *taskmgr = NULL;
-	isc_socketmgr_t *socketmgr = NULL;
+	isc_nm_t *nm = NULL;
 	isc_timermgr_t *timermgr = NULL;
 	struct in_addr in4;
 	struct in6_addr in6;
@@ -375,17 +375,15 @@ main(int argc, char *argv[]) {
 	if (result != ISC_R_SUCCESS) {
 		goto cleanup;
 	}
-	result = isc_socketmgr_createinctx(mctx, &socketmgr);
-	if (result != ISC_R_SUCCESS) {
-		goto cleanup;
-	}
 	result = isc_timermgr_createinctx(mctx, &timermgr);
 	if (result != ISC_R_SUCCESS) {
 		goto cleanup;
 	}
 
+	nm = isc_nm_start(mctx, 1);
+
 	clientopt = 0;
-	result = dns_client_createx(mctx, actx, taskmgr, socketmgr, timermgr,
+	result = dns_client_createx(mctx, actx, taskmgr, nm, timermgr,
 				    clientopt, &client, addr4, addr6);
 	if (result != ISC_R_SUCCESS) {
 		fprintf(stderr, "dns_client_create failed: %u, %s\n", result,
@@ -479,8 +477,8 @@ cleanup:
 	if (timermgr != NULL) {
 		isc_timermgr_destroy(&timermgr);
 	}
-	if (socketmgr != NULL) {
-		isc_socketmgr_destroy(&socketmgr);
+	if (nm != NULL) {
+		isc_nm_destroy(&nm);
 	}
 	if (actx != NULL) {
 		isc_appctx_destroy(&actx);

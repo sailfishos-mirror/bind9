@@ -954,7 +954,6 @@ dns_resolver_settimeout
 dns_resolver_setudpsize
 dns_resolver_setzeronosoattl
 dns_resolver_shutdown
-dns_resolver_socketmgr
 dns_resolver_taskmgr
 dns_resolver_whenshutdown
 dns_result_register

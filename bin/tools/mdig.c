@@ -23,12 +23,12 @@
 #include <isc/log.h>
 #include <isc/mem.h>
 #include <isc/net.h>
+#include <isc/netmgr.h>
 #include <isc/nonce.h>
 #include <isc/parseint.h>
 #include <isc/print.h>
 #include <isc/random.h>
 #include <isc/sockaddr.h>
-#include <isc/socket.h>
 #include <isc/string.h>
 #include <isc/task.h>
 #include <isc/timer.h>
@@ -762,7 +762,7 @@ sendquery(struct query *query, isc_task_t *task) {
 		requestmgr, message, have_src ? &srcaddr : NULL, &dstaddr, dscp,
 		options, NULL, query->timeout, query->udptimeout,
 		query->udpretries, task, recvresponse, message, &request);
-	CHECK("dns_request_createvia4", result);
+	CHECK("dns_request_createvia", result);
 
 	return (ISC_R_SUCCESS);
 }
@@ -2086,10 +2086,10 @@ main(int argc, char *argv[]) {
 	isc_taskmgr_t *taskmgr = NULL;
 	isc_task_t *task = NULL;
 	isc_timermgr_t *timermgr = NULL;
-	isc_socketmgr_t *socketmgr = NULL;
 	dns_dispatchmgr_t *dispatchmgr = NULL;
 	dns_dispatch_t *dispatchvx = NULL;
 	dns_view_t *view = NULL;
+	isc_nm_t *nm = NULL;
 	int ns;
 	unsigned int i;
 
@@ -2143,22 +2143,23 @@ main(int argc, char *argv[]) {
 	RUNCHECK(isc_task_create(taskmgr, 0, &task));
 
 	RUNCHECK(isc_timermgr_create(mctx, &timermgr));
-	RUNCHECK(isc_socketmgr_create(mctx, &socketmgr));
-	RUNCHECK(dns_dispatchmgr_create(mctx, &dispatchmgr));
+
+	nm = isc_nm_start(mctx, 1);
+	RUNCHECK(dns_dispatchmgr_create(mctx, nm, &dispatchmgr));
 
 	if (have_ipv4) {
 		isc_sockaddr_any(&bind_any);
 	} else {
 		isc_sockaddr_any6(&bind_any);
 	}
-	RUNCHECK(dns_dispatch_createudp(dispatchmgr, socketmgr, taskmgr,
+	RUNCHECK(dns_dispatch_createudp(dispatchmgr, taskmgr,
 					have_src ? &srcaddr : &bind_any, 0,
 					&dispatchvx));
 	requestmgr = NULL;
-	RUNCHECK(dns_requestmgr_create(
-		mctx, timermgr, socketmgr, taskmgr, dispatchmgr,
-		have_ipv4 ? dispatchvx : NULL, have_ipv6 ? dispatchvx : NULL,
-		&requestmgr));
+	RUNCHECK(dns_requestmgr_create(mctx, timermgr, taskmgr, dispatchmgr,
+				       have_ipv4 ? dispatchvx : NULL,
+				       have_ipv6 ? dispatchvx : NULL,
+				       &requestmgr));
 
 	RUNCHECK(dns_view_create(mctx, 0, "_test", &view));
 
@@ -2201,8 +2202,8 @@ main(int argc, char *argv[]) {
 	dns_dispatch_detach(&dispatchvx);
 	dns_dispatchmgr_destroy(&dispatchmgr);
 
-	isc_socketmgr_destroy(&socketmgr);
 	isc_timermgr_destroy(&timermgr);
+	isc_nm_destroy(&nm);
 
 	isc_task_shutdown(task);
 	isc_task_detach(&task);
