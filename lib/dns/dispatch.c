@@ -1010,6 +1010,7 @@ tcp_recv(isc_nmhandle_t *handle, isc_result_t eresult, isc_region_t *region,
 	}
 
 	peer = isc_nmhandle_peeraddr(handle);
+	isc_nmhandle_detach(&handle);
 
 	if (eresult != ISC_R_SUCCESS) {
 		disp->shutdown_why = eresult;
@@ -1151,7 +1152,7 @@ startrecv(dns_dispatch_t *disp, dispsocket_t *dispsock) {
 		    disp->recv_pending != 0) {
 			return;
 		}
-		handle = disp->handle;
+		isc_nmhandle_attach(disp->handle, &handle);
 	} else {
 		handle = dispsock->handle;
 	}
@@ -2048,20 +2049,6 @@ dns_dispatch_addresponse(dns_dispatch_t *disp, unsigned int options,
 	return (ISC_R_SUCCESS);
 }
 
-void
-dns_dispatch_starttcp(dns_dispatch_t *disp) {
-	REQUIRE(VALID_DISPATCH(disp));
-
-	dispatch_log(disp, LVL(90), "starttcp %p", disp->task[0]);
-
-	LOCK(&disp->lock);
-	if ((disp->attributes & DNS_DISPATCHATTR_CONNECTED) == 0) {
-		disp->attributes |= DNS_DISPATCHATTR_CONNECTED;
-		(void)startrecv(disp, NULL);
-	}
-	UNLOCK(&disp->lock);
-}
-
 isc_result_t
 dns_dispatch_getnext(dns_dispentry_t *resp, dns_dispatchevent_t **sockevent) {
 	dns_dispatch_t *disp = NULL;
@@ -2223,16 +2210,17 @@ static void
 disp_connected(isc_nmhandle_t *handle, isc_result_t eresult, void *arg) {
 	dns_dispentry_t *resp = (dns_dispentry_t *)arg;
 	dns_dispatch_t *disp = resp->disp;
-	dispsocket_t *dispsocket = resp->dispsocket;
+	dispsocket_t *dispsocket = NULL;
 
 	if (disp->socktype == isc_socktype_udp) {
+		dispsocket = resp->dispsocket;
 		isc_nmhandle_attach(handle, &dispsocket->handle);
-		startrecv(disp, dispsocket);
-	} else {
+	} else if (disp->handle == NULL) {
+		disp->attributes |= DNS_DISPATCHATTR_CONNECTED;
 		isc_nmhandle_attach(handle, &disp->handle);
-		startrecv(disp, NULL);
 	}
 
+	startrecv(disp, dispsocket);
 	resp->connected(handle, eresult, resp->arg);
 }
 
@@ -2247,6 +2235,9 @@ dns_dispatch_connect(dns_dispentry_t *resp) {
 	/* XXX: timeout is hard-coded to 10 seconds, this needs fixing */
 	switch (disp->socktype) {
 	case isc_socktype_tcp:
+		if (disp->handle != NULL) {
+			return (ISC_R_SUCCESS);
+		}
 		return (isc_nm_tcpdnsconnect(disp->mgr->nm,
 					     (isc_nmiface_t *)&disp->local,
 					     (isc_nmiface_t *)&disp->peer,

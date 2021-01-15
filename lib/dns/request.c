@@ -905,7 +905,6 @@ req_render(dns_message_t *message, isc_buffer_t **bufferp, unsigned int options,
 	isc_buffer_t *buf2 = NULL;
 	isc_result_t result;
 	isc_region_t r;
-	bool tcp = false;
 	dns_compress_t cctx;
 	bool cleanup_cctx = false;
 
@@ -963,16 +962,11 @@ req_render(dns_message_t *message, isc_buffer_t **bufferp, unsigned int options,
 	 * Copy rendered message to exact sized buffer.
 	 */
 	isc_buffer_usedregion(buf1, &r);
-	if ((options & DNS_REQUESTOPT_TCP) != 0) {
-		tcp = true;
-	} else if (r.length > 512) {
+	if (r.length > 512) {
 		result = DNS_R_USETCP;
 		goto cleanup;
 	}
-	isc_buffer_allocate(mctx, &buf2, r.length + (tcp ? 2 : 0));
-	if (tcp) {
-		isc_buffer_putuint16(buf2, (uint16_t)r.length);
-	}
+	isc_buffer_allocate(mctx, &buf2, r.length);
 	result = isc_buffer_copyregion(buf2, &r);
 	if (result != ISC_R_SUCCESS) {
 		goto cleanup;

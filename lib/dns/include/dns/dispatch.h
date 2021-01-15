@@ -299,15 +299,6 @@ dns_dispatch_send(dns_dispentry_t *resp, isc_region_t *r, isc_dscp_t dscp);
  *\li	'resp' is valid.
  */
 
-void
-dns_dispatch_starttcp(dns_dispatch_t *disp);
-/*%<
- * Start processing of a TCP dispatch once the socket connects.
- *
- * Requires:
- *\li	'disp' is valid.
- */
-
 isc_result_t
 dns_dispatch_gettcp(dns_dispatchmgr_t *mgr, const isc_sockaddr_t *destaddr,
 		    const isc_sockaddr_t *localaddr, bool *connected,
