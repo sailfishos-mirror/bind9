@@ -4,6 +4,7 @@ LIBRARY libdns
 EXPORTS
 
 ; test only
+dns__dispatch_getentryhandle
 dns__rbt_checkproperties
 dns__rbt_getheight
 dns__rbtnode_getdistance
@@ -271,7 +272,6 @@ dns_dispatch_createudp
 dns_dispatch_connect
 dns_dispatch_detach
 dns_dispatch_getattributes
-dns_dispatch_getentrysocket
 dns_dispatch_getlocaladdress
 dns_dispatch_getnext
 dns_dispatch_gettcp

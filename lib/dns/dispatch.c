@@ -279,8 +279,6 @@ qid_allocate(dns_dispatchmgr_t *mgr, dns_qid_t **qidp);
 static void
 qid_destroy(isc_mem_t *mctx, dns_qid_t **qidp);
 static isc_nmhandle_t *
-getentryhandle(dns_dispentry_t *resp);
-static isc_nmhandle_t *
 gethandle(dns_dispatch_t *disp);
 
 #define LVL(x) ISC_LOG_DEBUG(x)
@@ -938,7 +936,6 @@ sendresponse:
 		isc_task_send(resp->task, ISC_EVENT_PTR(&rev));
 	}
 
-	deactivate_dispsocket(disp, dispsock);
 	UNLOCK(&disp->lock);
 	return;
 
@@ -2068,6 +2065,7 @@ dns_dispatch_getnext(dns_dispentry_t *resp, dns_dispatchevent_t **sockevent) {
 		UNLOCK(&disp->lock);
 		return (ISC_R_SHUTTINGDOWN);
 	}
+
 	ev = ISC_LIST_HEAD(resp->items);
 	if (ev != NULL) {
 		ISC_LIST_UNLINK(resp->items, ev, ev_link);
@@ -2079,7 +2077,10 @@ dns_dispatch_getnext(dns_dispentry_t *resp, dns_dispatchevent_t **sockevent) {
 		resp->item_out = true;
 		isc_task_send(resp->task, ISC_EVENT_PTR(&ev));
 	}
+
+	startrecv(disp, resp->dispsocket);
 	UNLOCK(&disp->lock);
+
 	return (ISC_R_SUCCESS);
 }
 
@@ -2124,6 +2125,10 @@ dns_dispatch_removeresponse(dns_dispentry_t **resp,
 	dec_stats(disp->mgr, (qid == disp->mgr->qid)
 				     ? dns_resstatscounter_disprequdp
 				     : dns_resstatscounter_dispreqtcp);
+
+	if (res->dispsocket != NULL) {
+		deactivate_dispsocket(disp, res->dispsocket);
+	}
 
 	if (isc_refcount_decrement(&disp->refcount) == 1) {
 		if (disp->recv_pending != 0 && disp->handle != NULL) {
@@ -2192,7 +2197,7 @@ dns_dispatch_removeresponse(dns_dispentry_t **resp,
 	if (disp->shutting_down == 1) {
 		do_cancel(disp);
 	} else {
-		(void)startrecv(disp, NULL);
+		startrecv(disp, NULL);
 	}
 
 	killit = destroy_disp_ok(disp);
@@ -2217,7 +2222,9 @@ disp_connected(isc_nmhandle_t *handle, isc_result_t eresult, void *arg) {
 	}
 
 	startrecv(disp, dispsocket);
-	resp->connected(handle, eresult, resp->arg);
+	if (resp->connected != NULL) {
+		resp->connected(handle, eresult, resp->arg);
+	}
 }
 
 isc_result_t
@@ -2256,7 +2263,7 @@ dns_dispatch_send(dns_dispentry_t *resp, isc_region_t *r, isc_dscp_t dscp) {
 
 	UNUSED(dscp);
 
-	handle = getentryhandle(resp);
+	handle = dns__dispatch_getentryhandle(resp);
 
 #if 0
 	/* XXX: no DSCP support */
@@ -2284,7 +2291,7 @@ dns_dispatch_cancel(dns_dispatch_t *disp, dns_dispentry_t *resp, bool sending,
 
 	if (resp != NULL) {
 		REQUIRE(VALID_RESPONSE(resp));
-		handle = getentryhandle(resp);
+		handle = dns__dispatch_getentryhandle(resp);
 	} else if (disp != NULL) {
 		REQUIRE(VALID_DISPATCH(disp));
 		handle = gethandle(disp);
@@ -2362,8 +2369,8 @@ gethandle(dns_dispatch_t *disp) {
 	return (disp->handle);
 }
 
-static isc_nmhandle_t *
-getentryhandle(dns_dispentry_t *resp) {
+isc_nmhandle_t *
+dns__dispatch_getentryhandle(dns_dispentry_t *resp) {
 	REQUIRE(VALID_RESPONSE(resp));
 
 	if (resp->disp->socktype == isc_socktype_tcp) {

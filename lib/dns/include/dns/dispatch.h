@@ -478,6 +478,14 @@ dns_dispatch_getnext(dns_dispentry_t *resp, dns_dispatchevent_t **sockevent);
  *\li	*sockevent to be valid
  */
 
+isc_nmhandle_t *
+dns__dispatch_getentryhandle(dns_dispentry_t *resp);
+/*%<
+ * Returns the netmgr handle associated with 'resp'. (Not
+ * intended for use outside of this module and associated
+ * tests.)
+ */
+
 ISC_LANG_ENDDECLS
 
 #endif /* DNS_DISPATCH_H */

@@ -68,7 +68,7 @@ isc_taskmgr_t *taskmgr = NULL;
 isc_task_t *maintask = NULL;
 isc_timermgr_t *timermgr = NULL;
 isc_socketmgr_t *socketmgr = NULL;
-isc_socketmgr_t *nm = NULL;
+isc_nm_t *nm = NULL;
 dns_zonemgr_t *zonemgr = NULL;
 bool app_running = false;
 int ncpus;
