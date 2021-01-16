@@ -1221,8 +1221,8 @@ main(int argc, char *argv[]) {
 	dns_client_destroy(&client);
 	dns_lib_shutdown();
 	isc_app_ctxfinish(actx);
-	ctxs_destroy(&mctx, &actx, &taskmgr, &timermgr);
 	isc_nm_destroy(&nm);
+	ctxs_destroy(&mctx, &actx, &taskmgr, &timermgr);
 
 	return (0);
 }
