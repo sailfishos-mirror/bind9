@@ -705,13 +705,6 @@ entry_search(dns_qid_t *qid, const isc_sockaddr_t *dest, dns_messageid_t id,
 }
 
 static inline void
-free_sevent(isc_event_t *ev) {
-	isc_mempool_t *pool = ev->ev_destroy_arg;
-	isc_socketevent_t *sev = (isc_socketevent_t *)ev;
-	isc_mempool_put(pool, sev);
-}
-
-static inline void
 free_devent(dns_dispatch_t *disp, dns_dispatchevent_t *ev) {
 	if (disp->failsafe_ev == ev) {
 		INSIST(disp->shutdown_out == 1);
@@ -1865,7 +1858,8 @@ dns_dispatch_detach(dns_dispatch_t **dispp) {
 
 	LOCK(&disp->lock);
 	if (isc_refcount_decrement(&disp->refcount) == 1) {
-		if (disp->recv_pending > 0) {
+		if (disp->recv_pending != 0 && disp->handle != NULL) {
+			isc_nm_cancelread(disp->handle);
 			isc_nmhandle_detach(&disp->handle);
 		}
 		for (dispsock = ISC_LIST_HEAD(disp->activesockets);
@@ -2132,7 +2126,8 @@ dns_dispatch_removeresponse(dns_dispentry_t **resp,
 				     : dns_resstatscounter_dispreqtcp);
 
 	if (isc_refcount_decrement(&disp->refcount) == 1) {
-		if (disp->recv_pending > 0 && disp->handle != NULL) {
+		if (disp->recv_pending != 0 && disp->handle != NULL) {
+			isc_nm_cancelread(disp->handle);
 			isc_nmhandle_detach(&disp->handle);
 		}
 		for (dispsock = ISC_LIST_HEAD(disp->activesockets);
@@ -2193,6 +2188,7 @@ dns_dispatch_removeresponse(dns_dispentry_t **resp,
 	}
 	res->magic = 0;
 	isc_mempool_put(disp->mgr->rpool, res);
+
 	if (disp->shutting_down == 1) {
 		do_cancel(disp);
 	} else {

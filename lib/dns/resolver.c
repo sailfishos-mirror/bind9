@@ -1935,18 +1935,19 @@ fctx_setretryinterval(fetchctx_t *fctx, unsigned int rtt) {
 static isc_result_t
 fctx_query(fetchctx_t *fctx, dns_adbaddrinfo_t *addrinfo,
 	   unsigned int options) {
-	dns_resolver_t *res = NULL;
 	isc_result_t result;
+	dns_resolver_t *res = NULL;
+	isc_task_t *task = NULL;
 	resquery_t *query = NULL;
 	isc_sockaddr_t addr;
 	bool have_addr = false;
 	unsigned int srtt;
 	isc_dscp_t dscp = -1;
-	unsigned int bucketnum;
 
 	FCTXTRACE("query");
 
 	res = fctx->res;
+	task = res->buckets[fctx->bucketnum].task;
 
 	srtt = addrinfo->srtt;
 
@@ -2120,29 +2121,26 @@ fctx_query(fetchctx_t *fctx, dns_adbaddrinfo_t *addrinfo,
 		dns_adb_beginudpfetch(fctx->adb, addrinfo);
 	}
 
-	result = resquery_send(query);
+	/* Set up the dispatch and set the query ID */
+	result = dns_dispatch_addresponse(
+		query->dispatch, 0, &query->addrinfo->sockaddr, task,
+		resquery_connected, resquery_senddone, resquery_response, query,
+		&query->id, &query->dispentry);
 	if (result != ISC_R_SUCCESS) {
 		goto cleanup_dispatch;
 	}
 
-	fctx->querysent++;
-
-	ISC_LIST_APPEND(fctx->queries, query, link);
-	bucketnum = fctx->bucketnum;
-	LOCK(&res->buckets[bucketnum].lock);
-	fctx->nqueries++;
-	UNLOCK(&res->buckets[bucketnum].lock);
-	if (isc_sockaddr_pf(&addrinfo->sockaddr) == PF_INET) {
-		inc_stats(res, dns_resstatscounter_queryv4);
-	} else {
-		inc_stats(res, dns_resstatscounter_queryv6);
+	/* Connect the socket */
+	result = dns_dispatch_connect(query->dispentry);
+	if (result != ISC_R_SUCCESS) {
+		goto cleanup_dispentry;
 	}
-	if (res->view->resquerystats != NULL) {
-		dns_rdatatypestats_increment(res->view->resquerystats,
-					     fctx->type);
-	}
+	query->connects++;
 
 	return (ISC_R_SUCCESS);
+
+cleanup_dispentry:
+	dns_dispatch_removeresponse(&query->dispentry, NULL);
 
 cleanup_dispatch:
 	if (query->dispatch != NULL) {
@@ -2302,11 +2300,10 @@ resquery_send(resquery_t *query) {
 	isc_result_t result;
 	fetchctx_t *fctx = query->fctx;
 	dns_resolver_t *res = fctx->res;
-	isc_buffer_t *buffer = &query->buffer;
+	isc_buffer_t buffer;
 	dns_name_t *qname = NULL;
 	dns_rdataset_t *qrdataset = NULL;
 	isc_region_t r;
-	isc_task_t *task = NULL;
 	isc_netaddr_t ipaddr;
 	dns_tsigkey_t *tsigkey = NULL;
 	dns_peer_t *peer = NULL;
@@ -2328,24 +2325,11 @@ resquery_send(resquery_t *query) {
 
 	QTRACE("send");
 
-	task = res->buckets[fctx->bucketnum].task;
-
 	result = dns_message_gettempname(fctx->qmessage, &qname);
 	if (result != ISC_R_SUCCESS) {
 		goto cleanup_temps;
 	}
 	result = dns_message_gettemprdataset(fctx->qmessage, &qrdataset);
-	if (result != ISC_R_SUCCESS) {
-		goto cleanup_temps;
-	}
-
-	/*
-	 * Get a query id from the dispatch.
-	 */
-	result = dns_dispatch_addresponse(
-		query->dispatch, 0, &query->addrinfo->sockaddr, task,
-		resquery_connected, resquery_senddone, resquery_response, query,
-		&query->id, &query->dispentry);
 	if (result != ISC_R_SUCCESS) {
 		goto cleanup_temps;
 	}
@@ -2413,7 +2397,8 @@ resquery_send(resquery_t *query) {
 	}
 	cleanup_cctx = true;
 
-	result = dns_message_renderbegin(fctx->qmessage, &cctx, &query->buffer);
+	isc_buffer_init(&buffer, query->data, sizeof(query->data));
+	result = dns_message_renderbegin(fctx->qmessage, &cctx, &buffer);
 	if (result != ISC_R_SUCCESS) {
 		goto cleanup_message;
 	}
@@ -2704,18 +2689,7 @@ resquery_send(resquery_t *query) {
 	 */
 	dns_message_reset(fctx->qmessage, DNS_MESSAGE_INTENTRENDER);
 
-	/* Connect the socket */
-	result = dns_dispatch_connect(query->dispentry);
-	if (result != ISC_R_SUCCESS) {
-		goto cleanup_message;
-	}
-	query->connects++;
-
-	// HERE
-	// this needs to be moved to the _connected function, which
-	// currently is looping back to resquery_send, so that needs
-	// fixing as well
-	isc_buffer_usedregion(buffer, &r);
+	isc_buffer_usedregion(&buffer, &r);
 
 	dns_dispatch_send(query->dispentry, &r, query->dscp);
 	query->sends++;
@@ -2738,7 +2712,7 @@ resquery_send(resquery_t *query) {
 	}
 
 	dns_dt_send(fctx->res->view, dtmsgtype, la, &query->addrinfo->sockaddr,
-		    tcp, &zr, &query->start, NULL, &query->buffer);
+		    tcp, &zr, &query->start, NULL, &buffer);
 #endif /* HAVE_DNSTAP */
 
 	return (ISC_R_SUCCESS);
@@ -2772,7 +2746,10 @@ resquery_connected(isc_nmhandle_t *handle, isc_result_t eresult, void *arg) {
 	bool retry = false;
 	isc_interval_t interval;
 	isc_result_t result;
-	fetchctx_t *fctx;
+	fetchctx_t *fctx = NULL;
+	unsigned int bucketnum;
+	dns_resolver_t *res = NULL;
+	int pf;
 
 	REQUIRE(VALID_QUERY(query));
 
@@ -2780,16 +2757,9 @@ resquery_connected(isc_nmhandle_t *handle, isc_result_t eresult, void *arg) {
 
 	UNUSED(handle);
 
-	/*
-	 * XXXRTH
-	 *
-	 * Currently we don't wait for the connect event before retrying
-	 * a query.  This means that if we get really behind, we may end
-	 * up doing extra work!
-	 */
-
 	query->connects--;
 	fctx = query->fctx;
+	res = fctx->res;
 
 	if (RESQUERY_CANCELED(query)) {
 		/*
@@ -2809,8 +2779,7 @@ resquery_connected(isc_nmhandle_t *handle, isc_result_t eresult, void *arg) {
 			 * received.
 			 */
 			isc_interval_set(&interval,
-					 fctx->res->query_timeout / 1000 / 2,
-					 0);
+					 res->query_timeout / 1000 / 2, 0);
 			result = fctx_startidletimer(query->fctx, &interval);
 			if (result != ISC_R_SUCCESS) {
 				FCTXTRACE("query canceled: idle timer failed; "
@@ -2839,6 +2808,25 @@ resquery_connected(isc_nmhandle_t *handle, isc_result_t eresult, void *arg) {
 						 false);
 				fctx_done(fctx, result, __LINE__);
 			}
+
+			fctx->querysent++;
+
+			ISC_LIST_APPEND(fctx->queries, query, link);
+			bucketnum = fctx->bucketnum;
+			LOCK(&res->buckets[bucketnum].lock);
+			fctx->nqueries++;
+			UNLOCK(&res->buckets[bucketnum].lock);
+			pf = isc_sockaddr_pf(&query->addrinfo->sockaddr);
+			if (pf == PF_INET) {
+				inc_stats(res, dns_resstatscounter_queryv4);
+			} else {
+				inc_stats(res, dns_resstatscounter_queryv6);
+			}
+			if (res->view->resquerystats != NULL) {
+				dns_rdatatypestats_increment(
+					res->view->resquerystats, fctx->type);
+			}
+
 			break;
 
 		case ISC_R_NETUNREACH:
