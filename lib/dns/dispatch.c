@@ -111,6 +111,7 @@ struct dispsocket {
 	unsigned int magic;
 	isc_nmhandle_t *handle;
 	dns_dispatch_t *disp;
+	isc_sockaddr_t local;
 	isc_sockaddr_t peer;
 	dns_dispentry_t *resp;
 	in_port_t port;
@@ -586,9 +587,10 @@ get_dispsocket(dns_dispatch_t *disp, const isc_sockaddr_t *dest,
 	 * to avoid ports that share the same destination because it will be
 	 * very likely to fail in bind(2) or connect(2).
 	 */
+	dispsock->local = disp->local;
 	for (i = 0; i < 64; i++) {
 		port = ports[isc_random_uniform(nports)];
-		isc_sockaddr_setport(&disp->local, port);
+		isc_sockaddr_setport(&dispsock->local, port);
 
 		LOCK(&qid->lock);
 		bucket = dns_hash(qid, dest, 0, port);
@@ -597,6 +599,7 @@ get_dispsocket(dns_dispatch_t *disp, const isc_sockaddr_t *dest,
 			continue;
 		}
 		UNLOCK(&qid->lock);
+		break;
 	}
 
 	dispsock->peer = *dest;
@@ -865,53 +868,9 @@ udp_recv(isc_nmhandle_t *handle, isc_result_t eresult, isc_region_t *region,
 		goto restart;
 	}
 
-	/*
-	 * Now that we have the original dispatch the query was sent
-	 * from check that the address and port the response was
-	 * sent to make sense.
-	 */
-	if (disp != resp->disp) {
-		isc_sockaddr_t a1;
-		isc_sockaddr_t a2;
-
-		/*
-		 * Check that the socket types and ports match.
-		 */
-		if (disp->socktype != resp->disp->socktype ||
-		    isc_sockaddr_getport(&disp->local) !=
-			    isc_sockaddr_getport(&resp->disp->local))
-		{
-			goto restart;
-		}
-
-		/*
-		 * If each dispatch is bound to a different address
-		 * then fail.
-		 *
-		 * Note under Linux a packet can be sent out via IPv4 socket
-		 * and the response be received via a IPv6 socket.
-		 *
-		 * Requests sent out via IPv6 should always come back in
-		 * via IPv6.
-		 */
-		if (isc_sockaddr_pf(&resp->disp->local) == PF_INET6 &&
-		    isc_sockaddr_pf(&disp->local) != PF_INET6)
-		{
-			goto restart;
-		}
-		isc_sockaddr_anyofpf(&a1, isc_sockaddr_pf(&resp->disp->local));
-		isc_sockaddr_anyofpf(&a2, isc_sockaddr_pf(&disp->local));
-		if (!isc_sockaddr_eqaddr(&disp->local, &resp->disp->local) &&
-		    !isc_sockaddr_eqaddr(&a1, &resp->disp->local) &&
-		    !isc_sockaddr_eqaddr(&a2, &disp->local))
-		{
-			goto restart;
-		}
-	}
-
 sendresponse:
 	queue_response = resp->item_out;
-	rev = allocate_devent(resp->disp);
+	rev = allocate_devent(disp);
 
 	/*
 	 * At this point, rev contains the event we want to fill in, and
@@ -1764,7 +1723,6 @@ dispatch_createudp(dns_dispatchmgr_t *mgr, isc_taskmgr_t *taskmgr,
 	/*
 	 * Check whether this address/port is available locally.
 	 */
-
 	isc_sockaddr_anyofpf(&sa_any, pf);
 	if (!isc_sockaddr_eqaddr(&sa_any, localaddr)) {
 		result = isc_nm_checkaddr(localaddr, isc_socktype_udp);
@@ -2247,7 +2205,8 @@ dns_dispatch_connect(dns_dispentry_t *resp) {
 					     disp_connected, resp, 10000, 0));
 	case isc_socktype_udp:
 		return (isc_nm_udpconnect(
-			disp->mgr->nm, (isc_nmiface_t *)&disp->local,
+			disp->mgr->nm,
+			(isc_nmiface_t *)&resp->dispsocket->local,
 			(isc_nmiface_t *)&resp->dispsocket->peer,
 			disp_connected, resp, 10000, 0));
 	default:
