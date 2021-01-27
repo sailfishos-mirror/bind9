@@ -42,7 +42,6 @@
 #include <isc/stdio.h>
 #include <isc/string.h>
 #include <isc/task.h>
-#include <isc/timer.h>
 #include <isc/types.h>
 #include <isc/util.h>
 
@@ -132,7 +131,6 @@ static isc_mem_t *gmctx = NULL;
 static dns_dispatchmgr_t *dispatchmgr = NULL;
 static dns_requestmgr_t *requestmgr = NULL;
 static isc_nm_t *nm = NULL;
-static isc_timermgr_t *timermgr = NULL;
 static dns_dispatch_t *dispatchv4 = NULL;
 static dns_dispatch_t *dispatchv6 = NULL;
 static dns_message_t *updatemsg = NULL;
@@ -921,9 +919,6 @@ setup_system(void) {
 	result = dns_dispatchmgr_create(gmctx, nm, &dispatchmgr);
 	check_result(result, "dns_dispatchmgr_create");
 
-	result = isc_timermgr_create(gmctx, &timermgr);
-	check_result(result, "dns_timermgr_create");
-
 	result = isc_taskmgr_create(gmctx, 1, 0, NULL, &taskmgr);
 	check_result(result, "isc_taskmgr_create");
 
@@ -953,8 +948,8 @@ setup_system(void) {
 		check_result(result, "dns_dispatch_createudp (v4)");
 	}
 
-	result = dns_requestmgr_create(gmctx, timermgr, taskmgr, dispatchmgr,
-				       dispatchv4, dispatchv6, &requestmgr);
+	result = dns_requestmgr_create(gmctx, taskmgr, dispatchmgr, dispatchv4,
+				       dispatchv6, &requestmgr);
 	check_result(result, "dns_requestmgr_create");
 
 	if (keystr != NULL) {
@@ -3298,9 +3293,6 @@ cleanup(void) {
 
 	ddebug("Destroying event");
 	isc_event_free(&global_event);
-
-	ddebug("Shutting down timer manager");
-	isc_timermgr_destroy(&timermgr);
 
 	ddebug("Shutting down network manager");
 	isc_nm_destroy(&nm);

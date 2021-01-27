@@ -22,7 +22,6 @@
 #include <isc/random.h>
 #include <isc/sockaddr.h>
 #include <isc/task.h>
-#include <isc/timer.h>
 #include <isc/util.h>
 
 #include <pk11/site.h>
@@ -133,7 +132,6 @@ int
 main(int argc, char **argv) {
 	char *keyname = NULL;
 	isc_taskmgr_t *taskmgr = NULL;
-	isc_timermgr_t *timermgr = NULL;
 	isc_sockaddr_t bind_any;
 	dns_dispatchmgr_t *dispatchmgr = NULL;
 	dns_dispatch_t *dispatchv4 = NULL;
@@ -170,7 +168,6 @@ main(int argc, char **argv) {
 
 	RUNCHECK(isc_taskmgr_create(mctx, 1, 0, NULL, &taskmgr));
 	RUNCHECK(isc_task_create(taskmgr, 0, &task));
-	RUNCHECK(isc_timermgr_create(mctx, &timermgr));
 
 	nm = isc_nm_start(mctx, 1);
 	RUNCHECK(dns_dispatchmgr_create(mctx, nm, &dispatchmgr));
@@ -178,8 +175,8 @@ main(int argc, char **argv) {
 	isc_sockaddr_any(&bind_any);
 	RUNCHECK(dns_dispatch_createudp(dispatchmgr, taskmgr, &bind_any, 0,
 					&dispatchv4));
-	RUNCHECK(dns_requestmgr_create(mctx, timermgr, taskmgr, dispatchmgr,
-				       dispatchv4, NULL, &requestmgr));
+	RUNCHECK(dns_requestmgr_create(mctx, taskmgr, dispatchmgr, dispatchv4,
+				       NULL, &requestmgr));
 
 	RUNCHECK(dns_tsigkeyring_create(mctx, &ring));
 	RUNCHECK(dns_tkeyctx_create(mctx, &tctx));
@@ -207,7 +204,6 @@ main(int argc, char **argv) {
 	isc_task_shutdown(task);
 	isc_task_detach(&task);
 	isc_taskmgr_destroy(&taskmgr);
-	isc_timermgr_destroy(&timermgr);
 	isc_nm_destroy(&nm);
 
 	dns_tsigkeyring_detach(&ring);

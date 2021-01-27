@@ -29,7 +29,6 @@
 #include <isc/refcount.h>
 #include <isc/socket.h>
 #include <isc/task.h>
-#include <isc/timer.h>
 #include <isc/util.h>
 
 #include <dns/dispatch.h>
@@ -278,9 +277,9 @@ dispatch_getnext(void **state) {
 
 	region.base = rbuf;
 	region.length = sizeof(rbuf);
-	result = dns_dispatch_addresponse(dispatch, 0, &local, task, connected,
-					  senddone, response, &region, &id,
-					  &dispentry);
+	result = dns_dispatch_addresponse(dispatch, 0, 10000, &local, task,
+					  connected, senddone, response, NULL,
+					  &region, &id, &dispentry);
 	assert_int_equal(result, ISC_R_SUCCESS);
 
 	memset(message, 0, sizeof(message));

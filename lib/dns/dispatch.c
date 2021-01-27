@@ -95,11 +95,13 @@ struct dns_dispentry {
 	dns_messageid_t id;
 	in_port_t port;
 	unsigned int bucket;
+	unsigned int timeout;
 	isc_sockaddr_t peer;
 	isc_task_t *task;
 	isc_nm_cb_t connected;
 	isc_nm_cb_t sent;
 	isc_taskaction_t action;
+	isc_taskaction_t timeout_action;
 	void *arg;
 	bool item_out;
 	dispsocket_t *dispsocket;
@@ -757,6 +759,7 @@ udp_recv(isc_nmhandle_t *handle, isc_result_t eresult, isc_region_t *region,
 	dns_dispatchmgr_t *mgr = NULL;
 	isc_sockaddr_t peer;
 	isc_netaddr_t netaddr;
+	isc_taskaction_t action;
 	int match;
 
 	REQUIRE(VALID_DISPSOCK(dispsock));
@@ -807,12 +810,12 @@ udp_recv(isc_nmhandle_t *handle, isc_result_t eresult, isc_region_t *region,
 
 	if (eresult != ISC_R_SUCCESS) {
 		/*
-		 * This is most likely a network error on a
-		 * connected socket.  It makes no sense to
+		 * This is most likely either a timeout or a network
+		 * error on a connected socket.  It makes no sense to
 		 * check the address or parse the packet, but it
 		 * will help to return the error to the caller.
 		 */
-		goto sendresponse;
+		goto sendevent;
 	}
 
 	/*
@@ -868,17 +871,24 @@ udp_recv(isc_nmhandle_t *handle, isc_result_t eresult, isc_region_t *region,
 		goto restart;
 	}
 
-sendresponse:
-	queue_response = resp->item_out;
+sendevent:
 	rev = allocate_devent(disp);
+	queue_response = resp->item_out;
 
 	/*
 	 * At this point, rev contains the event we want to fill in, and
 	 * resp contains the information on the place to send it to.
 	 * Send the event off.
 	 */
-	isc_buffer_init(&rev->buffer, region->base, region->length);
-	isc_buffer_add(&rev->buffer, region->length);
+	if (eresult == ISC_R_TIMEDOUT) {
+		action = resp->timeout_action;
+	} else {
+		action = resp->action;
+		isc_buffer_init(&rev->buffer, region->base, region->length);
+		isc_buffer_add(&rev->buffer, region->length);
+		resp->item_out = true;
+	}
+
 	rev->result = eresult;
 	rev->id = id;
 	rev->addr = peer;
@@ -886,12 +896,11 @@ sendresponse:
 		ISC_LIST_APPEND(resp->items, rev, ev_link);
 	} else {
 		ISC_EVENT_INIT(rev, sizeof(*rev), 0, NULL, DNS_EVENT_DISPATCH,
-			       resp->action, resp->arg, resp, NULL, NULL);
+			       action, resp->arg, resp, NULL, NULL);
 		request_log(disp, resp, LVL(90),
 			    "[a] Sent event %p buffer %p len %d to task %p",
 			    rev, rev->buffer.base, rev->buffer.length,
 			    resp->task);
-		resp->item_out = true;
 		isc_task_send(resp->task, ISC_EVENT_PTR(&rev));
 	}
 
@@ -938,6 +947,7 @@ tcp_recv(isc_nmhandle_t *handle, isc_result_t eresult, isc_region_t *region,
 	char buf[ISC_SOCKADDR_FORMATSIZE];
 	isc_buffer_t source;
 	isc_sockaddr_t peer;
+	isc_taskaction_t action;
 
 	REQUIRE(VALID_DISPATCH(disp));
 
@@ -976,6 +986,9 @@ tcp_recv(isc_nmhandle_t *handle, isc_result_t eresult, isc_region_t *region,
 		case ISC_R_CONNECTIONRESET:
 			level = ISC_LOG_INFO;
 			goto logit;
+
+		case ISC_R_TIMEDOUT:
+			goto sendevent;
 
 		default:
 			level = ISC_LOG_ERROR;
@@ -1048,6 +1061,7 @@ tcp_recv(isc_nmhandle_t *handle, isc_result_t eresult, isc_region_t *region,
 		goto unlock;
 	}
 
+sendevent:
 	queue_response = resp->item_out;
 	rev = allocate_devent(disp);
 
@@ -1056,22 +1070,28 @@ tcp_recv(isc_nmhandle_t *handle, isc_result_t eresult, isc_region_t *region,
 	 * resp contains the information on the place to send it to.
 	 * Send the event off.
 	 */
-	isc_buffer_init(&rev->buffer, region->base, region->length);
-	isc_buffer_add(&rev->buffer, region->length);
+	if (eresult == ISC_R_TIMEDOUT) {
+		action = resp->timeout_action;
+		rev->result = eresult;
+	} else {
+		action = resp->action;
+		isc_buffer_init(&rev->buffer, region->base, region->length);
+		isc_buffer_add(&rev->buffer, region->length);
+		resp->item_out = true;
+		rev->result = ISC_R_SUCCESS;
+	}
 
-	rev->result = ISC_R_SUCCESS;
 	rev->id = id;
 	rev->addr = peer;
 	if (queue_response) {
 		ISC_LIST_APPEND(resp->items, rev, ev_link);
 	} else {
 		ISC_EVENT_INIT(rev, sizeof(*rev), 0, NULL, DNS_EVENT_DISPATCH,
-			       resp->action, resp->arg, resp, NULL, NULL);
+			       action, resp->arg, resp, NULL, NULL);
 		request_log(disp, resp, LVL(90),
 			    "[b] Sent event %p buffer %p len %d to task %p",
 			    rev, rev->buffer.base, rev->buffer.length,
 			    resp->task);
-		resp->item_out = true;
 		isc_task_send(resp->task, ISC_EVENT_PTR(&rev));
 	}
 unlock:
@@ -1839,9 +1859,10 @@ dns_dispatch_detach(dns_dispatch_t **dispp) {
 
 isc_result_t
 dns_dispatch_addresponse(dns_dispatch_t *disp, unsigned int options,
-			 const isc_sockaddr_t *dest, isc_task_t *task,
-			 isc_nm_cb_t connected, isc_nm_cb_t sent,
-			 isc_taskaction_t action, void *arg,
+			 unsigned int timeout, const isc_sockaddr_t *dest,
+			 isc_task_t *task, isc_nm_cb_t connected,
+			 isc_nm_cb_t sent, isc_taskaction_t action,
+			 isc_taskaction_t timeout_action, void *arg,
 			 dns_messageid_t *idp, dns_dispentry_t **resp) {
 	isc_result_t result;
 	dns_dispentry_t *res = NULL;
@@ -1956,10 +1977,12 @@ dns_dispatch_addresponse(dns_dispatch_t *disp, unsigned int options,
 				  .id = id,
 				  .port = localport,
 				  .bucket = bucket,
+				  .timeout = timeout,
 				  .peer = *dest,
 				  .connected = connected,
 				  .sent = sent,
 				  .action = action,
+				  .timeout_action = timeout_action,
 				  .arg = arg,
 				  .dispsocket = dispsocket };
 	isc_task_attach(task, &res->task);
@@ -2052,7 +2075,6 @@ dns_dispatch_removeresponse(dns_dispentry_t **resp,
 	dns_dispatchevent_t *ev = NULL;
 	unsigned int bucket;
 	bool killit;
-	unsigned int n;
 	isc_eventlist_t events;
 	dns_qid_t *qid = NULL;
 
@@ -2110,6 +2132,8 @@ dns_dispatch_removeresponse(dns_dispentry_t **resp,
 	UNLOCK(&qid->lock);
 
 	if (ev == NULL && res->item_out) {
+		unsigned int n;
+
 		/*
 		 * We've posted our event, but the caller hasn't gotten it
 		 * yet.  Take it back.
@@ -2199,16 +2223,16 @@ dns_dispatch_connect(dns_dispentry_t *resp) {
 		if (disp->handle != NULL) {
 			return (ISC_R_SUCCESS);
 		}
-		return (isc_nm_tcpdnsconnect(disp->mgr->nm,
-					     (isc_nmiface_t *)&disp->local,
-					     (isc_nmiface_t *)&disp->peer,
-					     disp_connected, resp, 10000, 0));
+		return (isc_nm_tcpdnsconnect(
+			disp->mgr->nm, (isc_nmiface_t *)&disp->local,
+			(isc_nmiface_t *)&disp->peer, disp_connected, resp,
+			resp->timeout, 0));
 	case isc_socktype_udp:
 		return (isc_nm_udpconnect(
 			disp->mgr->nm,
 			(isc_nmiface_t *)&resp->dispsocket->local,
 			(isc_nmiface_t *)&resp->dispsocket->peer,
-			disp_connected, resp, 10000, 0));
+			disp_connected, resp, resp->timeout, 0));
 	default:
 		return (ISC_R_NOTIMPLEMENTED);
 	}

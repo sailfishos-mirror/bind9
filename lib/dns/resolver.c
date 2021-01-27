@@ -2122,10 +2122,11 @@ fctx_query(fetchctx_t *fctx, dns_adbaddrinfo_t *addrinfo,
 	}
 
 	/* Set up the dispatch and set the query ID */
+	/* XXX: timeout hard-coded to 10 seconds */
 	result = dns_dispatch_addresponse(
-		query->dispatch, 0, &query->addrinfo->sockaddr, task,
-		resquery_connected, resquery_senddone, resquery_response, query,
-		&query->id, &query->dispentry);
+		query->dispatch, 0, 10000, &query->addrinfo->sockaddr, task,
+		resquery_connected, resquery_senddone, resquery_response, NULL,
+		query, &query->id, &query->dispentry);
 	if (result != ISC_R_SUCCESS) {
 		goto cleanup_dispatch;
 	}

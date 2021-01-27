@@ -28,7 +28,6 @@
 #include <isc/print.h>
 #include <isc/sockaddr.h>
 #include <isc/task.h>
-#include <isc/timer.h>
 #include <isc/util.h>
 
 #include <dns/dispatch.h>
@@ -203,7 +202,6 @@ main(int argc, char *argv[]) {
 	isc_logconfig_t *lcfg = NULL;
 	isc_taskmgr_t *taskmgr = NULL;
 	isc_task_t *task = NULL;
-	isc_timermgr_t *timermgr = NULL;
 	dns_dispatchmgr_t *dispatchmgr = NULL;
 	dns_dispatch_t *dispatchv4 = NULL;
 	dns_view_t *view = NULL;
@@ -270,16 +268,14 @@ main(int argc, char *argv[]) {
 	RUNCHECK(isc_taskmgr_create(mctx, 1, 0, NULL, &taskmgr));
 	RUNCHECK(isc_task_create(taskmgr, 0, &task));
 
-	RUNCHECK(isc_timermgr_create(mctx, &timermgr));
-
 	nm = isc_nm_start(mctx, 1);
 	RUNCHECK(dns_dispatchmgr_create(mctx, nm, &dispatchmgr));
 
 	RUNCHECK(dns_dispatch_createudp(dispatchmgr, taskmgr,
 					have_src ? &srcaddr : &bind_any, 0,
 					&dispatchv4));
-	RUNCHECK(dns_requestmgr_create(mctx, timermgr, taskmgr, dispatchmgr,
-				       dispatchv4, NULL, &requestmgr));
+	RUNCHECK(dns_requestmgr_create(mctx, taskmgr, dispatchmgr, dispatchv4,
+				       NULL, &requestmgr));
 
 	RUNCHECK(dns_view_create(mctx, 0, "_test", &view));
 
@@ -294,8 +290,6 @@ main(int argc, char *argv[]) {
 
 	dns_dispatch_detach(&dispatchv4);
 	dns_dispatchmgr_destroy(&dispatchmgr);
-
-	isc_timermgr_destroy(&timermgr);
 
 	isc_task_shutdown(task);
 	isc_task_detach(&task);

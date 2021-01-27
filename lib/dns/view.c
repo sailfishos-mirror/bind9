@@ -841,7 +841,7 @@ dns_view_createresolver(dns_view_t *view, isc_taskmgr_t *taskmgr,
 	isc_refcount_increment(&view->weakrefs);
 
 	result = dns_requestmgr_create(
-		view->mctx, timermgr, dns_resolver_taskmgr(view->resolver),
+		view->mctx, dns_resolver_taskmgr(view->resolver),
 		dns_resolver_dispatchmgr(view->resolver), dispatchv4,
 		dispatchv6, &view->requestmgr);
 	if (result != ISC_R_SUCCESS) {

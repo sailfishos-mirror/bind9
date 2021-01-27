@@ -17,7 +17,6 @@
 #include <isc/magic.h>
 #include <isc/mem.h>
 #include <isc/task.h>
-#include <isc/timer.h>
 #include <isc/util.h>
 
 #include <dns/acl.h>
@@ -50,7 +49,6 @@ struct dns_requestmgr {
 	/* locked */
 	int32_t eref;
 	int32_t iref;
-	isc_timermgr_t *timermgr;
 	isc_taskmgr_t *taskmgr;
 	dns_dispatchmgr_t *dispatchmgr;
 	dns_dispatch_t *dispatchv4;
@@ -73,7 +71,6 @@ struct dns_request {
 	dns_requestevent_t *event;
 	dns_dispatch_t *dispatch;
 	dns_dispentry_t *dispentry;
-	isc_timer_t *timer;
 	dns_requestmgr_t *requestmgr;
 	isc_buffer_t *tsig;
 	dns_tsigkey_t *tsigkey;
@@ -137,8 +134,8 @@ do_cancel(isc_task_t *task, isc_event_t *event);
  ***/
 
 isc_result_t
-dns_requestmgr_create(isc_mem_t *mctx, isc_timermgr_t *timermgr,
-		      isc_taskmgr_t *taskmgr, dns_dispatchmgr_t *dispatchmgr,
+dns_requestmgr_create(isc_mem_t *mctx, isc_taskmgr_t *taskmgr,
+		      dns_dispatchmgr_t *dispatchmgr,
 		      dns_dispatch_t *dispatchv4, dns_dispatch_t *dispatchv6,
 		      dns_requestmgr_t **requestmgrp) {
 	dns_requestmgr_t *requestmgr;
@@ -148,7 +145,6 @@ dns_requestmgr_create(isc_mem_t *mctx, isc_timermgr_t *timermgr,
 	req_log(ISC_LOG_DEBUG(3), "dns_requestmgr_create");
 
 	REQUIRE(requestmgrp != NULL && *requestmgrp == NULL);
-	REQUIRE(timermgr != NULL);
 	REQUIRE(taskmgr != NULL);
 	REQUIRE(dispatchmgr != NULL);
 
@@ -168,7 +164,6 @@ dns_requestmgr_create(isc_mem_t *mctx, isc_timermgr_t *timermgr,
 	for (i = 0; i < DNS_REQUEST_NLOCKS; i++) {
 		isc_mutex_init(&requestmgr->locks[i]);
 	}
-	requestmgr->timermgr = timermgr;
 	requestmgr->taskmgr = taskmgr;
 	requestmgr->dispatchmgr = dispatchmgr;
 	requestmgr->dispatchv4 = NULL;
@@ -535,25 +530,6 @@ get_dispatch(bool tcp, bool newtcp, dns_requestmgr_t *requestmgr,
 	return (result);
 }
 
-static isc_result_t
-set_timer(isc_timer_t *timer, unsigned int timeout, unsigned int udpresend) {
-	isc_time_t expires;
-	isc_interval_t interval;
-	isc_result_t result;
-	isc_timertype_t timertype;
-
-	isc_interval_set(&interval, timeout, 0);
-	result = isc_time_nowplusinterval(&expires, &interval);
-	isc_interval_set(&interval, udpresend, 0);
-
-	timertype = udpresend != 0 ? isc_timertype_limited : isc_timertype_once;
-	if (result == ISC_R_SUCCESS) {
-		result = isc_timer_reset(timer, timertype, &expires, &interval,
-					 false);
-	}
-	return (result);
-}
-
 isc_result_t
 dns_request_createraw(dns_requestmgr_t *requestmgr, isc_buffer_t *msgbuf,
 		      const isc_sockaddr_t *srcaddr,
@@ -604,18 +580,12 @@ dns_request_createraw(dns_requestmgr_t *requestmgr, isc_buffer_t *msgbuf,
 			udptimeout = 1;
 		}
 	}
+
+	timeout *= 1000;
+	udptimeout *= 1000;
+
 	request->udpcount = udpretries;
 	request->dscp = dscp;
-
-	/*
-	 * Create timer now.  We will set it below once.
-	 */
-	result = isc_timer_create(requestmgr->timermgr, isc_timertype_inactive,
-				  NULL, NULL, task, req_timeout, request,
-				  &request->timer);
-	if (result != ISC_R_SUCCESS) {
-		goto cleanup;
-	}
 
 	request->event = (dns_requestevent_t *)isc_event_allocate(
 		mctx, task, DNS_EVENT_REQUESTDONE, action, arg,
@@ -648,8 +618,9 @@ again:
 	}
 
 	result = dns_dispatch_addresponse(
-		request->dispatch, dispopt, destaddr, task, req_connected,
-		req_senddone, req_response, request, &id, &request->dispentry);
+		request->dispatch, dispopt, tcp ? timeout : udptimeout,
+		destaddr, task, req_connected, req_senddone, req_response,
+		req_timeout, request, &id, &request->dispentry);
 	if (result != ISC_R_SUCCESS) {
 		if ((options & DNS_REQUESTOPT_FIXEDID) != 0 && !newtcp) {
 			newtcp = true;
@@ -687,11 +658,6 @@ again:
 	request->hash = mgr_gethash(requestmgr);
 	ISC_LIST_APPEND(requestmgr->requests, request, link);
 	UNLOCK(&requestmgr->lock);
-
-	result = set_timer(request->timer, timeout, tcp ? 0 : udptimeout);
-	if (result != ISC_R_SUCCESS) {
-		goto unlink;
-	}
 
 	request->destaddr = *destaddr;
 	if (!tcp || !connected) {
@@ -785,18 +751,12 @@ dns_request_createvia(dns_requestmgr_t *requestmgr, dns_message_t *message,
 			udptimeout = 1;
 		}
 	}
+
+	timeout *= 1000;
+	udptimeout *= 1000;
+
 	request->udpcount = udpretries;
 	request->dscp = dscp;
-
-	/*
-	 * Create timer now.  We will set it below once.
-	 */
-	result = isc_timer_create(requestmgr->timermgr, isc_timertype_inactive,
-				  NULL, NULL, task, req_timeout, request,
-				  &request->timer);
-	if (result != ISC_R_SUCCESS) {
-		goto cleanup;
-	}
 
 	request->event = (dns_requestevent_t *)isc_event_allocate(
 		mctx, task, DNS_EVENT_REQUESTDONE, action, arg,
@@ -818,8 +778,9 @@ use_tcp:
 	}
 
 	result = dns_dispatch_addresponse(
-		request->dispatch, 0, destaddr, task, req_connected,
-		req_senddone, req_response, request, &id, &request->dispentry);
+		request->dispatch, 0, tcp ? timeout : udptimeout, destaddr,
+		task, req_connected, req_senddone, req_response, req_timeout,
+		request, &id, &request->dispentry);
 	if (result != ISC_R_SUCCESS) {
 		goto cleanup;
 	}
@@ -862,11 +823,6 @@ use_tcp:
 	request->hash = mgr_gethash(requestmgr);
 	ISC_LIST_APPEND(requestmgr->requests, request, link);
 	UNLOCK(&requestmgr->lock);
-
-	result = set_timer(request->timer, timeout, tcp ? 0 : udptimeout);
-	if (result != ISC_R_SUCCESS) {
-		goto unlink;
-	}
 
 	request->destaddr = *destaddr;
 	if (!tcp || !connected) {
@@ -1111,7 +1067,6 @@ dns_request_destroy(dns_request_t **requestp) {
 	INSIST(!ISC_LINK_LINKED(request, link));
 	INSIST(request->dispentry == NULL);
 	INSIST(request->dispatch == NULL);
-	INSIST(request->timer == NULL);
 
 	req_destroy(request);
 }
@@ -1234,7 +1189,7 @@ req_timeout(isc_task_t *task, isc_event_t *event) {
 
 	UNUSED(task);
 	LOCK(&request->requestmgr->locks[request->hash]);
-	if (event->ev_type == ISC_TIMEREVENT_TICK && request->udpcount-- != 0) {
+	if (request->udpcount-- != 0) {
 		if (!DNS_REQUEST_SENDING(request)) {
 			req_send(request);
 		}
@@ -1286,9 +1241,6 @@ req_destroy(dns_request_t *request) {
 	if (request->dispatch != NULL) {
 		dns_dispatch_detach(&request->dispatch);
 	}
-	if (request->timer != NULL) {
-		isc_timer_detach(&request->timer);
-	}
 	if (request->tsig != NULL) {
 		isc_buffer_free(&request->tsig);
 	}
@@ -1314,10 +1266,6 @@ req_cancel(dns_request_t *request) {
 	 * Lock held by caller.
 	 */
 	request->flags |= DNS_REQUEST_F_CANCELED;
-
-	if (request->timer != NULL) {
-		isc_timer_detach(&request->timer);
-	}
 
 	if (request->dispentry != NULL) {
 		dns_dispatch_cancel(NULL, request->dispentry,

@@ -310,9 +310,10 @@ dns_dispatch_gettcp(dns_dispatchmgr_t *mgr, const isc_sockaddr_t *destaddr,
 
 isc_result_t
 dns_dispatch_addresponse(dns_dispatch_t *disp, unsigned int options,
-			 const isc_sockaddr_t *dest, isc_task_t *task,
-			 isc_nm_cb_t connected, isc_nm_cb_t sent,
-			 isc_taskaction_t action, void *arg,
+			 unsigned int timeout, const isc_sockaddr_t *dest,
+			 isc_task_t *task, isc_nm_cb_t connected,
+			 isc_nm_cb_t sent, isc_taskaction_t action,
+			 isc_taskaction_t timeout_action, void *arg,
 			 dns_messageid_t *idp, dns_dispentry_t **resp);
 /*%<
  * Add a response entry for this dispatch.
@@ -328,6 +329,8 @@ dns_dispatch_addresponse(dns_dispatch_t *disp, unsigned int options,
  * but for now we still use isc_task for this.) When the event is delivered,
  * it must be returned using dns_dispatch_freeevent() or through
  * dns_dispatch_removeresponse() for another to be delivered.
+ *
+ * On timeout, 'timeout_action' will be sent to the task.
  *
  * All three callback functions are sent 'arg' as a parameter.
  *
