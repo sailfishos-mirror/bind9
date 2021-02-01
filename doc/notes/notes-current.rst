@@ -93,6 +93,14 @@ Feature Changes
   mechanism defined inr:rfc:`7208` section 5.7/appendix D1) are no longer 
   reported as warnings/errors.  [GL #2377]
 
+- Previously, named accepted FORMERR responses both with and without
+  an OPT record, as an indication that a given server did not support
+  EDNS. To implement full compliance with RFC 6891, only FORMERR
+  responses without an OPT record are now accepted. This intentionally
+  breaks communication with servers that do not support EDNS and
+  that incorrectly echo back the query message with the RCODE field
+  set to FORMERR and the QR bit set to 1. [GL#2249]
+
 Bug Fixes
 ~~~~~~~~~
 
