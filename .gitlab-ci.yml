@@ -1006,7 +1006,7 @@ gcc:tsan:
     CC: gcc
     CFLAGS: "${CFLAGS_COMMON} -fsanitize=thread -DISC_MEM_USE_INTERNAL_MALLOC=0"
     LDFLAGS: "-fsanitize=thread"
-    EXTRA_CONFIGURE: "--with-libidn2 --enable-pthread-rwlock"
+    EXTRA_CONFIGURE: "--with-libidn2 --enable-pthread-rwlock --disable-dnstap"
 
 system:gcc:tsan:
   variables:
@@ -1033,7 +1033,7 @@ clang:tsan:
     CC: "${CLANG}"
     CFLAGS: "${CFLAGS_COMMON} -fsanitize=thread -DISC_MEM_USE_INTERNAL_MALLOC=0"
     LDFLAGS: "-fsanitize=thread"
-    EXTRA_CONFIGURE: "--with-libidn2 --enable-pthread-rwlock"
+    EXTRA_CONFIGURE: "--with-libidn2 --enable-pthread-rwlock --disable-dnstap"
 
 system:clang:tsan:
   variables:
@@ -1062,7 +1062,7 @@ gcc:tsan:noatomics:
     CC: gcc
     CFLAGS: "${CFLAGS_COMMON} -fsanitize=thread -DISC_MEM_USE_INTERNAL_MALLOC=0"
     LDFLAGS: "-fsanitize=thread"
-    EXTRA_CONFIGURE: "--with-libidn2 --enable-pthread-rwlock --disable-atomic"
+    EXTRA_CONFIGURE: "--with-libidn2 --enable-pthread-rwlock --disable-atomic --disable-dnstap"
 
 system:gcc:tsan:noatomics:
   variables:
@@ -1089,7 +1089,7 @@ clang:tsan:noatomics:
     CC: "${CLANG}"
     CFLAGS: "${CFLAGS_COMMON} -fsanitize=thread -DISC_MEM_USE_INTERNAL_MALLOC=0"
     LDFLAGS: "-fsanitize=thread"
-    EXTRA_CONFIGURE: "--with-libidn2 --enable-pthread-rwlock --disable-atomic"
+    EXTRA_CONFIGURE: "--with-libidn2 --enable-pthread-rwlock --disable-atomic --disable-dnstap"
 
 system:clang:tsan:noatomics:
   variables:
