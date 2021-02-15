@@ -3129,7 +3129,8 @@ force_next(dig_query_t *query) {
  */
 static void
 requeue_or_update_exitcode(dig_lookup_t *lookup) {
-	if (lookup->eoferr == 0U) {
+	if (lookup->eoferr == 0U && lookup->retries > 1) {
+		--lookup->retries;
 		/*
 		 * Peer closed the connection prematurely for the first time
 		 * for this lookup.  Try again, keeping track of this failure.
