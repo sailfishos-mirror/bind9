@@ -1,3 +1,7 @@
+5582.	[bug]		Dig now honors +retry=0 and +tries=1 when sending
+			queries over TCP (+tcp) and remote closes the connection
+			prematurely. [GL #2490]
+
 5581.	[bug]		Fix memory leak happening when inline-signed zones
 			were added to the configuration followed by a
 			reconfiguration of named. [GL #2041]
