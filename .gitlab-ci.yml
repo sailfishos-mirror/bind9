@@ -1351,7 +1351,9 @@ respdiff:
     - job: tarball-create
       artifacts: true
   only:
+    - schedules
     - tags
+    - web
   artifacts:
     paths:
       - refbind
