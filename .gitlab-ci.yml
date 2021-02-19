@@ -244,6 +244,7 @@ stages:
     - test -w "${CCACHE_DIR}" && export PATH="/usr/lib/ccache:${PATH}"
     - test -n "${OUT_OF_TREE_WORKSPACE}" && mkdir "${OUT_OF_TREE_WORKSPACE}" && cd "${OUT_OF_TREE_WORKSPACE}"
   script:
+    - dnf -y install libasan libubsan libtsan || true
     - *configure
     - *check_readline_setup
     - make -j${BUILD_PARALLEL_JOBS:-1} -k all V=1
@@ -302,6 +303,7 @@ stages:
   <<: *default_triggering_rules
   stage: system
   before_script:
+    - dnf -y install libasan libubsan libtsan || true
     - *setup_softhsm
     # Move the artifacts from the out-of-tree build job to their original location (the out-of-tree workspace).
     - test -n "${OUT_OF_TREE_WORKSPACE}" && mv "$(basename "${OUT_OF_TREE_WORKSPACE}")" "${OUT_OF_TREE_WORKSPACE}"
@@ -368,6 +370,7 @@ stages:
   <<: *default_triggering_rules
   stage: unit
   before_script:
+    - dnf -y install libasan libubsan libtsan || true
     - if [ -n "$TCP_CONNECTIONTIMEOUT" ]; then sudo sysctl 'net.inet.tcp.keepinittime=1'; fi
     - *setup_softhsm
   script:
