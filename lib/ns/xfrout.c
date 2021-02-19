@@ -706,8 +706,20 @@ xfrout_log(xfrout_ctx_t *xfr, int level, const char *fmt, ...)
 
 /**************************************************************************/
 
+#undef CHECK
+#define CHECK(op)                            \
+	do {                                 \
+		file = __FILE__;             \
+		line = __LINE__;             \
+		result = (op);               \
+		if (result != ISC_R_SUCCESS) \
+			goto failure;        \
+	} while (0)
+
 void
 ns_xfr_start(ns_client_t *client, dns_rdatatype_t reqtype) {
+	const char *file;
+	int line;
 	isc_result_t result;
 	dns_name_t *question_name;
 	dns_rdataset_t *question_rdataset;
@@ -763,7 +775,7 @@ ns_xfr_start(ns_client_t *client, dns_rdatatype_t reqtype) {
 		isc_log_write(XFROUT_COMMON_LOGARGS, ISC_LOG_WARNING,
 			      "%s request denied: %s", mnemonic,
 			      isc_result_totext(result));
-		goto failure;
+		CHECK(result);
 	}
 
 	/*
@@ -820,7 +832,7 @@ ns_xfr_start(ns_client_t *client, dns_rdatatype_t reqtype) {
 					      ISC_LOG_ERROR,
 					      "zone transfer '%s/%s' denied",
 					      _buf1, _buf2);
-				goto failure;
+				CHECK(result);
 			}
 			if (result != ISC_R_SUCCESS) {
 				FAILQ(DNS_R_NOTAUTH, "non-authoritative zone",
@@ -1203,13 +1215,23 @@ failure:
 	if (xfr != NULL) {
 		xfrout_fail(xfr, result, "setting up zone transfer");
 	} else if (result != ISC_R_SUCCESS) {
-		ns_client_log(client, DNS_LOGCATEGORY_XFER_OUT,
-			      NS_LOGMODULE_XFER_OUT, ISC_LOG_DEBUG(3),
-			      "zone transfer setup failed");
+		ns_client_log(
+			client, DNS_LOGCATEGORY_XFER_OUT, NS_LOGMODULE_XFER_OUT,
+			ISC_LOG_DEBUG(3),
+			"zone transfer setup failed in file %s on line %d: %s",
+			file, line, isc_result_totext(result));
 		ns_client_error(client, result);
 		isc_nmhandle_detach(&client->reqhandle);
 	}
 }
+
+#undef CHECK
+#define CHECK(op)                            \
+	do {                                 \
+		result = (op);               \
+		if (result != ISC_R_SUCCESS) \
+			goto failure;        \
+	} while (0)
 
 static void
 xfrout_ctx_create(isc_mem_t *mctx, ns_client_t *client, unsigned int id,
