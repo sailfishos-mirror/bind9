@@ -610,9 +610,6 @@ get_dispsocket(dns_dispatch_t *disp, const isc_sockaddr_t *dest,
 		dispsock->socket = NULL;
 	} else {
 		dispsock = isc_mempool_get(mgr->spool);
-		if (dispsock == NULL) {
-			return (ISC_R_NOMEMORY);
-		}
 
 		disp->nsockets++;
 
@@ -823,12 +820,6 @@ allocate_udp_buffer(dns_dispatch_t *disp) {
 	UNLOCK(&disp->mgr->buffer_lock);
 
 	temp = isc_mempool_get(bpool);
-
-	if (temp == NULL) {
-		LOCK(&disp->mgr->buffer_lock);
-		disp->mgr->buffers--;
-		UNLOCK(&disp->mgr->buffer_lock);
-	}
 
 	return (temp);
 }
