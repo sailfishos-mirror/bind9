@@ -472,21 +472,6 @@ isc_mempool_getfreecount(isc_mempool_t *mpctx);
  */
 
 unsigned int
-isc_mempool_getmaxalloc(isc_mempool_t *mpctx);
-/*!<
- * Returns the maximum allowed number of allocations.
- */
-
-void
-isc_mempool_setmaxalloc(isc_mempool_t *mpctx, unsigned int limit);
-/*%<
- * Sets the maximum allowed number of allocations.
- *
- * Additional requirements:
- *\li	limit > 0
- */
-
-unsigned int
 isc_mempool_getallocated(isc_mempool_t *mpctx);
 /*%<
  * Returns the number of items allocated from this pool.
