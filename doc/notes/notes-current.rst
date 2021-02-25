@@ -39,7 +39,12 @@ Removed Features
 Feature Changes
 ~~~~~~~~~~~~~~~
 
-- None.
+- ``inline-signing`` was incorrectly described as being inherited from the
+  options / view levels and was incorrectly accepted at those levels without
+  effect.  This has been corrected. [GL #2536]
+
+  ``named.conf`` files with ``inline-signing`` at the ``options`` or ``view``
+  level will no longer load with this fix applied.
 
 Bug Fixes
 ~~~~~~~~~
