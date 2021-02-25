@@ -1,3 +1,8 @@
+5592.	[doc]		Inline-signing was incorrectly described as being
+			inherited from the options / view levels and was
+			incorrectly accepted at those levels without effect.
+			This has been corrected. [GL #2536]
+
 5591.	[bug]		Fix a crash happening when "stale-answer-client-timeout"
 			is triggered and there is no (stale) data for it in the
 			cache. [GL #2503]
