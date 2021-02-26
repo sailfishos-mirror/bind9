@@ -196,6 +196,7 @@ main(int argc, char *argv[]) {
 	isc_log_t *log = NULL;
 	isc_logconfig_t *logconfig = NULL;
 	isc_task_t *task = NULL;
+	isc_nm_t *nm = NULL;
 	isc_result_t result;
 	int type;
 
