@@ -329,9 +329,9 @@ main(int argc, char *argv[]) {
 	}
 
 	isc_lib_register();
-	result = dns_lib_init();
+	result = dst_lib_init(dns_g_mctx, NULL);
 	if (result != ISC_R_SUCCESS) {
-		fprintf(stderr, "dns_lib_init failed: %u\n", result);
+		fprintf(stderr, "dst_lib_init failed: %u\n", result);
 		exit(1);
 	}
 
@@ -402,7 +402,7 @@ main(int argc, char *argv[]) {
 	/* Cleanup */
 	isc_task_detach(&query_task);
 	dns_client_destroy(&client);
-	dns_lib_shutdown();
+	dst_lib_destroy();
 	isc_app_ctxfinish(query_actx);
 	ctxs_destroy(&mctx, &query_actx, &taskmgr, &socketmgr, &timermgr);
 
