@@ -891,8 +891,6 @@ sendevent:
 	}
 
 	rev->result = eresult;
-	rev->id = id;
-	rev->addr = peer;
 	if (queue_response) {
 		ISC_LIST_APPEND(resp->items, rev, ev_link);
 	} else {
@@ -1082,8 +1080,6 @@ sendevent:
 		rev->result = ISC_R_SUCCESS;
 	}
 
-	rev->id = id;
-	rev->addr = peer;
 	if (queue_response) {
 		ISC_LIST_APPEND(resp->items, rev, ev_link);
 	} else {
@@ -1914,7 +1910,6 @@ dns_dispatch_addresponse(dns_dispatch_t *disp, unsigned int options,
 			rev = allocate_devent(oldestresp->disp);
 			rev->buffer.base = NULL;
 			rev->result = ISC_R_CANCELED;
-			rev->id = oldestresp->id;
 			ISC_EVENT_INIT(rev, sizeof(*rev), 0, NULL,
 				       DNS_EVENT_DISPATCH, oldestresp->action,
 				       oldestresp->arg, oldestresp, NULL, NULL);

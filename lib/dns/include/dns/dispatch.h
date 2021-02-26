@@ -79,10 +79,8 @@ ISC_LANG_BEGINDECLS
 
 struct dns_dispatchevent {
 	ISC_EVENT_COMMON(dns_dispatchevent_t); /*%< standard event common */
-	isc_result_t   result;		       /*%< result code */
-	int32_t	       id;		       /*%< message id */
-	isc_sockaddr_t addr;		       /*%< address recv'd from */
-	isc_buffer_t   buffer;		       /*%< data buffer */
+	isc_result_t result;		       /*%< result code */
+	isc_buffer_t buffer;		       /*%< data buffer */
 };
 
 /*%
