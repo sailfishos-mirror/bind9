@@ -1800,7 +1800,6 @@ static void
 resquery_senddone(isc_nmhandle_t *handle, isc_result_t eresult, void *arg) {
 	resquery_t *query = (resquery_t *)arg;
 	bool destroy_query = false;
-	bool retry = false;
 	isc_result_t result;
 	fetchctx_t *fctx = NULL;
 
@@ -1828,7 +1827,7 @@ resquery_senddone(isc_nmhandle_t *handle, isc_result_t eresult, void *arg) {
 		case ISC_R_NOPERM:
 		case ISC_R_ADDRNOTAVAIL:
 		case ISC_R_CONNREFUSED:
-			FCTXTRACE3("query canceled in process_sendevent(): "
+			FCTXTRACE3("query canceled in resquery_senddone(): "
 				   "no route to host; no response",
 				   eresult);
 
@@ -1838,30 +1837,26 @@ resquery_senddone(isc_nmhandle_t *handle, isc_result_t eresult, void *arg) {
 			add_bad(fctx, query->rmessage, query->addrinfo, eresult,
 				badns_unreachable);
 			fctx_cancelquery(&query, NULL, NULL, true, false);
-			retry = true;
+
+			/*
+			 * Behave as if the idle timer has expired.  For TCP
+			 * this may not actually reflect the latest timer.
+			 */
+			FCTX_ATTR_CLR(fctx, FCTX_ATTR_ADDRWAIT);
+			result = fctx_stopidletimer(fctx);
+			if (result != ISC_R_SUCCESS) {
+				fctx_done(fctx, result, __LINE__);
+			} else {
+				fctx_try(fctx, true, false);
+			}
 			break;
 
 		default:
-			FCTXTRACE3("query canceled in sendevent() due to "
-				   "unexpected event result; responding",
+			FCTXTRACE3("query canceled in resquery_senddone() "
+				   "due to unexpected result; responding",
 				   eresult);
-
 			fctx_cancelquery(&query, NULL, NULL, false, false);
 			break;
-		}
-	}
-
-	if (retry) {
-		/*
-		 * Behave as if the idle timer has expired.  For TCP
-		 * this may not actually reflect the latest timer.
-		 */
-		FCTX_ATTR_CLR(fctx, FCTX_ATTR_ADDRWAIT);
-		result = fctx_stopidletimer(fctx);
-		if (result != ISC_R_SUCCESS) {
-			fctx_done(fctx, result, __LINE__);
-		} else {
-			fctx_try(fctx, true, false);
 		}
 	}
 
@@ -2744,7 +2739,6 @@ cleanup_temps:
 static void
 resquery_connected(isc_nmhandle_t *handle, isc_result_t eresult, void *arg) {
 	resquery_t *query = (resquery_t *)arg;
-	bool retry = false;
 	isc_interval_t interval;
 	isc_result_t result;
 	fetchctx_t *fctx = NULL;
@@ -2836,7 +2830,7 @@ resquery_connected(isc_nmhandle_t *handle, isc_result_t eresult, void *arg) {
 		case ISC_R_NOPERM:
 		case ISC_R_ADDRNOTAVAIL:
 		case ISC_R_CONNECTIONRESET:
-			FCTXTRACE3("query canceled in connected(): "
+			FCTXTRACE3("query canceled in resquery_connected(): "
 				   "no route to host; no response",
 				   eresult);
 
@@ -2847,31 +2841,29 @@ resquery_connected(isc_nmhandle_t *handle, isc_result_t eresult, void *arg) {
 			add_bad(fctx, query->rmessage, query->addrinfo, eresult,
 				badns_unreachable);
 			fctx_cancelquery(&query, NULL, NULL, true, false);
-			retry = true;
+
+			/*
+			 * Behave as if the idle timer has expired.  For
+			 * TCP connections this may not actually reflect
+			 * the latest timer.
+			 */
+			FCTX_ATTR_CLR(fctx, FCTX_ATTR_ADDRWAIT);
+			result = fctx_stopidletimer(fctx);
+			if (result != ISC_R_SUCCESS) {
+				fctx_done(fctx, result, __LINE__);
+			} else {
+				fctx_try(fctx, true, false);
+			}
 			break;
 
 		default:
-			FCTXTRACE3("query canceled in connected() due to "
-				   "unexpected event result; responding",
+			FCTXTRACE3("query canceled in resquery_connected() "
+				   "due to unexpected result; responding",
 				   eresult);
 
 			dns_dispatch_detach(&query->dispatch);
 			fctx_cancelquery(&query, NULL, NULL, false, false);
 			break;
-		}
-	}
-
-	if (retry) {
-		/*
-		 * Behave as if the idle timer has expired.  For TCP
-		 * connections this may not actually reflect the latest timer.
-		 */
-		FCTX_ATTR_CLR(fctx, FCTX_ATTR_ADDRWAIT);
-		result = fctx_stopidletimer(fctx);
-		if (result != ISC_R_SUCCESS) {
-			fctx_done(fctx, result, __LINE__);
-		} else {
-			fctx_try(fctx, true, false);
 		}
 	}
 }
@@ -9623,7 +9615,7 @@ rctx_done(respctx_t *rctx, isc_result_t result) {
 	dns_message_t *message = NULL;
 	dns_message_attach(query->rmessage, &message);
 
-	FCTXTRACE4("query canceled in response(); ",
+	FCTXTRACE4("query canceled in rctx_done(); ",
 		   rctx->no_response ? "no response" : "responding", result);
 
 	/*
