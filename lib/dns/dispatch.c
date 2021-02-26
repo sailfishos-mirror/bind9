@@ -1844,7 +1844,7 @@ dns_dispatch_detach(dns_dispatch_t **dispp) {
 		disp->shutting_down = 1;
 	}
 
-	dispatch_log(disp, LVL(90), "detach: refcount %lu",
+	dispatch_log(disp, LVL(90), "detach: refcount %" PRIuFAST32,
 		     isc_refcount_current(&disp->refcount));
 
 	killit = destroy_disp_ok(disp);
