@@ -205,7 +205,6 @@
     <ClCompile Include="..\ssu.c" />
     <ClCompile Include="..\ssu_external.c" />
     <ClCompile Include="..\stats.c" />
-    <ClCompile Include="..\tcpmsg.c" />
     <ClCompile Include="..\time.c" />
     <ClCompile Include="..\timer.c" />
     <ClCompile Include="..\tkey.c" />
@@ -312,7 +311,6 @@
     <ClInclude Include="..\include\dns\soa.h" />
     <ClInclude Include="..\include\dns\ssu.h" />
     <ClInclude Include="..\include\dns\stats.h" />
-    <ClInclude Include="..\include\dns\tcpmsg.h" />
     <ClInclude Include="..\include\dns\time.h" />
     <ClInclude Include="..\include\dns\timer.h" />
     <ClInclude Include="..\include\dns\tkey.h" />

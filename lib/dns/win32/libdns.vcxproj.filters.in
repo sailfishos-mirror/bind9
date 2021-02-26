@@ -224,9 +224,6 @@
     <ClCompile Include="..\stats.c">
       <Filter>Library Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\tcpmsg.c">
-      <Filter>Library Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\time.c">
       <Filter>Library Source Files</Filter>
     </ClCompile>
@@ -572,9 +569,6 @@
       <Filter>Library Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\include\dns\stats.h">
-      <Filter>Library Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\dns\tcpmsg.h">
       <Filter>Library Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\include\dns\time.h">
