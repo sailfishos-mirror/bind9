@@ -808,6 +808,9 @@ udp_recv(isc_nmhandle_t *handle, isc_result_t eresult, isc_region_t *region,
 	resp = dispsock->resp;
 	id = resp->id;
 
+	peer = isc_nmhandle_peeraddr(handle);
+	isc_netaddr_fromsockaddr(&netaddr, &peer);
+
 	if (eresult != ISC_R_SUCCESS) {
 		/*
 		 * This is most likely either a timeout or a network
@@ -821,8 +824,6 @@ udp_recv(isc_nmhandle_t *handle, isc_result_t eresult, isc_region_t *region,
 	/*
 	 * If this is from a blackholed address, drop it.
 	 */
-	peer = isc_nmhandle_peeraddr(handle);
-	isc_netaddr_fromsockaddr(&netaddr, &peer);
 	if (disp->mgr->blackhole != NULL &&
 	    dns_acl_match(&netaddr, NULL, disp->mgr->blackhole, NULL, &match,
 			  NULL) == ISC_R_SUCCESS &&
