@@ -1729,7 +1729,7 @@ static isc_result_t
 dispatch_createudp(dns_dispatchmgr_t *mgr, isc_taskmgr_t *taskmgr,
 		   const isc_sockaddr_t *localaddr, unsigned int attributes,
 		   dns_dispatch_t **dispp) {
-	isc_result_t result;
+	isc_result_t result = ISC_R_SUCCESS;
 	dns_dispatch_t *disp = NULL;
 	isc_sockaddr_t sa_any;
 	int pf, i = 0;
