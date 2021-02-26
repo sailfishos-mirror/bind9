@@ -1717,7 +1717,7 @@ socket_create(isc_socketmgr_t *manager, int pf, isc_sockettype_t type,
 isc_result_t
 isc_socket_create(isc_socketmgr_t *manager, int pf, isc_sockettype_t type,
 		  isc_socket_t **socketp) {
-	return (socket_create(manager, pf, type, socketp, NULL));
+	return (socket_create(manager, pf, type, socketp));
 }
 
 isc_result_t
