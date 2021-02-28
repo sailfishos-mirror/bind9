@@ -370,7 +370,7 @@ mock_udpconnect_uv_udp_open(void **state) {
 				   (isc_nmiface_t *)&udp_connect_addr,
 				   (isc_nmiface_t *)&udp_listen_addr,
 				   noop_connect_cb, NULL, 1000, 0);
-	assert_int_not_equal(result, ISC_R_SUCCESS);
+	assert_int_equal(result, ISC_R_SUCCESS);
 
 	isc_nm_closedown(connect_nm);
 
@@ -393,7 +393,7 @@ mock_udpconnect_uv_udp_bind(void **state) {
 				   (isc_nmiface_t *)&udp_connect_addr,
 				   (isc_nmiface_t *)&udp_listen_addr,
 				   noop_connect_cb, NULL, 1000, 0);
-	assert_int_not_equal(result, ISC_R_SUCCESS);
+	assert_int_equal(result, ISC_R_SUCCESS);
 
 	isc_nm_closedown(connect_nm);
 
@@ -417,7 +417,7 @@ mock_udpconnect_uv_udp_connect(void **state) {
 				   (isc_nmiface_t *)&udp_connect_addr,
 				   (isc_nmiface_t *)&udp_listen_addr,
 				   noop_connect_cb, NULL, 1000, 0);
-	assert_int_not_equal(result, ISC_R_SUCCESS);
+	assert_int_equal(result, ISC_R_SUCCESS);
 
 	isc_nm_closedown(connect_nm);
 

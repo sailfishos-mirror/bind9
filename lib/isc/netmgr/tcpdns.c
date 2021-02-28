@@ -245,7 +245,7 @@ done:
 	result = isc__nm_uverr2result(r);
 
 	LOCK(&sock->lock);
-	sock->result = result;
+	sock->result = ISC_R_SUCCESS;
 	SIGNAL(&sock->cond);
 	if (!atomic_load(&sock->active)) {
 		WAIT(&sock->scond, &sock->lock);
@@ -276,7 +276,7 @@ isc__nm_async_tcpdnsconnect(isc__networker_t *worker, isc__netievent_t *ev0) {
 	if (result != ISC_R_SUCCESS) {
 		atomic_store(&sock->active, false);
 		isc__nm_tcpdns_close(sock);
-		isc__nm_uvreq_put(&req, sock);
+		isc__nm_connectcb(sock, req, result);
 	}
 
 	/*
