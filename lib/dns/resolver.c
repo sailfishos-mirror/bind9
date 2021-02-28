@@ -1429,7 +1429,9 @@ fctx_cancelquery(resquery_t **queryp, dns_dispatchevent_t **deventp,
 		dns_dispatch_removeresponse(&query->dispentry, deventp);
 	}
 
-	ISC_LIST_UNLINK(fctx->queries, query, link);
+	if (ISC_LINK_LINKED(query, link)) {
+		ISC_LIST_UNLINK(fctx->queries, query, link);
+	}
 
 	if (query->tsig != NULL) {
 		isc_buffer_free(&query->tsig);
@@ -2127,16 +2129,10 @@ fctx_query(fetchctx_t *fctx, dns_adbaddrinfo_t *addrinfo,
 	}
 
 	/* Connect the socket */
-	result = dns_dispatch_connect(query->dispentry);
-	if (result != ISC_R_SUCCESS) {
-		goto cleanup_dispentry;
-	}
 	query->connects++;
-
-	return (ISC_R_SUCCESS);
-
-cleanup_dispentry:
-	dns_dispatch_removeresponse(&query->dispentry, NULL);
+	fctx_increference(fctx);
+	result = dns_dispatch_connect(query->dispentry);
+	return (result);
 
 cleanup_dispatch:
 	if (query->dispatch != NULL) {
@@ -2821,7 +2817,7 @@ resquery_connected(isc_nmhandle_t *handle, isc_result_t eresult, void *arg) {
 				dns_rdatatypestats_increment(
 					res->view->resquerystats, fctx->type);
 			}
-
+			fctx_decreference(fctx);
 			break;
 
 		case ISC_R_NETUNREACH:
@@ -2863,7 +2859,6 @@ resquery_connected(isc_nmhandle_t *handle, isc_result_t eresult, void *arg) {
 
 			dns_dispatch_detach(&query->dispatch);
 			fctx_cancelquery(&query, NULL, NULL, false, false);
-			break;
 		}
 	}
 }

@@ -2191,15 +2191,18 @@ disp_connected(isc_nmhandle_t *handle, isc_result_t eresult, void *arg) {
 	dns_dispatch_t *disp = resp->disp;
 	dispsocket_t *dispsocket = NULL;
 
-	if (disp->socktype == isc_socktype_udp) {
-		dispsocket = resp->dispsocket;
-		isc_nmhandle_attach(handle, &dispsocket->handle);
-	} else if (disp->handle == NULL) {
-		disp->attributes |= DNS_DISPATCHATTR_CONNECTED;
-		isc_nmhandle_attach(handle, &disp->handle);
+	if (eresult == ISC_R_SUCCESS) {
+		if (disp->socktype == isc_socktype_udp) {
+			dispsocket = resp->dispsocket;
+			isc_nmhandle_attach(handle, &dispsocket->handle);
+		} else if (disp->handle == NULL) {
+			disp->attributes |= DNS_DISPATCHATTR_CONNECTED;
+			isc_nmhandle_attach(handle, &disp->handle);
+		}
+
+		startrecv(disp, dispsocket);
 	}
 
-	startrecv(disp, dispsocket);
 	if (resp->connected != NULL) {
 		resp->connected(handle, eresult, resp->arg);
 	}
