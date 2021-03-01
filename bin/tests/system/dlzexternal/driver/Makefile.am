@@ -4,11 +4,14 @@ AM_CPPFLAGS +=			\
 	$(LIBISC_CFLAGS)	\
 	$(LIBDNS_CFLAGS)
 
-dlzexternal_LTLIBRARIES = dlzexternal.la
-dlzexternaldir = $(abs_builddir)
+noinst_LTLIBRARIES = dlzexternal.la
 
 dlzexternal_la_SOURCES =	\
 	driver.c		\
 	driver.h
 
-dlzexternal_la_LDFLAGS = -avoid-version -module -shared -export-dynamic
+# use -rpath to force .libs/dlzexternal.lai to made so that the install works
+dlzexternal_la_LDFLAGS = -avoid-version -module -shared -export-dynamic -rpath $(abs_builddir)
+
+check:	$(noinst_LTLIBRARIES)
+	$(LIBTOOL) --mode=install $(INSTALL) $(noinst_LTLIBRARIES) $(abs_builddir)
