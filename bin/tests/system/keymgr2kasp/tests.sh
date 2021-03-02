@@ -644,8 +644,8 @@ check_dnssecstatus "$SERVER" "$POLICY" "$ZONE"
 # Tkey="now-300s" (300)
 # Tsig="now-11h"  (39600)
 created=$(key_get KEY1 CREATED)
-set_addkeytime      "KEY1" "PUBLISHED"   "${_created}" -300
-set_addkeytime      "KEY1" "ACTIVE"      "${_created}" -300
+set_addkeytime      "KEY1" "PUBLISHED"   "${created}" -300
+set_addkeytime      "KEY1" "ACTIVE"      "${created}" -300
 set_addkeytime      "KEY1" "SYNCPUBLISH" "${created}"  -7200
 set_retired_removed "KEY1" "${Lksk}" "${IretKSK}"
 created=$(key_get KEY2 CREATED)
@@ -694,8 +694,8 @@ check_dnssecstatus "$SERVER" "$POLICY" "$ZONE"
 # Tkey="now-3900s" (3900)
 # Tsig="now-12h"   (43200)
 created=$(key_get KEY1 CREATED)
-set_addkeytime      "KEY1" "PUBLISHED"   "${_created}" -3900
-set_addkeytime      "KEY1" "ACTIVE"      "${_created}" -3900
+set_addkeytime      "KEY1" "PUBLISHED"   "${created}" -3900
+set_addkeytime      "KEY1" "ACTIVE"      "${created}" -3900
 set_addkeytime      "KEY1" "SYNCPUBLISH" "${created}"  -10800
 set_retired_removed "KEY1" "${Lksk}" "${IretKSK}"
 created=$(key_get KEY2 CREATED)
