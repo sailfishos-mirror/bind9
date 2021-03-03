@@ -1337,7 +1337,7 @@ static isc_threadresult_t
 	isc__taskqueue_t *tq = queuep;
 	isc__taskmgr_t *manager = tq->manager;
 	int threadid = tq->threadid;
-	isc_thread_setaffinity(threadid);
+	isc_thread_setaffinity(manager->workers + threadid);
 
 	XTHREADTRACE("starting");
 
