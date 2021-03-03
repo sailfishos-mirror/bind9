@@ -6249,6 +6249,9 @@ check_recursionquota(ns_client_t *client) {
 	if (client->recursionquota == NULL) {
 		result = isc_quota_attach(&client->sctx->recursionquota,
 					  &client->recursionquota);
+		if (result != ISC_R_SUCCESS) {
+			return (DNS_R_DROP);
+		}
 		if (result == ISC_R_SUCCESS || result == ISC_R_SOFTQUOTA) {
 			ns_stats_increment(client->sctx->nsstats,
 					   ns_statscounter_recursclients);
