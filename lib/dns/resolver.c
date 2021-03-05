@@ -10936,16 +10936,6 @@ dns_resolver_createfetch(dns_resolver_t *res, const dns_name_t *name,
 		goto unlock;
 	}
 
-	if ((options & DNS_FETCHOPT_UNSHARED) == 0) {
-		for (fctx = ISC_LIST_HEAD(res->buckets[bucketnum].fctxs);
-		     fctx != NULL; fctx = ISC_LIST_NEXT(fctx, link))
-		{
-			if (fctx_match(fctx, name, type, options)) {
-				break;
-			}
-		}
-	}
-
 	/*
 	 * Is this a duplicate?
 	 */
