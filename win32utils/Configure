@@ -1135,6 +1135,37 @@ if ($msc_ver < 1910) {
     exit 1;
 }
 
+if ($verbose) {
+    printf "testing whether MSVC supports 64-bit enums\n";
+}
+open F, ">testenum.c" || die $!;
+print F << 'EOF';
+#include <stdint.h>
+
+enum test {
+  DEFAULT = 0,
+  MAX = UINT64_MAX
+};
+
+int
+main(void) {
+	if (MAX == UINT64_MAX) {
+		return (0);
+	}
+	return (1);
+}
+EOF
+close F;
+$compret = `cl /nologo /MD testenum.c`;
+if (grep { -f and -x } "./testenum.exe") {
+    `./testenum.exe`;
+    if ($? != 0) {
+	die "MSVC silently truncates 64-enums\n";
+    }
+} else {
+    die "can't compile 64-bit enum test: $compret\n";
+}
+
 $configdefh{'PACKAGE_BUILDER'} = "\"MSVC $msc_ver\"";
 
 # gen single threaded for < VS 2005
