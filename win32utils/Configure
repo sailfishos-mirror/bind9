@@ -1143,13 +1143,17 @@ print F << 'EOF';
 #include <stdint.h>
 
 enum test {
-  DEFAULT = 0,
-  MAX = UINT64_MAX
+	ENUM_TEST_DEFAULT = 0,
+	ENUM_TEST_MAX = UINT64_MAX
 };
 
 int
 main(void) {
-	if (MAX == UINT64_MAX) {
+	enum test test = ENUM_TEST_DEFAULT;
+
+	test = ENUM_TEST_MAX;
+
+	if (test == UINT64_MAX) {
 		return (0);
 	}
 	return (1);
