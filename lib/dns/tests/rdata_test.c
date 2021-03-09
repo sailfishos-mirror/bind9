@@ -2504,8 +2504,8 @@ https_svcb(void **state) {
 		TEXT_VALID_LOOPCHG(1, "2 svc.example.net. alpn=h2,h3",
 				   "2 svc.example.net. alpn=\"h2,h3\""),
 		/* apln has 2 sub fields "h1,h2" and "h3" (comma escaped) */
-		TEXT_VALID_LOOPCHG(1, "2 svc.example.net. alpn=h1\\,h2,h3",
-				   "2 svc.example.net. alpn=\"h1\\,h2,h3\""),
+		TEXT_VALID_LOOPCHG(1, "2 svc.example.net. alpn=h1\\\\,h2,h3",
+				   "2 svc.example.net. alpn=\"h1\\\\,h2,h3\""),
 		TEXT_VALID_LOOP(1, "2 svc.example.net. port=50"),
 		/* no-default-alpn */
 		TEXT_VALID_LOOP(1, "2 svc.example.net. no-default-alpn"),
@@ -2625,6 +2625,16 @@ https_svcb(void **state) {
 		WIRE_INVALID(0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x04, 0x00,
 			     0x80, 0x00, 0x71, 0x00, 0x71, 0x00, 0x00, 0x00,
 			     0x80, 0x00, 0x00),
+		/*
+		 * Alpn(0x00 0x01) (length 0x00 0x09) "h1,h2" + "h3"
+		 */
+		WIRE_VALID_LOOP(0x01, 0x00, 0x01, 0x00, 0x00, 0x01, 0x00, 0x09,
+				5, 'h', '1', ',', 'h', '2', 2, 'h', '3'),
+		/*
+		 * Alpn(0x00 0x01) (length 0x00 0x09) "h1\h2" + "h3"
+		 */
+		WIRE_VALID_LOOP(0x01, 0x00, 0x01, 0x00, 0x00, 0x01, 0x00, 0x09,
+				5, 'h', '1', '\\', 'h', '2', 2, 'h', '3'),
 		WIRE_SENTINEL()
 	};
 

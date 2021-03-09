@@ -1497,6 +1497,22 @@ commatxt_totext(isc_region_t *source, bool quote, bool comma,
 			}
 			*tp++ = '\\';
 			tl--;
+			/*
+			 * Perform comma escape processing.
+			 * ',' => '\\,'
+			 * '\' => '\\\\'
+			 */
+			if (comma && (*sp == 0x2c || *sp == 0x5c)) {
+				if (tl < ((*sp == 0x5c) ? 3 : 2)) {
+					return (ISC_R_NOSPACE);
+				}
+				*tp++ = '\\';
+				tl--;
+				if (*sp == 0x5c) {
+					*tp++ = '\\';
+					tl--;
+				}
+			}
 		}
 		if (tl < 1) {
 			return (ISC_R_NOSPACE);
@@ -1525,7 +1541,7 @@ txt_totext(isc_region_t *source, bool quote, isc_buffer_t *target) {
 static isc_result_t
 commatxt_fromtext(isc_textregion_t *source, bool comma, isc_buffer_t *target) {
 	isc_region_t tregion;
-	bool escape, seen_comma = false;
+	bool escape = false, escape_escape = false, seen_comma = false;
 	unsigned int n, nrem;
 	char *s;
 	unsigned char *t;
@@ -1537,7 +1553,6 @@ commatxt_fromtext(isc_textregion_t *source, bool comma, isc_buffer_t *target) {
 	n = source->length;
 	t = tregion.base;
 	nrem = tregion.length;
-	escape = false;
 	if (nrem < 1) {
 		return (ISC_R_NOSPACE);
 	}
@@ -1554,10 +1569,6 @@ commatxt_fromtext(isc_textregion_t *source, bool comma, isc_buffer_t *target) {
 	}
 	while (n-- != 0) {
 		c = (*s++) & 0xff;
-		if (comma && !escape && c == ',') {
-			seen_comma = true;
-			break;
-		}
 		if (escape && (d = decvalue((char)c)) != -1) {
 			c = d;
 			if (n == 0) {
@@ -1586,6 +1597,19 @@ commatxt_fromtext(isc_textregion_t *source, bool comma, isc_buffer_t *target) {
 			continue;
 		}
 		escape = false;
+		/*
+		 * Level 1 escape processing complete.
+		 * If comma is set perform comma escape processing.
+		 */
+		if (comma && !escape_escape && c == ',') {
+			seen_comma = true;
+			break;
+		}
+		if (comma && !escape_escape && c == '\\') {
+			escape_escape = true;
+			continue;
+		}
+		escape_escape = false;
 		if (nrem == 0) {
 			return ((tregion.length <= 256U) ? ISC_R_NOSPACE
 							 : DNS_R_SYNTAX);
