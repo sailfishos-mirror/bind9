@@ -1,4 +1,4 @@
-5547.	[protocol]	Add support for HTTPS and SVCB records types.
+5597.	[protocol]	Add support for HTTPS and SVCB records types.
 			[GL #1132]
 
 5596.	[func]		Client-side support for DNS-over-HTTPS (DoH) has
