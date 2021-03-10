@@ -45,6 +45,12 @@ Feature Changes
 Bug Fixes
 ~~~~~~~~~
 
+- When dumping the cache to file, TTLs were being increased with
+  ``max-stale-ttl``. Also the comment above stale RRsets could have nonsensical
+  values if the RRset was still marked a stale but the ``max-stale-ttl`` has
+  passed (and is actually an RRset awaiting cleanup). Both issues have now
+  been fixed. [GL #389] [GL #2289]
+
 - If an invalid key name (e.g. "a..b") was specified in a ``primaries``
   list in ``named.conf``, the wrong size was passed to ``isc_mem_put()``,
   which resulted in the returned memory being put on the wrong freed
