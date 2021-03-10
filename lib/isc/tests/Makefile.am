@@ -50,6 +50,7 @@ TESTS =			\
 	tcpdns_test	\
 	time_test	\
 	timer_test	\
+	tls_test	\
 	tlsdns_test	\
 	udp_test
 
@@ -110,6 +111,15 @@ tcpdns_test_CPPFLAGS =	\
 	$(OPENSSL_CFLAGS)
 
 tcpdns_test_LDADD =	\
+	$(LDADD)	\
+	$(LIBUV_LIBS)
+
+tls_test_CPPFLAGS =	\
+	$(AM_CPPFLAGS)	\
+	$(LIBUV_CFLAGS)	\
+	$(OPENSSL_CFLAGS)
+
+tls_test_LDADD =	\
 	$(LDADD)	\
 	$(LIBUV_LIBS)
 
