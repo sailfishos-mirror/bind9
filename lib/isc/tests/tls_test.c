@@ -33,6 +33,7 @@
 #include <isc/refcount.h>
 #include <isc/sockaddr.h>
 #include <isc/thread.h>
+#include <isc/tls.h>
 
 #include "uv_wrap.h"
 #define KEEP_BEFORE
@@ -45,7 +46,7 @@
 
 #define MAX_NM 2
 
-static isc_sockaddr_t tcp_listen_addr;
+static isc_sockaddr_t tls_listen_addr;
 
 static uint64_t send_magic = 0;
 static uint64_t stop_magic = 0;
@@ -68,6 +69,9 @@ static atomic_uint_fast64_t ctimeouts;
 static unsigned int workers = 3;
 
 static bool reuse_supported = true;
+
+static isc_tlsctx_t *server_tlsctx = NULL;
+static isc_tlsctx_t *client_tlsctx = NULL;
 
 #define NSENDS	100
 #define NWRITES 10
@@ -164,7 +168,7 @@ static int
 _setup(void **state) {
 	UNUSED(state);
 
-	/* workers = isc_os_ncpus(); */
+	workers = isc_os_ncpus();
 
 	if (isc_test_begin(NULL, true, workers) != ISC_R_SUCCESS) {
 		return (-1);
@@ -202,22 +206,22 @@ noop_connect_cb(isc_nmhandle_t *handle, isc_result_t result, void *cbarg) {
 	UNUSED(cbarg);
 }
 
-thread_local uint8_t tcp_buffer_storage[4096];
-thread_local size_t tcp_buffer_length = 0;
+thread_local uint8_t tls_buffer_storage[4096];
+thread_local size_t tls_buffer_length = 0;
 
 static int
 nm_setup(void **state) {
 	size_t nworkers = ISC_MAX(ISC_MIN(workers, 32), 1);
-	int tcp_listen_sock = -1;
+	int tls_listen_sock = -1;
 	isc_nm_t **nm = NULL;
 
-	tcp_listen_addr = (isc_sockaddr_t){ .length = 0 };
-	tcp_listen_sock = setup_ephemeral_port(&tcp_listen_addr, SOCK_STREAM);
-	if (tcp_listen_sock < 0) {
+	tls_listen_addr = (isc_sockaddr_t){ .length = 0 };
+	tls_listen_sock = setup_ephemeral_port(&tls_listen_addr, SOCK_STREAM);
+	if (tls_listen_sock < 0) {
 		return (-1);
 	}
-	close(tcp_listen_sock);
-	tcp_listen_sock = -1;
+	close(tls_listen_sock);
+	tls_listen_sock = -1;
 
 	atomic_store(&nsends, NSENDS * NWRITES);
 
@@ -240,6 +244,11 @@ nm_setup(void **state) {
 		assert_non_null(nm[i]);
 	}
 
+	INSIST(server_tlsctx == NULL);
+	isc_tlsctx_createserver(NULL, NULL, &server_tlsctx);
+	INSIST(client_tlsctx == NULL);
+	isc_tlsctx_createclient(&client_tlsctx);
+
 	*state = nm;
 
 	return (0);
@@ -255,21 +264,26 @@ nm_teardown(void **state) {
 	}
 	isc_mem_put(test_mctx, nm, MAX_NM * sizeof(nm[0]));
 
+	INSIST(server_tlsctx != NULL);
+	isc_tlsctx_free(&server_tlsctx);
+	INSIST(client_tlsctx != NULL);
+	isc_tlsctx_free(&client_tlsctx);
+
 	return (0);
 }
 
 thread_local size_t nwrites = NWRITES;
 
-/* TCP Connect */
+/* TLS Connect */
 
 static void
-tcp_connect_send_cb(isc_nmhandle_t *handle, isc_result_t eresult, void *cbarg);
+tls_connect_send_cb(isc_nmhandle_t *handle, isc_result_t eresult, void *cbarg);
 
 static void
-tcp_connect_send(isc_nmhandle_t *handle);
+tls_connect_send(isc_nmhandle_t *handle);
 
 static void
-tcp_connect_read_cb(isc_nmhandle_t *handle, isc_result_t eresult,
+tls_connect_read_cb(isc_nmhandle_t *handle, isc_result_t eresult,
 		    isc_region_t *region, void *cbarg) {
 	uint64_t magic = 0;
 
@@ -280,27 +294,27 @@ tcp_connect_read_cb(isc_nmhandle_t *handle, isc_result_t eresult,
 		goto unref;
 	}
 
-	memmove(tcp_buffer_storage + tcp_buffer_length, region->base,
+	memmove(tls_buffer_storage + tls_buffer_length, region->base,
 		region->length);
-	tcp_buffer_length += region->length;
+	tls_buffer_length += region->length;
 
-	while (tcp_buffer_length >= sizeof(magic)) {
+	while (tls_buffer_length >= sizeof(magic)) {
 		atomic_fetch_add(&creads, 1);
 
-		memmove(&magic, tcp_buffer_storage, sizeof(magic));
+		memmove(&magic, tls_buffer_storage, sizeof(magic));
 		assert_true(magic == stop_magic || magic == send_magic);
 
-		tcp_buffer_length -= sizeof(magic);
-		memmove(tcp_buffer_storage, tcp_buffer_storage + sizeof(magic),
-			tcp_buffer_length);
+		tls_buffer_length -= sizeof(magic);
+		memmove(tls_buffer_storage, tls_buffer_storage + sizeof(magic),
+			tls_buffer_length);
 
 		if (magic == send_magic) {
-			tcp_connect_send(handle);
+			tls_connect_send(handle);
 			return;
 		} else if (magic == stop_magic) {
 			/* We are done, so we don't send anything back */
 			/* There should be no more packets in the buffer */
-			assert_int_equal(tcp_buffer_length, 0);
+			assert_int_equal(tls_buffer_length, 0);
 		}
 	}
 unref:
@@ -308,7 +322,7 @@ unref:
 }
 
 static void
-tcp_connect_send_cb(isc_nmhandle_t *handle, isc_result_t eresult, void *cbarg) {
+tls_connect_send_cb(isc_nmhandle_t *handle, isc_result_t eresult, void *cbarg) {
 	assert_non_null(handle);
 	UNUSED(cbarg);
 
@@ -322,7 +336,7 @@ tcp_connect_send_cb(isc_nmhandle_t *handle, isc_result_t eresult, void *cbarg) {
 }
 
 static void
-tcp_connect_shutdown(isc_nmhandle_t *handle, isc_result_t eresult,
+tls_connect_shutdown(isc_nmhandle_t *handle, isc_result_t eresult,
 		     void *cbarg) {
 	UNUSED(cbarg);
 
@@ -337,7 +351,7 @@ tcp_connect_shutdown(isc_nmhandle_t *handle, isc_result_t eresult,
 }
 
 static void
-tcp_connect_send(isc_nmhandle_t *handle) {
+tls_connect_send(isc_nmhandle_t *handle) {
 	uint_fast64_t sends = atomic_load(&nsends);
 
 	while (sends > 0) {
@@ -350,15 +364,15 @@ tcp_connect_send(isc_nmhandle_t *handle) {
 
 	if (sends == 0) {
 		isc_nm_send(handle, (isc_region_t *)&stop_msg,
-			    tcp_connect_shutdown, NULL);
+			    tls_connect_shutdown, NULL);
 	} else {
 		isc_nm_send(handle, (isc_region_t *)&send_msg,
-			    tcp_connect_send_cb, NULL);
+			    tls_connect_send_cb, NULL);
 	}
 }
 
 static void
-tcp_connect_connect_cb(isc_nmhandle_t *handle, isc_result_t eresult,
+tls_connect_connect_cb(isc_nmhandle_t *handle, isc_result_t eresult,
 		       void *cbarg) {
 	isc_nmhandle_t *readhandle = NULL;
 
@@ -382,157 +396,24 @@ tcp_connect_connect_cb(isc_nmhandle_t *handle, isc_result_t eresult,
 	atomic_fetch_add(&cconnects, 1);
 
 	isc_nmhandle_attach(handle, &readhandle);
-	isc_nm_read(handle, tcp_connect_read_cb, NULL);
+	isc_nm_read(handle, tls_connect_read_cb, NULL);
 
-	tcp_connect_send(handle);
+	tls_connect_send(handle);
 }
 
 static void
-mock_listentcp_uv_tcp_bind(void **state) {
-	isc_nm_t **nm = (isc_nm_t **)*state;
-	isc_nm_t *listen_nm = nm[0];
-	isc_result_t result = ISC_R_SUCCESS;
-	isc_nmsocket_t *listen_sock = NULL;
-	isc_sockaddr_t tcp_connect_addr;
-
-	tcp_connect_addr = (isc_sockaddr_t){ .length = 0 };
-	isc_sockaddr_fromin6(&tcp_connect_addr, &in6addr_loopback, 0);
-
-	WILL_RETURN(uv_tcp_bind, UV_EADDRINUSE);
-
-	result = isc_nm_listentcp(listen_nm, (isc_nmiface_t *)&tcp_listen_addr,
-				  noop_accept_cb, NULL, 0, 0, NULL,
-				  &listen_sock);
-	assert_int_not_equal(result, ISC_R_SUCCESS);
-	assert_null(listen_sock);
-
-	RESET_RETURN;
-}
-
-static void
-mock_listentcp_uv_fileno(void **state) {
-	isc_nm_t **nm = (isc_nm_t **)*state;
-	isc_nm_t *listen_nm = nm[0];
-	isc_result_t result = ISC_R_SUCCESS;
-	isc_nmsocket_t *listen_sock = NULL;
-	isc_sockaddr_t tcp_connect_addr;
-
-	tcp_connect_addr = (isc_sockaddr_t){ .length = 0 };
-	isc_sockaddr_fromin6(&tcp_connect_addr, &in6addr_loopback, 0);
-
-	WILL_RETURN(uv_fileno, UV_EADDRINUSE);
-
-	result = isc_nm_listentcp(listen_nm, (isc_nmiface_t *)&tcp_listen_addr,
-				  noop_accept_cb, NULL, 0, 0, NULL,
-				  &listen_sock);
-	assert_int_not_equal(result, ISC_R_SUCCESS);
-	assert_null(listen_sock);
-
-	RESET_RETURN;
-}
-
-static void
-mock_listentcp_uv_tcp_getsockname(void **state) {
-	isc_nm_t **nm = (isc_nm_t **)*state;
-	isc_nm_t *listen_nm = nm[0];
-	isc_result_t result = ISC_R_SUCCESS;
-	isc_nmsocket_t *listen_sock = NULL;
-	isc_sockaddr_t tcp_connect_addr;
-
-	tcp_connect_addr = (isc_sockaddr_t){ .length = 0 };
-	isc_sockaddr_fromin6(&tcp_connect_addr, &in6addr_loopback, 0);
-
-	WILL_RETURN(uv_tcp_getsockname, UV_EADDRINUSE);
-
-	result = isc_nm_listentcp(listen_nm, (isc_nmiface_t *)&tcp_listen_addr,
-				  noop_accept_cb, NULL, 0, 0, NULL,
-				  &listen_sock);
-	assert_int_not_equal(result, ISC_R_SUCCESS);
-	assert_null(listen_sock);
-
-	RESET_RETURN;
-}
-
-static void
-mock_listentcp_uv_listen(void **state) {
-	isc_nm_t **nm = (isc_nm_t **)*state;
-	isc_nm_t *listen_nm = nm[0];
-	isc_result_t result = ISC_R_SUCCESS;
-	isc_nmsocket_t *listen_sock = NULL;
-	isc_sockaddr_t tcp_connect_addr;
-
-	tcp_connect_addr = (isc_sockaddr_t){ .length = 0 };
-	isc_sockaddr_fromin6(&tcp_connect_addr, &in6addr_loopback, 0);
-
-	WILL_RETURN(uv_listen, UV_EADDRINUSE);
-
-	result = isc_nm_listentcp(listen_nm, (isc_nmiface_t *)&tcp_listen_addr,
-				  noop_accept_cb, NULL, 0, 0, NULL,
-				  &listen_sock);
-	assert_int_not_equal(result, ISC_R_SUCCESS);
-	assert_null(listen_sock);
-
-	RESET_RETURN;
-}
-
-static void
-mock_tcpconnect_uv_tcp_bind(void **state) {
-	isc_nm_t **nm = (isc_nm_t **)*state;
-	isc_nm_t *connect_nm = nm[1];
-	isc_result_t result = ISC_R_SUCCESS;
-	isc_sockaddr_t tcp_connect_addr;
-
-	tcp_connect_addr = (isc_sockaddr_t){ .length = 0 };
-	isc_sockaddr_fromin6(&tcp_connect_addr, &in6addr_loopback, 0);
-
-	WILL_RETURN(uv_tcp_bind, UV_ENOMEM);
-
-	result = isc_nm_tcpconnect(connect_nm,
-				   (isc_nmiface_t *)&tcp_connect_addr,
-				   (isc_nmiface_t *)&tcp_listen_addr,
-				   noop_connect_cb, NULL, 1000, 0);
-	assert_int_not_equal(result, ISC_R_SUCCESS);
-
-	isc_nm_closedown(connect_nm);
-
-	RESET_RETURN;
-}
-
-static void
-mock_tcpconnect_uv_tcp_connect(void **state) {
-	isc_nm_t **nm = (isc_nm_t **)*state;
-	isc_nm_t *connect_nm = nm[1];
-	isc_result_t result = ISC_R_SUCCESS;
-	isc_sockaddr_t tcp_connect_addr;
-
-	tcp_connect_addr = (isc_sockaddr_t){ .length = 0 };
-	isc_sockaddr_fromin6(&tcp_connect_addr, &in6addr_loopback, 0);
-
-	WILL_RETURN(uv_tcp_connect, UV_ENOMEM);
-
-	result = isc_nm_tcpconnect(
-		connect_nm, (isc_nmiface_t *)&tcp_connect_addr,
-		(isc_nmiface_t *)&tcp_listen_addr, noop_connect_cb, NULL, 1, 0);
-	assert_int_not_equal(result, ISC_R_SUCCESS);
-
-	isc_nm_closedown(connect_nm);
-
-	RESET_RETURN;
-}
-
-static void
-tcp_noop(void **state) {
+tls_noop(void **state) {
 	isc_nm_t **nm = (isc_nm_t **)*state;
 	isc_nm_t *listen_nm = nm[0];
 	isc_nm_t *connect_nm = nm[1];
 	isc_result_t result = ISC_R_SUCCESS;
 	isc_nmsocket_t *listen_sock = NULL;
-	isc_sockaddr_t tcp_connect_addr;
+	isc_sockaddr_t tls_connect_addr;
 
-	tcp_connect_addr = (isc_sockaddr_t){ .length = 0 };
-	isc_sockaddr_fromin6(&tcp_connect_addr, &in6addr_loopback, 0);
+	tls_connect_addr = (isc_sockaddr_t){ .length = 0 };
+	isc_sockaddr_fromin6(&tls_connect_addr, &in6addr_loopback, 0);
 
-	result = isc_nm_listentcp(listen_nm, (isc_nmiface_t *)&tcp_listen_addr,
+	result = isc_nm_listentcp(listen_nm, (isc_nmiface_t *)&tls_listen_addr,
 				  noop_accept_cb, NULL, 0, 0, NULL,
 				  &listen_sock);
 	assert_int_equal(result, ISC_R_SUCCESS);
@@ -541,8 +422,8 @@ tcp_noop(void **state) {
 	isc_nmsocket_close(&listen_sock);
 	assert_null(listen_sock);
 
-	(void)isc_nm_tcpconnect(connect_nm, (isc_nmiface_t *)&tcp_connect_addr,
-				(isc_nmiface_t *)&tcp_listen_addr,
+	(void)isc_nm_tcpconnect(connect_nm, (isc_nmiface_t *)&tls_connect_addr,
+				(isc_nmiface_t *)&tls_listen_addr,
 				noop_connect_cb, NULL, 1, 0);
 
 	isc_nm_closedown(connect_nm);
@@ -556,25 +437,25 @@ tcp_noop(void **state) {
 }
 
 static void
-tcp_noresponse(void **state) {
+tls_noresponse(void **state) {
 	isc_nm_t **nm = (isc_nm_t **)*state;
 	isc_nm_t *listen_nm = nm[0];
 	isc_nm_t *connect_nm = nm[1];
 	isc_result_t result = ISC_R_SUCCESS;
 	isc_nmsocket_t *listen_sock = NULL;
-	isc_sockaddr_t tcp_connect_addr;
+	isc_sockaddr_t tls_connect_addr;
 
-	tcp_connect_addr = (isc_sockaddr_t){ .length = 0 };
-	isc_sockaddr_fromin6(&tcp_connect_addr, &in6addr_loopback, 0);
+	tls_connect_addr = (isc_sockaddr_t){ .length = 0 };
+	isc_sockaddr_fromin6(&tls_connect_addr, &in6addr_loopback, 0);
 
-	result = isc_nm_listentcp(listen_nm, (isc_nmiface_t *)&tcp_listen_addr,
+	result = isc_nm_listentcp(listen_nm, (isc_nmiface_t *)&tls_listen_addr,
 				  noop_accept_cb, NULL, 0, 0, NULL,
 				  &listen_sock);
 	assert_int_equal(result, ISC_R_SUCCESS);
 
-	(void)isc_nm_tcpconnect(connect_nm, (isc_nmiface_t *)&tcp_connect_addr,
-				(isc_nmiface_t *)&tcp_listen_addr,
-				tcp_connect_connect_cb, NULL, 1, 0);
+	(void)isc_nm_tcpconnect(connect_nm, (isc_nmiface_t *)&tls_connect_addr,
+				(isc_nmiface_t *)&tls_listen_addr,
+				tls_connect_connect_cb, NULL, 1, 0);
 
 	isc_nm_stoplistening(listen_sock);
 	isc_nmsocket_close(&listen_sock);
@@ -583,48 +464,48 @@ tcp_noresponse(void **state) {
 }
 
 static isc_result_t
-tcp_listen_accept_cb(isc_nmhandle_t *handle, isc_result_t result, void *cbarg);
+tls_listen_accept_cb(isc_nmhandle_t *handle, isc_result_t result, void *cbarg);
 
 static isc_threadresult_t
-tcp_connect_thread(isc_threadarg_t arg) {
+tls_connect_thread(isc_threadarg_t arg) {
 	isc_nm_t *connect_nm = (isc_nm_t *)arg;
-	isc_sockaddr_t tcp_connect_addr;
+	isc_sockaddr_t tls_connect_addr;
 
-	tcp_connect_addr = (isc_sockaddr_t){ .length = 0 };
-	isc_sockaddr_fromin6(&tcp_connect_addr, &in6addr_loopback, 0);
+	tls_connect_addr = (isc_sockaddr_t){ .length = 0 };
+	isc_sockaddr_fromin6(&tls_connect_addr, &in6addr_loopback, 0);
 
 	while (atomic_load(&nsends) > 0) {
 		(void)isc_nm_tcpconnect(connect_nm,
-					(isc_nmiface_t *)&tcp_connect_addr,
-					(isc_nmiface_t *)&tcp_listen_addr,
-					tcp_connect_connect_cb, NULL, 1, 0);
+					(isc_nmiface_t *)&tls_connect_addr,
+					(isc_nmiface_t *)&tls_listen_addr,
+					tls_connect_connect_cb, NULL, 1, 0);
 	}
 
 	return ((isc_threadresult_t)0);
 }
 
 static void
-tcp_recv_one(void **state) {
+tls_recv_one(void **state) {
 	isc_nm_t **nm = (isc_nm_t **)*state;
 	isc_nm_t *listen_nm = nm[0];
 	isc_nm_t *connect_nm = nm[1];
 	isc_result_t result = ISC_R_SUCCESS;
 	isc_nmsocket_t *listen_sock = NULL;
-	isc_sockaddr_t tcp_connect_addr;
+	isc_sockaddr_t tls_connect_addr;
 
-	tcp_connect_addr = (isc_sockaddr_t){ .length = 0 };
-	isc_sockaddr_fromin6(&tcp_connect_addr, &in6addr_loopback, 0);
+	tls_connect_addr = (isc_sockaddr_t){ .length = 0 };
+	isc_sockaddr_fromin6(&tls_connect_addr, &in6addr_loopback, 0);
 
 	atomic_store(&nsends, 1);
 
-	result = isc_nm_listentcp(listen_nm, (isc_nmiface_t *)&tcp_listen_addr,
-				  tcp_listen_accept_cb, NULL, 0, 0, NULL,
+	result = isc_nm_listentcp(listen_nm, (isc_nmiface_t *)&tls_listen_addr,
+				  tls_listen_accept_cb, NULL, 0, 0, NULL,
 				  &listen_sock);
 	assert_int_equal(result, ISC_R_SUCCESS);
 
-	(void)isc_nm_tcpconnect(connect_nm, (isc_nmiface_t *)&tcp_connect_addr,
-				(isc_nmiface_t *)&tcp_listen_addr,
-				tcp_connect_connect_cb, NULL, 1000, 0);
+	(void)isc_nm_tcpconnect(connect_nm, (isc_nmiface_t *)&tls_connect_addr,
+				(isc_nmiface_t *)&tls_listen_addr,
+				tls_connect_connect_cb, NULL, 1000, 0);
 
 	while (atomic_load(&nsends) > 0) {
 		isc_thread_yield();
@@ -658,28 +539,28 @@ tcp_recv_one(void **state) {
 }
 
 static void
-tcp_recv_two(void **state) {
+tls_recv_two(void **state) {
 	isc_nm_t **nm = (isc_nm_t **)*state;
 	isc_nm_t *listen_nm = nm[0];
 	isc_nm_t *connect_nm = nm[1];
 	isc_result_t result = ISC_R_SUCCESS;
 	isc_nmsocket_t *listen_sock = NULL;
-	isc_sockaddr_t tcp_connect_addr;
+	isc_sockaddr_t tls_connect_addr;
 
-	tcp_connect_addr = (isc_sockaddr_t){ .length = 0 };
-	isc_sockaddr_fromin6(&tcp_connect_addr, &in6addr_loopback, 0);
+	tls_connect_addr = (isc_sockaddr_t){ .length = 0 };
+	isc_sockaddr_fromin6(&tls_connect_addr, &in6addr_loopback, 0);
 
 	atomic_store(&nsends, 2);
 
-	result = isc_nm_listentcp(listen_nm, (isc_nmiface_t *)&tcp_listen_addr,
-				  tcp_listen_accept_cb, NULL, 0, 0, NULL,
+	result = isc_nm_listentcp(listen_nm, (isc_nmiface_t *)&tls_listen_addr,
+				  tls_listen_accept_cb, NULL, 0, 0, NULL,
 				  &listen_sock);
 	assert_int_equal(result, ISC_R_SUCCESS);
 
 	result = isc_nm_tcpconnect(connect_nm,
-				   (isc_nmiface_t *)&tcp_connect_addr,
-				   (isc_nmiface_t *)&tcp_listen_addr,
-				   tcp_connect_connect_cb, NULL, 1000, 0);
+				   (isc_nmiface_t *)&tls_connect_addr,
+				   (isc_nmiface_t *)&tls_listen_addr,
+				   tls_connect_connect_cb, NULL, 1000, 0);
 	assert_int_equal(result, ISC_R_SUCCESS);
 
 	while (atomic_load(&nsends) > 0) {
@@ -713,7 +594,7 @@ tcp_recv_two(void **state) {
 }
 
 static void
-tcp_recv_send(void **state) {
+tls_recv_send(void **state) {
 	isc_nm_t **nm = (isc_nm_t **)*state;
 	isc_nm_t *listen_nm = nm[0];
 	isc_nm_t *connect_nm = nm[1];
@@ -727,13 +608,13 @@ tcp_recv_send(void **state) {
 		return;
 	}
 
-	result = isc_nm_listentcp(listen_nm, (isc_nmiface_t *)&tcp_listen_addr,
-				  tcp_listen_accept_cb, NULL, 0, 0, NULL,
+	result = isc_nm_listentcp(listen_nm, (isc_nmiface_t *)&tls_listen_addr,
+				  tls_listen_accept_cb, NULL, 0, 0, NULL,
 				  &listen_sock);
 	assert_int_equal(result, ISC_R_SUCCESS);
 
 	for (size_t i = 0; i < nthreads; i++) {
-		isc_thread_create(tcp_connect_thread, connect_nm, &threads[i]);
+		isc_thread_create(tls_connect_thread, connect_nm, &threads[i]);
 	}
 
 	for (size_t i = 0; i < nthreads; i++) {
@@ -759,7 +640,7 @@ tcp_recv_send(void **state) {
 }
 
 static void
-tcp_recv_half_send(void **state) {
+tls_recv_half_send(void **state) {
 	isc_nm_t **nm = (isc_nm_t **)*state;
 	isc_nm_t *listen_nm = nm[0];
 	isc_nm_t *connect_nm = nm[1];
@@ -773,13 +654,13 @@ tcp_recv_half_send(void **state) {
 		return;
 	}
 
-	result = isc_nm_listentcp(listen_nm, (isc_nmiface_t *)&tcp_listen_addr,
-				  tcp_listen_accept_cb, NULL, 0, 0, NULL,
+	result = isc_nm_listentcp(listen_nm, (isc_nmiface_t *)&tls_listen_addr,
+				  tls_listen_accept_cb, NULL, 0, 0, NULL,
 				  &listen_sock);
 	assert_int_equal(result, ISC_R_SUCCESS);
 
 	for (size_t i = 0; i < nthreads; i++) {
-		isc_thread_create(tcp_connect_thread, connect_nm, &threads[i]);
+		isc_thread_create(tls_connect_thread, connect_nm, &threads[i]);
 	}
 
 	while (atomic_load(&nsends) >= (NSENDS * NWRITES) / 2) {
@@ -810,7 +691,7 @@ tcp_recv_half_send(void **state) {
 }
 
 static void
-tcp_half_recv_send(void **state) {
+tls_half_recv_send(void **state) {
 	isc_nm_t **nm = (isc_nm_t **)*state;
 	isc_nm_t *listen_nm = nm[0];
 	isc_nm_t *connect_nm = nm[1];
@@ -824,13 +705,13 @@ tcp_half_recv_send(void **state) {
 		return;
 	}
 
-	result = isc_nm_listentcp(listen_nm, (isc_nmiface_t *)&tcp_listen_addr,
-				  tcp_listen_accept_cb, NULL, 0, 0, NULL,
+	result = isc_nm_listentcp(listen_nm, (isc_nmiface_t *)&tls_listen_addr,
+				  tls_listen_accept_cb, NULL, 0, 0, NULL,
 				  &listen_sock);
 	assert_int_equal(result, ISC_R_SUCCESS);
 
 	for (size_t i = 0; i < nthreads; i++) {
-		isc_thread_create(tcp_connect_thread, connect_nm, &threads[i]);
+		isc_thread_create(tls_connect_thread, connect_nm, &threads[i]);
 	}
 
 	while (atomic_load(&nsends) >= (NSENDS * NWRITES) / 2) {
@@ -861,7 +742,7 @@ tcp_half_recv_send(void **state) {
 }
 
 static void
-tcp_half_recv_half_send(void **state) {
+tls_half_recv_half_send(void **state) {
 	isc_nm_t **nm = (isc_nm_t **)*state;
 	isc_nm_t *listen_nm = nm[0];
 	isc_nm_t *connect_nm = nm[1];
@@ -875,13 +756,13 @@ tcp_half_recv_half_send(void **state) {
 		return;
 	}
 
-	result = isc_nm_listentcp(listen_nm, (isc_nmiface_t *)&tcp_listen_addr,
-				  tcp_listen_accept_cb, NULL, 0, 0, NULL,
+	result = isc_nm_listentcp(listen_nm, (isc_nmiface_t *)&tls_listen_addr,
+				  tls_listen_accept_cb, NULL, 0, 0, NULL,
 				  &listen_sock);
 	assert_int_equal(result, ISC_R_SUCCESS);
 
 	for (size_t i = 0; i < nthreads; i++) {
-		isc_thread_create(tcp_connect_thread, connect_nm, &threads[i]);
+		isc_thread_create(tls_connect_thread, connect_nm, &threads[i]);
 	}
 
 	while (atomic_load(&nsends) >= (NSENDS * NWRITES) / 2) {
@@ -919,11 +800,11 @@ tcp_half_recv_half_send(void **state) {
  */
 
 static void
-tcp_listen_read_cb(isc_nmhandle_t *handle, isc_result_t eresult,
+tls_listen_read_cb(isc_nmhandle_t *handle, isc_result_t eresult,
 		   isc_region_t *region, void *cbarg);
 
 static void
-tcp_listen_send_cb(isc_nmhandle_t *handle, isc_result_t eresult, void *cbarg) {
+tls_listen_send_cb(isc_nmhandle_t *handle, isc_result_t eresult, void *cbarg) {
 	UNUSED(eresult);
 	UNUSED(cbarg);
 
@@ -938,7 +819,7 @@ tcp_listen_send_cb(isc_nmhandle_t *handle, isc_result_t eresult, void *cbarg) {
 }
 
 static void
-tcp_listen_read_cb(isc_nmhandle_t *handle, isc_result_t eresult,
+tls_listen_read_cb(isc_nmhandle_t *handle, isc_result_t eresult,
 		   isc_region_t *region, void *cbarg) {
 	uint64_t magic = 0;
 
@@ -952,25 +833,25 @@ tcp_listen_read_cb(isc_nmhandle_t *handle, isc_result_t eresult,
 
 	atomic_fetch_add(&sreads, 1);
 
-	memmove(tcp_buffer_storage + tcp_buffer_length, region->base,
+	memmove(tls_buffer_storage + tls_buffer_length, region->base,
 		region->length);
-	tcp_buffer_length += region->length;
+	tls_buffer_length += region->length;
 
-	while (tcp_buffer_length >= sizeof(magic)) {
-		memmove(&magic, tcp_buffer_storage, sizeof(magic));
+	while (tls_buffer_length >= sizeof(magic)) {
+		memmove(&magic, tls_buffer_storage, sizeof(magic));
 		assert_true(magic == stop_magic || magic == send_magic);
 
-		tcp_buffer_length -= sizeof(magic);
-		memmove(tcp_buffer_storage, tcp_buffer_storage + sizeof(magic),
-			tcp_buffer_length);
+		tls_buffer_length -= sizeof(magic);
+		memmove(tls_buffer_storage, tls_buffer_storage + sizeof(magic),
+			tls_buffer_length);
 
 		if (magic == send_magic) {
-			isc_nm_send(handle, region, tcp_listen_send_cb, NULL);
+			isc_nm_send(handle, region, tls_listen_send_cb, NULL);
 			return;
 		} else if (magic == stop_magic) {
 			/* We are done, so we don't send anything back */
 			/* There should be no more packets in the buffer */
-			assert_int_equal(tcp_buffer_length, 0);
+			assert_int_equal(tls_buffer_length, 0);
 		}
 	}
 
@@ -979,7 +860,7 @@ unref:
 }
 
 static isc_result_t
-tcp_listen_accept_cb(isc_nmhandle_t *handle, isc_result_t result, void *cbarg) {
+tls_listen_accept_cb(isc_nmhandle_t *handle, isc_result_t result, void *cbarg) {
 	isc_nmhandle_t *readhandle = NULL;
 
 	UNUSED(cbarg);
@@ -988,12 +869,12 @@ tcp_listen_accept_cb(isc_nmhandle_t *handle, isc_result_t result, void *cbarg) {
 		return (result);
 	}
 
-	tcp_buffer_length = 0;
+	tls_buffer_length = 0;
 
 	/* atomic_fetch_add(&saccept, 1); */
 
 	isc_nmhandle_attach(handle, &readhandle);
-	isc_nm_read(handle, tcp_listen_read_cb, NULL);
+	isc_nm_read(handle, tls_listen_read_cb, NULL);
 
 	return (ISC_R_SUCCESS);
 }
@@ -1001,34 +882,21 @@ tcp_listen_accept_cb(isc_nmhandle_t *handle, isc_result_t result, void *cbarg) {
 int
 main(void) {
 	const struct CMUnitTest tests[] = {
-		cmocka_unit_test_setup_teardown(mock_listentcp_uv_tcp_bind,
-						nm_setup, nm_teardown),
-		cmocka_unit_test_setup_teardown(mock_listentcp_uv_fileno,
-						nm_setup, nm_teardown),
-		cmocka_unit_test_setup_teardown(
-			mock_listentcp_uv_tcp_getsockname, nm_setup,
-			nm_teardown),
-		cmocka_unit_test_setup_teardown(mock_listentcp_uv_listen,
-						nm_setup, nm_teardown),
-		cmocka_unit_test_setup_teardown(mock_tcpconnect_uv_tcp_bind,
-						nm_setup, nm_teardown),
-		cmocka_unit_test_setup_teardown(mock_tcpconnect_uv_tcp_connect,
-						nm_setup, nm_teardown),
-		cmocka_unit_test_setup_teardown(tcp_noop, nm_setup,
+		cmocka_unit_test_setup_teardown(tls_noop, nm_setup,
 						nm_teardown),
-		cmocka_unit_test_setup_teardown(tcp_noresponse, nm_setup,
+		cmocka_unit_test_setup_teardown(tls_noresponse, nm_setup,
 						nm_teardown),
-		cmocka_unit_test_setup_teardown(tcp_recv_one, nm_setup,
+		cmocka_unit_test_setup_teardown(tls_recv_one, nm_setup,
 						nm_teardown),
-		cmocka_unit_test_setup_teardown(tcp_recv_two, nm_setup,
+		cmocka_unit_test_setup_teardown(tls_recv_two, nm_setup,
 						nm_teardown),
-		cmocka_unit_test_setup_teardown(tcp_recv_send, nm_setup,
+		cmocka_unit_test_setup_teardown(tls_recv_send, nm_setup,
 						nm_teardown),
-		cmocka_unit_test_setup_teardown(tcp_recv_half_send, nm_setup,
+		cmocka_unit_test_setup_teardown(tls_recv_half_send, nm_setup,
 						nm_teardown),
-		cmocka_unit_test_setup_teardown(tcp_half_recv_send, nm_setup,
+		cmocka_unit_test_setup_teardown(tls_half_recv_send, nm_setup,
 						nm_teardown),
-		cmocka_unit_test_setup_teardown(tcp_half_recv_half_send,
+		cmocka_unit_test_setup_teardown(tls_half_recv_half_send,
 						nm_setup, nm_teardown),
 	};
 
