@@ -3872,7 +3872,10 @@ recv_done(isc_nmhandle_t *handle, isc_result_t eresult, isc_region_t *region,
 	if ((msg->rcode == dns_rcode_servfail && !l->servfail_stops) ||
 	    (check_ra && (msg->flags & DNS_MESSAGEFLAG_RA) == 0 && l->recurse))
 	{
-		dig_query_t *next = ISC_LIST_NEXT(query, link);
+		dig_query_t *next = NULL;
+		if (ISC_LINK_LINKED(query, link)) {
+			next = ISC_LIST_NEXT(query, link);
+		}
 		if (l->current_query == query) {
 			query_detach(&l->current_query);
 		}
