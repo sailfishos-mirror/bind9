@@ -18,12 +18,12 @@
 #include <isc/resultclass.h>
 #include <isc/util.h>
 
+#include <pk11/result.h>
+
 /*
  * This file is generated at compile time from the result_*.c files
  * found in sibling library source directories.
  */
-#include <pk11/result.h>
-
 #include "result-ext.c"
 
 static const char *isc_result_descriptions[ISC_R_NRESULTS] = {
@@ -218,3 +218,4 @@ const char *
 isc_result_toid(isc_result_t result) {
 	return (isc_result_from_table(result, false));
 }
+
