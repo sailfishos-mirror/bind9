@@ -55,6 +55,10 @@ static void
 tls_do_bio(isc_nmsocket_t *sock, isc__nm_uvreq_t *send_data, bool finish);
 
 static void
+tls_readcb(isc_nmhandle_t *handle, isc_result_t result, isc_region_t *region,
+	   void *cbarg);
+
+static void
 tls_close_direct(isc_nmsocket_t *sock);
 
 static void
@@ -134,6 +138,7 @@ tls_senddone(isc_nmhandle_t *handle, isc_result_t eresult, void *cbarg) {
 	tlssock->tlsstream.nsending--;
 
 	if (finish && eresult == ISC_R_SUCCESS) {
+		tlssock->tlsstream.reading = false;
 		isc_nm_cancelread(handle);
 	} else if (eresult == ISC_R_SUCCESS) {
 		tls_do_bio(tlssock, NULL, false);
@@ -253,7 +258,7 @@ tls_do_bio(isc_nmsocket_t *sock, isc__nm_uvreq_t *send_data, bool finish) {
 	REQUIRE(sock->tid == isc_nm_tid());
 
 	/* We will resume read if TLS layer wants us to */
-	if (sock->outerhandle != NULL) {
+	if (sock->tlsstream.reading) {
 		REQUIRE(VALID_NMHANDLE(sock->outerhandle));
 		isc_nm_pauseread(sock->outerhandle);
 	}
@@ -345,15 +350,21 @@ tls_do_bio(isc_nmsocket_t *sock, isc__nm_uvreq_t *send_data, bool finish) {
 	if (sock->tlsstream.state == TLS_HANDSHAKE &&
 	    SSL_is_init_finished(sock->tlsstream.tls) == 1)
 	{
-		isc_nmhandle_t *tlshandle = isc__nmhandle_get(sock, NULL, NULL);
+		isc_nmhandle_t *tlshandle = NULL;
+		if (sock->statichandle == NULL) {
+			tlshandle = isc__nmhandle_get(sock, NULL, NULL);
+		}
 		if (sock->tlsstream.server) {
 			sock->listener->accept_cb(sock->statichandle,
 						  ISC_R_SUCCESS,
 						  sock->listener->accept_cbarg);
 		} else {
-			tls_call_connect_cb(sock, tlshandle, ISC_R_SUCCESS);
+			tls_call_connect_cb(sock, sock->statichandle,
+					    ISC_R_SUCCESS);
 		}
-		isc_nmhandle_detach(&tlshandle);
+		if (tlshandle) {
+			isc_nmhandle_detach(&tlshandle);
+		}
 		sock->tlsstream.state = TLS_IO;
 		async_tls_do_bio(sock);
 		return;
@@ -381,9 +392,12 @@ tls_do_bio(isc_nmsocket_t *sock, isc__nm_uvreq_t *send_data, bool finish) {
 		}
 		break;
 	case SSL_ERROR_WANT_READ:
-		if (sock->outerhandle != NULL) {
+		if (sock->tlsstream.reading) {
 			INSIST(VALID_NMHANDLE(sock->outerhandle));
 			isc_nm_resumeread(sock->outerhandle);
+		} else {
+			sock->tlsstream.reading = true;
+			isc_nm_read(sock->outerhandle, tls_readcb, sock);
 		}
 		return;
 		break;
@@ -445,7 +459,6 @@ initialize_tls(isc_nmsocket_t *sock, bool server) {
 		SSL_set_connect_state(sock->tlsstream.tls);
 	}
 	sock->tlsstream.nsending = 0;
-	isc_nm_read(sock->outerhandle, tls_readcb, sock);
 	tls_do_bio(sock, NULL, false);
 	return (ISC_R_SUCCESS);
 }
@@ -881,6 +894,7 @@ tls_cancelread(isc_nmsocket_t *sock) {
 	if (!inactive(sock) && sock->tlsstream.state == TLS_IO) {
 		tls_do_bio(sock, NULL, true);
 	} else if (sock->outerhandle != NULL) {
+		sock->tlsstream.reading = false;
 		isc_nm_cancelread(sock->outerhandle);
 	}
 }

@@ -825,6 +825,7 @@ struct isc_nmsocket {
 			TLS_CLOSED
 		} state; /*%< The order of these is significant */
 		size_t nsending;
+		bool reading;
 	} tlsstream;
 
 	isc_nmsocket_h2_t h2;
