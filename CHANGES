@@ -1,3 +1,6 @@
+5598.	[cleanup]	Refactor result code API to become statically linked,
+			removing the need of locking. [GL #719]
+
 5597.	[bug]		When serve-stale was enabled and starting the recursive
 			resolution process for a query failed, a named instance
 			could crash if it was configured as both a recursive and
