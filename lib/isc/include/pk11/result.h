@@ -14,7 +14,6 @@
 
 /*! \file pk11/result.h */
 
-#include <isc/lang.h>
 #include <isc/resultclass.h>
 #include <isc/types.h>
 
@@ -26,21 +25,6 @@
  */
 #include <isc/result.h> /* Contractual promise. */
 
-#define PK11_R_INITFAILED      (ISC_RESULTCLASS_PK11 + 0)
-#define PK11_R_NOPROVIDER      (ISC_RESULTCLASS_PK11 + 1)
-#define PK11_R_NORANDOMSERVICE (ISC_RESULTCLASS_PK11 + 2)
-#define PK11_R_NODIGESTSERVICE (ISC_RESULTCLASS_PK11 + 3)
-#define PK11_R_NOAESSERVICE    (ISC_RESULTCLASS_PK11 + 4)
-
-#define PK11_R_NRESULTS 5 /* Number of results */
-
-ISC_LANG_BEGINDECLS
-
-const char *pk11_result_totext(isc_result_t);
-
-void
-pk11_result_register(void);
-
-ISC_LANG_ENDDECLS
+#define pk11_result_totext isc_result_totext
 
 #endif /* PK11_RESULT_H */

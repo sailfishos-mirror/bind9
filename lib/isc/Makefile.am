@@ -153,7 +153,6 @@ libisc_la_SOURCES =		\
 	unix/time.c		\
 	url.c			\
 	pk11.c			\
-	pk11_result.c		\
 	aes.c			\
 	app.c			\
 	assertions.c		\
