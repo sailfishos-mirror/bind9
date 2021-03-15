@@ -32,6 +32,15 @@ New Features
   obsolete (due to a key rollover). Default is 90 days, and the feature can
   be disabled by setting it to 0. [GL #2408]
 
+- New configuration options, ``tcp-receive-buffer``, ``tcp-send-buffer``,
+  ``udp-receive-buffer``, and ``udp-send-buffer``, have been added.  These
+  options allows the operator to fine tune the receiving and sending
+  buffers in the operating system.  On busy servers, increasing the value
+  of the receive buffers can prevent the server from dropping the packets
+  during short spikes, and decreasing the value would prevent the server to
+  became clogged up with queries that are too old and have already timeouted
+  on the receiving side. [GL #2313]
+
 Removed Features
 ~~~~~~~~~~~~~~~~
 

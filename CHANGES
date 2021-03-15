@@ -1,3 +1,6 @@
+5599.	[func]		Add new configuration option to set the operating system
+			receive and send buffers. [GL #2313]
+
 5598.	[port]		Cast (char) to (unsigned char) when calling ctype
 			tests. [GL #2567]
 
