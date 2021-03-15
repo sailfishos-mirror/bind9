@@ -12784,15 +12784,8 @@ named_server_freeze(named_server_t *server, bool freeze, isc_lex_t *lex,
 				result = ISC_R_SUCCESS;
 				break;
 			default:
-				msg = "Unexpected error";
-				isc_log_write(
-					named_g_lctx, NAMED_LOGCATEGORY_GENERAL,
-					NAMED_LOGMODULE_SERVER, ISC_LOG_INFO,
-					"unexpected error: %s zone "
-					"'%s/%s': %s",
-					freeze ? "freezing" : "thawing",
-					zonename, classstr,
-					isc_result_totext(result));
+				msg = "Unexpected error.\n";
+				      "Check the logs to see the result.";
 			}
 		}
 	}
