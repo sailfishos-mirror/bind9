@@ -160,6 +160,7 @@ tls_failed_read_cb(isc_nmsocket_t *sock, isc_nmhandle_t *handle,
 		INSIST(handle == NULL);
 		handle = isc__nmhandle_get(sock, NULL, NULL);
 		tls_call_connect_cb(sock, handle, result);
+		isc__nmsocket_clearcb(sock);
 		isc_nmhandle_detach(&handle);
 	} else if (sock->recv_cb != NULL) {
 		isc__nm_uvreq_t *req = NULL;
@@ -351,20 +352,15 @@ tls_do_bio(isc_nmsocket_t *sock, isc__nm_uvreq_t *send_data, bool finish) {
 	    SSL_is_init_finished(sock->tlsstream.tls) == 1)
 	{
 		isc_nmhandle_t *tlshandle = NULL;
-		if (sock->statichandle == NULL) {
-			tlshandle = isc__nmhandle_get(sock, NULL, NULL);
-		}
+		INSIST(sock->statichandle == NULL);
+		tlshandle = isc__nmhandle_get(sock, NULL, NULL);
 		if (sock->tlsstream.server) {
-			sock->listener->accept_cb(sock->statichandle,
-						  ISC_R_SUCCESS,
+			sock->listener->accept_cb(tlshandle, ISC_R_SUCCESS,
 						  sock->listener->accept_cbarg);
 		} else {
-			tls_call_connect_cb(sock, sock->statichandle,
-					    ISC_R_SUCCESS);
+			tls_call_connect_cb(sock, tlshandle, ISC_R_SUCCESS);
 		}
-		if (tlshandle) {
-			isc_nmhandle_detach(&tlshandle);
-		}
+		isc_nmhandle_detach(&tlshandle);
 		sock->tlsstream.state = TLS_IO;
 		async_tls_do_bio(sock);
 		return;
@@ -509,6 +505,7 @@ tlslisten_acceptcb(isc_nmhandle_t *handle, isc_result_t result, void *cbarg) {
 	RUNTIME_CHECK(result == ISC_R_SUCCESS);
 	/* TODO: catch failure code, detach tlssock, and log the error */
 
+	tls_do_bio(tlssock, NULL, false);
 	return (result);
 }
 
@@ -651,10 +648,10 @@ isc__nm_tls_read(isc_nmhandle_t *handle, isc_nm_recv_cb_t cb, void *cbarg) {
 	REQUIRE(VALID_NMHANDLE(handle));
 
 	sock = handle->sock;
-
 	REQUIRE(VALID_NMSOCK(sock));
 	REQUIRE(sock->statichandle == handle);
 	REQUIRE(sock->tid == isc_nm_tid());
+	REQUIRE(sock->recv_cb == NULL);
 
 	if (inactive(sock)) {
 		cb(handle, ISC_R_NOTCONNECTED, NULL, cbarg);
@@ -697,6 +694,7 @@ tls_close_direct(isc_nmsocket_t *sock) {
 	 * At this point we're certain that there are no
 	 * external references, we can close everything.
 	 */
+	isc__nmsocket_clearcb(sock->outerhandle->sock);
 	if (sock->outerhandle != NULL) {
 		isc_nm_pauseread(sock->outerhandle);
 		isc_nmhandle_detach(&sock->outerhandle);
