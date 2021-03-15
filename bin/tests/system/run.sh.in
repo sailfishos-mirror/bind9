@@ -111,7 +111,7 @@ fi
 
 
 # Determine which ports to use for this system test.
-eval "$(${srcdir}/get_ports.sh -p "$baseport" -t "$systest")"
+eval "$(cd "${srcdir}" && ./get_ports.sh -p "$baseport" -t "$systest")"
 
 restart=false
 
