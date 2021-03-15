@@ -158,7 +158,8 @@ tls_failed_read_cb(isc_nmsocket_t *sock, isc_nmhandle_t *handle,
 	    sock->connect_cb != NULL)
 	{
 		INSIST(handle == NULL);
-		handle = isc__nmhandle_get(sock, NULL, NULL);
+		handle = isc__nmhandle_get(sock, &sock->peer,
+					   &sock->iface->addr);
 		tls_call_connect_cb(sock, handle, result);
 		isc__nmsocket_clearcb(sock);
 		isc_nmhandle_detach(&handle);
@@ -172,7 +173,8 @@ tls_failed_read_cb(isc_nmsocket_t *sock, isc_nmhandle_t *handle,
 			REQUIRE(VALID_NMHANDLE(handle));
 			isc_nmhandle_attach(handle, &req->handle);
 		} else {
-			req->handle = isc__nmhandle_get(sock, NULL, NULL);
+			req->handle = isc__nmhandle_get(sock, &sock->peer,
+							&sock->iface->addr);
 		}
 		isc__nmsocket_clearcb(sock);
 		isc__nm_readcb(sock, req, result);
@@ -353,7 +355,8 @@ tls_do_bio(isc_nmsocket_t *sock, isc__nm_uvreq_t *send_data, bool finish) {
 	{
 		isc_nmhandle_t *tlshandle = NULL;
 		INSIST(sock->statichandle == NULL);
-		tlshandle = isc__nmhandle_get(sock, NULL, NULL);
+		tlshandle = isc__nmhandle_get(sock, &sock->peer,
+					      &sock->iface->addr);
 		if (sock->tlsstream.server) {
 			sock->listener->accept_cb(tlshandle, ISC_R_SUCCESS,
 						  sock->listener->accept_cbarg);
