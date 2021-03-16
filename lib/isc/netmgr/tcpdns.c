@@ -69,8 +69,6 @@ tcpdns_connect_direct(isc_nmsocket_t *sock, isc__nm_uvreq_t *req);
 static void
 tcpdns_close_direct(isc_nmsocket_t *sock);
 
-static isc_result_t
-tcpdns_send_direct(isc_nmsocket_t *sock, isc__nm_uvreq_t *req);
 static void
 tcpdns_connect_cb(uv_connect_t *uvreq, int status);
 
@@ -760,7 +758,7 @@ failed_send_cb(isc_nmsocket_t *sock, isc__nm_uvreq_t *req,
 	REQUIRE(VALID_UVREQ(req));
 
 	if (req->cb.send != NULL) {
-		isc__nm_sendcb(sock, req, eresult);
+		isc__nm_sendcb(sock, req, eresult, true);
 	} else {
 		isc__nm_uvreq_put(&req, sock);
 	}
@@ -1210,6 +1208,7 @@ accept_connection(isc_nmsocket_t *ssock, isc_quota_t *quota) {
 	 */
 	isc_nmhandle_attach(handle, &csock->recv_handle);
 	start_reading(csock);
+	start_sock_timer(csock);
 
 	/*
 	 * The initial timer has been set, update the read timeout for the next
@@ -1284,7 +1283,8 @@ tcpdns_send_cb(uv_write_t *req, int status) {
 		return;
 	}
 
-	isc__nm_sendcb(sock, uvreq, ISC_R_SUCCESS);
+	isc__nm_sendcb(sock, uvreq, ISC_R_SUCCESS, false);
+	start_sock_timer(sock);
 }
 
 /*
@@ -1292,48 +1292,71 @@ tcpdns_send_cb(uv_write_t *req, int status) {
  */
 void
 isc__nm_async_tcpdnssend(isc__networker_t *worker, isc__netievent_t *ev0) {
-	isc_result_t result;
 	isc__netievent_tcpdnssend_t *ievent =
 		(isc__netievent_tcpdnssend_t *)ev0;
+
+	REQUIRE(ievent->sock->type == isc_nm_tcpdnssocket);
+	REQUIRE(ievent->sock->tid == isc_nm_tid());
+	REQUIRE(VALID_NMSOCK(ievent->sock));
+	REQUIRE(VALID_UVREQ(ievent->req));
+	REQUIRE(ievent->sock->tid == isc_nm_tid());
+
+	isc_result_t result;
 	isc_nmsocket_t *sock = ievent->sock;
 	isc__nm_uvreq_t *uvreq = ievent->req;
+	uv_buf_t bufs[2] = { { .base = uvreq->tcplen, .len = 2 },
+			     { .base = uvreq->uvbuf.base,
+			       .len = uvreq->uvbuf.len } };
+	int nbufs = 2;
+	int r;
 
 	UNUSED(worker);
 
-	REQUIRE(sock->type == isc_nm_tcpdnssocket);
-	REQUIRE(sock->tid == isc_nm_tid());
+	if (inactive(sock)) {
+		result = ISC_R_CANCELED;
+		goto fail;
+	}
 
-	result = tcpdns_send_direct(sock, uvreq);
+	r = uv_try_write(&sock->uv_handle.stream, bufs, nbufs);
+
+	if (r == (int)(bufs[0].len + bufs[1].len)) {
+		/* Wrote everything */
+		isc__nm_sendcb(sock, uvreq, ISC_R_SUCCESS, true);
+		start_sock_timer(sock);
+		return;
+	}
+
+	if (r == 1) {
+		/* Partial write of DNSMSG length */
+		bufs[0].base = uvreq->tcplen + 1;
+		bufs[0].len = 1;
+	} else if (r > 0) {
+		/* Partial write of DNSMSG */
+		nbufs = 1;
+		bufs[0].base = uvreq->uvbuf.base + (r - 2);
+		bufs[0].len = uvreq->uvbuf.len - (r - 2);
+	} else if (r == UV_ENOSYS || r == UV_EAGAIN) {
+		/* uv_try_write not support, send asynchronously */
+	} else {
+		/* error sending data */
+		result = isc__nm_uverr2result(r);
+		goto fail;
+	}
+
+	r = uv_write(&uvreq->uv_req.write, &sock->uv_handle.stream, bufs, nbufs,
+		     tcpdns_send_cb);
+	if (r < 0) {
+		result = isc__nm_uverr2result(r);
+		goto fail;
+	}
+
+	return;
+
+fail:
 	if (result != ISC_R_SUCCESS) {
 		isc__nm_incstats(sock->mgr, sock->statsindex[STATID_SENDFAIL]);
 		failed_send_cb(sock, uvreq, result);
 	}
-}
-
-static isc_result_t
-tcpdns_send_direct(isc_nmsocket_t *sock, isc__nm_uvreq_t *req) {
-	int r;
-
-	REQUIRE(VALID_NMSOCK(sock));
-	REQUIRE(VALID_UVREQ(req));
-	REQUIRE(sock->tid == isc_nm_tid());
-	REQUIRE(sock->type == isc_nm_tcpdnssocket);
-
-	uv_buf_t bufs[2] = { { .base = req->tcplen, .len = 2 },
-			     { .base = req->uvbuf.base,
-			       .len = req->uvbuf.len } };
-
-	if (inactive(sock)) {
-		return (ISC_R_CANCELED);
-	}
-
-	r = uv_write(&req->uv_req.write, &sock->uv_handle.stream, bufs, 2,
-		     tcpdns_send_cb);
-	if (r < 0) {
-		return (isc__nm_uverr2result(r));
-	}
-
-	return (ISC_R_SUCCESS);
 }
 
 static void
@@ -1639,6 +1662,7 @@ process_sock_buffer(isc_nmsocket_t *sock) {
 		isc_result_t result = processbuffer(sock);
 		switch (result) {
 		case ISC_R_NOMORE:
+			/* Don't restart the timer here until we have full DNS message */
 			start_reading(sock);
 			return;
 		case ISC_R_CANCELED:
@@ -1652,6 +1676,8 @@ process_sock_buffer(isc_nmsocket_t *sock) {
 				stop_reading(sock);
 				return;
 			}
+			/* Restart the timer when we get one full packet */
+			start_sock_timer(sock);
 			break;
 		default:
 			INSIST(0);

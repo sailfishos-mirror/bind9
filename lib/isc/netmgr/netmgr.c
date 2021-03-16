@@ -1956,22 +1956,23 @@ isc__nm_async_readcb(isc__networker_t *worker, isc__netievent_t *ev0) {
 
 void
 isc__nm_sendcb(isc_nmsocket_t *sock, isc__nm_uvreq_t *uvreq,
-	       isc_result_t eresult) {
+	       isc_result_t eresult, bool async) {
 	REQUIRE(VALID_NMSOCK(sock));
 	REQUIRE(VALID_UVREQ(uvreq));
 	REQUIRE(VALID_NMHANDLE(uvreq->handle));
 
-	if (eresult == ISC_R_SUCCESS) {
+	if (!async) {
 		isc__netievent_sendcb_t ievent = { .sock = sock,
 						   .req = uvreq,
 						   .result = eresult };
 		isc__nm_async_sendcb(NULL, (isc__netievent_t *)&ievent);
-	} else {
-		isc__netievent_sendcb_t *ievent = isc__nm_get_netievent_sendcb(
-			sock->mgr, sock, uvreq, eresult);
-		isc__nm_enqueue_ievent(&sock->mgr->workers[sock->tid],
-				       (isc__netievent_t *)ievent);
+		return;
 	}
+
+	isc__netievent_sendcb_t *ievent = isc__nm_get_netievent_sendcb(
+		sock->mgr, sock, uvreq, eresult);
+	isc__nm_enqueue_ievent(&sock->mgr->workers[sock->tid],
+			       (isc__netievent_t *)ievent);
 }
 
 void

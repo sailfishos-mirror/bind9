@@ -596,7 +596,7 @@ udp_send_cb(uv_udp_send_t *req, int status) {
 		isc__nm_incstats(sock->mgr, sock->statsindex[STATID_SENDFAIL]);
 	}
 
-	isc__nm_sendcb(sock, uvreq, result);
+	isc__nm_sendcb(sock, uvreq, result, false);
 }
 
 /*
@@ -907,7 +907,7 @@ failed_send_cb(isc_nmsocket_t *sock, isc__nm_uvreq_t *req,
 	REQUIRE(VALID_UVREQ(req));
 
 	if (req->cb.send != NULL) {
-		isc__nm_sendcb(sock, req, eresult);
+		isc__nm_sendcb(sock, req, eresult, true);
 	} else {
 		isc__nm_uvreq_put(&req, sock);
 	}

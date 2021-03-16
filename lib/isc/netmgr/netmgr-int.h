@@ -1182,7 +1182,7 @@ isc__nm_async_readcb(isc__networker_t *worker, isc__netievent_t *ev0);
 
 void
 isc__nm_sendcb(isc_nmsocket_t *sock, isc__nm_uvreq_t *uvreq,
-	       isc_result_t eresult);
+	       isc_result_t eresult, bool async);
 void
 isc__nm_async_sendcb(isc__networker_t *worker, isc__netievent_t *ev0);
 /*%<

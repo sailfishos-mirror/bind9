@@ -726,7 +726,7 @@ failed_send_cb(isc_nmsocket_t *sock, isc__nm_uvreq_t *req,
 	REQUIRE(VALID_UVREQ(req));
 
 	if (req->cb.send != NULL) {
-		isc__nm_sendcb(sock, req, eresult);
+		isc__nm_sendcb(sock, req, eresult, true);
 	} else {
 		isc__nm_uvreq_put(&req, sock);
 	}
@@ -1199,7 +1199,7 @@ tcp_send_cb(uv_write_t *req, int status) {
 		return;
 	}
 
-	isc__nm_sendcb(sock, uvreq, ISC_R_SUCCESS);
+	isc__nm_sendcb(sock, uvreq, ISC_R_SUCCESS, false);
 }
 
 /*

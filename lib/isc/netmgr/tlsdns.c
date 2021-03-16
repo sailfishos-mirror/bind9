@@ -897,7 +897,7 @@ failed_send_cb(isc_nmsocket_t *sock, isc__nm_uvreq_t *req,
 	REQUIRE(VALID_UVREQ(req));
 
 	if (req->cb.send != NULL) {
-		isc__nm_sendcb(sock, req, eresult);
+		isc__nm_sendcb(sock, req, eresult, true);
 	} else {
 		isc__nm_uvreq_put(&req, sock);
 	}
@@ -1832,7 +1832,7 @@ tlsdns_send_direct(isc_nmsocket_t *sock, isc__nm_uvreq_t *req) {
 		/* SSL_write_ex() doesn't do partial writes */
 		INSIST(sendlen == bytes);
 
-		isc__nm_sendcb(sock, req, ISC_R_SUCCESS);
+		isc__nm_sendcb(sock, req, ISC_R_SUCCESS, true);
 		async_tlsdns_cycle(sock);
 		return (ISC_R_SUCCESS);
 	}
