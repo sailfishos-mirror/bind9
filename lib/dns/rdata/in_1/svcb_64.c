@@ -17,6 +17,8 @@
 #define RRTYPE_SVCB_ATTRIBUTES (DNS_RDATATYPEATTR_FOLLOWADDITIONAL)
 
 #define SVCB_MAN_KEY 0
+#define SVCB_ALPN_KEY		 1
+#define SVCB_NO_DEFAULT_ALPN_KEY 2
 #define MAX_CNAMES   16 /* See ns/query.c MAX_RESTARTS */
 
 /*
@@ -371,6 +373,7 @@ svcsortkeys(isc_buffer_t *target, unsigned int used) {
 	isc_region_t r1, r2, man = { .base = NULL, .length = 0 };
 	unsigned char buf[1024];
 	uint16_t mankey = 0;
+	bool have_alpn = false;
 
 	if (isc_buffer_usedlength(target) == used) {
 		return (ISC_R_SUCCESS);
@@ -409,6 +412,10 @@ svcsortkeys(isc_buffer_t *target, unsigned int used) {
 				}
 			} else if (key1 == SVCB_MAN_KEY) {
 				/* Lone mandatory field. */
+				return (DNS_R_DISALLOWED);
+			} else if (key1 == SVCB_NO_DEFAULT_ALPN_KEY &&
+				   !have_alpn) {
+				/* Missing required ALPN field. */
 				return (DNS_R_DISALLOWED);
 			}
 			return (ISC_R_SUCCESS);
@@ -461,6 +468,16 @@ svcsortkeys(isc_buffer_t *target, unsigned int used) {
 				bytes -= count;
 				offset += count;
 			}
+		}
+
+		/*
+		 * Check ALPN is present when NO-DEFAULT-ALPN is set.
+		 */
+		if (key1 == SVCB_ALPN_KEY) {
+			have_alpn = true;
+		} else if (key1 == SVCB_NO_DEFAULT_ALPN_KEY && !have_alpn) {
+			/* Missing required ALPN field. */
+			return (DNS_R_DISALLOWED);
 		}
 
 		/*
