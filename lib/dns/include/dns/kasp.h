@@ -111,6 +111,7 @@ struct dns_kasp {
 	dns_ttl_t zone_max_ttl;
 	uint32_t  zone_propagation_delay;
 	bool	  inline_signing;
+	bool	  manual_mode;
 
 	/* Parent settings */
 	dns_ttl_t parent_ds_ttl;
@@ -441,6 +442,30 @@ void
 dns_kasp_setinlinesigning(dns_kasp_t *kasp, bool value);
 /*%<
  * Set inline-signing.
+ *
+ * Requires:
+ *
+ *\li   'kasp' is a valid, thawed kasp.
+ */
+
+bool
+dns_kasp_manualmode(dns_kasp_t *kasp);
+/*%<
+ * Should we use manual-mode for this DNSSEC policy?
+ *
+ * Requires:
+ *
+ *\li   'kasp' is a valid, frozen kasp.
+ *
+ * Returns:
+ *
+ *\li   true or false.
+ */
+
+void
+dns_kasp_setmanualmode(dns_kasp_t *kasp, bool value);
+/*%<
+ * Set manual-mode.
  *
  * Requires:
  *
