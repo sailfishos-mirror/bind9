@@ -273,6 +273,22 @@ dns_kasp_setinlinesigning(dns_kasp_t *kasp, bool value) {
 	kasp->inline_signing = value;
 }
 
+bool
+dns_kasp_manualmode(dns_kasp_t *kasp) {
+	REQUIRE(DNS_KASP_VALID(kasp));
+	REQUIRE(kasp->frozen);
+
+	return kasp->manual_mode;
+}
+
+void
+dns_kasp_setmanualmode(dns_kasp_t *kasp, bool value) {
+	REQUIRE(DNS_KASP_VALID(kasp));
+	REQUIRE(!kasp->frozen);
+
+	kasp->manual_mode = value;
+}
+
 dns_ttl_t
 dns_kasp_zonemaxttl(dns_kasp_t *kasp, bool fallback) {
 	REQUIRE(DNS_KASP_VALID(kasp));
