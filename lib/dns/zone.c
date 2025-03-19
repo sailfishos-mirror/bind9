@@ -21361,7 +21361,7 @@ checkds_done(void *arg) {
 
 	/* Rekey after checkds. */
 	if (rekey) {
-		dns_zone_rekey(zone, false);
+		dns_zone_rekey(zone, false, false);
 	}
 
 failure:
@@ -22426,6 +22426,7 @@ zone_rekey(dns_zone_t *zone) {
 	bool newalg = false;
 	bool fullsign;
 	bool offlineksk = false;
+	uint8_t options = 0;
 	uint32_t sigval = 0;
 	dns_ttl_t ttl = 3600;
 	const char *dir = NULL;
@@ -22565,6 +22566,14 @@ zone_rekey(dns_zone_t *zone) {
 	 */
 	fullsign = DNS_ZONEKEY_OPTION(zone, DNS_ZONEKEY_FULLSIGN);
 
+	/*
+	 * True when called from "rndc dnssec -step". Indicates the zone
+	 * is allowed to do the next step(s) in the keymgr process.
+	 */
+	if (DNS_ZONE_OPTION(zone, DNS_ZONEOPT_FORCEKEYMGR)) {
+		options |= DNS_KEYMGRATTR_FORCESTEP;
+	}
+
 	if (offlineksk) {
 		/* Lookup the correct bundle in the SKR. */
 		LOCK_ZONE(zone);
@@ -22670,7 +22679,7 @@ zone_rekey(dns_zone_t *zone) {
 			dns_zone_lock_keyfiles(zone);
 			result = dns_keymgr_run(&zone->origin, zone->rdclass,
 						mctx, &keys, &dnskeys, dir,
-						kasp, now, &nexttime);
+						kasp, options, now, &nexttime);
 			dns_zone_unlock_keyfiles(zone);
 
 			if (result != ISC_R_SUCCESS) {
@@ -23177,6 +23186,13 @@ failure:
 				 0);
 		isc_time_nowplusinterval(&zone->refreshkeytime, &ival);
 	}
+
+	/*
+	 * Clear forcekeymgr flag, if it was set, so we don't do
+	 * another force next time.
+	 */
+	DNS_ZONE_CLROPTION(zone, DNS_ZONEOPT_FORCEKEYMGR);
+
 	UNLOCK_ZONE(zone);
 
 	dns_diff_clear(&diff);
@@ -23215,7 +23231,7 @@ failure:
 }
 
 void
-dns_zone_rekey(dns_zone_t *zone, bool fullsign) {
+dns_zone_rekey(dns_zone_t *zone, bool fullsign, bool forcekeymgr) {
 	isc_time_t now;
 
 	if (zone->type == dns_zone_primary && zone->loop != NULL) {
@@ -23223,6 +23239,9 @@ dns_zone_rekey(dns_zone_t *zone, bool fullsign) {
 
 		if (fullsign) {
 			DNS_ZONEKEY_SETOPTION(zone, DNS_ZONEKEY_FULLSIGN);
+		}
+		if (forcekeymgr) {
+			DNS_ZONE_SETOPTION(zone, DNS_ZONEOPT_FORCEKEYMGR);
 		}
 
 		now = isc_time_now();

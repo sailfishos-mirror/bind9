@@ -7064,7 +7064,7 @@ configure_zone(const cfg_obj_t *config, const cfg_obj_t *zconfig,
 	 * Ensure that zone keys are reloaded on reconfig
 	 */
 	if ((dns_zone_getkeyopts(zone) & DNS_ZONEKEY_MAINTAIN) != 0) {
-		dns_zone_rekey(zone, fullsign);
+		dns_zone_rekey(zone, fullsign, false);
 	}
 
 cleanup:
@@ -12829,7 +12829,7 @@ named_server_rekey(named_server_t *server, isc_lex_t *lex,
 	} else if ((keyopts & DNS_ZONEKEY_MAINTAIN) == 0 && !fullsign) {
 		result = ISC_R_NOPERM;
 	} else {
-		dns_zone_rekey(zone, fullsign);
+		dns_zone_rekey(zone, fullsign, false);
 	}
 
 	dns_zone_detach(&zone);
@@ -15175,6 +15175,8 @@ named_server_dnssec(named_server_t *server, isc_lex_t *lex,
 	dns_dnsseckey_t *key;
 	char *ptr, *zonetext = NULL;
 	const char *msg = NULL;
+	/* variables for -step */
+	bool forcestep = false;
 	/* variables for -checkds */
 	bool checkds = false, dspublish = false;
 	/* variables for -rollover */
@@ -15218,6 +15220,8 @@ named_server_dnssec(named_server_t *server, isc_lex_t *lex,
 		rollover = true;
 	} else if (strcasecmp(ptr, "-checkds") == 0) {
 		checkds = true;
+	} else if (strcasecmp(ptr, "-step") == 0) {
+		forcestep = true;
 	} else {
 		CHECK(DNS_R_SYNTAX);
 	}
@@ -15374,7 +15378,7 @@ named_server_dnssec(named_server_t *server, isc_lex_t *lex,
 			 * Rekey after checkds command because the next key
 			 * event may have changed.
 			 */
-			dns_zone_rekey(zone, false);
+			dns_zone_rekey(zone, false, false);
 
 			if (use_keyid) {
 				char tagbuf[6];
@@ -15424,7 +15428,7 @@ named_server_dnssec(named_server_t *server, isc_lex_t *lex,
 			 * Rekey after rollover command because the next key
 			 * event may have changed.
 			 */
-			dns_zone_rekey(zone, false);
+			dns_zone_rekey(zone, false, false);
 
 			if (use_keyid) {
 				char tagbuf[6];
@@ -15448,7 +15452,10 @@ named_server_dnssec(named_server_t *server, isc_lex_t *lex,
 			CHECK(putstr(text, isc_result_totext(ret)));
 			break;
 		}
+	} else if (forcestep) {
+		dns_zone_rekey(zone, false, true);
 	}
+
 	CHECK(putnull(text));
 
 cleanup:
@@ -16920,7 +16927,7 @@ named_server_skr(named_server_t *server, isc_lex_t *lex, isc_buffer_t **text) {
 		CHECK(putnull(text));
 	} else {
 		/* Schedule a rekey */
-		dns_zone_rekey(zone, false);
+		dns_zone_rekey(zone, false, false);
 	}
 
 cleanup:
