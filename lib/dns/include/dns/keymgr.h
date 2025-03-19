@@ -21,6 +21,11 @@
 
 #include <dst/dst.h>
 
+#define DNS_KEYMGRATTR_NONE	 0x00 /*%< No ordering. */
+#define DNS_KEYMGRATTR_S2I	 0x01 /*%< Secure to insecure. */
+#define DNS_KEYMGRATTR_NOROLL	 0x02 /*%< No rollover allowed. */
+#define DNS_KEYMGRATTR_FORCESTEP 0x04 /*%< Force next step in manual-mode */
+
 void
 dns_keymgr_settime_syncpublish(dst_key_t *key, dns_kasp_t *kasp, bool first);
 /*%<
@@ -36,7 +41,8 @@ isc_result_t
 dns_keymgr_run(const dns_name_t *origin, dns_rdataclass_t rdclass,
 	       isc_mem_t *mctx, dns_dnsseckeylist_t *keyring,
 	       dns_dnsseckeylist_t *dnskeys, const char *keydir,
-	       dns_kasp_t *kasp, isc_stdtime_t now, isc_stdtime_t *nexttime);
+	       dns_kasp_t *kasp, uint8_t options, isc_stdtime_t now,
+	       isc_stdtime_t *nexttime);
 /*%<
  * Manage keys in 'keyring' and update timing data according to 'kasp' policy.
  * Create new keys for 'origin' if necessary.  Append all such keys, along
@@ -44,6 +50,10 @@ dns_keymgr_run(const dns_name_t *origin, dns_rdataclass_t rdclass,
  *
  * Update key states and store changes back to disk. Store when to run next
  * in 'nexttime'.
+ *
+ * If 'options' has DNS_KEYMGRATTR_FORCESTEP set, the next steps in the process
+ * are allowed, even if 'kasp' has 'manual-mode' enabled. Other options should
+ * not be set in 'options'.
  *
  *	Requires:
  *\li		'origin' is a valid FQDN.
