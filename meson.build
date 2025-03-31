@@ -1074,6 +1074,7 @@ tsig_keygen_src = []
 
 filter_a_src = []
 filter_aaaa_src = []
+synthrecord_src = []
 
 fuzz_binaries = {}
 system_test_binaries = {}
@@ -1704,6 +1705,21 @@ shared_library(
     dependencies: [
         libdns_dep,
         libisc_dep,
+        libisccfg_dep,
+        libns_dep,
+    ],
+)
+
+shared_library(
+    'synthrecord',
+    synthrecord_src,
+    implicit_include_directories: false,
+    install: true,
+    install_rpath: libdir,
+    install_dir: libdir / 'bind',
+    name_prefix: '',
+    dependencies: [
+        libdns_dep,
         libisccfg_dep,
         libns_dep,
     ],

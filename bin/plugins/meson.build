@@ -11,6 +11,7 @@
 
 filter_a_src += files('filter-a.c')
 filter_aaaa_src += files('filter-aaaa.c')
+synthrecord_src += files('synthrecord.c')
 
 manrst_srcset.add(
     files(
