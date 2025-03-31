@@ -52,3 +52,15 @@ dns_byaddr_createptrname(const isc_netaddr_t *address, dns_name_t *name);
  * \li	'address' is a valid address.
  * \li	'name' is a valid name with a dedicated buffer.
  */
+
+isc_result_t
+dns_byaddr_parseptrname(const dns_name_t *name, isc_netaddr_t *addr);
+/*%<
+ * Parse a name in a PTR format and convert it into a isc_net_addr_t. Support
+ * both IPv4 and IPv6 reverse format.
+ *
+ * Requires:
+ *
+ * \li	'name' is a valid name.
+ * \li  'addr' is a valid object
+ */
