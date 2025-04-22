@@ -2781,7 +2781,8 @@ Boolean Options
 Forwarding
 ^^^^^^^^^^
 
-The forwarding facility can be used to create a large site-wide cache on
+The forwarding facility sends queries which cannot be answered using local data
+to different resolvers. This can be used to create a large site-wide cache on
 a few servers, reducing traffic over links to external name servers. It
 can also be used to allow queries by servers that do not have direct
 access to the Internet, but that wish to look up exterior names anyway.
@@ -2792,7 +2793,7 @@ authoritative and does not have the answer in its cache.
    :tags: query
    :short: Allows or disallows fallback to recursion if forwarding has failed; it is always used in conjunction with the :any:`forwarders` statement.
 
-   This option is only meaningful if the forwarders list is not empty. A
+   This option is only meaningful if the :any:`forwarders` list is not empty. A
    value of ``first`` is the default and causes the server to query the
    forwarders first; if that does not answer the question, the
    server then looks for the answer itself. If ``only`` is
@@ -2800,9 +2801,10 @@ authoritative and does not have the answer in its cache.
 
 .. namedconf:statement:: forwarders
    :tags: query
-   :short: Defines one or more hosts to which queries are forwarded.
+   :short: Defines one or more resolvers to which queries are forwarded.
 
-   This specifies a list of IP addresses to which queries are forwarded. The
+   This specifies a list of IP addresses of DNS resolvers, to which queries
+   which cannot be answered using locally available data are forwarded. The
    default is the empty list (no forwarding). Each address in the list can be
    associated with an optional port number and a TLS transport. A default port
    number and a TLS transport can be set for the entire list.
@@ -6923,20 +6925,24 @@ Zone Types
 
 .. namedconf:statement:: type stub
    :tags: zone
-   :short: Contains a duplicate of the NS records of a primary zone.
+   :short: Contains a duplicate of the NS records of a zone.
 
-   A stub zone is similar to a secondary zone, except that it replicates only
-   the NS records of a primary zone instead of the entire zone. Stub zones
-   are not a standard part of the DNS; they are a feature specific to the
-   BIND implementation.
+   A stub zone specifies a set of name servers to use when contacting the zone
+   for the first time.  A stub zone overrides any NS records (delegations)
+   that might exist in the parent zone.  Once an authoritative server is
+   reached, the NS records from that server are honored.
 
-   Stub zones can be used to eliminate the need for a glue NS record in a parent
-   zone, at the expense of maintaining a stub zone entry and a set of name
-   server addresses in :iscman:`named.conf`. This usage is not recommended for
-   new configurations, and BIND 9 supports it only in a limited way. If a BIND 9
-   primary, serving a parent zone, has child stub
-   zones configured, all the secondary servers for the parent zone also need to
-   have the same child stub zones configured.
+   A stub zone can work around missing or broken delegations, but comes at
+   expense of maintaining a set of name server addresses in
+   :iscman:`named.conf`.
+
+   .. warning:: Use of stub zones is not recommended. Proper delegation
+                with NS records in the parent zone should be used.
+
+
+   :iscman:`named` queries authoritative servers configured as :any:`primaries`
+   to obtain up-to-date NS records. These new NS records are then used
+   to obtain answers from a given zone.
 
    Stub zones can also be used as a way to force the resolution of a given
    domain to use a particular set of authoritative servers. For example, the
@@ -6944,19 +6950,37 @@ Zone Types
    configured with stub zones for ``10.in-addr.arpa`` to use a set of
    internal name servers as the authoritative servers for that domain.
 
+   If a BIND 9 primary, serving a parent zone, has child stub zones configured,
+   all the secondary servers for the parent zone also need to have the same
+   child stub zones configured.
+
+   Stub zones are not a standard part of the DNS; they are a feature specific
+   to the BIND implementation.
+
+
 .. namedconf:statement:: type static-stub
    :tags: zone
-   :short: Contains a duplicate of the NS records of a primary zone, but statically configured rather than transferred from a primary server.
+   :short: Contains statically configured NS records for a zone.
 
-   A static-stub zone is similar to a stub zone, with the following
-   exceptions: the zone data is statically configured, rather than
-   transferred from a primary server; and when recursion is necessary for a query
-   that matches a static-stub zone, the locally configured data (name server
-   names and glue addresses) is always used, even if different authoritative
-   information is cached.
+   A static-stub zone specifies a set of name servers to use to resolve *all*
+   queries for the given zone.  A stub zone overrides any NS records
+   (delegations) that might exist in the parent zone, and also any records
+   received from the otherwise-authoritative server.
 
-   Zone data is configured via the :any:`server-addresses` and :any:`server-names`
-   zone options.
+   Like a :any:`stub <type stub>` zone, this can work around missing or broken
+   delegations at the parent.  Unlike stub, static-stub also overrides any NS
+   records offered by the specified servers.
+
+   When recursion is necessary for a query that matches a static-stub zone,
+   the locally configured data (name server names and glue addresses) is
+   always used, even if different authoritative information is cached.
+
+   The zone data is configured via the :any:`server-addresses` and
+   :any:`server-names` zone statements. These must point to authoritative
+   servers.
+
+   .. warning:: Use of static-stub zones is not recommended. Proper delegation
+                with NS records in the parent zone should be used.
 
    The zone data is maintained in the form of NS and (if necessary) glue A or
    AAAA RRs internally, which can be seen by dumping zone databases with
@@ -6967,7 +6991,7 @@ Zone Types
 
    Since the data is statically configured, no zone maintenance action takes
    place for a static-stub zone. For example, there is no periodic refresh
-   attempt, and an incoming notify message is rejected with an rcode
+   attempt, and an incoming :ref:`NOTIFY <notify>` message is rejected with an rcode
    of NOTAUTH.
 
    Each static-stub zone is configured with internally generated NS and (if
@@ -7270,7 +7294,7 @@ Zone Options
    :tags: query, zone
    :short: Specifies a list of IP addresses to which queries should be sent in recursive resolution for a static-stub zone.
 
-   This option is only meaningful for static-stub zones. This is a list of IP addresses
+   This option is only meaningful for :any:`static-stub <type static-stub>` zones. This is a list of IP addresses
    to which queries should be sent in recursive resolution for the zone.
    A non-empty list for this option internally configures the apex
    NS RR with associated glue A or AAAA RRs.
@@ -7295,7 +7319,7 @@ Zone Options
    :tags: zone
    :short: Specifies a list of domain names of name servers that act as authoritative servers of a static-stub zone.
 
-   This option is only meaningful for static-stub zones. This is a list of domain names
+   This option is only meaningful for :any:`static-stub <type static-stub>` zones. This is a list of domain names
    of name servers that act as authoritative servers of the static-stub
    zone. These names are resolved to IP addresses when :iscman:`named`
    needs to send queries to these servers. For this supplemental
