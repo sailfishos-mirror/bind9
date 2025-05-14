@@ -52,13 +52,24 @@ typedef enum {
  * the const attribute of a string.
  */
 static unsigned char root_ndata[] = { "" };
-static dns_name_t root = DNS_NAME_INITABSOLUTE(root_ndata);
+static dns_name_t const root = DNS_NAME_INITABSOLUTE(root_ndata);
 const dns_name_t *dns_rootname = &root;
 
 static unsigned char wild_ndata[] = { "\001*" };
-
 static dns_name_t const wild = DNS_NAME_INITNONABSOLUTE(wild_ndata);
 const dns_name_t *dns_wildcardname = &wild;
+
+static unsigned char ip6arpa_data[] = "\003IP6\004ARPA";
+static dns_name_t const ip6arpa = DNS_NAME_INITABSOLUTE(ip6arpa_data);
+const dns_name_t *dns_ip6arpa = &ip6arpa;
+
+static unsigned char ip6int_data[] = "\003IP6\003INT";
+static dns_name_t const ip6int = DNS_NAME_INITABSOLUTE(ip6int_data);
+const dns_name_t *dns_ip6int = &ip6int;
+
+static unsigned char inaddrarpa_data[] = "\007IN-ADDR\004ARPA";
+static dns_name_t const inaddrarpa = DNS_NAME_INITABSOLUTE(inaddrarpa_data);
+const dns_name_t *dns_inaddrarpa = &inaddrarpa;
 
 /*
  * dns_name_t to text post-conversion procedure.

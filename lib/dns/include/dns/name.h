@@ -140,6 +140,9 @@ struct dns_name {
 
 extern const dns_name_t *dns_rootname;
 extern const dns_name_t *dns_wildcardname;
+extern const dns_name_t *dns_ip6arpa;
+extern const dns_name_t *dns_ip6int;
+extern const dns_name_t *dns_inaddrarpa;
 
 /*%<
  * DNS_NAME_INITNONABSOLUTE and DNS_NAME_INITABSOLUTE are macros for

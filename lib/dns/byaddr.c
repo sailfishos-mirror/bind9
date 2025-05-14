@@ -88,11 +88,8 @@ dns_byaddr_createptrname(const isc_netaddr_t *address, dns_name_t *name) {
 static isc_result_t
 parseptrnamev4(const dns_name_t *name, isc_netaddr_t *addr) {
 	isc_buffer_t b;
-	static unsigned char inaddrarpa_data[] = "\007IN-ADDR\004ARPA";
-	static dns_name_t const inaddrarpa =
-		DNS_NAME_INITABSOLUTE(inaddrarpa_data);
 
-	if (!dns_name_issubdomain(name, &inaddrarpa)) {
+	if (!dns_name_issubdomain(name, dns_inaddrarpa)) {
 		return ISC_R_FAILURE;
 	}
 
@@ -134,10 +131,8 @@ static isc_result_t
 parseptrnamev6(const dns_name_t *name, isc_netaddr_t *addr) {
 	isc_buffer_t b;
 	isc_hex_decodectx_t ctx;
-	static unsigned char ip6arpa_data[] = "\003IP6\004ARPA";
-	static dns_name_t const ip6arpa = DNS_NAME_INITABSOLUTE(ip6arpa_data);
 
-	if (!dns_name_issubdomain(name, &ip6arpa)) {
+	if (!dns_name_issubdomain(name, dns_ip6arpa)) {
 		return ISC_R_FAILURE;
 	}
 
