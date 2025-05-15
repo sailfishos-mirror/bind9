@@ -17,5 +17,6 @@ manrst_srcset.add(
     files(
         'filter-a.rst',
         'filter-aaaa.rst',
+        'synthrecord.rst',
     ),
 )

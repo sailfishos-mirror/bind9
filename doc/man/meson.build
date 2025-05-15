@@ -48,6 +48,7 @@ manrst_srcset.add(
         'rndc-confgen.rst',
         'rndc.conf.rst',
         'rndc.rst',
+        'synthrecord.rst',
         'tsig-keygen.rst',
     ),
 )

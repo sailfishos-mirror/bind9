@@ -30,6 +30,8 @@ Manual Pages
 .. include:: ../../bin/dnssec/dnssec-verify.rst
 .. include:: ../../bin/tools/dnstap-read.rst
 .. include:: ../../bin/plugins/filter-aaaa.rst
+.. include:: ../../bin/plugins/filter-a.rst
+.. include:: ../../bin/plugins/synthrecord.rst
 .. include:: ../../bin/dig/host.rst
 .. include:: ../../bin/tools/mdig.rst
 .. include:: ../../bin/check/named-checkconf.rst
