@@ -1591,7 +1591,19 @@ dns_rpz_dbupdate_unregister(dns_db_t *db, dns_rpz_zone_t *rpz) {
 	REQUIRE(DNS_DB_VALID(db));
 	REQUIRE(DNS_RPZ_ZONE_VALID(rpz));
 
+	LOCK(&rpz->rpzs->maint_lock);
 	dns_db_updatenotify_unregister(db, dns_rpz_dbupdate_callback, rpz);
+	if (rpz->processed) {
+		rpz->processed = false;
+		INSIST(atomic_fetch_sub_acq_rel(&rpz->rpzs->zones_processed,
+						1) > 0);
+	}
+	if (rpz->dbregistered) {
+		rpz->dbregistered = false;
+		INSIST(atomic_fetch_sub_acq_rel(&rpz->rpzs->zones_registered,
+						1) > 0);
+	}
+	UNLOCK(&rpz->rpzs->maint_lock);
 }
 
 void
@@ -1599,8 +1611,15 @@ dns_rpz_dbupdate_register(dns_db_t *db, dns_rpz_zone_t *rpz) {
 	REQUIRE(DNS_DB_VALID(db));
 	REQUIRE(DNS_RPZ_ZONE_VALID(rpz));
 
+	LOCK(&rpz->rpzs->maint_lock);
+	if (!rpz->dbregistered) {
+		rpz->dbregistered = true;
+		atomic_fetch_add_acq_rel(&rpz->rpzs->zones_registered, 1);
+	}
 	dns_db_updatenotify_register(db, dns_rpz_dbupdate_callback, rpz);
+	UNLOCK(&rpz->rpzs->maint_lock);
 }
+
 static void
 dns__rpz_timer_start(dns_rpz_zone_t *rpz) {
 	uint64_t tdiff;
@@ -1664,6 +1683,11 @@ update_rpz_done_cb(void *data) {
 
 	dns_db_closeversion(rpz->updb, &rpz->updbversion, false);
 	dns_db_detach(&rpz->updb);
+
+	if (rpz->dbregistered && !rpz->processed) {
+		rpz->processed = true;
+		atomic_fetch_add_acq_rel(&rpz->rpzs->zones_processed, 1);
+	}
 
 	UNLOCK(&rpz->rpzs->maint_lock);
 
