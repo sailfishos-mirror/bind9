@@ -2618,6 +2618,13 @@ configure_rpz(dns_view_t *view, dns_view_t *pview, const cfg_obj_t **maps,
 		zones->p.nsip_wait_recurse = false;
 	}
 
+	sub_obj = cfg_tuple_get(rpz_obj, "servfail-until-ready");
+	if (!cfg_obj_isvoid(sub_obj) && cfg_obj_asboolean(sub_obj)) {
+		zones->p.servfail_until_ready = true;
+	} else {
+		zones->p.servfail_until_ready = false;
+	}
+
 	if (pview != NULL) {
 		old = pview->rpzs;
 	} else {

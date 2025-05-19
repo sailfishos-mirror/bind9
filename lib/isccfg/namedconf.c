@@ -1756,7 +1756,7 @@ static cfg_type_t cfg_type_dnstapoutput = { "dnstapoutput", parse_dtout,
  *  } [ recursive-only yes|no ] [ max-policy-ttl number ]
  *	 [ min-update-interval number ]
  *	 [ break-dnssec yes|no ] [ min-ns-dots number ]
- *	 [ qname-wait-recurse yes|no ]
+ *	 [ qname-wait-recurse yes|no ] [ servfail-until-ready yes|no ]
  *	 [ nsip-enable yes|no ] [ nsdname-enable yes|no ]
  *	 [ dnsrps-enable yes|no ]
  *	 [ dnsrps-options { DNSRPS configuration string } ];
@@ -1979,6 +1979,7 @@ static cfg_tuplefielddef_t rpz_fields[] = {
 	{ "nsdname-wait-recurse", &cfg_type_boolean, 0 },
 	{ "qname-wait-recurse", &cfg_type_boolean, 0 },
 	{ "recursive-only", &cfg_type_boolean, 0 },
+	{ "servfail-until-ready", &cfg_type_boolean, 0 },
 	{ "nsip-enable", &cfg_type_boolean, 0 },
 	{ "nsdname-enable", &cfg_type_boolean, 0 },
 #ifdef USE_DNSRPS
