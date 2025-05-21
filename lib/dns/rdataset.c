@@ -324,18 +324,12 @@ towire_answer(dns_rdataset_t *rdataset, const dns_name_t *name,
 	for (size_t i = start; i < count; i++) {
 		dns_rdata_t rdata = DNS_RDATA_INIT;
 
-		result = towire_addtypeclass(rdataset, name, cctx, target,
-					     rrbuffer, sizeof(dns_ttl_t) + 2);
-		if (result != ISC_R_SUCCESS) {
-			goto cleanup;
-		}
+		CHECK(towire_addtypeclass(rdataset, name, cctx, target,
+					  rrbuffer, sizeof(dns_ttl_t) + 2));
 		towire_addttl(rdataset, target, &rdlen);
 
 		dns_rdataset_current(rdataset, &rdata);
-		result = towire_addrdata(&rdata, cctx, target, &rdlen);
-		if (result != ISC_R_SUCCESS) {
-			goto cleanup;
-		}
+		CHECK(towire_addrdata(&rdata, cctx, target, &rdlen));
 		added++;
 
 		result = dns_rdataset_next(rdataset);
@@ -348,17 +342,11 @@ towire_answer(dns_rdataset_t *rdataset, const dns_name_t *name,
 	}
 
 	for (size_t i = 0; i < start; i++) {
-		result = towire_addtypeclass(rdataset, name, cctx, target,
-					     rrbuffer, sizeof(dns_ttl_t) + 2);
-		if (result != ISC_R_SUCCESS) {
-			goto cleanup;
-		}
+		CHECK(towire_addtypeclass(rdataset, name, cctx, target,
+					  rrbuffer, sizeof(dns_ttl_t) + 2));
 		towire_addttl(rdataset, target, &rdlen);
 
-		result = towire_addrdata(&rdatas[i], cctx, target, &rdlen);
-		if (result != ISC_R_SUCCESS) {
-			goto cleanup;
-		}
+		CHECK(towire_addrdata(&rdatas[i], cctx, target, &rdlen));
 		added++;
 	}
 

@@ -76,34 +76,6 @@
 #define LOGLEVEL_DEBUG ISC_LOG_DEBUG(8)
 
 /*%
- * Check an operation for failure.  These macros all assume that
- * the function using them has a 'result' variable and a 'failure'
- * label.
- */
-#define CHECK(op)                            \
-	do {                                 \
-		result = (op);               \
-		if (result != ISC_R_SUCCESS) \
-			goto failure;        \
-	} while (0)
-
-/*%
- * Fail unconditionally with result 'code', which must not
- * be ISC_R_SUCCESS.  The reason for failure presumably has
- * been logged already.
- *
- * The test against ISC_R_SUCCESS is there to keep the Solaris compiler
- * from complaining about "end-of-loop code not reached".
- */
-
-#define FAIL(code)                           \
-	do {                                 \
-		result = (code);             \
-		if (result != ISC_R_SUCCESS) \
-			goto failure;        \
-	} while (0)
-
-/*%
  * Fail unconditionally and log as a client error.
  * The test against ISC_R_SUCCESS is there to keep the Solaris compiler
  * from complaining about "end-of-loop code not reached".
@@ -125,7 +97,7 @@
 			   "update %s: %s (%s)", _what, msg, \
 			   isc_result_totext(result));       \
 		if (result != ISC_R_SUCCESS)                 \
-			goto failure;                        \
+			goto cleanup;                        \
 	} while (0)
 #define PREREQFAILC(code, msg)                                            \
 	do {                                                              \
@@ -154,7 +126,7 @@
 				   msg, isc_result_totext(result));        \
 		}                                                          \
 		if (result != ISC_R_SUCCESS)                               \
-			goto failure;                                      \
+			goto cleanup;                                      \
 	} while (0)
 #define PREREQFAILN(code, name, msg)                                      \
 	do {                                                              \
@@ -185,7 +157,7 @@
 				   _tbuf, msg, isc_result_totext(result));    \
 		}                                                             \
 		if (result != ISC_R_SUCCESS)                                  \
-			goto failure;                                         \
+			goto cleanup;                                         \
 	} while (0)
 #define PREREQFAILNT(code, name, type, msg)                               \
 	do {                                                              \
@@ -204,7 +176,7 @@
 		update_log(client, zone, LOGLEVEL_PROTOCOL, "error: %s: %s", \
 			   msg, isc_result_totext(result));                  \
 		if (result != ISC_R_SUCCESS)                                 \
-			goto failure;                                        \
+			goto cleanup;                                        \
 	} while (0)
 
 /*
@@ -491,7 +463,7 @@ do_diff(dns_diff_t *updates, dns_db_t *db, dns_dbversion_t *ver,
 	}
 	return ISC_R_SUCCESS;
 
-failure:
+cleanup:
 	dns_diff_clear(diff);
 	return result;
 }
@@ -1173,10 +1145,7 @@ temp_check(isc_mem_t *mctx, dns_diff_t *temp, dns_db_t *db,
 				temp_append(&d_rrs, name, &rdata);
 			}
 
-			result = dns_diff_sort(&d_rrs, temp_order);
-			if (result != ISC_R_SUCCESS) {
-				goto failure;
-			}
+			CHECK(dns_diff_sort(&d_rrs, temp_order));
 
 			/*
 			 * Collect all update RRs for this name and type
@@ -1193,11 +1162,8 @@ temp_check(isc_mem_t *mctx, dns_diff_t *temp, dns_db_t *db,
 			}
 
 			/* Compare the two sorted lists. */
-			result = temp_check_rrset(ISC_LIST_HEAD(u_rrs.tuples),
-						  ISC_LIST_HEAD(d_rrs.tuples));
-			if (result != ISC_R_SUCCESS) {
-				goto failure;
-			}
+			CHECK(temp_check_rrset(ISC_LIST_HEAD(u_rrs.tuples),
+					       ISC_LIST_HEAD(d_rrs.tuples)));
 
 			/*
 			 * We are done with the tuples, but we can't free
@@ -1210,7 +1176,7 @@ temp_check(isc_mem_t *mctx, dns_diff_t *temp, dns_db_t *db,
 
 			continue;
 
-		failure:
+		cleanup:
 			dns_diff_clear(&d_rrs);
 			dns_diff_clear(&u_rrs);
 			dns_diff_clear(&trash);
@@ -1536,7 +1502,7 @@ update_soa_serial(dns_db_t *db, dns_dbversion_t *ver, dns_diff_t *diff,
 	CHECK(do_one_tuple(&addtuple, db, ver, diff));
 	result = ISC_R_SUCCESS;
 
-failure:
+cleanup:
 	if (addtuple != NULL) {
 		dns_difftuple_free(&addtuple);
 	}
@@ -1680,7 +1646,7 @@ send_update(ns_client_t *client, dns_zone_t *zone) {
 			}
 			result = dns_zone_checknames(zone, name, &rdata);
 			if (result != ISC_R_SUCCESS) {
-				FAIL(DNS_R_REFUSED);
+				CHECK(DNS_R_REFUSED);
 			}
 			if ((options & DNS_ZONEOPT_CHECKSVCB) != 0 &&
 			    rdata.type == dns_rdatatype_svcb)
@@ -1708,7 +1674,7 @@ send_update(ns_client_t *client, dns_zone_t *zone) {
 			update_log(client, zone, ISC_LOG_WARNING,
 				   "update RR has incorrect class %d",
 				   update_class);
-			FAIL(DNS_R_FORMERR);
+			CHECK(DNS_R_FORMERR);
 		}
 
 		/*
@@ -1853,7 +1819,7 @@ send_update(ns_client_t *client, dns_zone_t *zone) {
 	isc_async_run(dns_zone_getloop(zone), update_action, uev);
 	maxbytype = NULL;
 
-failure:
+cleanup:
 	if (db != NULL) {
 		dns_db_closeversion(db, &ver, false);
 		dns_db_detach(&db);
@@ -1958,9 +1924,7 @@ ns_update_start(ns_client_t *client, isc_nmhandle_t *handle,
 		 * We can now fail due to a bad signature as we now know
 		 * that we are the primary.
 		 */
-		if (sigresult != ISC_R_SUCCESS) {
-			FAIL(sigresult);
-		}
+		CHECK(sigresult);
 		dns_message_clonebuffer(client->message);
 		CHECK(send_update(client, zone));
 		break;
@@ -1974,7 +1938,7 @@ ns_update_start(ns_client_t *client, isc_nmhandle_t *handle,
 	}
 	return;
 
-failure:
+cleanup:
 	if (result == DNS_R_REFUSED) {
 		inc_stats(client, zone, ns_statscounter_updaterej);
 	}
@@ -2031,7 +1995,7 @@ remove_orphaned_ds(dns_db_t *db, dns_dbversion_t *newver, dns_diff_t *diff) {
 	}
 	result = ISC_R_SUCCESS;
 
-failure:
+cleanup:
 	ISC_LIST_FOREACH(temp_diff.tuples, tuple, link) {
 		ISC_LIST_UNLINK(temp_diff.tuples, tuple, link);
 		dns_diff_appendminimal(diff, &tuple);
@@ -2164,7 +2128,7 @@ rr_exists(dns_db_t *db, dns_dbversion_t *ver, dns_name_t *name,
 	if (result == ISC_R_NOTFOUND) {
 		*flag = false;
 		result = ISC_R_SUCCESS;
-		goto failure;
+		goto cleanup;
 	} else {
 		CHECK(result);
 	}
@@ -2173,7 +2137,7 @@ rr_exists(dns_db_t *db, dns_dbversion_t *ver, dns_name_t *name,
 	if (result == ISC_R_NOTFOUND) {
 		*flag = false;
 		result = ISC_R_SUCCESS;
-		goto failure;
+		goto cleanup;
 	}
 
 	bool matched = false;
@@ -2188,7 +2152,7 @@ rr_exists(dns_db_t *db, dns_dbversion_t *ver, dns_name_t *name,
 	dns_rdataset_disassociate(&rdataset);
 	*flag = matched;
 
-failure:
+cleanup:
 	if (node != NULL) {
 		dns_db_detachnode(&node);
 	}
@@ -2215,9 +2179,7 @@ get_iterations(dns_db_t *db, dns_dbversion_t *ver, dns_rdatatype_t privatetype,
 	if (result == ISC_R_NOTFOUND) {
 		goto try_private;
 	}
-	if (result != ISC_R_SUCCESS) {
-		goto failure;
-	}
+	CHECK(result);
 
 	DNS_RDATASET_FOREACH(&rdataset) {
 		dns_rdata_t rdata = DNS_RDATA_INIT;
@@ -2243,9 +2205,7 @@ try_private:
 	if (result == ISC_R_NOTFOUND) {
 		goto success;
 	}
-	if (result != ISC_R_SUCCESS) {
-		goto failure;
-	}
+	CHECK(result);
 
 	DNS_RDATASET_FOREACH(&rdataset) {
 		unsigned char buf[DNS_NSEC3PARAM_BUFFERSIZE];
@@ -2271,7 +2231,7 @@ success:
 	*iterationsp = iterations;
 	result = ISC_R_SUCCESS;
 
-failure:
+cleanup:
 	if (node != NULL) {
 		dns_db_detachnode(&node);
 	}
@@ -2296,8 +2256,7 @@ check_dnssec(ns_client_t *client, dns_zone_t *zone, dns_db_t *db,
 	if (!dns_zone_check_dnskey_nsec3(zone, db, ver, diff, NULL, 0)) {
 		update_log(client, zone, ISC_LOG_ERROR,
 			   "NSEC only DNSKEYs and NSEC3 chains not allowed");
-		result = DNS_R_REFUSED;
-		goto failure;
+		CHECK(DNS_R_REFUSED);
 	}
 
 	/* Verify NSEC3 params */
@@ -2305,11 +2264,10 @@ check_dnssec(ns_client_t *client, dns_zone_t *zone, dns_db_t *db,
 	if (iterations > dns_nsec3_maxiterations()) {
 		update_log(client, zone, ISC_LOG_ERROR,
 			   "too many NSEC3 iterations (%u)", iterations);
-		result = DNS_R_REFUSED;
-		goto failure;
+		CHECK(DNS_R_REFUSED);
 	}
 
-failure:
+cleanup:
 	return result;
 }
 
@@ -2581,7 +2539,7 @@ add_nsec3param_records(ns_client_t *client, dns_zone_t *zone, dns_db_t *db,
 	}
 
 	result = ISC_R_SUCCESS;
-failure:
+cleanup:
 	dns_diff_clear(&temp_diff);
 	return result;
 }
@@ -2638,7 +2596,7 @@ rollback_private(dns_db_t *db, dns_rdatatype_t privatetype,
 	}
 	result = ISC_R_SUCCESS;
 
-failure:
+cleanup:
 	dns_diff_clear(&temp_diff);
 	return result;
 }
@@ -3050,7 +3008,7 @@ update_action(void *arg) {
 					if (result != ISC_R_SUCCESS) {
 						dns_diff_clear(&ctx.del_diff);
 						dns_diff_clear(&ctx.add_diff);
-						goto failure;
+						goto cleanup;
 					}
 					result = update_one_rr(
 						db, ver, &diff, DNS_DIFFOP_ADD,
@@ -3062,7 +3020,7 @@ update_action(void *arg) {
 							   "failed: %s",
 							   isc_result_totext(
 								   result));
-						goto failure;
+						goto cleanup;
 					}
 				}
 			}
@@ -3151,13 +3109,9 @@ update_action(void *arg) {
 				 * that are in use (under our control).
 				 */
 				if (dns_rdatatype_iskeymaterial(rdata.type)) {
-					isc_result_t r;
 					bool inuse = false;
-					r = dns_zone_dnskey_inuse(zone, &rdata,
-								  &inuse);
-					if (r != ISC_R_SUCCESS) {
-						FAIL(r);
-					}
+					CHECK(dns_zone_dnskey_inuse(
+						zone, &rdata, &inuse));
 					if (inuse) {
 						char typebuf
 							[DNS_RDATATYPE_FORMATSIZE];
@@ -3202,8 +3156,7 @@ update_action(void *arg) {
 			update_log(client, zone, LOGLEVEL_PROTOCOL,
 				   "update rejected: post update name server "
 				   "sanity check failed");
-			result = DNS_R_REFUSED;
-			goto failure;
+			CHECK(DNS_R_REFUSED);
 		}
 	}
 	if (!ISC_LIST_EMPTY(diff.tuples) && is_signing) {
@@ -3212,12 +3165,9 @@ update_action(void *arg) {
 			update_log(client, zone, LOGLEVEL_PROTOCOL,
 				   "update rejected: bad %s RRset",
 				   result == DNS_R_BADCDS ? "CDS" : "CDNSKEY");
-			result = DNS_R_REFUSED;
-			goto failure;
+			CHECK(DNS_R_REFUSED);
 		}
-		if (result != ISC_R_SUCCESS) {
-			goto failure;
-		}
+		CHECK(result);
 	}
 
 	/*
@@ -3277,7 +3227,7 @@ update_action(void *arg) {
 				update_log(client, zone, ISC_LOG_ERROR,
 					   "RRSIG/NSEC/NSEC3 update failed: %s",
 					   isc_result_totext(result));
-				goto failure;
+				goto cleanup;
 			}
 		}
 
@@ -3289,8 +3239,7 @@ update_action(void *arg) {
 					   "records in zone (%" PRIu64
 					   ") exceeds max-records (%u)",
 					   records, maxrecords);
-				result = DNS_R_TOOMANYRECORDS;
-				goto failure;
+				CHECK(DNS_R_TOOMANYRECORDS);
 			}
 		}
 
@@ -3341,7 +3290,7 @@ update_action(void *arg) {
 	result = ISC_R_SUCCESS;
 	goto common;
 
-failure:
+cleanup:
 	/*
 	 * The reason for failure should have been logged at this point.
 	 */

@@ -33,15 +33,6 @@
 
 #define TOKEN_STRING(pctx) (pctx->token.value.as_textregion.base)
 
-/*% Check a return value. */
-#define CHECK(op)                              \
-	{                                      \
-		result = (op);                 \
-		if (result != ISC_R_SUCCESS) { \
-			goto cleanup;          \
-		}                              \
-	}
-
 /*% Clean up a configuration object if non-NULL. */
 #define CLEANUP_OBJ(obj)                        \
 	{                                       \

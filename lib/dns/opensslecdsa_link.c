@@ -50,10 +50,10 @@
 
 #define MAX_PRIVKEY_SIZE (MAX_PUBKEY_SIZE / 2)
 
-#define DST_RET(a)        \
-	{                 \
-		ret = a;  \
-		goto err; \
+#define DST_RET(a)            \
+	{                     \
+		result = a;   \
+		goto cleanup; \
 	}
 
 #if OPENSSL_VERSION_NUMBER >= 0x30200000L
@@ -170,7 +170,7 @@ static isc_result_t
 opensslecdsa_create_pkey_params(unsigned int key_alg, bool private,
 				const unsigned char *key, size_t key_len,
 				EVP_PKEY **pkey) {
-	isc_result_t ret;
+	isc_result_t result;
 	int status;
 	int group_nid = opensslecdsa_key_alg_to_group_nid(key_alg);
 	const char *groupname = opensslecdsa_key_alg_to_group_name(key_alg);
@@ -269,9 +269,9 @@ opensslecdsa_create_pkey_params(unsigned int key_alg, bool private,
 					       DST_R_OPENSSLFAILURE));
 	}
 
-	ret = ISC_R_SUCCESS;
+	result = ISC_R_SUCCESS;
 
-err:
+cleanup:
 	OSSL_PARAM_free(params);
 	OSSL_PARAM_BLD_free(bld);
 	EVP_PKEY_CTX_free(ctx);
@@ -279,7 +279,7 @@ err:
 	EC_POINT_free(pubkey);
 	EC_GROUP_free(group);
 
-	return ret;
+	return result;
 }
 
 static bool
@@ -310,7 +310,7 @@ static isc_result_t
 opensslecdsa_create_pkey_legacy(unsigned int key_alg, bool private,
 				const unsigned char *key, size_t key_len,
 				EVP_PKEY **retkey) {
-	isc_result_t ret = ISC_R_SUCCESS;
+	isc_result_t result = ISC_R_SUCCESS;
 	EC_KEY *eckey = NULL;
 	EVP_PKEY *pkey = NULL;
 	BIGNUM *privkey = NULL;
@@ -365,12 +365,12 @@ opensslecdsa_create_pkey_legacy(unsigned int key_alg, bool private,
 	*retkey = pkey;
 	pkey = NULL;
 
-err:
+cleanup:
 	BN_clear_free(privkey);
 	EC_POINT_free(pubkey);
 	EC_KEY_free(eckey);
 	EVP_PKEY_free(pkey);
-	return ret;
+	return result;
 }
 
 static bool
@@ -419,18 +419,18 @@ static isc_result_t
 opensslecdsa_create_pkey(unsigned int key_alg, bool private,
 			 const unsigned char *key, size_t key_len,
 			 EVP_PKEY **retkey) {
-	isc_result_t ret;
+	isc_result_t result;
 #if OPENSSL_VERSION_NUMBER >= 0x30000000L
-	ret = opensslecdsa_create_pkey_params(key_alg, private, key, key_len,
-					      retkey);
-	if (ret != ISC_R_FAILURE) {
-		return ret;
+	result = opensslecdsa_create_pkey_params(key_alg, private, key, key_len,
+						 retkey);
+	if (result != ISC_R_FAILURE) {
+		return result;
 	}
 #else
-	ret = opensslecdsa_create_pkey_legacy(key_alg, private, key, key_len,
-					      retkey);
-	if (ret == ISC_R_SUCCESS) {
-		return ret;
+	result = opensslecdsa_create_pkey_legacy(key_alg, private, key, key_len,
+						 retkey);
+	if (result == ISC_R_SUCCESS) {
+		return result;
 	}
 #endif
 	return DST_R_OPENSSLFAILURE;
@@ -442,7 +442,7 @@ static isc_result_t
 opensslecdsa_generate_pkey_with_uri(int group_nid, const char *label,
 				    EVP_PKEY **retkey) {
 	int status;
-	isc_result_t ret;
+	isc_result_t result;
 	char *uri = UNCONST(label);
 	EVP_PKEY_CTX *ctx = NULL;
 	OSSL_PARAM params[3];
@@ -490,17 +490,17 @@ opensslecdsa_generate_pkey_with_uri(int group_nid, const char *label,
 					       DST_R_OPENSSLFAILURE));
 	}
 
-	ret = ISC_R_SUCCESS;
+	result = ISC_R_SUCCESS;
 
-err:
+cleanup:
 	EVP_PKEY_CTX_free(ctx);
-	return ret;
+	return result;
 }
 
 static isc_result_t
 opensslecdsa_generate_pkey(unsigned int key_alg, const char *label,
 			   EVP_PKEY **retkey) {
-	isc_result_t ret;
+	isc_result_t result;
 	EVP_PKEY_CTX *ctx = NULL;
 	EVP_PKEY *params_pkey = NULL;
 	int group_nid = opensslecdsa_key_alg_to_group_nid(key_alg);
@@ -552,12 +552,12 @@ opensslecdsa_generate_pkey(unsigned int key_alg, const char *label,
 		DST_RET(dst__openssl_toresult2("EVP_PKEY_keygen",
 					       DST_R_OPENSSLFAILURE));
 	}
-	ret = ISC_R_SUCCESS;
+	result = ISC_R_SUCCESS;
 
-err:
+cleanup:
 	EVP_PKEY_free(params_pkey);
 	EVP_PKEY_CTX_free(ctx);
-	return ret;
+	return result;
 }
 
 static isc_result_t
@@ -594,7 +594,7 @@ opensslecdsa_extract_private_key(const dst_key_t *key, unsigned char *buf,
 static isc_result_t
 opensslecdsa_generate_pkey(unsigned int key_alg, const char *label,
 			   EVP_PKEY **retkey) {
-	isc_result_t ret;
+	isc_result_t result;
 	EC_KEY *eckey = NULL;
 	EVP_PKEY *pkey = NULL;
 	int group_nid;
@@ -624,12 +624,12 @@ opensslecdsa_generate_pkey(unsigned int key_alg, const char *label,
 	}
 	*retkey = pkey;
 	pkey = NULL;
-	ret = ISC_R_SUCCESS;
+	result = ISC_R_SUCCESS;
 
-err:
+cleanup:
 	EC_KEY_free(eckey);
 	EVP_PKEY_free(pkey);
-	return ret;
+	return result;
 }
 
 static isc_result_t
@@ -676,7 +676,7 @@ opensslecdsa_extract_private_key(const dst_key_t *key, unsigned char *buf,
 
 static isc_result_t
 opensslecdsa_createctx(dst_key_t *key, dst_context_t *dctx) {
-	isc_result_t ret = ISC_R_SUCCESS;
+	isc_result_t result = ISC_R_SUCCESS;
 	EVP_MD_CTX *evp_md_ctx;
 	EVP_PKEY_CTX *pctx = NULL;
 	const EVP_MD *type = NULL;
@@ -707,11 +707,8 @@ opensslecdsa_createctx(dst_key_t *key, dst_context_t *dctx) {
 
 #if OPENSSL_VERSION_NUMBER >= 0x30200000L
 		if (!isc_crypto_fips_mode()) {
-			ret = opensslecdsa_set_deterministic(
-				pctx, dctx->key->key_alg);
-			if (ret != ISC_R_SUCCESS) {
-				goto err;
-			}
+			CHECK(opensslecdsa_set_deterministic(
+				pctx, dctx->key->key_alg));
 		}
 #endif /* OPENSSL_VERSION_NUMBER >= 0x30200000L */
 
@@ -728,8 +725,8 @@ opensslecdsa_createctx(dst_key_t *key, dst_context_t *dctx) {
 
 	dctx->ctxdata.evp_md_ctx = evp_md_ctx;
 
-err:
-	return ret;
+cleanup:
+	return result;
 }
 
 static void
@@ -747,7 +744,7 @@ opensslecdsa_destroyctx(dst_context_t *dctx) {
 
 static isc_result_t
 opensslecdsa_adddata(dst_context_t *dctx, const isc_region_t *data) {
-	isc_result_t ret = ISC_R_SUCCESS;
+	isc_result_t result = ISC_R_SUCCESS;
 	EVP_MD_CTX *evp_md_ctx = dctx->ctxdata.evp_md_ctx;
 
 	REQUIRE(opensslecdsa_valid_key_alg(dctx->key->key_alg));
@@ -771,13 +768,13 @@ opensslecdsa_adddata(dst_context_t *dctx, const isc_region_t *data) {
 		}
 	}
 
-err:
-	return ret;
+cleanup:
+	return result;
 }
 
 static isc_result_t
 opensslecdsa_sign(dst_context_t *dctx, isc_buffer_t *sig) {
-	isc_result_t ret;
+	isc_result_t result;
 	dst_key_t *key = dctx->key;
 	isc_region_t region;
 	EVP_MD_CTX *evp_md_ctx = dctx->ctxdata.evp_md_ctx;
@@ -827,19 +824,19 @@ opensslecdsa_sign(dst_context_t *dctx, isc_buffer_t *sig) {
 	isc_region_consume(&region, siglen / 2);
 	ECDSA_SIG_free(ecdsasig);
 	isc_buffer_add(sig, siglen);
-	ret = ISC_R_SUCCESS;
+	result = ISC_R_SUCCESS;
 
-err:
+cleanup:
 	if (sigder != NULL && sigder_alloced != 0) {
 		isc_mem_put(dctx->mctx, sigder, sigder_alloced);
 	}
 
-	return ret;
+	return result;
 }
 
 static isc_result_t
 opensslecdsa_verify(dst_context_t *dctx, const isc_region_t *sig) {
-	isc_result_t ret;
+	isc_result_t result;
 	dst_key_t *key = dctx->key;
 	int status;
 	unsigned char *cp = sig->base;
@@ -894,19 +891,19 @@ opensslecdsa_verify(dst_context_t *dctx, const isc_region_t *sig) {
 
 	switch (status) {
 	case 1:
-		ret = ISC_R_SUCCESS;
+		result = ISC_R_SUCCESS;
 		break;
 	case 0:
-		ret = dst__openssl_toresult(DST_R_VERIFYFAILURE);
+		result = dst__openssl_toresult(DST_R_VERIFYFAILURE);
 		break;
 	default:
-		ret = dst__openssl_toresult3(dctx->category,
-					     "EVP_DigestVerifyFinal",
-					     DST_R_VERIFYFAILURE);
+		result = dst__openssl_toresult3(dctx->category,
+						"EVP_DigestVerifyFinal",
+						DST_R_VERIFYFAILURE);
 		break;
 	}
 
-err:
+cleanup:
 	if (ecdsasig != NULL) {
 		ECDSA_SIG_free(ecdsasig);
 	}
@@ -914,7 +911,7 @@ err:
 		isc_mem_put(dctx->mctx, sigder, sigder_alloced);
 	}
 
-	return ret;
+	return result;
 }
 
 static isc_result_t
@@ -939,7 +936,7 @@ opensslecdsa_generate(dst_key_t *key, int unused, void (*callback)(int)) {
 
 static isc_result_t
 opensslecdsa_todns(const dst_key_t *key, isc_buffer_t *data) {
-	isc_result_t ret;
+	isc_result_t result;
 	isc_region_t r;
 	size_t keysize;
 
@@ -956,15 +953,15 @@ opensslecdsa_todns(const dst_key_t *key, isc_buffer_t *data) {
 	}
 
 	isc_buffer_add(data, keysize);
-	ret = ISC_R_SUCCESS;
+	result = ISC_R_SUCCESS;
 
-err:
-	return ret;
+cleanup:
+	return result;
 }
 
 static isc_result_t
 opensslecdsa_fromdns(dst_key_t *key, isc_buffer_t *data) {
-	isc_result_t ret;
+	isc_result_t result;
 	EVP_PKEY *pkey = NULL;
 	isc_region_t r;
 	size_t len;
@@ -980,23 +977,21 @@ opensslecdsa_fromdns(dst_key_t *key, isc_buffer_t *data) {
 		DST_RET(DST_R_INVALIDPUBLICKEY);
 	}
 
-	ret = opensslecdsa_create_pkey(key->key_alg, false, r.base, len, &pkey);
-	if (ret != ISC_R_SUCCESS) {
-		DST_RET(ret);
-	}
+	CHECK(opensslecdsa_create_pkey(key->key_alg, false, r.base, len,
+				       &pkey));
 
 	isc_buffer_forward(data, len);
 	key->key_size = EVP_PKEY_bits(pkey);
 	key->keydata.pkeypair.pub = pkey;
-	ret = ISC_R_SUCCESS;
+	result = ISC_R_SUCCESS;
 
-err:
-	return ret;
+cleanup:
+	return result;
 }
 
 static isc_result_t
 opensslecdsa_tofile(const dst_key_t *key, const char *directory) {
-	isc_result_t ret;
+	isc_result_t result;
 	dst_private_t priv;
 	unsigned char buf[MAX_PRIVKEY_SIZE];
 	size_t keylen = 0;
@@ -1035,11 +1030,11 @@ opensslecdsa_tofile(const dst_key_t *key, const char *directory) {
 	}
 
 	priv.nelements = i;
-	ret = dst__privstruct_writefile(key, &priv, directory);
+	result = dst__privstruct_writefile(key, &priv, directory);
 
-err:
+cleanup:
 	isc_safe_memwipe(buf, keylen);
-	return ret;
+	return result;
 }
 
 static isc_result_t
@@ -1048,7 +1043,7 @@ opensslecdsa_fromlabel(dst_key_t *key, const char *label, const char *pin);
 static isc_result_t
 opensslecdsa_parse(dst_key_t *key, isc_lex_t *lexer, dst_key_t *pub) {
 	dst_private_t priv;
-	isc_result_t ret;
+	isc_result_t result;
 	EVP_PKEY *pkey = NULL;
 	const char *label = NULL;
 	int i, privkey_index = -1;
@@ -1056,11 +1051,8 @@ opensslecdsa_parse(dst_key_t *key, isc_lex_t *lexer, dst_key_t *pub) {
 	REQUIRE(opensslecdsa_valid_key_alg(key->key_alg));
 
 	/* read private key file */
-	ret = dst__privstruct_parse(key, DST_ALG_ECDSA256, lexer, key->mctx,
-				    &priv);
-	if (ret != ISC_R_SUCCESS) {
-		goto err;
-	}
+	CHECK(dst__privstruct_parse(key, DST_ALG_ECDSA256, lexer, key->mctx,
+				    &priv));
 
 	if (key->external) {
 		if (priv.nelements != 0 || pub == NULL) {
@@ -1090,10 +1082,7 @@ opensslecdsa_parse(dst_key_t *key, isc_lex_t *lexer, dst_key_t *pub) {
 	}
 
 	if (label != NULL) {
-		ret = opensslecdsa_fromlabel(key, label, NULL);
-		if (ret != ISC_R_SUCCESS) {
-			goto err;
-		}
+		CHECK(opensslecdsa_fromlabel(key, label, NULL));
 		/* Check that the public component matches if given */
 		if (pub != NULL && EVP_PKEY_eq(key->keydata.pkeypair.pub,
 					       pub->keydata.pkeypair.pub) != 1)
@@ -1107,12 +1096,9 @@ opensslecdsa_parse(dst_key_t *key, isc_lex_t *lexer, dst_key_t *pub) {
 		DST_RET(dst__openssl_toresult(DST_R_INVALIDPRIVATEKEY));
 	}
 
-	ret = opensslecdsa_create_pkey(
+	CHECK(opensslecdsa_create_pkey(
 		key->key_alg, true, priv.elements[privkey_index].data,
-		priv.elements[privkey_index].length, &pkey);
-	if (ret != ISC_R_SUCCESS) {
-		goto err;
-	}
+		priv.elements[privkey_index].length, &pkey));
 
 	/* Check that the public component matches if given */
 	if (pub != NULL && EVP_PKEY_eq(pkey, pub->keydata.pkeypair.pub) != 1) {
@@ -1124,39 +1110,30 @@ opensslecdsa_parse(dst_key_t *key, isc_lex_t *lexer, dst_key_t *pub) {
 	key->keydata.pkeypair.pub = pkey;
 	pkey = NULL;
 
-err:
+cleanup:
 	EVP_PKEY_free(pkey);
-	if (ret != ISC_R_SUCCESS) {
+	if (result != ISC_R_SUCCESS) {
 		key->keydata.generic = NULL;
 	}
 	dst__privstruct_free(&priv, key->mctx);
 	isc_safe_memwipe(&priv, sizeof(priv));
 
-	return ret;
+	return result;
 }
 
 static isc_result_t
 opensslecdsa_fromlabel(dst_key_t *key, const char *label, const char *pin) {
 	EVP_PKEY *privpkey = NULL, *pubpkey = NULL;
-	isc_result_t ret;
+	isc_result_t result;
 
 	REQUIRE(opensslecdsa_valid_key_alg(key->key_alg));
 	UNUSED(pin);
 
-	ret = dst__openssl_fromlabel(EVP_PKEY_EC, label, pin, &pubpkey,
-				     &privpkey);
-	if (ret != ISC_R_SUCCESS) {
-		goto err;
-	}
+	CHECK(dst__openssl_fromlabel(EVP_PKEY_EC, label, pin, &pubpkey,
+				     &privpkey));
 
-	ret = opensslecdsa_validate_pkey_group(key->key_alg, privpkey);
-	if (ret != ISC_R_SUCCESS) {
-		goto err;
-	}
-	ret = opensslecdsa_validate_pkey_group(key->key_alg, pubpkey);
-	if (ret != ISC_R_SUCCESS) {
-		goto err;
-	}
+	CHECK(opensslecdsa_validate_pkey_group(key->key_alg, privpkey));
+	CHECK(opensslecdsa_validate_pkey_group(key->key_alg, pubpkey));
 
 	key->label = isc_mem_strdup(key->mctx, label);
 	key->key_size = EVP_PKEY_bits(privpkey);
@@ -1165,10 +1142,10 @@ opensslecdsa_fromlabel(dst_key_t *key, const char *label, const char *pin) {
 	privpkey = NULL;
 	pubpkey = NULL;
 
-err:
+cleanup:
 	EVP_PKEY_free(privpkey);
 	EVP_PKEY_free(pubpkey);
-	return ret;
+	return result;
 }
 
 static dst_func_t opensslecdsa_functions = {

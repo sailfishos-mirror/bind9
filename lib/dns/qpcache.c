@@ -66,13 +66,6 @@
 #define DNS_QPCACHE_LOG_STATS_LEVEL 3
 #endif
 
-#define CHECK(op)                            \
-	do {                                 \
-		result = (op);               \
-		if (result != ISC_R_SUCCESS) \
-			goto failure;        \
-	} while (0)
-
 #define STALE_TTL(header, qpdb) \
 	(NXDOMAIN(header) ? 0 : qpdb->common.serve_stale_ttl)
 
@@ -3120,18 +3113,12 @@ qpcache_addrdataset(dns_db_t *db, dns_dbnode_t *node, dns_dbversion_t *version,
 		DNS_SLABHEADER_SETATTR(newheader, DNS_SLABHEADERATTR_OPTOUT);
 	}
 	if (rdataset->attributes.noqname) {
-		result = addnoqname(qpnode->mctx, newheader, qpdb->maxrrperset,
-				    rdataset);
-		if (result != ISC_R_SUCCESS) {
-			return result;
-		}
+		RETERR(addnoqname(qpnode->mctx, newheader, qpdb->maxrrperset,
+				  rdataset));
 	}
 	if (rdataset->attributes.closest) {
-		result = addclosest(qpnode->mctx, newheader, qpdb->maxrrperset,
-				    rdataset);
-		if (result != ISC_R_SUCCESS) {
-			return result;
-		}
+		RETERR(addclosest(qpnode->mctx, newheader, qpdb->maxrrperset,
+				  rdataset));
 	}
 
 	nlock = &qpdb->buckets[qpnode->locknum].lock;

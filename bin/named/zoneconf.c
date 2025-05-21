@@ -62,13 +62,6 @@ typedef enum {
 	allow_update_forwarding
 } acl_type_t;
 
-#define CHECK(x)                             \
-	do {                                 \
-		result = (x);                \
-		if (result != ISC_R_SUCCESS) \
-			goto cleanup;        \
-	} while (0)
-
 /*%
  * Convenience function for configuring a single zone ACL.
  */
@@ -2141,12 +2134,9 @@ named_zone_loadplugins(dns_zone_t *zone, const cfg_obj_t *config,
 		ns_plugins_create(zmctx, &hookdata.plugins);
 		dns_zone_setplugins(zone, hookdata.plugins, ns_plugins_free);
 
-		result = cfg_pluginlist_foreach(config, tpluginlist, aclctx,
-						named_register_one_plugin,
-						&hookdata);
-		if (result != ISC_R_SUCCESS) {
-			return result;
-		}
+		RETERR(cfg_pluginlist_foreach(config, tpluginlist, aclctx,
+					      named_register_one_plugin,
+					      &hookdata));
 
 		result = cfg_pluginlist_foreach(config, zpluginlist, aclctx,
 						named_register_one_plugin,

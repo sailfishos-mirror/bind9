@@ -21,14 +21,6 @@
 
 #include <ns/hooks.h>
 
-#define CHECK(op)                              \
-	do {                                   \
-		result = (op);                 \
-		if (result != ISC_R_SUCCESS) { \
-			goto cleanup;          \
-		}                              \
-	} while (0)
-
 #define DEFAULT_TTL 300
 
 typedef enum { UNDEFINED, FORWARD, REVERSE } synthrecord_mode_t;

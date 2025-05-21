@@ -80,14 +80,6 @@
 #define TOKEN_STRING(pctx) (pctx->token.value.as_textregion.base)
 #define TOKEN_REGION(pctx) (pctx->token.value.as_textregion)
 
-/* Check a return value. */
-#define CHECK(op)                            \
-	do {                                 \
-		result = (op);               \
-		if (result != ISC_R_SUCCESS) \
-			goto cleanup;        \
-	} while (0)
-
 /* cfg_obj_t magic number */
 #define CFGOBJ_MAGIC	  ISC_MAGIC('c', 'f', 'g', 'o')
 #define VALID_CFGOBJ(obj) ISC_MAGIC_VALID(obj, CFGOBJ_MAGIC)
@@ -2121,7 +2113,6 @@ free_list(cfg_obj_t *obj) {
 isc_result_t
 cfg_parse_listelt(cfg_parser_t *pctx, cfg_obj_t *list,
 		  const cfg_type_t *elttype, cfg_listelt_t **ret) {
-	isc_result_t result;
 	cfg_listelt_t *elt = NULL;
 	cfg_obj_t *value = NULL;
 
@@ -2130,10 +2121,7 @@ cfg_parse_listelt(cfg_parser_t *pctx, cfg_obj_t *list,
 	REQUIRE(elttype != NULL);
 	REQUIRE(ret != NULL && *ret == NULL);
 
-	result = cfg_parse_obj(pctx, elttype, &value);
-	if (result != ISC_R_SUCCESS) {
-		return result;
-	}
+	RETERR(cfg_parse_obj(pctx, elttype, &value));
 
 	create_listelt(list, &elt);
 	elt->obj = value;

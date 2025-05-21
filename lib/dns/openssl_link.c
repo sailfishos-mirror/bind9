@@ -46,10 +46,10 @@
 
 #include "openssl_shim.h"
 
-#define DST_RET(a)        \
-	{                 \
-		ret = a;  \
-		goto err; \
+#define DST_RET(a)            \
+	{                     \
+		result = a;   \
+		goto cleanup; \
 	}
 
 static isc_result_t
@@ -57,7 +57,7 @@ dst__openssl_fromlabel_provider(int key_base_id, const char *label,
 				const char *pin, EVP_PKEY **ppub,
 				EVP_PKEY **ppriv) {
 #if OPENSSL_VERSION_NUMBER >= 0x30000000L
-	isc_result_t ret = DST_R_OPENSSLFAILURE;
+	isc_result_t result = DST_R_OPENSSLFAILURE;
 	OSSL_STORE_CTX *ctx = NULL;
 
 	UNUSED(pin);
@@ -99,11 +99,11 @@ dst__openssl_fromlabel_provider(int key_base_id, const char *label,
 		OSSL_STORE_INFO_free(info);
 	}
 	if (*ppriv != NULL && *ppub != NULL) {
-		ret = ISC_R_SUCCESS;
+		result = ISC_R_SUCCESS;
 	}
-err:
+cleanup:
 	OSSL_STORE_close(ctx);
-	return ret;
+	return result;
 #else
 	UNUSED(key_base_id);
 	UNUSED(label);

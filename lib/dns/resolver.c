@@ -6045,7 +6045,6 @@ static isc_result_t
 rctx_cache_secure(respctx_t *rctx, dns_message_t *message, dns_name_t *name,
 		  dns_dbnode_t *node, dns_rdataset_t *rdataset,
 		  dns_rdataset_t *sigrdataset, bool need_validation) {
-	isc_result_t result;
 	fetchctx_t *fctx = rctx->fctx;
 	resquery_t *query = rctx->query;
 	dns_rdataset_t *ardataset = NULL, *asigset = NULL;
@@ -6129,12 +6128,8 @@ rctx_cache_secure(respctx_t *rctx, dns_message_t *message, dns_name_t *name,
 		 * in-between.
 		 */
 
-		result = cache_rrset(fctx, rctx->now, name, rdataset,
-				     sigrdataset, &node, ardataset, asigset,
-				     need_validation);
-		if (result != ISC_R_SUCCESS) {
-			return result;
-		}
+		RETERR(cache_rrset(fctx, rctx->now, name, rdataset, sigrdataset,
+				   &node, ardataset, asigset, need_validation));
 	}
 
 	return ISC_R_SUCCESS;
@@ -6386,10 +6381,7 @@ negcache(dns_message_t *message, fetchctx_t *fctx, const dns_name_t *name,
 	/*
 	 * Cache the negative entry.
 	 */
-	result = dns_db_findnode(fctx->cache, name, true, &node);
-	if (result != ISC_R_SUCCESS) {
-		return result;
-	}
+	RETERR(dns_db_findnode(fctx->cache, name, true, &node));
 
 	result = dns_ncache_add(message, cache, node, covers, now, minttl,
 				maxttl, optout, secure, added);

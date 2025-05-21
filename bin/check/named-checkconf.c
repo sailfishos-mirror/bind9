@@ -44,13 +44,6 @@
 
 #include "check-tool.h"
 
-#define CHECK(r)                             \
-	do {                                 \
-		result = (r);                \
-		if (result != ISC_R_SUCCESS) \
-			goto cleanup;        \
-	} while (0)
-
 /*% usage */
 ISC_NORETURN static void
 usage(void);

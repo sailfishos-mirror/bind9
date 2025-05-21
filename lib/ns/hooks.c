@@ -33,14 +33,6 @@
 #include <ns/hooks.h>
 #include <ns/query.h>
 
-#define CHECK(op)                              \
-	do {                                   \
-		result = (op);                 \
-		if (result != ISC_R_SUCCESS) { \
-			goto cleanup;          \
-		}                              \
-	} while (0)
-
 struct ns_plugin {
 	isc_mem_t *mctx;
 	uv_lib_t handle;
@@ -87,12 +79,9 @@ plugin_expandpath(const char *src, char *dst, size_t dstsize, bool appendext) {
 
 isc_result_t
 ns_plugin_expandpath(const char *src, char *dst, size_t dstsize) {
-	isc_result_t result;
+	isc_result_t result = ISC_R_SUCCESS;
 
-	result = plugin_expandpath(src, dst, dstsize, false);
-	if (result != ISC_R_SUCCESS) {
-		return result;
-	}
+	RETERR(plugin_expandpath(src, dst, dstsize, false));
 
 	if (isc_file_exists(dst) == false) {
 		result = plugin_expandpath(src, dst, dstsize, true);
