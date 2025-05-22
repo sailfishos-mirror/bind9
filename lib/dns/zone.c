@@ -2339,8 +2339,7 @@ zone_load(dns_zone_t *zone, unsigned int flags, bool locked) {
 		if ((flags & DNS_ZONELOADFLAG_THAW) != 0) {
 			DNS_ZONE_SETFLAG(zone, DNS_ZONEFLG_THAW);
 		}
-		result = ISC_R_LOADING;
-		goto cleanup;
+		CHECK(ISC_R_LOADING);
 	}
 
 	INSIST(zone->db_argc >= 1);
@@ -2404,8 +2403,7 @@ zone_load(dns_zone_t *zone, unsigned int flags, bool locked) {
 				      ISC_LOG_DEBUG(1),
 				      "skipping load: master file "
 				      "older than last load");
-			result = DNS_R_UPTODATE;
-			goto cleanup;
+			CHECK(DNS_R_UPTODATE);
 		}
 
 		/*
@@ -2455,8 +2453,7 @@ zone_load(dns_zone_t *zone, unsigned int flags, bool locked) {
 				      "DLZ %s does not exist or is set "
 				      "to 'search yes;'",
 				      zone->db_argv[1]);
-			result = ISC_R_NOTFOUND;
-			goto cleanup;
+			CHECK(ISC_R_NOTFOUND);
 		}
 
 		ZONEDB_LOCK(&zone->dblock, isc_rwlocktype_write);
@@ -2847,21 +2844,15 @@ zone_startload(dns_db_t *db, dns_zone_t *zone, isc_time_t loadtime) {
 	load->callbacks.rawdata = zone_setrawdata;
 	zone_iattach(zone, &load->callbacks.zone);
 
-	result = dns_db_beginload(db, &load->callbacks);
-	if (result != ISC_R_SUCCESS) {
-		goto cleanup;
-	}
+	CHECK(dns_db_beginload(db, &load->callbacks));
 
 	if (zone->zmgr != NULL && zone->db != NULL) {
-		result = dns_master_loadfileasync(
+		CHECK(dns_master_loadfileasync(
 			zone->masterfile, dns_db_origin(db), dns_db_origin(db),
 			zone->rdclass, options, 0, &load->callbacks, zone->loop,
 			zone_loaddone, load, &zone->loadctx,
 			zone_registerinclude, zone, zone->mctx,
-			zone->masterformat, zone->maxttl);
-		if (result != ISC_R_SUCCESS) {
-			goto cleanup;
-		}
+			zone->masterformat, zone->maxttl));
 
 		return DNS_R_CONTINUE;
 	} else if (zone->stream != NULL) {
@@ -3470,10 +3461,7 @@ integrity_checks(dns_zone_t *zone, dns_db_t *db) {
 	}
 
 	DNS_DBITERATOR_FOREACH(dbiterator) {
-		result = dns_dbiterator_current(dbiterator, &node, name);
-		if (result != ISC_R_SUCCESS) {
-			goto cleanup;
-		}
+		CHECK(dns_dbiterator_current(dbiterator, &node, name));
 
 		/*
 		 * Is this name visible in the zone?
@@ -3857,18 +3845,12 @@ zone_check_dnskeys(dns_zone_t *zone, dns_db_t *db) {
 	bool logged_algorithm[DST_MAX_ALGS] = { 0 };
 	bool alldeprecated = true;
 
-	result = dns_db_findnode(db, &zone->origin, false, &node);
-	if (result != ISC_R_SUCCESS) {
-		goto cleanup;
-	}
+	CHECK(dns_db_findnode(db, &zone->origin, false, &node));
 
 	dns_db_currentversion(db, &version);
 	dns_rdataset_init(&rdataset);
-	result = dns_db_findrdataset(db, node, version, dns_rdatatype_dnskey,
-				     dns_rdatatype_none, 0, &rdataset, NULL);
-	if (result != ISC_R_SUCCESS) {
-		goto cleanup;
-	}
+	CHECK(dns_db_findrdataset(db, node, version, dns_rdatatype_dnskey,
+				  dns_rdatatype_none, 0, &rdataset, NULL));
 
 	DNS_RDATASET_FOREACH(&rdataset) {
 		char algbuf[DNS_SECALG_FORMATSIZE];
@@ -3972,10 +3954,7 @@ resume_signingwithkey(dns_zone_t *zone) {
 		goto cleanup;
 	}
 
-	result = dns_db_findnode(db, &zone->origin, false, &node);
-	if (result != ISC_R_SUCCESS) {
-		goto cleanup;
-	}
+	CHECK(dns_db_findnode(db, &zone->origin, false, &node));
 
 	dns_db_currentversion(db, &version);
 	dns_rdataset_init(&rdataset);
@@ -4240,10 +4219,7 @@ resume_addnsec3chain(dns_zone_t *zone) {
 		goto cleanup;
 	}
 
-	result = dns_db_findnode(db, &zone->origin, false, &node);
-	if (result != ISC_R_SUCCESS) {
-		goto cleanup;
-	}
+	CHECK(dns_db_findnode(db, &zone->origin, false, &node));
 
 	dns_db_currentversion(db, &version);
 
@@ -5332,10 +5308,7 @@ zone_postload(dns_zone_t *zone, dns_db_t *db, isc_time_t loadtime,
 	 * a sane starting point.)
 	 */
 	if (noprimary && zone->type == dns_zone_key) {
-		result = add_soa(zone, db);
-		if (result != ISC_R_SUCCESS) {
-			goto cleanup;
-		}
+		CHECK(add_soa(zone, db));
 	}
 
 	/*
@@ -5345,11 +5318,8 @@ zone_postload(dns_zone_t *zone, dns_db_t *db, isc_time_t loadtime,
 	    !DNS_ZONE_OPTION(zone, DNS_ZONEOPT_NOMERGE) &&
 	    !DNS_ZONE_FLAG(zone, DNS_ZONEFLG_LOADED))
 	{
-		result = zone_journal_rollforward(zone, db, &needdump,
-						  &fixjournal);
-		if (result != ISC_R_SUCCESS) {
-			goto cleanup;
-		}
+		CHECK(zone_journal_rollforward(zone, db, &needdump,
+					       &fixjournal));
 	}
 
 	/*
@@ -5447,30 +5417,24 @@ zone_postload(dns_zone_t *zone, dns_db_t *db, isc_time_t loadtime,
 			goto cleanup;
 		}
 		if (zone->type == dns_zone_primary && errors != 0) {
-			result = DNS_R_BADZONE;
-			goto cleanup;
+			CHECK(DNS_R_BADZONE);
 		}
 		if (zone->type != dns_zone_stub &&
 		    zone->type != dns_zone_redirect)
 		{
-			result = check_nsec3param(zone, db);
-			if (result != ISC_R_SUCCESS) {
-				goto cleanup;
-			}
+			CHECK(check_nsec3param(zone, db));
 		}
 		if (zone->type == dns_zone_primary &&
 		    DNS_ZONE_OPTION(zone, DNS_ZONEOPT_CHECKINTEGRITY) &&
 		    !integrity_checks(zone, db))
 		{
-			result = DNS_R_BADZONE;
-			goto cleanup;
+			CHECK(DNS_R_BADZONE);
 		}
 		if (zone->type == dns_zone_primary &&
 		    DNS_ZONE_OPTION(zone, DNS_ZONEOPT_CHECKDUPRR) &&
 		    !zone_check_dup(zone, db))
 		{
-			result = DNS_R_BADZONE;
-			goto cleanup;
+			CHECK(DNS_R_BADZONE);
 		}
 
 		if (zone->type == dns_zone_primary) {
@@ -5488,14 +5452,10 @@ zone_postload(dns_zone_t *zone, dns_db_t *db, isc_time_t loadtime,
 			dns_zone_log(zone, ISC_LOG_ERROR,
 				     "'log-report-channel' is set, but no "
 				     "'*._er/TXT' wildcard found");
-			result = DNS_R_BADZONE;
-			goto cleanup;
+			CHECK(DNS_R_BADZONE);
 		}
 
-		result = dns_zone_verifydb(zone, db, NULL);
-		if (result != ISC_R_SUCCESS) {
-			goto cleanup;
-		}
+		CHECK(dns_zone_verifydb(zone, db, NULL));
 
 		if (zone->db != NULL) {
 			unsigned int oldsoacount;
@@ -5538,8 +5498,7 @@ zone_postload(dns_zone_t *zone, dns_db_t *db, isc_time_t loadtime,
 					      "new serial (%u) out of range "
 					      "[%u - %u]",
 					      serial, serialmin, serialmax);
-				result = DNS_R_BADZONE;
-				goto cleanup;
+				CHECK(DNS_R_BADZONE);
 			} else if (!isc_serial_ge(serial, oldserial)) {
 				dns_zone_logc(zone, DNS_LOGCATEGORY_ZONELOAD,
 					      ISC_LOG_ERROR,
@@ -5624,8 +5583,7 @@ zone_postload(dns_zone_t *zone, dns_db_t *db, isc_time_t loadtime,
 
 	default:
 		UNEXPECTED_ERROR("unexpected zone type %d", zone->type);
-		result = ISC_R_UNEXPECTED;
-		goto cleanup;
+		CHECK(ISC_R_UNEXPECTED);
 	}
 
 	/*
@@ -14282,8 +14240,7 @@ again:
 		}
 		break;
 	default:
-		result = ISC_R_NOTIMPLEMENTED;
-		goto cleanup;
+		CHECK(ISC_R_NOTIMPLEMENTED);
 	}
 
 	/*
@@ -16944,15 +16901,9 @@ copy_non_dnssec_records(dns_db_t *db, dns_dbversion_t *version, dns_db_t *rawdb,
 
 	dns_dbiterator_pause(dbiterator);
 
-	result = dns_db_findnode(db, name, true, &node);
-	if (result != ISC_R_SUCCESS) {
-		goto cleanup;
-	}
+	CHECK(dns_db_findnode(db, name, true, &node));
 
-	result = dns_db_allrdatasets(rawdb, rawnode, NULL, 0, 0, &rdsit);
-	if (result != ISC_R_SUCCESS) {
-		goto cleanup;
-	}
+	CHECK(dns_db_allrdatasets(rawdb, rawnode, NULL, 0, 0, &rdsit));
 
 	DNS_RDATASETITER_FOREACH(rdsit) {
 		dns_rdataset_t rdataset = DNS_RDATASET_INIT;
@@ -18442,15 +18393,11 @@ dns_zone_forwardupdate(dns_zone_t *zone, dns_message_t *msg,
 
 	mr = dns_message_getrawmessage(msg);
 	if (mr == NULL) {
-		result = ISC_R_UNEXPECTEDEND;
-		goto cleanup;
+		CHECK(ISC_R_UNEXPECTEDEND);
 	}
 
 	isc_buffer_allocate(zone->mctx, &forward->msgbuf, mr->length);
-	result = isc_buffer_copyregion(forward->msgbuf, mr);
-	if (result != ISC_R_SUCCESS) {
-		goto cleanup;
-	}
+	CHECK(isc_buffer_copyregion(forward->msgbuf, mr));
 
 	isc_mem_attach(zone->mctx, &forward->mctx);
 	dns_zone_iattach(zone, &forward->zone);
@@ -19028,15 +18975,9 @@ zone_saveunique(dns_zone_t *zone, const char *path, const char *templat) {
 
 	buf = isc_mem_get(zone->mctx, buflen);
 
-	result = isc_file_template(path, templat, buf, buflen);
-	if (result != ISC_R_SUCCESS) {
-		goto cleanup;
-	}
+	CHECK(isc_file_template(path, templat, buf, buflen));
 
-	result = isc_file_renameunique(path, buf);
-	if (result != ISC_R_SUCCESS) {
-		goto cleanup;
-	}
+	CHECK(isc_file_renameunique(path, buf));
 
 	dns_zone_log(zone, ISC_LOG_WARNING,
 		     "unable to load from '%s'; "
@@ -19688,8 +19629,7 @@ zone_signwithkey(dns_zone_t *zone, dst_algorithm_t algorithm, uint16_t keyid,
 	ZONEDB_UNLOCK(&zone->dblock, isc_rwlocktype_read);
 
 	if (db == NULL) {
-		result = ISC_R_NOTFOUND;
-		goto cleanup;
+		CHECK(ISC_R_NOTFOUND);
 	}
 
 	dns_db_attach(db, &signing->db);
@@ -20692,8 +20632,7 @@ checkds_send_toaddr(void *arg) {
 	    checkds->zone->view->requestmgr == NULL ||
 	    checkds->zone->db == NULL)
 	{
-		result = ISC_R_CANCELED;
-		goto cleanup;
+		CHECK(ISC_R_CANCELED);
 	}
 
 	/*
@@ -20707,8 +20646,7 @@ checkds_send_toaddr(void *arg) {
 		dns_zone_log(checkds->zone, ISC_LOG_DEBUG(3),
 			     "checkds: ignoring IPv6 mapped IPV4 address: %s",
 			     addrbuf);
-		result = ISC_R_CANCELED;
-		goto cleanup;
+		CHECK(ISC_R_CANCELED);
 	}
 
 	checkds_createmessage(checkds->zone, &message);
@@ -20843,10 +20781,7 @@ checkds_send_tons(dns_checkds_t *checkds) {
 		}
 
 		newcheckds = NULL;
-		result = checkds_create(checkds->mctx, 0, &newcheckds);
-		if (result != ISC_R_SUCCESS) {
-			goto cleanup;
-		}
+		CHECK(checkds_create(checkds->mctx, 0, &newcheckds));
 		zone_iattach(zone, &newcheckds->zone);
 		ISC_LIST_APPEND(newcheckds->zone->checkds_requests, newcheckds,
 				link);
@@ -20868,13 +20803,10 @@ checkds_send_tons(dns_checkds_t *checkds) {
 		 * publicly available on the default transport protocol.
 		 */
 
-		result = isc_ratelimiter_enqueue(
-			newcheckds->zone->zmgr->checkdsrl,
-			newcheckds->zone->loop, checkds_send_toaddr, newcheckds,
-			&newcheckds->rlevent);
-		if (result != ISC_R_SUCCESS) {
-			goto cleanup;
-		}
+		CHECK(isc_ratelimiter_enqueue(newcheckds->zone->zmgr->checkdsrl,
+					      newcheckds->zone->loop,
+					      checkds_send_toaddr, newcheckds,
+					      &newcheckds->rlevent));
 		newcheckds = NULL;
 	}
 
@@ -21107,10 +21039,7 @@ nsfetch_done(dns_zonefetch_t *fetch, isc_result_t eresult) {
 		return DNS_R_CONTINUE;
 	}
 
-	result = dns_zonefetch_verify(fetch, eresult, dns_trust_secure);
-	if (result != ISC_R_SUCCESS) {
-		goto done;
-	}
+	CHECK(dns_zonefetch_verify(fetch, eresult, dns_trust_secure));
 
 	/* Record the number of NS records we found. */
 	zone->parent_nscount = dns_rdataset_count(nsrrset);
@@ -21163,7 +21092,7 @@ nsfetch_done(dns_zonefetch_t *fetch, isc_result_t eresult) {
 
 	LOCK_ZONE(zone);
 
-done:
+cleanup:
 	if (result != ISC_R_SUCCESS) {
 		dnssec_log(
 			zone, ISC_LOG_ERROR,
@@ -22407,8 +22336,7 @@ dns_zone_cdscheck(dns_zone_t *zone, dns_db_t *db, dns_dbversion_t *version) {
 							       &crdata, &dnskey,
 							       &rdata);
 				if (result != ISC_R_SUCCESS) {
-					result = DNS_R_BADCDS;
-					goto cleanup;
+					CHECK(DNS_R_BADCDS);
 				}
 				CHECK(dns_rdata_tostruct(&rdata, &structdnskey,
 							 NULL));

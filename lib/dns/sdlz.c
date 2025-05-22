@@ -990,21 +990,14 @@ modrdataset(dns_db_t *db, dns_dbnode_t *node, dns_dbversion_t *version,
 
 	isc_buffer_allocate(mctx, &buffer, 1024);
 
-	result = dns_master_stylecreate(&style, 0, 0, 0, 0, 0, 0, 1, 0xffffffff,
-					mctx);
-	if (result != ISC_R_SUCCESS) {
-		goto cleanup;
-	}
+	CHECK(dns_master_stylecreate(&style, 0, 0, 0, 0, 0, 0, 1, 0xffffffff,
+				     mctx));
 
-	result = dns_master_rdatasettotext(&sdlznode->name, rdataset, style,
-					   NULL, buffer);
-	if (result != ISC_R_SUCCESS) {
-		goto cleanup;
-	}
+	CHECK(dns_master_rdatasettotext(&sdlznode->name, rdataset, style, NULL,
+					buffer));
 
 	if (isc_buffer_usedlength(buffer) < 1) {
-		result = ISC_R_BADADDRESSFORM;
-		goto cleanup;
+		CHECK(ISC_R_BADADDRESSFORM);
 	}
 
 	rdatastr = isc_buffer_base(buffer);
@@ -1654,10 +1647,7 @@ dns_sdlz_putrr(dns_sdlzlookup_t *lookup, const char *type, dns_ttl_t ttl,
 		isc_buffer_constinit(&b, data, strlen(data));
 		isc_buffer_add(&b, strlen(data));
 
-		result = isc_lex_openbuffer(lex, &b);
-		if (result != ISC_R_SUCCESS) {
-			goto failure;
-		}
+		CHECK(isc_lex_openbuffer(lex, &b));
 
 		rdatabuf = NULL;
 		isc_buffer_allocate(mctx, &rdatabuf, size);
@@ -1678,8 +1668,7 @@ dns_sdlz_putrr(dns_sdlzlookup_t *lookup, const char *type, dns_ttl_t ttl,
 	} while (result == ISC_R_NOSPACE);
 
 	if (result != ISC_R_SUCCESS) {
-		result = DNS_R_SERVFAIL;
-		goto failure;
+		CHECK(DNS_R_SERVFAIL);
 	}
 
 	ISC_LIST_APPEND(rdatalist->rdata, rdata, link);
@@ -1691,7 +1680,7 @@ dns_sdlz_putrr(dns_sdlzlookup_t *lookup, const char *type, dns_ttl_t ttl,
 
 	return ISC_R_SUCCESS;
 
-failure:
+cleanup:
 	if (rdatabuf != NULL) {
 		isc_buffer_free(&rdatabuf);
 	}

@@ -965,10 +965,7 @@ getquestions(isc_buffer_t *source, dns_message_t *msg, dns_decompress_t dctx,
 		 */
 		isc_buffer_remainingregion(source, &r);
 		isc_buffer_setactive(source, r.length);
-		result = getname(name, source, msg, dctx);
-		if (result != ISC_R_SUCCESS) {
-			goto cleanup;
-		}
+		CHECK(getname(name, source, msg, dctx));
 
 		ISC_LIST_APPEND(*section, name, link);
 
@@ -979,8 +976,7 @@ getquestions(isc_buffer_t *source, dns_message_t *msg, dns_decompress_t dctx,
 		 */
 		isc_buffer_remainingregion(source, &r);
 		if (r.length < 4) {
-			result = ISC_R_UNEXPECTEDEND;
-			goto cleanup;
+			CHECK(ISC_R_UNEXPECTEDEND);
 		}
 		rdtype = isc_buffer_getuint16(source);
 		rdclass = isc_buffer_getuint16(source);
@@ -1104,10 +1100,7 @@ getsection(isc_buffer_t *source, dns_message_t *msg, dns_decompress_t dctx,
 		 */
 		isc_buffer_remainingregion(source, &r);
 		isc_buffer_setactive(source, r.length);
-		result = getname(name, source, msg, dctx);
-		if (result != ISC_R_SUCCESS) {
-			goto cleanup;
-		}
+		CHECK(getname(name, source, msg, dctx));
 
 		/*
 		 * Get type, class, ttl, and rdatalen.  Verify that at least
@@ -1116,8 +1109,7 @@ getsection(isc_buffer_t *source, dns_message_t *msg, dns_decompress_t dctx,
 		 */
 		isc_buffer_remainingregion(source, &r);
 		if (r.length < 2 + 2 + 4 + 2) {
-			result = ISC_R_UNEXPECTEDEND;
-			goto cleanup;
+			CHECK(ISC_R_UNEXPECTEDEND);
 		}
 		rdtype = isc_buffer_getuint16(source);
 		rdclass = isc_buffer_getuint16(source);
@@ -1226,8 +1218,7 @@ getsection(isc_buffer_t *source, dns_message_t *msg, dns_decompress_t dctx,
 		rdatalen = isc_buffer_getuint16(source);
 		r.length -= (2 + 2 + 4 + 2);
 		if (r.length < rdatalen) {
-			result = ISC_R_UNEXPECTEDEND;
-			goto cleanup;
+			CHECK(ISC_R_UNEXPECTEDEND);
 		}
 
 		/*
@@ -1241,8 +1232,7 @@ getsection(isc_buffer_t *source, dns_message_t *msg, dns_decompress_t dctx,
 		    update(sectionid, rdclass))
 		{
 			if (rdatalen != 0) {
-				result = DNS_R_FORMERR;
-				goto cleanup;
+				CHECK(DNS_R_FORMERR);
 			}
 			/*
 			 * When the rdata is empty, the data pointer is
@@ -1309,8 +1299,7 @@ getsection(isc_buffer_t *source, dns_message_t *msg, dns_decompress_t dctx,
 		if (rdtype == dns_rdatatype_nsec3 &&
 		    !dns_rdata_checkowner(name, msg->rdclass, rdtype, false))
 		{
-			result = DNS_R_BADOWNERNAME;
-			goto cleanup;
+			CHECK(DNS_R_BADOWNERNAME);
 		}
 
 		/*
@@ -2666,10 +2655,7 @@ dns_message_setopt(dns_message_t *msg) {
 
 	msgresetopt(msg);
 
-	result = dns_rdataset_first(opt);
-	if (result != ISC_R_SUCCESS) {
-		goto cleanup;
-	}
+	CHECK(dns_rdataset_first(opt));
 	dns_rdataset_current(opt, &rdata);
 	msg->opt_reserved = 11 + rdata.length;
 	result = dns_message_renderreserve(msg, msg->opt_reserved);
@@ -3628,8 +3614,7 @@ render_zoneversion(dns_message_t *msg, isc_buffer_t *optbuf,
 					if (isc_buffer_availablelength(target) <
 					    1)
 					{
-						result = ISC_R_NOSPACE;
-						goto cleanup;
+						CHECK(ISC_R_NOSPACE);
 					}
 					isc_buffer_putmem(target, &data[i], 1);
 				} else {
@@ -3755,11 +3740,8 @@ dns_message_pseudosectiontoyaml(dns_message_t *msg, dns_pseudosection_t section,
 			switch (optcode) {
 			case DNS_OPT_LLQ:
 				if (optlen == 18U) {
-					result = render_llq(&optbuf, msg, style,
-							    target);
-					if (result != ISC_R_SUCCESS) {
-						goto cleanup;
-					}
+					CHECK(render_llq(&optbuf, msg, style,
+							 target));
 					ADD_STRING(target, "\n");
 					continue;
 				}
@@ -3777,11 +3759,8 @@ dns_message_pseudosectiontoyaml(dns_message_t *msg, dns_pseudosection_t section,
 					ADD_STRING(target, buf);
 
 					ADD_STRING(target, " # ");
-					result = dns_ttl_totext(secs, true,
-								true, target);
-					if (result != ISC_R_SUCCESS) {
-						goto cleanup;
-					}
+					CHECK(dns_ttl_totext(secs, true, true,
+							     target));
 					ADD_STRING(target, "\n");
 
 					if (optlen == 8U) {
@@ -3795,12 +3774,9 @@ dns_message_pseudosectiontoyaml(dns_message_t *msg, dns_pseudosection_t section,
 						ADD_STRING(target, buf);
 
 						ADD_STRING(target, " # ");
-						result = dns_ttl_totext(
-							key, true, true,
-							target);
-						if (result != ISC_R_SUCCESS) {
-							goto cleanup;
-						}
+						CHECK(dns_ttl_totext(key, true,
+								     true,
+								     target));
 						ADD_STRING(target, "\n");
 					}
 					continue;
@@ -3829,11 +3805,8 @@ dns_message_pseudosectiontoyaml(dns_message_t *msg, dns_pseudosection_t section,
 					snprintf(buf, sizeof(buf), " %u", secs);
 					ADD_STRING(target, buf);
 					ADD_STRING(target, " # ");
-					result = dns_ttl_totext(secs, true,
-								true, target);
-					if (result != ISC_R_SUCCESS) {
-						goto cleanup;
-					}
+					CHECK(dns_ttl_totext(secs, true, true,
+							     target));
 					ADD_STRING(target, "\n");
 					continue;
 				}
@@ -3920,11 +3893,8 @@ dns_message_pseudosectiontoyaml(dns_message_t *msg, dns_pseudosection_t section,
 				if (optlen >= 2U) {
 					isc_buffer_t zonebuf = optbuf;
 					isc_buffer_setactive(&zonebuf, optlen);
-					result = render_zoneversion(
-						msg, &zonebuf, style, target);
-					if (result != ISC_R_SUCCESS) {
-						goto cleanup;
-					}
+					CHECK(render_zoneversion(
+						msg, &zonebuf, style, target));
 					isc_buffer_forward(&optbuf, optlen);
 					ADD_STRING(target, "\n");
 					continue;
@@ -4221,19 +4191,13 @@ dns_message_pseudosectiontotext(dns_message_t *msg, dns_pseudosection_t section,
 						ADD_STRING(target, buf);
 					}
 					ADD_STRING(target, " (");
-					result = dns_ttl_totext(secs, true,
-								true, target);
-					if (result != ISC_R_SUCCESS) {
-						goto cleanup;
-					}
+					CHECK(dns_ttl_totext(secs, true, true,
+							     target));
 					if (optlen == 8U) {
 						ADD_STRING(target, "/");
-						result = dns_ttl_totext(
-							key, true, true,
-							target);
-						if (result != ISC_R_SUCCESS) {
-							goto cleanup;
-						}
+						CHECK(dns_ttl_totext(key, true,
+								     true,
+								     target));
 					}
 					ADD_STRING(target, ")\n");
 					continue;
@@ -4365,11 +4329,8 @@ dns_message_pseudosectiontotext(dns_message_t *msg, dns_pseudosection_t section,
 				if (optlen >= 2U) {
 					isc_buffer_t zonebuf = optbuf;
 					isc_buffer_setactive(&zonebuf, optlen);
-					result = render_zoneversion(
-						msg, &zonebuf, style, target);
-					if (result != ISC_R_SUCCESS) {
-						goto cleanup;
-					}
+					CHECK(render_zoneversion(
+						msg, &zonebuf, style, target));
 					ADD_STRING(target, "\n");
 					isc_buffer_forward(&optbuf, optlen);
 					continue;
@@ -4940,8 +4901,7 @@ buildopt(dns_message_t *message, dns_rdataset_t **rdatasetp) {
 		}
 
 		if (len > 0xffffU) {
-			result = ISC_R_NOSPACE;
-			goto cleanup;
+			CHECK(ISC_R_NOSPACE);
 		}
 
 		isc_buffer_allocate(message->mctx, &buf, len);

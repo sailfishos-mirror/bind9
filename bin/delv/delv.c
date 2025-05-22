@@ -676,8 +676,7 @@ key_fromconfig(const cfg_obj_t *key, dns_client_t *client, dns_view_t *toview) {
 			delv_log(ISC_LOG_ERROR,
 				 "key '%s': invalid initialization method '%s'",
 				 keynamestr, atstr);
-			result = ISC_R_FAILURE;
-			goto cleanup;
+			CHECK(ISC_R_FAILURE);
 		}
 	}
 

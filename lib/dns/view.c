@@ -1075,8 +1075,7 @@ dns_view_findzonecut(dns_view_t *view, const dns_name_t *name,
 			try_hints = true;
 			goto finish;
 		} else {
-			result = DNS_R_NXDOMAIN;
-			goto cleanup;
+			CHECK(DNS_R_NXDOMAIN);
 		}
 	} else if (result != ISC_R_SUCCESS) {
 		/*
@@ -2125,8 +2124,7 @@ dns_view_addtrustedkey(dns_view_t *view, dns_rdatatype_t rdtype,
 	REQUIRE(view->rdclass == dns_rdataclass_in);
 
 	if (rdtype != dns_rdatatype_dnskey && rdtype != dns_rdatatype_ds) {
-		result = ISC_R_NOTIMPLEMENTED;
-		goto cleanup;
+		CHECK(ISC_R_NOTIMPLEMENTED);
 	}
 
 	isc_buffer_init(&b, rdatabuf, sizeof(rdatabuf));

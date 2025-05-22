@@ -1335,8 +1335,7 @@ cfg_parse_duration(cfg_parser_t *pctx, const cfg_type_t *type ISC_ATTR_UNUSED,
 
 	CHECK(cfg_gettoken(pctx, 0));
 	if (pctx->token.type != isc_tokentype_string) {
-		result = ISC_R_UNEXPECTEDTOKEN;
-		goto cleanup;
+		CHECK(ISC_R_UNEXPECTEDTOKEN);
 	}
 
 	return parse_duration(pctx, ret);
@@ -1357,8 +1356,7 @@ cfg_parse_duration_or_unlimited(cfg_parser_t *pctx,
 
 	CHECK(cfg_gettoken(pctx, 0));
 	if (pctx->token.type != isc_tokentype_string) {
-		result = ISC_R_UNEXPECTEDTOKEN;
-		goto cleanup;
+		CHECK(ISC_R_UNEXPECTEDTOKEN);
 	}
 
 	if (strcmp(TOKEN_STRING(pctx), "unlimited") == 0) {
@@ -3008,8 +3006,7 @@ parse_token(cfg_parser_t *pctx, const cfg_type_t *type ISC_ATTR_UNUSED,
 	CHECK(cfg_gettoken(pctx, CFG_LEXOPT_QSTRING));
 	if (pctx->token.type == isc_tokentype_eof) {
 		cfg_ungettoken(pctx);
-		result = ISC_R_EOF;
-		goto cleanup;
+		CHECK(ISC_R_EOF);
 	}
 
 	isc_lex_getlasttokentext(pctx->lexer, &pctx->token, &r);
@@ -3064,8 +3061,7 @@ parse_unsupported(cfg_parser_t *pctx, const cfg_type_t *type, cfg_obj_t **ret) {
 		if (pctx->token.type == isc_tokentype_eof || braces < 0) {
 			cfg_parser_error(pctx, CFG_LOG_NEAR,
 					 "unexpected token");
-			result = ISC_R_UNEXPECTEDTOKEN;
-			goto cleanup;
+			CHECK(ISC_R_UNEXPECTEDTOKEN);
 		}
 
 		CHECK(cfg_parse_listelt(pctx, listobj, &cfg_type_token, &elt));
@@ -3514,25 +3510,21 @@ parse_sockaddrsub(cfg_parser_t *pctx, const cfg_type_t *type, int flags,
 
 	if (have_address != 1) {
 		cfg_parser_error(pctx, 0, "expected exactly one address");
-		result = ISC_R_UNEXPECTEDTOKEN;
-		goto cleanup;
+		CHECK(ISC_R_UNEXPECTEDTOKEN);
 	}
 
 	if (!is_port_ok && have_port > 0) {
 		cfg_parser_error(pctx, 0, "subconfig 'port' no longer exists");
-		result = ISC_R_UNEXPECTEDTOKEN;
-		goto cleanup;
+		CHECK(ISC_R_UNEXPECTEDTOKEN);
 	}
 	if (have_port > 1) {
 		cfg_parser_error(pctx, 0, "expected at most one port");
-		result = ISC_R_UNEXPECTEDTOKEN;
-		goto cleanup;
+		CHECK(ISC_R_UNEXPECTEDTOKEN);
 	}
 
 	if (have_tls > 1) {
 		cfg_parser_error(pctx, 0, "expected at most one tls");
-		result = ISC_R_UNEXPECTEDTOKEN;
-		goto cleanup;
+		CHECK(ISC_R_UNEXPECTEDTOKEN);
 	}
 
 	cfg_obj_create(pctx->mctx, cfg_parser_currentfile(pctx), pctx->line,

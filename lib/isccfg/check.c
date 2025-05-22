@@ -2892,10 +2892,7 @@ check_recursion(const cfg_obj_t *config, const cfg_obj_t *voptions,
 		result = cfg_map_get(goptions, "allow-recursion", &obj);
 	}
 	if (result == ISC_R_SUCCESS) {
-		result = cfg_acl_fromconfig(obj, config, aclctx, mctx, 0, &acl);
-		if (result != ISC_R_SUCCESS) {
-			goto cleanup;
-		}
+		CHECK(cfg_acl_fromconfig(obj, config, aclctx, mctx, 0, &acl));
 		retval = !dns_acl_isnone(acl);
 	}
 
@@ -4913,12 +4910,12 @@ check_trust_anchor(const cfg_obj_t *key, unsigned int *flagsp) {
 			    "key '%s': "
 			    "invalid initialization method '%s'",
 			    namestr, atstr);
-		result = ISC_R_FAILURE;
 		/*
 		 * We can't interpret the trust anchor, so
 		 * we skip all other checks.
 		 */
-		goto cleanup;
+		CHECK(ISC_R_FAILURE);
+		UNREACHABLE();
 	}
 
 	switch (anchortype) {

@@ -1571,10 +1571,7 @@ dumpctx_create(isc_mem_t *mctx, dns_db_t *db, dns_dbversion_t *version,
 	} else {
 		options = 0;
 	}
-	result = dns_db_createiterator(dctx->db, options, &dctx->dbiter);
-	if (result != ISC_R_SUCCESS) {
-		goto cleanup;
-	}
+	CHECK(dns_db_createiterator(dctx->db, options, &dctx->dbiter));
 
 	isc_mutex_init(&dctx->lock);
 	isc_mem_attach(mctx, &dctx->mctx);
@@ -1795,10 +1792,7 @@ opentmp(isc_mem_t *mctx, const char *file, char **tempp, FILE **fp) {
 	tempnamelen = strlen(file) + 20;
 	tempname = isc_mem_allocate(mctx, tempnamelen);
 
-	result = isc_file_mktemplate(file, tempname, tempnamelen);
-	if (result != ISC_R_SUCCESS) {
-		goto cleanup;
-	}
+	CHECK(isc_file_mktemplate(file, tempname, tempnamelen));
 
 	result = isc_file_openunique(tempname, &f);
 	if (result != ISC_R_SUCCESS) {
@@ -1882,11 +1876,8 @@ dns_master_dump(isc_mem_t *mctx, dns_db_t *db, dns_dbversion_t *version,
 		return result;
 	}
 
-	result = dumpctx_create(mctx, db, version, style, f, &dctx, format,
-				header);
-	if (result != ISC_R_SUCCESS) {
-		goto cleanup;
-	}
+	CHECK(dumpctx_create(mctx, db, version, style, f, &dctx, format,
+			     header));
 
 	result = dumptostream(dctx);
 	INSIST(result != DNS_R_CONTINUE);

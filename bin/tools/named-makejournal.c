@@ -177,10 +177,7 @@ main(int argc, char **argv) {
 		goto cleanup;
 	}
 
-	result = loadjournal(olddb, journal);
-	if (result != ISC_R_SUCCESS) {
-		goto cleanup;
-	}
+	CHECK(loadjournal(olddb, journal));
 
 	result = dns_db_getsoaserial(olddb, NULL, &s2);
 	RUNTIME_CHECK(result == ISC_R_SUCCESS);

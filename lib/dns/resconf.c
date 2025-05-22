@@ -217,8 +217,7 @@ add_server(isc_mem_t *mctx, const char *address_str,
 	address = isc_mem_get(mctx, sizeof(*address));
 	if (res->ai_addrlen > sizeof(address->type)) {
 		isc_mem_put(mctx, address, sizeof(*address));
-		result = ISC_R_RANGE;
-		goto cleanup;
+		CHECK(ISC_R_RANGE);
 	}
 
 	if (res->ai_family == AF_INET) {
@@ -238,8 +237,7 @@ add_server(isc_mem_t *mctx, const char *address_str,
 		isc_mem_put(mctx, address, sizeof(*address));
 		UNEXPECTED_ERROR("ai_family (%d) not INET nor INET6",
 				 res->ai_family);
-		result = ISC_R_UNEXPECTED;
-		goto cleanup;
+		CHECK(ISC_R_UNEXPECTED);
 	}
 	address->length = (unsigned int)res->ai_addrlen;
 

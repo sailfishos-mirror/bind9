@@ -1214,20 +1214,14 @@ catz_process_coo(dns_catz_zone_t *catz, dns_label_t *mhash,
 	}
 
 	if (dns_name_countlabels(&ptr.ptr) == 0) {
-		result = ISC_R_FAILURE;
-		goto cleanup;
+		CHECK(ISC_R_FAILURE);
 	}
 
-	result = isc_ht_find(catz->entries, mhash->base, mhash->length,
-			     (void **)&entry);
-	if (result != ISC_R_SUCCESS) {
-		/* The entry was not found .*/
-		goto cleanup;
-	}
+	CHECK(isc_ht_find(catz->entries, mhash->base, mhash->length,
+			  (void **)&entry));
 
 	if (dns_name_countlabels(&entry->name) == 0) {
-		result = ISC_R_FAILURE;
-		goto cleanup;
+		CHECK(ISC_R_FAILURE);
 	}
 
 	catz_coo_add(catz, entry, &ptr.ptr);
@@ -1333,31 +1327,20 @@ catz_process_version(dns_catz_zone_t *catz, dns_rdataset_t *value) {
 		return result;
 	}
 
-	result = dns_rdata_txt_first(&rdatatxt);
-	if (result != ISC_R_SUCCESS) {
-		goto cleanup;
-	}
+	CHECK(dns_rdata_txt_first(&rdatatxt));
 
-	result = dns_rdata_txt_current(&rdatatxt, &rdatastr);
-	if (result != ISC_R_SUCCESS) {
-		goto cleanup;
-	}
+	CHECK(dns_rdata_txt_current(&rdatatxt, &rdatastr));
 
 	result = dns_rdata_txt_next(&rdatatxt);
 	if (result != ISC_R_NOMORE) {
-		result = ISC_R_FAILURE;
-		goto cleanup;
+		CHECK(ISC_R_FAILURE);
 	}
 	if (rdatastr.length > 15) {
-		result = ISC_R_BADNUMBER;
-		goto cleanup;
+		CHECK(ISC_R_BADNUMBER);
 	}
 	memmove(t, rdatastr.data, rdatastr.length);
 	t[rdatastr.length] = 0;
-	result = isc_parse_uint32(&tversion, t, 10);
-	if (result != ISC_R_SUCCESS) {
-		goto cleanup;
-	}
+	CHECK(isc_parse_uint32(&tversion, t, 10));
 	catz->version = tversion;
 	result = ISC_R_SUCCESS;
 
@@ -1883,16 +1866,10 @@ dns_catz_generate_masterfilename(dns_catz_zone_t *catz, dns_catz_entry_t *entry,
 
 	isc_buffer_putstr(tbuf, catz->catzs->view->name);
 	isc_buffer_putstr(tbuf, "_");
-	result = dns_name_totext(&catz->name, DNS_NAME_OMITFINALDOT, tbuf);
-	if (result != ISC_R_SUCCESS) {
-		goto cleanup;
-	}
+	CHECK(dns_name_totext(&catz->name, DNS_NAME_OMITFINALDOT, tbuf));
 
 	isc_buffer_putstr(tbuf, "_");
-	result = dns_name_totext(&entry->name, DNS_NAME_OMITFINALDOT, tbuf);
-	if (result != ISC_R_SUCCESS) {
-		goto cleanup;
-	}
+	CHECK(dns_name_totext(&entry->name, DNS_NAME_OMITFINALDOT, tbuf));
 
 	/*
 	 * Search for slash and other special characters in the view and
@@ -1913,10 +1890,7 @@ dns_catz_generate_masterfilename(dns_catz_zone_t *catz, dns_catz_entry_t *entry,
 		rlen += strlen(entry->opts.zonedir) + 1;
 	}
 
-	result = isc_buffer_reserve(*buffer, (unsigned int)rlen);
-	if (result != ISC_R_SUCCESS) {
-		goto cleanup;
-	}
+	CHECK(isc_buffer_reserve(*buffer, (unsigned int)rlen));
 
 	if (entry->opts.zonedir != NULL) {
 		isc_buffer_putstr(*buffer, entry->opts.zonedir);
@@ -1930,16 +1904,10 @@ dns_catz_generate_masterfilename(dns_catz_zone_t *catz, dns_catz_entry_t *entry,
 		unsigned int digestlen;
 
 		/* we can do that because digest string < 2 * DNS_NAME */
-		result = isc_md(ISC_MD_SHA256, r.base, r.length, digest,
-				&digestlen);
-		if (result != ISC_R_SUCCESS) {
-			goto cleanup;
-		}
-		result = digest2hex(digest, digestlen, (char *)r.base,
-				    ISC_SHA256_DIGESTLENGTH * 2 + 1);
-		if (result != ISC_R_SUCCESS) {
-			goto cleanup;
-		}
+		CHECK(isc_md(ISC_MD_SHA256, r.base, r.length, digest,
+			     &digestlen));
+		CHECK(digest2hex(digest, digestlen, (char *)r.base,
+				 ISC_SHA256_DIGESTLENGTH * 2 + 1));
 		isc_buffer_putstr(*buffer, (char *)r.base);
 	} else {
 		isc_buffer_copyregion(*buffer, &r);
@@ -2002,8 +1970,7 @@ dns_catz_generate_zonecfg(dns_catz_zone_t *catz, dns_catz_entry_t *entry,
 				      "catz: zone '%s' uses an invalid primary "
 				      "(no IP address assigned)",
 				      zname);
-			result = ISC_R_FAILURE;
-			goto cleanup;
+			CHECK(ISC_R_FAILURE);
 		}
 		isc_netaddr_fromsockaddr(&netaddr,
 					 &entry->opts.masters.addrs[i]);
@@ -2018,30 +1985,21 @@ dns_catz_generate_zonecfg(dns_catz_zone_t *catz, dns_catz_entry_t *entry,
 
 		if (entry->opts.masters.keys[i] != NULL) {
 			isc_buffer_putstr(buffer, " key ");
-			result = dns_name_totext(entry->opts.masters.keys[i],
-						 DNS_NAME_OMITFINALDOT, buffer);
-			if (result != ISC_R_SUCCESS) {
-				goto cleanup;
-			}
+			CHECK(dns_name_totext(entry->opts.masters.keys[i],
+					      DNS_NAME_OMITFINALDOT, buffer));
 		}
 
 		if (entry->opts.masters.tlss[i] != NULL) {
 			isc_buffer_putstr(buffer, " tls ");
-			result = dns_name_totext(entry->opts.masters.tlss[i],
-						 DNS_NAME_OMITFINALDOT, buffer);
-			if (result != ISC_R_SUCCESS) {
-				goto cleanup;
-			}
+			CHECK(dns_name_totext(entry->opts.masters.tlss[i],
+					      DNS_NAME_OMITFINALDOT, buffer));
 		}
 		isc_buffer_putstr(buffer, "; ");
 	}
 	isc_buffer_putstr(buffer, "}; ");
 	if (!entry->opts.in_memory) {
 		isc_buffer_putstr(buffer, "file \"");
-		result = dns_catz_generate_masterfilename(catz, entry, &buffer);
-		if (result != ISC_R_SUCCESS) {
-			goto cleanup;
-		}
+		CHECK(dns_catz_generate_masterfilename(catz, entry, &buffer));
 		isc_buffer_putstr(buffer, "\"; ");
 	}
 	if (entry->opts.allow_query != NULL) {
@@ -2140,13 +2098,9 @@ dns_catz_dbupdate_callback(dns_db_t *db, void *fn_arg) {
 
 	LOCK(&catzs->lock);
 	if (catzs->zones == NULL) {
-		result = ISC_R_SHUTTINGDOWN;
-		goto cleanup;
+		CHECK(ISC_R_SHUTTINGDOWN);
 	}
-	result = isc_ht_find(catzs->zones, r.base, r.length, (void **)&catz);
-	if (result != ISC_R_SUCCESS) {
-		goto cleanup;
-	}
+	CHECK(isc_ht_find(catzs->zones, r.base, r.length, (void **)&catz));
 
 	/* New zone came as AXFR */
 	if (catz->db != NULL && catz->db != db) {

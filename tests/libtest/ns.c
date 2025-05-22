@@ -93,16 +93,9 @@ setup_server(void **state) {
 
 	ns_server_create(isc_g_mctx, matchview, &sctx);
 
-	result = dns_dispatchmgr_create(isc_g_mctx, &dispatchmgr);
-	if (result != ISC_R_SUCCESS) {
-		goto cleanup;
-	}
-
-	result = ns_interfacemgr_create(isc_g_mctx, sctx, dispatchmgr, NULL,
-					&interfacemgr);
-	if (result != ISC_R_SUCCESS) {
-		goto cleanup;
-	}
+	CHECK(dns_dispatchmgr_create(isc_g_mctx, &dispatchmgr));
+	CHECK(ns_interfacemgr_create(isc_g_mctx, sctx, dispatchmgr, NULL,
+				     &interfacemgr));
 
 	isc_loop_setup(isc_loop_main(), scan_interfaces, NULL);
 

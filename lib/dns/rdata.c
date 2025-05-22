@@ -1090,14 +1090,10 @@ unknown_fromtext(dns_rdataclass_t rdclass, dns_rdatatype_t type,
 	isc_buffer_allocate(mctx, &buf, token.value.as_ulong);
 
 	if (token.value.as_ulong != 0U) {
-		result = isc_hex_tobuffer(lexer, buf,
-					  (unsigned int)token.value.as_ulong);
-		if (result != ISC_R_SUCCESS) {
-			goto failure;
-		}
+		CHECK(isc_hex_tobuffer(lexer, buf,
+				       (unsigned int)token.value.as_ulong));
 		if (isc_buffer_usedlength(buf) != token.value.as_ulong) {
-			result = ISC_R_UNEXPECTEDEND;
-			goto failure;
+			CHECK(ISC_R_UNEXPECTEDEND);
 		}
 	}
 
@@ -1108,14 +1104,12 @@ unknown_fromtext(dns_rdataclass_t rdclass, dns_rdatatype_t type,
 		isc_buffer_usedregion(buf, &r);
 		result = isc_buffer_copyregion(target, &r);
 	}
-	if (result != ISC_R_SUCCESS) {
-		goto failure;
-	}
+	CHECK(result);
 
 	isc_buffer_free(&buf);
 	return ISC_R_SUCCESS;
 
-failure:
+cleanup:
 	isc_buffer_free(&buf);
 	return result;
 }

@@ -699,8 +699,7 @@ cfg_acl_fromconfig(const cfg_obj_t *acl_data, const cfg_obj_t *cctx,
 				transports = isc_nm_httpsocket;
 				encrypted = false;
 			} else {
-				result = ISC_R_FAILURE;
-				goto cleanup;
+				CHECK(ISC_R_FAILURE);
 			}
 		}
 
@@ -762,11 +761,8 @@ cfg_acl_fromconfig(const cfg_obj_t *acl_data, const cfg_obj_t *cctx,
 			 * the nestedacl element, not the iptable entry.
 			 */
 			setpos = (nest_level != 0 || !neg);
-			result = dns_iptable_addprefix(iptab, &addr, bitlen,
-						       setpos);
-			if (result != ISC_R_SUCCESS) {
-				goto cleanup;
-			}
+			CHECK(dns_iptable_addprefix(iptab, &addr, bitlen,
+						    setpos));
 
 			if (nest_level > 0) {
 				INSIST(dacl->length < dacl->alloc);
@@ -785,11 +781,8 @@ cfg_acl_fromconfig(const cfg_obj_t *acl_data, const cfg_obj_t *cctx,
 			if (inneracl != NULL) {
 				dns_acl_detach(&inneracl);
 			}
-			result = cfg_acl_fromconfig(ce, cctx, ctx, mctx,
-						    new_nest_level, &inneracl);
-			if (result != ISC_R_SUCCESS) {
-				goto cleanup;
-			}
+			CHECK(cfg_acl_fromconfig(ce, cctx, ctx, mctx,
+						 new_nest_level, &inneracl));
 		nested_acl:
 			if (nest_level > 0 || inneracl->has_negatives) {
 				INSIST(dacl->length < dacl->alloc);
@@ -822,19 +815,13 @@ cfg_acl_fromconfig(const cfg_obj_t *acl_data, const cfg_obj_t *cctx,
 			de->type = dns_aclelementtype_keyname;
 			de->negative = neg;
 			dns_name_init(&de->keyname);
-			result = convert_keyname(ce, mctx, &de->keyname);
-			if (result != ISC_R_SUCCESS) {
-				goto cleanup;
-			}
+			CHECK(convert_keyname(ce, mctx, &de->keyname));
 #if defined(HAVE_GEOIP2)
 		} else if (cfg_obj_istuple(ce) &&
 			   cfg_obj_isvoid(cfg_tuple_get(ce, "negated")))
 		{
 			INSIST(dacl->length < dacl->alloc);
-			result = parse_geoip_element(ce, ctx, de);
-			if (result != ISC_R_SUCCESS) {
-				goto cleanup;
-			}
+			CHECK(parse_geoip_element(ce, ctx, de));
 			de->type = dns_aclelementtype_geoip;
 			de->negative = neg;
 #endif /* HAVE_GEOIP2 */
@@ -844,11 +831,8 @@ cfg_acl_fromconfig(const cfg_obj_t *acl_data, const cfg_obj_t *cctx,
 			if (strcasecmp(name, "any") == 0) {
 				/* Iptable entry with zero bit length. */
 				setpos = (nest_level != 0 || !neg);
-				result = dns_iptable_addprefix(iptab, NULL, 0,
-							       setpos);
-				if (result != ISC_R_SUCCESS) {
-					goto cleanup;
-				}
+				CHECK(dns_iptable_addprefix(iptab, NULL, 0,
+							    setpos));
 
 				if (nest_level != 0) {
 					INSIST(dacl->length < dacl->alloc);
@@ -866,11 +850,8 @@ cfg_acl_fromconfig(const cfg_obj_t *acl_data, const cfg_obj_t *cctx,
 				 * "!none;".
 				 */
 				setpos = (nest_level != 0 || neg);
-				result = dns_iptable_addprefix(iptab, NULL, 0,
-							       setpos);
-				if (result != ISC_R_SUCCESS) {
-					goto cleanup;
-				}
+				CHECK(dns_iptable_addprefix(iptab, NULL, 0,
+							    setpos));
 
 				if (!neg) {
 					dacl->has_negatives = !neg;
@@ -899,12 +880,9 @@ cfg_acl_fromconfig(const cfg_obj_t *acl_data, const cfg_obj_t *cctx,
 				 * This call should just find the cached
 				 * of the named acl.
 				 */
-				result = convert_named_acl(ce, cctx, ctx, mctx,
-							   new_nest_level,
-							   &inneracl);
-				if (result != ISC_R_SUCCESS) {
-					goto cleanup;
-				}
+				CHECK(convert_named_acl(ce, cctx, ctx, mctx,
+							new_nest_level,
+							&inneracl));
 
 				goto nested_acl;
 			}
@@ -912,8 +890,7 @@ cfg_acl_fromconfig(const cfg_obj_t *acl_data, const cfg_obj_t *cctx,
 			cfg_obj_log(ce, ISC_LOG_WARNING,
 				    "address match list contains "
 				    "unsupported element type");
-			result = ISC_R_FAILURE;
-			goto cleanup;
+			CHECK(ISC_R_FAILURE);
 		}
 
 		/*

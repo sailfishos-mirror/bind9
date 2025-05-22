@@ -101,15 +101,9 @@ named_control_docommand(isccc_sexpr_t *message, bool readonly,
 
 	isc_buffer_init(&src, cmdline, strlen(cmdline));
 	isc_buffer_add(&src, strlen(cmdline));
-	result = isc_lex_openbuffer(lex, &src);
-	if (result != ISC_R_SUCCESS) {
-		goto cleanup;
-	}
+	CHECK(isc_lex_openbuffer(lex, &src));
 
-	result = getcommand(lex, &command);
-	if (result != ISC_R_SUCCESS) {
-		goto cleanup;
-	}
+	CHECK(getcommand(lex, &command));
 
 	/*
 	 * Compare the 'command' parameter against all known control commands.
@@ -140,8 +134,7 @@ named_control_docommand(isccc_sexpr_t *message, bool readonly,
 			      "rejecting restricted control channel "
 			      "command '%s'",
 			      cmdline);
-		result = ISC_R_FAILURE;
-		goto cleanup;
+		CHECK(ISC_R_FAILURE);
 	}
 
 	isc_log_write(NAMED_LOGCATEGORY_GENERAL, NAMED_LOGMODULE_CONTROL,

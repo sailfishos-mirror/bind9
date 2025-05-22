@@ -173,10 +173,7 @@ dns_nsec_build(dns_db_t *db, dns_dbversion_t *version, dns_dbnode_t *node,
 	dns_rdataset_init(&rdataset);
 	dns_rdata_init(&rdata);
 
-	result = dns_nsec_buildrdata(db, version, node, target, data, &rdata);
-	if (result != ISC_R_SUCCESS) {
-		goto failure;
-	}
+	CHECK(dns_nsec_buildrdata(db, version, node, target, data, &rdata));
 
 	dns_rdatalist_init(&rdatalist);
 	rdatalist.rdclass = dns_db_class(db);
@@ -189,7 +186,7 @@ dns_nsec_build(dns_db_t *db, dns_dbversion_t *version, dns_dbnode_t *node,
 		result = ISC_R_SUCCESS;
 	}
 
-failure:
+cleanup:
 	if (dns_rdataset_isassociated(&rdataset)) {
 		dns_rdataset_disassociate(&rdataset);
 	}

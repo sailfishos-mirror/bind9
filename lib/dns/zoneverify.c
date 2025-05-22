@@ -1486,11 +1486,7 @@ check_dnskey_sigs(vctx_t *vctx, const dns_rdata_dnskey_t *dnskey,
 	 * is NULL, then we have neither a DNSKEY nor a DS format
 	 * trust anchor, and can give up.
 	 */
-	result = dns_keytable_find(vctx->secroots, vctx->origin, &keynode);
-	if (result != ISC_R_SUCCESS) {
-		/* No such trust anchor */
-		goto cleanup;
-	}
+	CHECK(dns_keytable_find(vctx->secroots, vctx->origin, &keynode));
 
 	/*
 	 * If the keynode has any DS format trust anchors, that means

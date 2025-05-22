@@ -305,11 +305,8 @@ control_respond(controlconnection_t *conn) {
 	isc_region_t r;
 	isc_result_t result;
 
-	result = isccc_cc_createresponse(conn->request, conn->now,
-					 conn->now + 60, &conn->response);
-	if (result != ISC_R_SUCCESS) {
-		goto cleanup;
-	}
+	CHECK(isccc_cc_createresponse(conn->request, conn->now, conn->now + 60,
+				      &conn->response));
 
 	if (conn->result == ISC_R_SHUTTINGDOWN) {
 		result = ISC_R_SUCCESS;
@@ -445,14 +442,12 @@ control_recvmessage(isc_nmhandle_t *handle ISC_ATTR_UNUSED, isc_result_t result,
 	}
 
 	if (!match) {
-		result = ISCCC_R_BADAUTH;
-		goto cleanup;
+		CHECK(ISCCC_R_BADAUTH);
 	}
 
 	/* We shouldn't be getting a reply. */
 	if (isccc_cc_isreply(conn->request)) {
-		result = ISC_R_FAILURE;
-		goto cleanup;
+		CHECK(ISC_R_FAILURE);
 	}
 
 	conn->now = isc_stdtime_now();
@@ -462,20 +457,17 @@ control_recvmessage(isc_nmhandle_t *handle ISC_ATTR_UNUSED, isc_result_t result,
 	 */
 	conn->ctrl = isccc_alist_lookup(conn->request, "_ctrl");
 	if (!isccc_alist_alistp(conn->ctrl)) {
-		result = ISC_R_FAILURE;
-		goto cleanup;
+		CHECK(ISC_R_FAILURE);
 	}
 
 	if (isccc_cc_lookupuint32(conn->ctrl, "_tim", &sent) == ISC_R_SUCCESS) {
 		if ((sent + CLOCKSKEW) < conn->now ||
 		    (sent - CLOCKSKEW) > conn->now)
 		{
-			result = DNS_R_CLOCKSKEW;
-			goto cleanup;
+			CHECK(DNS_R_CLOCKSKEW);
 		}
 	} else {
-		result = ISC_R_FAILURE;
-		goto cleanup;
+		CHECK(ISC_R_FAILURE);
 	}
 
 	/*
@@ -484,8 +476,7 @@ control_recvmessage(isc_nmhandle_t *handle ISC_ATTR_UNUSED, isc_result_t result,
 	if (isccc_cc_lookupuint32(conn->ctrl, "_exp", &exp) == ISC_R_SUCCESS &&
 	    conn->now > exp)
 	{
-		result = DNS_R_EXPIRED;
-		goto cleanup;
+		CHECK(DNS_R_EXPIRED);
 	}
 
 	/*
@@ -508,8 +499,7 @@ control_recvmessage(isc_nmhandle_t *handle ISC_ATTR_UNUSED, isc_result_t result,
 		     ISC_R_SUCCESS ||
 	     conn->nonce != nonce))
 	{
-		result = ISCCC_R_BADAUTH;
-		goto cleanup;
+		CHECK(ISCCC_R_BADAUTH);
 	}
 
 	isc_buffer_allocate(listener->mctx, &conn->text, 2 * 2048);

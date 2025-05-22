@@ -509,10 +509,7 @@ dns_ntatable_totext(dns_ntatable_t *ntatable, const char *view,
 		}
 
 		first = false;
-		result = putstr(buf, obuf);
-		if (result != ISC_R_SUCCESS) {
-			goto cleanup;
-		}
+		CHECK(putstr(buf, obuf));
 	}
 
 cleanup:

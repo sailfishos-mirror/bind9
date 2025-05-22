@@ -184,11 +184,7 @@ dns_cache_create(dns_rdataclass_t rdclass, const char *cachename,
 	/*
 	 * Create the database
 	 */
-	result = cache_create_db(cache, &cache->db, &cache->tmctx,
-				 &cache->hmctx);
-	if (result != ISC_R_SUCCESS) {
-		goto cleanup;
-	}
+	CHECK(cache_create_db(cache, &cache->db, &cache->tmctx, &cache->hmctx));
 
 	*cachep = cache;
 	return ISC_R_SUCCESS;
@@ -398,10 +394,7 @@ cleartree(dns_db_t *db, const dns_name_t *name) {
 
 	nodename = dns_fixedname_initname(&fnodename);
 
-	result = dns_db_createiterator(db, 0, &iter);
-	if (result != ISC_R_SUCCESS) {
-		goto cleanup;
-	}
+	CHECK(dns_db_createiterator(db, 0, &iter));
 
 	result = dns_dbiterator_seek(iter, name);
 	if (result == DNS_R_PARTIALMATCH) {

@@ -4524,10 +4524,7 @@ resume_qmin(void *arg) {
 	fcount_decr(fctx);
 	dns_name_copy(fname, fctx->domain);
 
-	result = fcount_incr(fctx, false);
-	if (result != ISC_R_SUCCESS) {
-		goto cleanup;
-	}
+	CHECK(fcount_incr(fctx, false));
 
 	dns_name_copy(dcname, fctx->qmindcname);
 	fctx->ns_ttl = fctx->nameservers.ttl;
@@ -6314,10 +6311,7 @@ rctx_cachemessage(respctx_t *rctx) {
 	{
 		MSG_SECTION_FOREACH(message, section, name) {
 			if (name->attributes.cache) {
-				result = rctx_cachename(rctx, message, name);
-				if (result != ISC_R_SUCCESS) {
-					goto cleanup;
-				}
+				CHECK(rctx_cachename(rctx, message, name));
 			}
 		}
 	}
@@ -6968,10 +6962,7 @@ resume_dslookup(void *arg) {
 
 		fcount_decr(fctx);
 		dns_name_copy(fctx->nsname, fctx->domain);
-		result = fcount_incr(fctx, false);
-		if (result != ISC_R_SUCCESS) {
-			goto cleanup;
-		}
+		CHECK(fcount_incr(fctx, false));
 
 		/* Try again. */
 		fctx_try(fctx, true);
@@ -7001,8 +6992,7 @@ resume_dslookup(void *arg) {
 		 * made.  Interrupt the DS chasing process, returning SERVFAIL.
 		 */
 		if (dns_name_equal(fctx->nsname, fetch->private->domain)) {
-			result = DNS_R_SERVFAIL;
-			goto cleanup;
+			CHECK(DNS_R_SERVFAIL);
 		}
 
 		/* Get nameservers from fetch before we destroy it. */
@@ -10855,10 +10845,7 @@ dns_resolver_dumpquota(dns_resolver_t *res, isc_buffer_t *buf) {
 			 " spilled %" PRIuFAST32 ")",
 			 nb, count, allowed, dropped);
 
-		result = isc_buffer_reserve(buf, strlen(text));
-		if (result != ISC_R_SUCCESS) {
-			goto cleanup;
-		}
+		CHECK(isc_buffer_reserve(buf, strlen(text)));
 		isc_buffer_putstr(buf, text);
 	}
 	if (result == ISC_R_NOMORE) {

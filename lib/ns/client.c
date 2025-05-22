@@ -610,10 +610,7 @@ ns_client_send(ns_client_t *client) {
 	 * Create an OPT for our reply.
 	 */
 	if ((client->inner.attributes & NS_CLIENTATTR_WANTOPT) != 0) {
-		result = ns_client_addopt(client, client->message);
-		if (result != ISC_R_SUCCESS) {
-			goto cleanup;
-		}
+		CHECK(ns_client_addopt(client, client->message));
 		opt_included = true;
 	}
 
@@ -642,10 +639,7 @@ ns_client_send(ns_client_t *client) {
 	dns_compress_init(&cctx, client->manager->mctx, compflags);
 	cleanup_cctx = true;
 
-	result = dns_message_renderbegin(client->message, &cctx, &buffer);
-	if (result != ISC_R_SUCCESS) {
-		goto cleanup;
-	}
+	CHECK(dns_message_renderbegin(client->message, &cctx, &buffer));
 
 	result = dns_message_rendersection(client->message,
 					   DNS_SECTION_QUESTION, 0);
@@ -689,10 +683,7 @@ ns_client_send(ns_client_t *client) {
 		goto cleanup;
 	}
 renderend:
-	result = dns_message_renderend(client->message);
-	if (result != ISC_R_SUCCESS) {
-		goto cleanup;
-	}
+	CHECK(dns_message_renderend(client->message));
 
 #ifdef HAVE_DNSTAP
 	memset(&zr, 0, sizeof(zr));

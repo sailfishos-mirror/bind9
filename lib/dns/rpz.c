@@ -1738,10 +1738,7 @@ update_nodes(dns_rpz_zone_t *rpz, isc_ht_t *newnodes) {
 		dns_rdatasetiter_t *rdsiter = NULL;
 		dns_dbnode_t *node = NULL;
 
-		result = dns__rpz_shuttingdown(rpz->rpzs);
-		if (result != ISC_R_SUCCESS) {
-			goto cleanup;
-		}
+		CHECK(dns__rpz_shuttingdown(rpz->rpzs));
 
 		result = dns_dbiterator_current(updbit, &node, name);
 		if (result != ISC_R_SUCCESS) {
@@ -1921,15 +1918,9 @@ update_rpz_cb(void *data) {
 
 	isc_ht_init(&newnodes, rpz->rpzs->mctx, 1, ISC_HT_CASE_SENSITIVE);
 
-	result = update_nodes(rpz, newnodes);
-	if (result != ISC_R_SUCCESS) {
-		goto cleanup;
-	}
+	CHECK(update_nodes(rpz, newnodes));
 
-	result = cleanup_nodes(rpz);
-	if (result != ISC_R_SUCCESS) {
-		goto cleanup;
-	}
+	CHECK(cleanup_nodes(rpz));
 
 	/* Finalize the update */
 	ISC_SWAP(rpz->nodes, newnodes);
