@@ -13200,7 +13200,8 @@ do_addzone(named_server_t *server, ns_cfgctx_t *cfg, dns_view_t *view,
 	}
 	result = isccfg_check_zoneconf(zoneobj, voptions, cfg->config, NULL,
 				       NULL, NULL, NULL, view->name,
-				       view->rdclass, cfg->actx, cfg->mctx);
+				       view->rdclass, BIND_CHECK_PLUGINS,
+				       cfg->actx, cfg->mctx);
 	if (result != ISC_R_SUCCESS) {
 		isc_loopmgr_resume();
 		goto cleanup;
@@ -13397,7 +13398,8 @@ do_modzone(named_server_t *server, ns_cfgctx_t *cfg, dns_view_t *view,
 	}
 	result = isccfg_check_zoneconf(zoneobj, voptions, cfg->config, NULL,
 				       NULL, NULL, NULL, view->name,
-				       view->rdclass, cfg->actx, cfg->mctx);
+				       view->rdclass, BIND_CHECK_PLUGINS,
+				       cfg->actx, cfg->mctx);
 	if (result != ISC_R_SUCCESS) {
 		isc_loopmgr_resume();
 		goto cleanup;

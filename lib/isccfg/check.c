@@ -2922,6 +2922,68 @@ check:
 	return result;
 }
 
+/*%
+ * Data structure used for the 'callback_data' argument to check_one_plugin().
+ */
+struct check_one_plugin_data {
+	isc_mem_t *mctx;
+	cfg_aclconfctx_t *actx;
+	isc_result_t *check_result;
+};
+
+/*%
+ * A callback for the cfg_pluginlist_foreach() call in check_plugins() below.
+ * Since the point is to check configuration of all plugins even when
+ * processing some of them fails, always return ISC_R_SUCCESS and indicate any
+ * check failures through the 'check_result' variable passed in via the
+ * 'callback_data' structure.
+ */
+static isc_result_t
+check_one_plugin(const cfg_obj_t *config, const cfg_obj_t *obj,
+		 const char *plugin_path, const char *parameters,
+		 void *callback_data) {
+	struct check_one_plugin_data *data = callback_data;
+	char full_path[PATH_MAX];
+	isc_result_t result = ISC_R_SUCCESS;
+
+	result = ns_plugin_expandpath(plugin_path, full_path,
+				      sizeof(full_path));
+	if (result != ISC_R_SUCCESS) {
+		cfg_obj_log(obj, ISC_LOG_ERROR,
+			    "%s: plugin check failed: "
+			    "unable to get full plugin path: %s",
+			    plugin_path, isc_result_totext(result));
+		return result;
+	}
+
+	result = ns_plugin_check(full_path, parameters, config,
+				 cfg_obj_file(obj), cfg_obj_line(obj),
+				 data->mctx, data->actx);
+	if (result != ISC_R_SUCCESS) {
+		cfg_obj_log(obj, ISC_LOG_ERROR, "%s: plugin check failed: %s",
+			    full_path, isc_result_totext(result));
+		*data->check_result = result;
+	}
+
+	return ISC_R_SUCCESS;
+}
+
+static isc_result_t
+check_plugins(const cfg_obj_t *plugins, const cfg_obj_t *config,
+	      cfg_aclconfctx_t *actx, isc_mem_t *mctx) {
+	isc_result_t result = ISC_R_SUCCESS;
+	struct check_one_plugin_data check_one_plugin_data = {
+		.mctx = mctx,
+		.actx = actx,
+		.check_result = &result,
+	};
+
+	(void)cfg_pluginlist_foreach(config, plugins, check_one_plugin,
+				     &check_one_plugin_data);
+
+	return result;
+}
+
 /*
  * Try to find a zone option in one of up to four levels of options:
  * for example, the zone, template, view, and global option blocks.
@@ -2957,8 +3019,8 @@ isccfg_check_zoneconf(const cfg_obj_t *zconfig, const cfg_obj_t *voptions,
 		      const cfg_obj_t *config, isc_symtab_t *symtab,
 		      isc_symtab_t *files, isc_symtab_t *keydirs,
 		      isc_symtab_t *inview, const char *viewname,
-		      dns_rdataclass_t defclass, cfg_aclconfctx_t *actx,
-		      isc_mem_t *mctx) {
+		      dns_rdataclass_t defclass, unsigned int flags,
+		      cfg_aclconfctx_t *actx, isc_mem_t *mctx) {
 	const char *znamestr = NULL;
 	const char *typestr = NULL;
 	const char *target = NULL;
@@ -3923,6 +3985,16 @@ isccfg_check_zoneconf(const cfg_obj_t *zconfig, const cfg_obj_t *voptions,
 			if (result == ISC_R_SUCCESS) {
 				result = ISC_R_RANGE;
 			}
+		}
+	}
+
+	if ((flags & BIND_CHECK_PLUGINS) != 0 && zoptions != NULL) {
+		const cfg_obj_t *plugins = NULL;
+
+		(void)cfg_map_get(zoptions, "plugin", &plugins);
+		tresult = check_plugins(plugins, config, actx, mctx);
+		if (tresult != ISC_R_SUCCESS) {
+			result = tresult;
 		}
 	}
 
@@ -5179,52 +5251,6 @@ check_catz(const cfg_obj_t *catz_obj, const char *viewname, isc_mem_t *mctx) {
 	return result;
 }
 
-/*%
- * Data structure used for the 'callback_data' argument to check_one_plugin().
- */
-struct check_one_plugin_data {
-	isc_mem_t *mctx;
-	cfg_aclconfctx_t *actx;
-	isc_result_t *check_result;
-};
-
-/*%
- * A callback for the cfg_pluginlist_foreach() call in check_viewconf() below.
- * Since the point is to check configuration of all plugins even when
- * processing some of them fails, always return ISC_R_SUCCESS and indicate any
- * check failures through the 'check_result' variable passed in via the
- * 'callback_data' structure.
- */
-static isc_result_t
-check_one_plugin(const cfg_obj_t *config, const cfg_obj_t *obj,
-		 const char *plugin_path, const char *parameters,
-		 void *callback_data) {
-	struct check_one_plugin_data *data = callback_data;
-	char full_path[PATH_MAX];
-	isc_result_t result = ISC_R_SUCCESS;
-
-	result = ns_plugin_expandpath(plugin_path, full_path,
-				      sizeof(full_path));
-	if (result != ISC_R_SUCCESS) {
-		cfg_obj_log(obj, ISC_LOG_ERROR,
-			    "%s: plugin check failed: "
-			    "unable to get full plugin path: %s",
-			    plugin_path, isc_result_totext(result));
-		return result;
-	}
-
-	result = ns_plugin_check(full_path, parameters, config,
-				 cfg_obj_file(obj), cfg_obj_line(obj),
-				 data->mctx, data->actx);
-	if (result != ISC_R_SUCCESS) {
-		cfg_obj_log(obj, ISC_LOG_ERROR, "%s: plugin check failed: %s",
-			    full_path, isc_result_totext(result));
-		*data->check_result = result;
-	}
-
-	return ISC_R_SUCCESS;
-}
-
 static isc_result_t
 check_dnstap(const cfg_obj_t *voptions, const cfg_obj_t *config) {
 #ifdef HAVE_DNSTAP
@@ -5276,11 +5302,9 @@ check_viewconf(const cfg_obj_t *config, const cfg_obj_t *voptions,
 	const cfg_obj_t *obj = NULL;
 	const cfg_obj_t *options = NULL;
 	const cfg_obj_t *opts = NULL;
-	const cfg_obj_t *plugin_list = NULL;
 	bool autovalidation = false;
 	unsigned int dflags = 0;
 	int i;
-	bool check_plugins = (flags & BIND_CHECK_PLUGINS) != 0;
 	bool check_algorithms = (flags & BIND_CHECK_ALGORITHMS) != 0;
 
 	/*
@@ -5314,9 +5338,9 @@ check_viewconf(const cfg_obj_t *config, const cfg_obj_t *voptions,
 	CFG_LIST_FOREACH(zones, element) {
 		const cfg_obj_t *zone = cfg_listelt_value(element);
 
-		tresult = isccfg_check_zoneconf(zone, voptions, config, symtab,
-						files, keydirs, inview,
-						viewname, vclass, actx, mctx);
+		tresult = isccfg_check_zoneconf(
+			zone, voptions, config, symtab, files, keydirs, inview,
+			viewname, vclass, flags, actx, mctx);
 		if (tresult != ISC_R_SUCCESS) {
 			result = ISC_R_FAILURE;
 		}
@@ -5571,27 +5595,16 @@ check_viewconf(const cfg_obj_t *config, const cfg_obj_t *voptions,
 		result = tresult;
 	}
 
-	/*
-	 * Load plugins.
-	 */
-	if (check_plugins) {
+	if ((flags & BIND_CHECK_PLUGINS) != 0) {
+		const cfg_obj_t *plugins = NULL;
+
 		if (voptions != NULL) {
-			(void)cfg_map_get(voptions, "plugin", &plugin_list);
+			(void)cfg_map_get(voptions, "plugin", &plugins);
 		} else {
-			(void)cfg_map_get(config, "plugin", &plugin_list);
+			(void)cfg_map_get(config, "plugin", &plugins);
 		}
-	}
 
-	{
-		struct check_one_plugin_data check_one_plugin_data = {
-			.mctx = mctx,
-			.actx = actx,
-			.check_result = &tresult,
-		};
-
-		(void)cfg_pluginlist_foreach(config, plugin_list,
-					     check_one_plugin,
-					     &check_one_plugin_data);
+		tresult = check_plugins(plugins, config, actx, mctx);
 		if (tresult != ISC_R_SUCCESS) {
 			result = tresult;
 		}

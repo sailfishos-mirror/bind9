@@ -2463,6 +2463,9 @@ static cfg_clausedef_t zone_only_clauses[] = {
 		  CFG_ZONE_REDIRECT | CFG_CLAUSEFLAG_NODOC },
 	{ "parental-agents", &cfg_type_namesockaddrkeylist,
 	  CFG_ZONE_PRIMARY | CFG_ZONE_SECONDARY },
+	{ "plugin", &cfg_type_plugin,
+	  CFG_CLAUSEFLAG_MULTI | CFG_ZONE_PRIMARY | CFG_ZONE_SECONDARY |
+		  CFG_ZONE_REDIRECT | CFG_ZONE_MIRROR },
 	{ "primaries", &cfg_type_namesockaddrkeylist,
 	  CFG_ZONE_SECONDARY | CFG_ZONE_MIRROR | CFG_ZONE_STUB |
 		  CFG_ZONE_REDIRECT },

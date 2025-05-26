@@ -73,8 +73,8 @@ isccfg_check_zoneconf(const cfg_obj_t *zconfig, const cfg_obj_t *voptions,
 		      const cfg_obj_t *config, isc_symtab_t *symtab,
 		      isc_symtab_t *files, isc_symtab_t *keydirs,
 		      isc_symtab_t *inview, const char *viewname,
-		      dns_rdataclass_t defclass, cfg_aclconfctx_t *actx,
-		      isc_mem_t *mctx);
+		      dns_rdataclass_t defclass, unsigned int flags,
+		      cfg_aclconfctx_t *actx, isc_mem_t *mctx);
 /*%<
  * Check the syntactic validity of a zone statement, either in a
  * named.conf file or in an "rndc addzone" or "rndc modzone" command.
