@@ -25,3 +25,7 @@ def test_hooks_noextension(ns1, templates):
         ns1.rndc("reload")
         watcher.wait_for_line("all zones loaded")
     test_hooks()
+
+
+def test_plugins_config(run_tests_sh):
+    run_tests_sh()

@@ -29,6 +29,7 @@ system_test_binaries += {
 
 system_test_libraries += {
     'driver-async': files('hooks' / 'driver' / 'test-async.c'),
+    'driver-syncplugin': files('hooks' / 'driver' / 'test-syncplugin.c'),
     'driver-dlzexternal': files('dlzexternal' / 'driver' / 'driver.c'),
     'driver-sample': files(
         'dyndb' / 'driver' / 'db.c',

@@ -1662,6 +1662,7 @@ foreach name, sources : system_test_libraries
         dependencies: [
             libdns_dep,
             libisc_dep,
+            libisccfg_dep,
             libns_dep,
         ],
     )
