@@ -9,7 +9,13 @@
 # See the COPYRIGHT file distributed with this work for additional
 # information regarding copyright ownership.
 
+import dns
+import pytest
 import isctest
+
+pytest.importorskip("dns")
+
+pytestmark = pytest.mark.extra_artifacts(["conf/*.conf"])
 
 
 def test_hooks():
@@ -27,5 +33,47 @@ def test_hooks_noextension(ns1, templates):
     test_hooks()
 
 
-def test_plugins_config(run_tests_sh):
+def test_hooks_global_hook():
+    msg = isctest.query.create("idontexists.example.com", "A")
+    res = isctest.query.udp(msg, "10.53.0.2")
+    isctest.check.rcode(res, dns.rcode.NOERROR)
+
+
+def test_hooks_zone_hook1():
+    msg = isctest.query.create("idonotexists.example2.com", "A")
+    res = isctest.query.udp(msg, "10.53.0.2")
+    isctest.check.rcode(res, dns.rcode.SERVFAIL)
+
+
+def test_hooks_zone_hook2():
+    msg = isctest.query.create("idonotexists.example3.com", "A")
+    res = isctest.query.udp(msg, "10.53.0.2")
+    isctest.check.rcode(res, dns.rcode.NOTIMP)
+
+
+# ensure a plugin defined in a template is correcty registered to zone using
+# this template
+def test_hooks_zonetemplate1():
+    msg = isctest.query.create("idonotexists.example4.com", "A")
+    res = isctest.query.udp(msg, "10.53.0.2")
+    isctest.check.rcode(res, dns.rcode.NOTAUTH)
+
+
+# ensure plugin defined in zone are correctly registered when the zone also
+# using a template with plugins (the plugin defined in the template is called
+# first, but it bails out without doing anything because the first label is
+# "skipfoo". So the plugin defined in the zone is then called, and return
+# notzone)
+def test_hooks_zonetemplate2():
+    msg = isctest.query.create("skipfoo.example4.com", "A")
+    res = isctest.query.udp(msg, "10.53.0.2")
+    isctest.check.rcode(res, dns.rcode.NOTZONE)
+
+
+def test_hooks_zone_rndc_reload(servers):
+    ns2 = servers["ns2"]
+    ns2.rndc("reload")
+
+
+def test_hooks_config(run_tests_sh):
     run_tests_sh()

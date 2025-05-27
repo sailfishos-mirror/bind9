@@ -1,0 +1,77 @@
+/*
+ * Copyright (C) Internet Systems Consortium, Inc. ("ISC")
+ *
+ * SPDX-License-Identifier: MPL-2.0
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0.  If a copy of the MPL was not distributed with this
+ * file, you can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * See the COPYRIGHT file distributed with this work for additional
+ * information regarding copyright ownership.
+ */
+
+options {
+	query-source address 10.53.0.2;
+	notify-source 10.53.0.2;
+	transfer-source 10.53.0.2;
+	port @PORT@;
+	pid-file "named.pid";
+	listen-on { 10.53.0.2; };
+	recursion no;
+	dnssec-validation yes;
+	notify yes;
+	minimal-responses no;
+};
+
+trust-anchors { };
+
+key rndc_key {
+	secret "1234abcd8765";
+	algorithm @DEFAULT_HMAC@;
+};
+
+controls {
+	inet 10.53.0.2 port @CONTROLPORT@ allow { any; } keys { rndc_key; };
+};
+
+plugin query "@TOP_BUILDDIR@/testlib-driver-syncplugin.so" {
+	rcode noerror;
+};
+
+zone "example.com" {
+	type primary;
+	file "example.db";
+};
+
+zone "example2.com" {
+	type primary;
+	file "example.db";
+	plugin query "@TOP_BUILDDIR@/testlib-driver-syncplugin.so" {
+		rcode servfail;
+	};
+};
+
+zone "example3.com" {
+	type primary;
+	file "example.db";
+	plugin query "@TOP_BUILDDIR@/testlib-driver-syncplugin.so" {
+		rcode notimp;
+	};
+};
+
+template exampletmpl {
+	type primary;
+	file "$name.db";
+	plugin query "@TOP_BUILDDIR@/testlib-driver-syncplugin.so" {
+		rcode notauth;
+		firstlbl "skipfoo";
+	};
+};
+
+zone "example4.com" {
+	template exampletmpl;
+	plugin query "@TOP_BUILDDIR@/testlib-driver-syncplugin.so" {
+		rcode notzone;
+	};
+};
