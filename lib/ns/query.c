@@ -259,18 +259,80 @@ acquire_recursionquota(ns_client_t *client);
 static void
 release_recursionquota(ns_client_t *client);
 
-/*
- * Return the hooktable in use with 'qctx', or if there isn't one
- * set, return the default hooktable.
- */
-static ns_hooktable_t *
-get_hooktab(query_ctx_t *qctx) {
-	if (qctx == NULL || qctx->view == NULL || qctx->view->hooktable == NULL)
-	{
-		return ns__hook_table;
+static ns_hookresult_t
+ns__query_callhook(uint8_t id, query_ctx_t *qctx, isc_result_t *result,
+		   ns_hooktable_t *hooktab) {
+	isc_result_t hookresult = *result;
+	ns_hook_t *hook;
+
+	if (hooktab == NULL) {
+		return NS_HOOK_CONTINUE;
 	}
 
-	return qctx->view->hooktable;
+	hook = ISC_LIST_HEAD((*hooktab)[id]);
+	while (hook != NULL) {
+		ns_hook_action_t func = hook->action;
+		void *data = hook->action_data;
+
+		INSIST(func != NULL);
+
+		switch (func(qctx, data, &hookresult)) {
+		case NS_HOOK_CONTINUE:
+			hook = ISC_LIST_NEXT(hook, link);
+			break;
+		case NS_HOOK_RETURN:
+			*result = hookresult;
+			return NS_HOOK_RETURN;
+		default:
+			UNREACHABLE();
+		}
+	}
+
+	return NS_HOOK_CONTINUE;
+}
+
+static void
+ns__query_callhook_noreturn(uint8_t id, query_ctx_t *qctx,
+			    ns_hooktable_t *hooktab) {
+	ns_hook_t *hook;
+	isc_result_t dummyres;
+
+	if (hooktab == NULL) {
+		return;
+	}
+
+	hook = ISC_LIST_HEAD((*hooktab)[id]);
+	while (hook != NULL) {
+		ns_hook_action_t func = hook->action;
+		void *data = hook->action_data;
+
+		INSIST(func != NULL);
+
+		func(qctx, data, &dummyres);
+		hook = ISC_LIST_NEXT(hook, link);
+	}
+}
+
+static ns_hooktable_t *
+ns__zone_hooktab(query_ctx_t *qctx) {
+	ns_hooktable_t *hooktab = NULL;
+
+	if (qctx && qctx->zone) {
+		hooktab = dns_zone_gethooktable(qctx->zone);
+	}
+
+	return hooktab;
+}
+
+static ns_hooktable_t *
+ns__view_hooktab(query_ctx_t *qctx) {
+	ns_hooktable_t *hooktab = NULL;
+
+	if (qctx && qctx->view) {
+		hooktab = qctx->view->hooktable;
+	}
+
+	return hooktab;
 }
 
 /*
@@ -283,28 +345,22 @@ get_hooktab(query_ctx_t *qctx) {
  * is a macro instead of a static function; it needs to be able to use
  * 'goto cleanup' regardless of the return value.)
  */
-#define CALL_HOOK(_id, _qctx)                                       \
-	do {                                                        \
-		isc_result_t _res = result;                         \
-		ns_hooktable_t *_tab = get_hooktab(_qctx);          \
-		ns_hook_t *_hook;                                   \
-		_hook = ISC_LIST_HEAD((*_tab)[_id]);                \
-		while (_hook != NULL) {                             \
-			ns_hook_action_t _func = _hook->action;     \
-			void *_data = _hook->action_data;           \
-			INSIST(_func != NULL);                      \
-			switch (_func(_qctx, _data, &_res)) {       \
-			case NS_HOOK_CONTINUE:                      \
-				_hook = ISC_LIST_NEXT(_hook, link); \
-				break;                              \
-			case NS_HOOK_RETURN:                        \
-				result = _res;                      \
-				goto cleanup;                       \
-			default:                                    \
-				UNREACHABLE();                      \
-			}                                           \
-		}                                                   \
-	} while (false)
+#define CALL_HOOK(_id, _qctx)                                              \
+	if (ns__query_callhook(_id, _qctx, &result,                        \
+			       ns__zone_hooktab(_qctx)) == NS_HOOK_RETURN) \
+	{                                                                  \
+		goto cleanup;                                              \
+	}                                                                  \
+	if (ns__query_callhook(_id, _qctx, &result,                        \
+			       ns__view_hooktab(_qctx)) == NS_HOOK_RETURN) \
+	{                                                                  \
+		goto cleanup;                                              \
+	}                                                                  \
+	if (ns__query_callhook(_id, _qctx, &result, ns__hook_table) ==     \
+	    NS_HOOK_RETURN)                                                \
+	{                                                                  \
+		goto cleanup;                                              \
+	}
 
 /*
  * Call the specified hook function in every configured module that
@@ -315,20 +371,10 @@ get_hooktab(query_ctx_t *qctx) {
  * (This could be implemented as a static void function, but is left as a
  * macro for symmetry with CALL_HOOK above.)
  */
-#define CALL_HOOK_NORETURN(_id, _qctx)                          \
-	do {                                                    \
-		isc_result_t _res;                              \
-		ns_hooktable_t *_tab = get_hooktab(_qctx);      \
-		ns_hook_t *_hook;                               \
-		_hook = ISC_LIST_HEAD((*_tab)[_id]);            \
-		while (_hook != NULL) {                         \
-			ns_hook_action_t _func = _hook->action; \
-			void *_data = _hook->action_data;       \
-			INSIST(_func != NULL);                  \
-			_func(_qctx, _data, &_res);             \
-			_hook = ISC_LIST_NEXT(_hook, link);     \
-		}                                               \
-	} while (false)
+#define CALL_HOOK_NORETURN(_id, _qctx)                                    \
+	ns__query_callhook_noreturn(_id, _qctx, ns__zone_hooktab(_qctx)); \
+	ns__query_callhook_noreturn(_id, _qctx, ns__view_hooktab(_qctx)); \
+	ns__query_callhook_noreturn(_id, _qctx, ns__hook_table);
 
 /*
  * The functions defined below implement the query logic that previously lived

@@ -448,6 +448,15 @@ typedef struct ns_hook_resume {
 } ns_hook_resume_t;
 
 /*
+ * Wrapper struct holding hook/plugins owning data structures used and owned by
+ * zones and views having registered plugins.
+ */
+typedef struct ns_hook_data {
+	ns_hooktable_t *hooktable;
+	ns_plugins_t   *plugins;
+} ns_hook_data_t;
+
+/*
  * Plugin API version
  *
  * When the API changes, increment NS_PLUGIN_VERSION. If the
@@ -535,7 +544,7 @@ ns_plugin_expandpath(const char *src, char *dst, size_t dstsize);
 isc_result_t
 ns_plugin_register(const char *modpath, const char *parameters, const void *cfg,
 		   const char *cfg_file, unsigned long cfg_line,
-		   isc_mem_t *mctx, void *actx, dns_view_t *view);
+		   isc_mem_t *mctx, void *actx, ns_hook_data_t *hookdata);
 /*%<
  * Load the plugin module specified from the file 'modpath', and
  * register an instance using 'parameters'.
@@ -603,7 +612,7 @@ ns_hooktable_init(ns_hooktable_t *hooktable);
  * Initialize a hook table.
  */
 
-isc_result_t
+void
 ns_hooktable_create(isc_mem_t *mctx, ns_hooktable_t **tablep);
 /*%<
  * Allocate and initialize a hook table.

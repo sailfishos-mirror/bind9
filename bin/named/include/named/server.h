@@ -31,6 +31,8 @@
 #include <dns/stats.h>
 #include <dns/types.h>
 
+#include <isccfg/cfg.h>
+
 #include <ns/interfacemgr.h>
 #include <ns/server.h>
 #include <ns/stats.h>
@@ -407,3 +409,13 @@ named_server_togglememprof(isc_lex_t *lex);
  */
 const char *
 named_server_getmemprof(void);
+
+/*%
+ * Helper callback function to register a plugin, called via
+ * cfg_pluginlist_foreach(). Note: if registration of any
+ * plugin fails, subsequent ones will not be attempted.
+ */
+isc_result_t
+named_register_one_plugin(const cfg_obj_t *config, const cfg_obj_t *obj,
+			  const char *plugin_path, const char *parameters,
+			  void *callback_data);

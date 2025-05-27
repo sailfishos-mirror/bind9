@@ -224,12 +224,12 @@ unload_plugin(ns_plugin_t **pluginp) {
 isc_result_t
 ns_plugin_register(const char *modpath, const char *parameters, const void *cfg,
 		   const char *cfg_file, unsigned long cfg_line,
-		   isc_mem_t *mctx, void *actx, dns_view_t *view) {
+		   isc_mem_t *mctx, void *actx, ns_hook_data_t *hookdata) {
 	isc_result_t result;
 	ns_plugin_t *plugin = NULL;
 
 	REQUIRE(mctx != NULL);
-	REQUIRE(view != NULL);
+	REQUIRE(hookdata != NULL);
 
 	isc_log_write(NS_LOGCATEGORY_GENERAL, NS_LOGMODULE_HOOKS, ISC_LOG_INFO,
 		      "loading plugin '%s'", modpath);
@@ -240,9 +240,9 @@ ns_plugin_register(const char *modpath, const char *parameters, const void *cfg,
 		      "registering plugin '%s'", modpath);
 
 	CHECK(plugin->register_func(parameters, cfg, cfg_file, cfg_line, mctx,
-				    actx, view->hooktable, &plugin->inst));
+				    actx, hookdata->hooktable, &plugin->inst));
 
-	ISC_LIST_APPEND(*(ns_plugins_t *)view->plugins, plugin, link);
+	ISC_LIST_APPEND(*hookdata->plugins, plugin, link);
 
 cleanup:
 	if (result != ISC_R_SUCCESS && plugin != NULL) {
@@ -281,7 +281,7 @@ ns_hooktable_init(ns_hooktable_t *hooktable) {
 	}
 }
 
-isc_result_t
+void
 ns_hooktable_create(isc_mem_t *mctx, ns_hooktable_t **tablep) {
 	ns_hooktable_t *hooktable = NULL;
 
@@ -292,8 +292,6 @@ ns_hooktable_create(isc_mem_t *mctx, ns_hooktable_t **tablep) {
 	ns_hooktable_init(hooktable);
 
 	*tablep = hooktable;
-
-	return ISC_R_SUCCESS;
 }
 
 void

@@ -43,6 +43,7 @@
 #include <dns/zone.h>
 
 #include <ns/client.h>
+#include <ns/hooks.h>
 
 #include <named/config.h>
 #include <named/globals.h>
@@ -2096,4 +2097,43 @@ named_zone_templateopts(const cfg_obj_t *config, const cfg_obj_t *zoptions) {
 	}
 
 	return NULL;
+}
+
+isc_result_t
+named_zone_loadplugins(dns_zone_t *zone, const cfg_obj_t *config,
+		       const cfg_obj_t *zoptions) {
+	isc_result_t result = ISC_R_SUCCESS;
+	const cfg_obj_t *pluginlist = NULL;
+
+	/*
+	 * If the zone previously had any loaded plugins, unload them:
+	 * they might not be needed anymore, or they might hold state
+	 * that's now obsolete.
+	 */
+	dns_zone_unloadplugins(zone);
+
+	/*
+	 * Load zone-specific plugin instances.
+	 */
+	if (zoptions != NULL) {
+		(void)cfg_map_get(zoptions, "plugin", &pluginlist);
+	}
+
+	if (pluginlist != NULL) {
+		ns_hook_data_t hookdata = {};
+		isc_mem_t *zmctx = dns_zone_getmctx(zone);
+
+		ns_hooktable_create(zmctx, &hookdata.hooktable);
+		dns_zone_sethooktable(zone, hookdata.hooktable,
+				      ns_hooktable_free);
+
+		ns_plugins_create(zmctx, &hookdata.plugins);
+		dns_zone_setplugins(zone, hookdata.plugins, ns_plugins_free);
+
+		result = cfg_pluginlist_foreach(config, pluginlist,
+						named_register_one_plugin,
+						&hookdata);
+	}
+
+	return result;
 }
