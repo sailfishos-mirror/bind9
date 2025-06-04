@@ -2101,9 +2101,10 @@ named_zone_templateopts(const cfg_obj_t *config, const cfg_obj_t *zoptions) {
 
 isc_result_t
 named_zone_loadplugins(dns_zone_t *zone, const cfg_obj_t *config,
-		       const cfg_obj_t *zoptions) {
+		       const cfg_obj_t *toptions, const cfg_obj_t *zoptions) {
 	isc_result_t result = ISC_R_SUCCESS;
-	const cfg_obj_t *pluginlist = NULL;
+	const cfg_obj_t *zpluginlist = NULL;
+	const cfg_obj_t *tpluginlist = NULL;
 
 	/*
 	 * If the zone previously had any loaded plugins, unload them:
@@ -2115,11 +2116,15 @@ named_zone_loadplugins(dns_zone_t *zone, const cfg_obj_t *config,
 	/*
 	 * Load zone-specific plugin instances.
 	 */
-	if (zoptions != NULL) {
-		(void)cfg_map_get(zoptions, "plugin", &pluginlist);
+	if (toptions != NULL) {
+		(void)cfg_map_get(toptions, "plugin", &tpluginlist);
 	}
 
-	if (pluginlist != NULL) {
+	if (zoptions != NULL) {
+		(void)cfg_map_get(zoptions, "plugin", &zpluginlist);
+	}
+
+	if (tpluginlist != NULL || zpluginlist != NULL) {
 		ns_hook_data_t hookdata = {};
 		isc_mem_t *zmctx = dns_zone_getmctx(zone);
 
@@ -2130,7 +2135,14 @@ named_zone_loadplugins(dns_zone_t *zone, const cfg_obj_t *config,
 		ns_plugins_create(zmctx, &hookdata.plugins);
 		dns_zone_setplugins(zone, hookdata.plugins, ns_plugins_free);
 
-		result = cfg_pluginlist_foreach(config, pluginlist,
+		result = cfg_pluginlist_foreach(config, tpluginlist,
+						named_register_one_plugin,
+						&hookdata);
+		if (result != ISC_R_SUCCESS) {
+			return result;
+		}
+
+		result = cfg_pluginlist_foreach(config, zpluginlist,
 						named_register_one_plugin,
 						&hookdata);
 	}

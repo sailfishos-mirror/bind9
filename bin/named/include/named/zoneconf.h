@@ -84,7 +84,7 @@ named_zone_templateopts(const cfg_obj_t *config, const cfg_obj_t *zoptions);
 
 isc_result_t
 named_zone_loadplugins(dns_zone_t *zone, const cfg_obj_t *config,
-		       const cfg_obj_t *zoptions);
+		       const cfg_obj_t *toptions, const cfg_obj_t *zoptions);
 /*%<
  * Load plugins that should run for this specific zone. Take care of cleaning
  * up any pre-existing plugins first, if the zone is re-used.
@@ -93,4 +93,6 @@ named_zone_loadplugins(dns_zone_t *zone, const cfg_obj_t *config,
  * \li	'zone' to be a valid zone
  * \li	'config' to be a valid named.conf configuration tree
  * \li	'zoptions' to be a valid zone configuration tree
+ * \li	'toptions' to be NULL or valid template configuration tree
+ * \li	'zoptions' to be NULL or a valid zone configuration tree
  */

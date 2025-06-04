@@ -6660,7 +6660,7 @@ configure_zone(const cfg_obj_t *config, const cfg_obj_t *zconfig,
 		dns_zone_rekey(zone, fullsign, false);
 	}
 
-	result = named_zone_loadplugins(zone, config, zoptions);
+	result = named_zone_loadplugins(zone, config, toptions, zoptions);
 
 cleanup:
 	if (zone != NULL) {
