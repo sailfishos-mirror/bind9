@@ -42,9 +42,9 @@ A plugin is configured with the :any:`plugin` statement in :iscman:`named.conf`:
 
 ::
 
-       plugin query "library.so" {
-           parameters
-       };
+   plugin query "library.so" {
+       parameters
+   };
 
 
 In this example, ``query`` indicates that this is a query plugin,
@@ -57,6 +57,47 @@ plugins or multiple instances of the same plugin.
 
 ``parameters`` are passed as an opaque string to the plugin's initialization
 routine. Configuration syntax differs depending on the module.
+
+Plugins can be configured globally, or at the :any:`view` or :any:`zone` level.
+
+If a plugin is configured inside a zone (either directly or via inclusion
+from a :any:`template`), then an instance of the plugin will be loaded for
+that specific zone, and its hooks will be called only when that zone is
+being used to answer a query.
+
+::
+
+    view external {
+        template primary {
+            type primary;
+            file "$name.db";
+            plugin query "plugin1.so" { parameters };
+        };
+
+        zone "example.com." {
+            template primary;
+            plugin query "plugin2.so" { parameters };
+        };
+
+        plugin query "plugin3.so" { paramters };
+    };
+
+In the above example, three plugin instances will be loaded: ``plugin1.so``
+(which was configured in the template) and ``plugin2.so`` (configured in
+the zone statement) will both be applied whenever a query looks up a name
+in ``example.com``, and ``plugin3.so`` will apply to all queries answered
+from the view ``external`` (including those from `example.com`).
+
+.. warning ::
+
+   It is possible to configure multiple instances of the same plugin into
+   the same view or in the same zone, either directly or by inclusion from
+   a :any:`template`.  While this configuration is legal, it should be
+   avoided unless the plugin has been specifically designed for such use.
+   The behavior of the first instance of a plugin used in a query may
+   prevent subsequent instances from being called, causing unexpected
+   behavior.
+
 
 Developing Plugins
 ~~~~~~~~~~~~~~~~~~
