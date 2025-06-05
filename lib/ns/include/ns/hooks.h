@@ -342,6 +342,30 @@
  *   actions. As long as hook actions have side effects, including
  *   modifying the internal query state, it's not guaranteed safe
  *   to use multiple independent hooks at the same time.)
+ *
+ * ZONE-SPECIFIC PLUGINS
+ *
+ * A plugin can be configured at the zone level instead of the view level
+ * (either directly inside a zone, or through zone template inclusion). Each
+ * zone has its own hooktable and plugin list, so the mechanism described
+ * above works in the same way. There are two differences, however:
+ *
+ * - Zone plugin hooks are called first. Zone template hooks are called
+ *   second. View hooks are called third. If any plugin hook at any level
+ *   returns NS_HOOK_RETURN, the whole calling chain is stopped and no
+ *   subsequent hooks are called. (See the `ns__query_hookchain` unit test
+ *   in `tests/ns/query_test.c`.)
+ *
+ * - When a query hook is called, the `qctx->client->query.authzone`
+ *   pointer is checked to determine whether an authoritative zone is
+ *   being used to answer the query; if so, the zone's hooktable is used to
+ *   call the hooks. As a consequence, a zone plugin won't be called by all
+ *   the hook points defined below in `ns_hookpoint_t`. For instance,
+ *   `NS_QUERY_SETUP` and `NS_QUERY_QCTX_INITIALIZED` will never be
+ *   called in a zone plugin, as they occur before the zone has been
+ *   looked up.  `NS_QUERY_DONE_BEGIN` could be called if an
+ *   authoritative zone has been used, but in some flows (for
+ *   instance, bad cookie handling), it would be skipped.
  */
 
 /*!
