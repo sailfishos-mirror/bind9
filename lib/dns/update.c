@@ -372,7 +372,7 @@ foreach_rrset(dns_db_t *db, dns_dbversion_t *ver, dns_name_t *name,
 	dns_rdatasetiter_destroy(&iter);
 
 cleanup_node:
-	dns_db_detachnode(db, &node);
+	dns_db_detachnode(&node);
 
 	return result;
 }
@@ -457,7 +457,7 @@ foreach_rr(dns_db_t *db, dns_dbversion_t *ver, dns_name_t *name,
 cleanup_rdataset:
 	dns_rdataset_disassociate(&rdataset);
 cleanup_node:
-	dns_db_detachnode(db, &node);
+	dns_db_detachnode(&node);
 
 	return result;
 }
@@ -728,7 +728,7 @@ namelist_append_subdomain(dns_db_t *db, dns_name_t *name,
 	{
 		dns_dbnode_t *node = NULL;
 		CHECK(dns_dbiterator_current(dbit, &node, child));
-		dns_db_detachnode(db, &node);
+		dns_db_detachnode(&node);
 		if (!dns_name_issubdomain(child, name)) {
 			break;
 		}
@@ -905,7 +905,7 @@ next_active(dns_update_log_t *log, dns_zone_t *zone, dns_db_t *db,
 			}
 		}
 		CHECK(dns_dbiterator_current(dbit, &node, newname));
-		dns_db_detachnode(db, &node);
+		dns_db_detachnode(&node);
 
 		/*
 		 * The iterator may hold the tree lock, and
@@ -974,7 +974,7 @@ add_nsec(dns_update_log_t *log, dns_zone_t *zone, dns_db_t *db,
 	CHECK(dns_db_findnode(db, name, false, &node));
 	dns_rdata_init(&rdata);
 	CHECK(dns_nsec_buildrdata(db, ver, node, target, buffer, &rdata));
-	dns_db_detachnode(db, &node);
+	dns_db_detachnode(&node);
 
 	/*
 	 * Delete the old NSEC and record the change.
@@ -991,7 +991,7 @@ add_nsec(dns_update_log_t *log, dns_zone_t *zone, dns_db_t *db,
 
 failure:
 	if (node != NULL) {
-		dns_db_detachnode(db, &node);
+		dns_db_detachnode(&node);
 	}
 	return result;
 }
@@ -1110,7 +1110,7 @@ add_sigs(dns_update_log_t *log, dns_zone_t *zone, dns_db_t *db,
 	}
 	CHECK(dns_db_findrdataset(db, node, ver, type, 0, (isc_stdtime_t)0,
 				  &rdataset, NULL));
-	dns_db_detachnode(db, &node);
+	dns_db_detachnode(&node);
 
 #define REVOKE(x) ((dst_key_flags(x) & DNS_KEYFLAG_REVOKE) != 0)
 #define KSK(x)	  ((dst_key_flags(x) & DNS_KEYFLAG_KSK) != 0)
@@ -1258,7 +1258,7 @@ failure:
 		dns_rdataset_disassociate(&rdataset);
 	}
 	if (node != NULL) {
-		dns_db_detachnode(db, &node);
+		dns_db_detachnode(&node);
 	}
 	return result;
 }
@@ -1289,7 +1289,7 @@ del_keysigs(dns_db_t *db, dns_dbversion_t *ver, dns_name_t *name,
 	result = dns_db_findrdataset(db, node, ver, dns_rdatatype_rrsig,
 				     dns_rdatatype_dnskey, (isc_stdtime_t)0,
 				     &rdataset, NULL);
-	dns_db_detachnode(db, &node);
+	dns_db_detachnode(&node);
 
 	if (result == ISC_R_NOTFOUND) {
 		return ISC_R_SUCCESS;
@@ -1339,7 +1339,7 @@ del_keysigs(dns_db_t *db, dns_dbversion_t *ver, dns_name_t *name,
 
 failure:
 	if (node != NULL) {
-		dns_db_detachnode(db, &node);
+		dns_db_detachnode(&node);
 	}
 	return result;
 }
@@ -1405,7 +1405,7 @@ add_exposed_sigs(dns_update_log_t *log, dns_zone_t *zone, dns_db_t *db,
 	dns_rdatasetiter_destroy(&iter);
 
 cleanup_node:
-	dns_db_detachnode(db, &node);
+	dns_db_detachnode(&node);
 
 	return result;
 }
@@ -1556,7 +1556,7 @@ dns_update_signaturesinc(dns_update_log_t *log, dns_zone_t *zone, dns_db_t *db,
 		CHECK(dns_rdata_tostruct(&rdata, &soa, NULL));
 		state->nsecttl = ISC_MIN(rdataset.ttl, soa.minimum);
 		dns_rdataset_disassociate(&rdataset);
-		dns_db_detachnode(db, &node);
+		dns_db_detachnode(&node);
 
 		/*
 		 * Find all RRsets directly affected by the update, and
@@ -2125,7 +2125,7 @@ next_state:
 
 failure:
 	if (node != NULL) {
-		dns_db_detachnode(db, &node);
+		dns_db_detachnode(&node);
 	}
 
 	dns_diff_clear(&state->sig_diff);

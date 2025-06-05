@@ -408,7 +408,7 @@ fetch_callback_dnskey(void *arg) {
 
 	/* Free resources which are not of interest. */
 	if (resp->node != NULL) {
-		dns_db_detachnode(resp->db, &resp->node);
+		dns_db_detachnode(&resp->node);
 	}
 	if (resp->db != NULL) {
 		dns_db_detach(&resp->db);
@@ -504,7 +504,7 @@ fetch_callback_ds(void *arg) {
 
 	/* Free resources which are not of interest. */
 	if (resp->node != NULL) {
-		dns_db_detachnode(resp->db, &resp->node);
+		dns_db_detachnode(&resp->node);
 	}
 	if (resp->db != NULL) {
 		dns_db_detach(&resp->db);

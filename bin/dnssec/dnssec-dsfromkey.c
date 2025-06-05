@@ -132,7 +132,7 @@ loadset(const char *filename, dns_rdataset_t *rdataset) {
 	}
 
 	if (node != NULL) {
-		dns_db_detachnode(db, &node);
+		dns_db_detachnode(&node);
 	}
 	if (db != NULL) {
 		dns_db_detach(&db);

@@ -62,12 +62,12 @@ typedef struct bdb {
 } bdb_t;
 
 struct bdbnode {
-	unsigned int magic;
+	DBNODE_FIELDS;
+
 	isc_refcount_t references;
 	bdb_t *bdb;
 	ISC_LIST(dns_rdatalist_t) lists;
 	ISC_LIST(isc_buffer_t) buffers;
-	dns_name_t *name;
 	ISC_LINK(bdbnode_t) link;
 	dns_rdatacallbacks_t callbacks;
 };
@@ -83,12 +83,21 @@ findrdataset(dns_db_t *db, dns_dbnode_t *node, dns_dbversion_t *version,
 	     dns_rdataset_t *rdataset,
 	     dns_rdataset_t *sigrdataset DNS__DB_FLARG);
 
+/*
+ * Node methods forward declarations
+ */
 static void
-attachnode(dns_db_t *db, dns_dbnode_t *source,
-	   dns_dbnode_t **targetp DNS__DB_FLARG);
+bdbnode_attachnode(dns_dbnode_t *source, dns_dbnode_t **targetp DNS__DB_FLARG);
+static void
+bdbnode_detachnode(dns_dbnode_t **nodep DNS__DB_FLARG);
 
-static void
-detachnode(dns_db_t *db, dns_dbnode_t **nodep DNS__DB_FLARG);
+/*
+ * Node methods structure
+ */
+static dns_dbnode_methods_t bdbnode_methods = (dns_dbnode_methods_t){
+	.attachnode = bdbnode_attachnode,
+	.detachnode = bdbnode_detachnode,
+};
 
 /*
  * Helper functions to convert text to wire forma.
@@ -613,21 +622,17 @@ ipv4reverse_lookup(bdbnode_t *node) {
 static void
 disassociate(dns_rdataset_t *rdataset DNS__DB_FLARG) {
 	dns_dbnode_t *node = rdataset->rdlist.node;
-	bdbnode_t *bdbnode = (bdbnode_t *)node;
-	dns_db_t *db = (dns_db_t *)bdbnode->bdb;
 
-	detachnode(db, &node DNS__DB_FLARG_PASS);
+	bdbnode_detachnode(&node DNS__DB_FLARG_PASS);
 	dns_rdatalist_disassociate(rdataset DNS__DB_FLARG_PASS);
 }
 
 static void
 rdataset_clone(dns_rdataset_t *source, dns_rdataset_t *target DNS__DB_FLARG) {
 	dns_dbnode_t *node = source->rdlist.node;
-	bdbnode_t *bdbnode = (bdbnode_t *)node;
-	dns_db_t *db = (dns_db_t *)bdbnode->bdb;
 
 	dns_rdatalist_clone(source, target DNS__DB_FLARG_PASS);
-	attachnode(db, node, &target->rdlist.node DNS__DB_FLARG_PASS);
+	bdbnode_attachnode(node, &target->rdlist.node DNS__DB_FLARG_PASS);
 }
 
 static dns_rdatasetmethods_t bdb_rdataset_methods = {
@@ -642,12 +647,12 @@ static dns_rdatasetmethods_t bdb_rdataset_methods = {
 };
 
 static void
-new_rdataset(dns_rdatalist_t *rdatalist, dns_db_t *db, dns_dbnode_t *node,
-	     dns_rdataset_t *rdataset) {
+new_rdataset(dns_rdatalist_t *rdatalist, dns_db_t *db ISC_ATTR_UNUSED,
+	     dns_dbnode_t *node, dns_rdataset_t *rdataset) {
 	dns_rdatalist_tordataset(rdatalist, rdataset);
 
 	rdataset->methods = &bdb_rdataset_methods;
-	dns_db_attachnode(db, node, &rdataset->rdlist.node);
+	dns_db_attachnode(node, &rdataset->rdlist.node);
 }
 
 /*
@@ -657,8 +662,7 @@ new_rdataset(dns_rdatalist_t *rdatalist, dns_db_t *db, dns_dbnode_t *node,
 static void
 rdatasetiter_destroy(dns_rdatasetiter_t **iteratorp DNS__DB_FLARG) {
 	bdb_rdatasetiter_t *bdbiterator = (bdb_rdatasetiter_t *)(*iteratorp);
-	detachnode(bdbiterator->common.db,
-		   &bdbiterator->common.node DNS__DB_FLARG_PASS);
+	bdbnode_detachnode(&bdbiterator->common.node DNS__DB_FLARG_PASS);
 	isc_mem_put(bdbiterator->common.db->mctx, bdbiterator,
 		    sizeof(bdb_rdatasetiter_t));
 	*iteratorp = NULL;
@@ -785,6 +789,7 @@ createnode(bdb_t *bdb, bdbnode_t **nodep) {
 
 	isc_refcount_init(&node->references, 1);
 	node->magic = BDBNODE_MAGIC;
+	node->methods = &bdbnode_methods;
 
 	*nodep = node;
 	return ISC_R_SUCCESS;
@@ -810,11 +815,6 @@ destroynode(bdbnode_t *node) {
 	ISC_LIST_FOREACH (node->buffers, b, link) {
 		ISC_LIST_UNLINK(node->buffers, b, link);
 		isc_buffer_free(&b);
-	}
-
-	if (node->name != NULL) {
-		dns_name_free(node->name, mctx);
-		isc_mem_put(mctx, node->name, sizeof(dns_name_t));
 	}
 
 	node->magic = 0;
@@ -1060,19 +1060,15 @@ find(dns_db_t *db, const dns_name_t *name, dns_dbversion_t *version,
 	if (nodep != NULL) {
 		*nodep = node;
 	} else if (node != NULL) {
-		detachnode(db, &node DNS__DB_FLARG_PASS);
+		bdbnode_detachnode(&node DNS__DB_FLARG_PASS);
 	}
 
 	return result;
 }
 
 static void
-attachnode(dns_db_t *db, dns_dbnode_t *source,
-	   dns_dbnode_t **targetp DNS__DB_FLARG) {
-	bdb_t *bdb = (bdb_t *)db;
+bdbnode_attachnode(dns_dbnode_t *source, dns_dbnode_t **targetp DNS__DB_FLARG) {
 	bdbnode_t *node = (bdbnode_t *)source;
-
-	REQUIRE(VALID_BDB(bdb));
 
 	isc_refcount_increment(&node->references);
 
@@ -1080,11 +1076,9 @@ attachnode(dns_db_t *db, dns_dbnode_t *source,
 }
 
 static void
-detachnode(dns_db_t *db, dns_dbnode_t **nodep DNS__DB_FLARG) {
-	bdb_t *bdb = (bdb_t *)db;
+bdbnode_detachnode(dns_dbnode_t **nodep DNS__DB_FLARG) {
 	bdbnode_t *node = NULL;
 
-	REQUIRE(VALID_BDB(bdb));
 	REQUIRE(nodep != NULL && *nodep != NULL);
 
 	node = (bdbnode_t *)(*nodep);
@@ -1141,7 +1135,7 @@ allrdatasets(dns_db_t *db, dns_dbnode_t *node, dns_dbversion_t *version,
 		.common.magic = DNS_RDATASETITER_MAGIC,
 	};
 
-	attachnode(db, node, &iterator->common.node DNS__DB_FLARG_PASS);
+	bdbnode_attachnode(node, &iterator->common.node DNS__DB_FLARG_PASS);
 
 	*iteratorp = (dns_rdatasetiter_t *)iterator;
 
@@ -1153,8 +1147,6 @@ static dns_dbmethods_t bdb_methods = {
 	.currentversion = currentversion,
 	.attachversion = attachversion,
 	.closeversion = closeversion,
-	.attachnode = attachnode,
-	.detachnode = detachnode,
 	.findrdataset = findrdataset,
 	.allrdatasets = allrdatasets,
 	.getoriginnode = getoriginnode,

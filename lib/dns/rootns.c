@@ -182,7 +182,7 @@ check_hints(dns_db_t *db) {
 			goto cleanup;
 		}
 		dns_rdatasetiter_destroy(&rdsiter);
-		dns_db_detachnode(db, &node);
+		dns_db_detachnode(&node);
 	}
 
 cleanup:
@@ -193,7 +193,7 @@ cleanup:
 		dns_rdatasetiter_destroy(&rdsiter);
 	}
 	if (node != NULL) {
-		dns_db_detachnode(db, &node);
+		dns_db_detachnode(&node);
 	}
 	if (dbiter != NULL) {
 		dns_dbiterator_destroy(&dbiter);

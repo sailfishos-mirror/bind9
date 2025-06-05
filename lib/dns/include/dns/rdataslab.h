@@ -119,7 +119,6 @@ struct dns_slabheader {
 	 * this rdataset.
 	 */
 
-	dns_db_t     *db;
 	dns_dbnode_t *node;
 	/*%<
 	 * The database and database node objects containing

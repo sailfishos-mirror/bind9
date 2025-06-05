@@ -665,7 +665,7 @@ done:
 		dns_rdataset_disassociate(&rdataset);
 	}
 	if (node != NULL) {
-		dns_db_detachnode(vctx->db, &node);
+		dns_db_detachnode(&node);
 	}
 
 	return result;
@@ -763,7 +763,7 @@ done:
 		dns_rdataset_disassociate(&rdataset);
 	}
 	if (node != NULL) {
-		dns_db_detachnode(vctx->db, &node);
+		dns_db_detachnode(&node);
 	}
 
 	return result;
@@ -1408,7 +1408,7 @@ check_apex_rrsets(vctx_t *vctx) {
 	result = ISC_R_SUCCESS;
 
 done:
-	dns_db_detachnode(vctx->db, &node);
+	dns_db_detachnode(&node);
 
 	return result;
 }
@@ -1734,10 +1734,10 @@ verify_nodes(vctx_t *vctx, isc_result_t *vresult) {
 		if (!dns_name_issubdomain(name, vctx->origin)) {
 			result = check_no_nsec(vctx, name, node);
 			if (result != ISC_R_SUCCESS) {
-				dns_db_detachnode(vctx->db, &node);
+				dns_db_detachnode(&node);
 				goto done;
 			}
-			dns_db_detachnode(vctx->db, &node);
+			dns_db_detachnode(&node);
 			result = dns_dbiterator_next(dbiter);
 			if (result == ISC_R_NOMORE) {
 				done = true;
@@ -1770,7 +1770,7 @@ verify_nodes(vctx_t *vctx, isc_result_t *vresult) {
 						     "dns_dbiterator_current():"
 						     " %s",
 						     isc_result_totext(result));
-				dns_db_detachnode(vctx->db, &node);
+				dns_db_detachnode(&node);
 				goto done;
 			}
 			if (!dns_name_issubdomain(nextname, vctx->origin) ||
@@ -1780,16 +1780,16 @@ verify_nodes(vctx_t *vctx, isc_result_t *vresult) {
 				result = check_no_nsec(vctx, nextname,
 						       nextnode);
 				if (result != ISC_R_SUCCESS) {
-					dns_db_detachnode(vctx->db, &node);
-					dns_db_detachnode(vctx->db, &nextnode);
+					dns_db_detachnode(&node);
+					dns_db_detachnode(&nextnode);
 					goto done;
 				}
-				dns_db_detachnode(vctx->db, &nextnode);
+				dns_db_detachnode(&nextnode);
 				result = dns_dbiterator_next(dbiter);
 				continue;
 			}
 			result = is_empty(vctx, nextnode);
-			dns_db_detachnode(vctx->db, &nextnode);
+			dns_db_detachnode(&nextnode);
 			switch (result) {
 			case ISC_R_SUCCESS:
 				break;
@@ -1797,7 +1797,7 @@ verify_nodes(vctx_t *vctx, isc_result_t *vresult) {
 				result = dns_dbiterator_next(dbiter);
 				continue;
 			default:
-				dns_db_detachnode(vctx->db, &node);
+				dns_db_detachnode(&node);
 			}
 			break;
 		}
@@ -1809,14 +1809,14 @@ verify_nodes(vctx_t *vctx, isc_result_t *vresult) {
 					     "iterating through the database "
 					     "failed: %s",
 					     isc_result_totext(result));
-			dns_db_detachnode(vctx->db, &node);
+			dns_db_detachnode(&node);
 			goto done;
 		}
 		result = verifynode(vctx, name, node, isdelegation, dstkeys,
 				    nkeys, &vctx->nsecset, &vctx->nsec3paramset,
 				    nextname, &tvresult);
 		if (result != ISC_R_SUCCESS) {
-			dns_db_detachnode(vctx->db, &node);
+			dns_db_detachnode(&node);
 			goto done;
 		}
 		if (*vresult == ISC_R_UNSET) {
@@ -1830,7 +1830,7 @@ verify_nodes(vctx_t *vctx, isc_result_t *vresult) {
 				vctx, name, prevname, isdelegation,
 				&vctx->nsec3paramset, &tvresult);
 			if (result != ISC_R_SUCCESS) {
-				dns_db_detachnode(vctx->db, &node);
+				dns_db_detachnode(&node);
 				goto done;
 			}
 		} else {
@@ -1840,7 +1840,7 @@ verify_nodes(vctx_t *vctx, isc_result_t *vresult) {
 		if (*vresult == ISC_R_SUCCESS) {
 			*vresult = tvresult;
 		}
-		dns_db_detachnode(vctx->db, &node);
+		dns_db_detachnode(&node);
 	}
 
 	dns_dbiterator_destroy(&dbiter);
@@ -1865,11 +1865,11 @@ verify_nodes(vctx_t *vctx, isc_result_t *vresult) {
 		if (result != ISC_R_SUCCESS) {
 			zoneverify_log_error(vctx, "verifynode: %s",
 					     isc_result_totext(result));
-			dns_db_detachnode(vctx->db, &node);
+			dns_db_detachnode(&node);
 			goto done;
 		}
 		result = record_found(vctx, name, node, &vctx->nsec3paramset);
-		dns_db_detachnode(vctx->db, &node);
+		dns_db_detachnode(&node);
 		if (result != ISC_R_SUCCESS) {
 			goto done;
 		}

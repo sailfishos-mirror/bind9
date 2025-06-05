@@ -3099,7 +3099,7 @@ add_soa(dns_db_t *db, dns_dbversion_t *version, const dns_name_t *name,
 
 cleanup:
 	if (node != NULL) {
-		dns_db_detachnode(db, &node);
+		dns_db_detachnode(&node);
 	}
 	return result;
 }
@@ -3139,7 +3139,7 @@ add_ns(dns_db_t *db, dns_dbversion_t *version, const dns_name_t *name,
 
 cleanup:
 	if (node != NULL) {
-		dns_db_detachnode(db, &node);
+		dns_db_detachnode(&node);
 	}
 	return result;
 }
@@ -6778,7 +6778,7 @@ tat_done(void *arg) {
 
 	/* Free resources which are not of interest */
 	if (resp->node != NULL) {
-		dns_db_detachnode(resp->db, &resp->node);
+		dns_db_detachnode(&resp->node);
 	}
 	if (resp->db != NULL) {
 		dns_db_detach(&resp->db);
@@ -14317,7 +14317,7 @@ cleanup:
 		dns_rdataset_disassociate(&privset);
 	}
 	if (node != NULL) {
-		dns_db_detachnode(db, &node);
+		dns_db_detachnode(&node);
 	}
 	if (version != NULL) {
 		dns_db_closeversion(db, &version, false);

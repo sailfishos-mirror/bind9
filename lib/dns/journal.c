@@ -155,11 +155,11 @@ dns_db_createsoatuple(dns_db_t *db, dns_dbversion_t *ver, isc_mem_t *mctx,
 	dns_difftuple_create(mctx, op, zonename, rdataset.ttl, &rdata, tp);
 
 	dns_rdataset_disassociate(&rdataset);
-	dns_db_detachnode(db, &node);
+	dns_db_detachnode(&node);
 	return result;
 
 freenode:
-	dns_db_detachnode(db, &node);
+	dns_db_detachnode(&node);
 nonode:
 	UNEXPECTED_ERROR("missing SOA");
 	return result;
@@ -2158,7 +2158,7 @@ get_name_diff(dns_db_t *db, dns_dbversion_t *ver, isc_stdtime_t now,
 	result = ISC_R_SUCCESS;
 
 cleanup_node:
-	dns_db_detachnode(db, &node);
+	dns_db_detachnode(&node);
 
 	return result;
 }

@@ -2363,7 +2363,7 @@ dns__catz_update_cb(void *data) {
 			vers_node = node;
 		} else if (node == vers_node) {
 			/* Skip the already processed version node */
-			dns_db_detachnode(updb, &node);
+			dns_db_detachnode(&node);
 			result = dns_dbiterator_next(updbit);
 			continue;
 		}
@@ -2375,7 +2375,7 @@ dns__catz_update_cb(void *data) {
 				      DNS_LOGMODULE_CATZ, ISC_LOG_ERROR,
 				      "catz: failed to fetch rrdatasets - %s",
 				      isc_result_totext(result));
-			dns_db_detachnode(updb, &node);
+			dns_db_detachnode(&node);
 			break;
 		}
 
@@ -2429,7 +2429,7 @@ dns__catz_update_cb(void *data) {
 
 		dns_rdatasetiter_destroy(&rdsiter);
 
-		dns_db_detachnode(updb, &node);
+		dns_db_detachnode(&node);
 
 		if (!is_vers_processed) {
 			is_vers_processed = true;

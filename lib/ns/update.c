@@ -622,7 +622,7 @@ foreach_rrset(dns_db_t *db, dns_dbversion_t *ver, dns_name_t *name,
 	dns_rdatasetiter_destroy(&iter);
 
 cleanup_node:
-	dns_db_detachnode(db, &node);
+	dns_db_detachnode(&node);
 
 	return result;
 }
@@ -728,7 +728,7 @@ foreach_rr(dns_db_t *db, dns_dbversion_t *ver, dns_name_t *name,
 cleanup_rdataset:
 	dns_rdataset_disassociate(&rdataset);
 cleanup_node:
-	dns_db_detachnode(db, &node);
+	dns_db_detachnode(&node);
 
 	return result;
 }
@@ -1143,7 +1143,7 @@ temp_check(isc_mem_t *mctx, dns_diff_t *temp, dns_db_t *db,
 			if (dns_rdatatype_issig(type)) {
 				covers = dns_rdata_covers(&t->rdata);
 			} else if (type == dns_rdatatype_any) {
-				dns_db_detachnode(db, &node);
+				dns_db_detachnode(&node);
 				dns_diff_clear(&trash);
 				return DNS_R_NXRRSET;
 			} else {
@@ -1159,7 +1159,7 @@ temp_check(isc_mem_t *mctx, dns_diff_t *temp, dns_db_t *db,
 						     covers, (isc_stdtime_t)0,
 						     &rdataset, NULL);
 			if (result != ISC_R_SUCCESS) {
-				dns_db_detachnode(db, &node);
+				dns_db_detachnode(&node);
 				dns_diff_clear(&trash);
 				return DNS_R_NXRRSET;
 			}
@@ -1215,11 +1215,11 @@ temp_check(isc_mem_t *mctx, dns_diff_t *temp, dns_db_t *db,
 			dns_diff_clear(&u_rrs);
 			dns_diff_clear(&trash);
 			dns_rdataset_disassociate(&rdataset);
-			dns_db_detachnode(db, &node);
+			dns_db_detachnode(&node);
 			return result;
 		}
 
-		dns_db_detachnode(db, &node);
+		dns_db_detachnode(&node);
 	}
 
 	dns_diff_clear(&trash);
@@ -2189,7 +2189,7 @@ rr_exists(dns_db_t *db, dns_dbversion_t *ver, dns_name_t *name,
 
 failure:
 	if (node != NULL) {
-		dns_db_detachnode(db, &node);
+		dns_db_detachnode(&node);
 	}
 	return result;
 }
@@ -2272,7 +2272,7 @@ success:
 
 failure:
 	if (node != NULL) {
-		dns_db_detachnode(db, &node);
+		dns_db_detachnode(&node);
 	}
 	if (dns_rdataset_isassociated(&rdataset)) {
 		dns_rdataset_disassociate(&rdataset);

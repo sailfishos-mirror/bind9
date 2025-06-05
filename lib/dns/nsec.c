@@ -254,7 +254,7 @@ dns_nsec_nseconly(dns_db_t *db, dns_dbversion_t *version, dns_diff_t *diff,
 
 	result = dns_db_findrdataset(db, node, version, dns_rdatatype_dnskey, 0,
 				     0, &rdataset, NULL);
-	dns_db_detachnode(db, &node);
+	dns_db_detachnode(&node);
 
 	if (result == ISC_R_NOTFOUND) {
 		*answer = false;

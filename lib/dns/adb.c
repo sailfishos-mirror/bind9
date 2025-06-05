@@ -2594,7 +2594,7 @@ fetch_callback(void *arg) {
 	 * Cleanup things we don't care about.
 	 */
 	if (resp->node != NULL) {
-		dns_db_detachnode(resp->db, &resp->node);
+		dns_db_detachnode(&resp->node);
 	}
 	if (resp->db != NULL) {
 		dns_db_detach(&resp->db);

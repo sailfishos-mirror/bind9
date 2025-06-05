@@ -863,7 +863,6 @@ dns_slabheader_reset(dns_slabheader_t *h, dns_db_t *db, dns_dbnode_t *node) {
 	ISC_LINK_INIT(h, link);
 	h->heap_index = 0;
 	h->heap = NULL;
-	h->db = db;
 	h->node = node;
 	h->visited = false;
 
@@ -894,9 +893,8 @@ dns_slabheader_destroy(dns_slabheader_t **headerp) {
 
 	*headerp = NULL;
 
-	isc_mem_t *mctx = header->db->mctx;
-
-	dns_db_deletedata(header->db, header->node, header);
+	isc_mem_t *mctx = header->node->mctx;
+	dns_db_deletedata(header->node, header);
 
 	if (NONEXISTENT(header)) {
 		size = sizeof(*header);
@@ -967,10 +965,9 @@ dns_slabheader_top(dns_slabheader_t *header) {
 
 static void
 rdataset_disassociate(dns_rdataset_t *rdataset DNS__DB_FLARG) {
-	dns_db_t *db = rdataset->slab.db;
 	dns_dbnode_t *node = rdataset->slab.node;
 
-	dns__db_detachnode(db, &node DNS__DB_FLARG_PASS);
+	dns__db_detachnode(&node DNS__DB_FLARG_PASS);
 }
 
 static isc_result_t
@@ -1049,11 +1046,10 @@ rdataset_current(dns_rdataset_t *rdataset, dns_rdata_t *rdata) {
 
 static void
 rdataset_clone(dns_rdataset_t *source, dns_rdataset_t *target DNS__DB_FLARG) {
-	dns_db_t *db = source->slab.db;
 	dns_dbnode_t *node = source->slab.node;
 	dns_dbnode_t *cloned_node = NULL;
 
-	dns__db_attachnode(db, node, &cloned_node DNS__DB_FLARG_PASS);
+	dns__db_attachnode(node, &cloned_node DNS__DB_FLARG_PASS);
 	INSIST(!ISC_LINK_LINKED(target, link));
 	*target = *source;
 	ISC_LINK_INIT(target, link);
@@ -1086,8 +1082,7 @@ rdataset_getnoqname(dns_rdataset_t *rdataset, dns_name_t *name,
 	 * getownercase methods from affecting the case of NSEC/NSEC3
 	 * owner names.
 	 */
-	dns__db_attachnode(db, node,
-			   &(dns_dbnode_t *){ NULL } DNS__DB_FLARG_PASS);
+	dns__db_attachnode(node, &(dns_dbnode_t *){ NULL } DNS__DB_FLARG_PASS);
 	*nsec = (dns_rdataset_t){
 		.methods = &dns_rdataslab_rdatasetmethods,
 		.rdclass = db->rdclass,
@@ -1104,8 +1099,7 @@ rdataset_getnoqname(dns_rdataset_t *rdataset, dns_name_t *name,
 	};
 	nsec->attributes.keepcase = true;
 
-	dns__db_attachnode(db, node,
-			   &(dns_dbnode_t *){ NULL } DNS__DB_FLARG_PASS);
+	dns__db_attachnode(node, &(dns_dbnode_t *){ NULL } DNS__DB_FLARG_PASS);
 	*nsecsig = (dns_rdataset_t){
 		.methods = &dns_rdataslab_rdatasetmethods,
 		.rdclass = db->rdclass,
@@ -1141,8 +1135,7 @@ rdataset_getclosest(dns_rdataset_t *rdataset, dns_name_t *name,
 	 * following an dns_slabheader, but in this case it points to a bare
 	 * rdataslab belonging to the dns_slabheader's `closest` field.
 	 */
-	dns__db_attachnode(db, node,
-			   &(dns_dbnode_t *){ NULL } DNS__DB_FLARG_PASS);
+	dns__db_attachnode(node, &(dns_dbnode_t *){ NULL } DNS__DB_FLARG_PASS);
 	*nsec = (dns_rdataset_t){
 		.methods = &dns_rdataslab_rdatasetmethods,
 		.rdclass = db->rdclass,
@@ -1159,8 +1152,7 @@ rdataset_getclosest(dns_rdataset_t *rdataset, dns_name_t *name,
 	};
 	nsec->attributes.keepcase = true;
 
-	dns__db_attachnode(db, node,
-			   &(dns_dbnode_t *){ NULL } DNS__DB_FLARG_PASS);
+	dns__db_attachnode(node, &(dns_dbnode_t *){ NULL } DNS__DB_FLARG_PASS);
 	*nsecsig = (dns_rdataset_t){
 		.methods = &dns_rdataslab_rdatasetmethods,
 		.rdclass = db->rdclass,
@@ -1187,25 +1179,25 @@ static void
 rdataset_settrust(dns_rdataset_t *rdataset, dns_trust_t trust) {
 	dns_slabheader_t *header = dns_rdataset_getheader(rdataset);
 
-	dns_db_locknode(header->db, header->node, isc_rwlocktype_write);
+	dns_db_locknode(header->node, isc_rwlocktype_write);
 	header->trust = rdataset->trust = trust;
-	dns_db_unlocknode(header->db, header->node, isc_rwlocktype_write);
+	dns_db_unlocknode(header->node, isc_rwlocktype_write);
 }
 
 static void
 rdataset_expire(dns_rdataset_t *rdataset DNS__DB_FLARG) {
 	dns_slabheader_t *header = dns_rdataset_getheader(rdataset);
 
-	dns_db_expiredata(header->db, header->node, header);
+	dns_db_expiredata(header->node, header);
 }
 
 static void
 rdataset_clearprefetch(dns_rdataset_t *rdataset) {
 	dns_slabheader_t *header = dns_rdataset_getheader(rdataset);
 
-	dns_db_locknode(header->db, header->node, isc_rwlocktype_write);
+	dns_db_locknode(header->node, isc_rwlocktype_write);
 	DNS_SLABHEADER_CLRATTR(header, DNS_SLABHEADERATTR_PREFETCH);
-	dns_db_unlocknode(header->db, header->node, isc_rwlocktype_write);
+	dns_db_unlocknode(header->node, isc_rwlocktype_write);
 }
 
 static void
@@ -1214,9 +1206,9 @@ rdataset_setownercase(dns_rdataset_t *rdataset, const dns_name_t *name) {
 
 	DNS_SLABHEADER_CLRATTR(header, DNS_SLABHEADERATTR_CASEFULLYLOWER);
 
-	dns_db_locknode(header->db, header->node, isc_rwlocktype_write);
+	dns_db_locknode(header->node, isc_rwlocktype_write);
 	dns_slabheader_setownercase(header, name);
-	dns_db_unlocknode(header->db, header->node, isc_rwlocktype_write);
+	dns_db_unlocknode(header->node, isc_rwlocktype_write);
 }
 
 static void
@@ -1230,7 +1222,7 @@ rdataset_getownercase(const dns_rdataset_t *rdataset, dns_name_t *name) {
 		return;
 	}
 
-	dns_db_locknode(header->db, header->node, isc_rwlocktype_read);
+	dns_db_locknode(header->node, isc_rwlocktype_read);
 	if (CASESET(header)) {
 		uint8_t *nd = name->ndata;
 		for (size_t i = 0; i < name->length; i++) {
@@ -1244,7 +1236,7 @@ rdataset_getownercase(const dns_rdataset_t *rdataset, dns_name_t *name) {
 					      : isc_ascii_tolower(nd[i]);
 		}
 	}
-	dns_db_unlocknode(header->db, header->node, isc_rwlocktype_read);
+	dns_db_unlocknode(header->node, isc_rwlocktype_read);
 }
 
 static dns_slabheader_t *

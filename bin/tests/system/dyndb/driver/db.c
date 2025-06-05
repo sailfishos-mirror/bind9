@@ -164,25 +164,6 @@ findzonecut(dns_db_t *db, const dns_name_t *name, unsigned int options,
 				   sigrdataset DNS__DB_FLARG_PASS);
 }
 
-static void
-attachnode(dns_db_t *db, dns_dbnode_t *source,
-	   dns_dbnode_t **targetp DNS__DB_FLARG) {
-	sampledb_t *sampledb = (sampledb_t *)db;
-
-	REQUIRE(VALID_SAMPLEDB(sampledb));
-
-	dns__db_attachnode(sampledb->db, source, targetp DNS__DB_FLARG_PASS);
-}
-
-static void
-detachnode(dns_db_t *db, dns_dbnode_t **targetp DNS__DB_FLARG) {
-	sampledb_t *sampledb = (sampledb_t *)db;
-
-	REQUIRE(VALID_SAMPLEDB(sampledb));
-
-	dns__db_detachnode(sampledb->db, targetp DNS__DB_FLARG_PASS);
-}
-
 static isc_result_t
 createiterator(dns_db_t *db, unsigned int options,
 	       dns_dbiterator_t **iteratorp) {
@@ -233,8 +214,7 @@ addrdataset(dns_db_t *db, dns_dbnode_t *node, dns_dbversion_t *version,
 	CHECK(dns__db_addrdataset(sampledb->db, node, version, now, rdataset,
 				  options, addedrdataset DNS__DB_FLARG_PASS));
 	if (dns_rdatatype_isaddr(rdataset->type)) {
-		CHECK(dns_db_nodefullname(sampledb->db, node,
-					  dns_fixedname_name(&name)));
+		CHECK(dns_db_nodefullname(node, dns_fixedname_name(&name)));
 		CHECK(syncptrs(sampledb->inst, dns_fixedname_name(&name),
 			       rdataset, DNS_DIFFOP_ADD));
 	}
@@ -262,8 +242,7 @@ subtractrdataset(dns_db_t *db, dns_dbnode_t *node, dns_dbversion_t *version,
 	}
 
 	if (dns_rdatatype_isaddr(rdataset->type)) {
-		CHECK(dns_db_nodefullname(sampledb->db, node,
-					  dns_fixedname_name(&name)));
+		CHECK(dns_db_nodefullname(node, dns_fixedname_name(&name)));
 		CHECK(syncptrs(sampledb->inst, dns_fixedname_name(&name),
 			       rdataset, DNS_DIFFOP_DEL));
 	}
@@ -410,15 +389,6 @@ setcachestats(dns_db_t *db, isc_stats_t *stats) {
 	return dns_db_setcachestats(sampledb->db, stats);
 }
 
-static isc_result_t
-nodefullname(dns_db_t *db, dns_dbnode_t *node, dns_name_t *name) {
-	sampledb_t *sampledb = (sampledb_t *)db;
-
-	REQUIRE(VALID_SAMPLEDB(sampledb));
-
-	return dns_db_nodefullname(sampledb->db, node, name);
-}
-
 /*
  * DB interface definition. Database driver uses this structure to
  * determine which implementation of dns_db_*() function to call.
@@ -432,8 +402,6 @@ static dns_dbmethods_t sampledb_methods = {
 	.findnode = findnode,
 	.find = find,
 	.findzonecut = findzonecut,
-	.attachnode = attachnode,
-	.detachnode = detachnode,
 	.createiterator = createiterator,
 	.findrdataset = findrdataset,
 	.allrdatasets = allrdatasets,
@@ -452,7 +420,6 @@ static dns_dbmethods_t sampledb_methods = {
 	.findnodeext = findnodeext,
 	.findext = findext,
 	.setcachestats = setcachestats,
-	.nodefullname = nodefullname,
 };
 
 /* Auxiliary driver functions. */
@@ -490,7 +457,7 @@ add_soa(dns_db_t *db, dns_dbversion_t *version, const dns_name_t *name,
 	CHECK(dns_db_addrdataset(db, node, version, 0, &rdataset, 0, NULL));
 cleanup:
 	if (node != NULL) {
-		dns_db_detachnode(db, &node);
+		dns_db_detachnode(&node);
 	}
 	return result;
 }
@@ -528,7 +495,7 @@ add_ns(dns_db_t *db, dns_dbversion_t *version, const dns_name_t *name,
 	CHECK(dns_db_addrdataset(db, node, version, 0, &rdataset, 0, NULL));
 cleanup:
 	if (node != NULL) {
-		dns_db_detachnode(db, &node);
+		dns_db_detachnode(&node);
 	}
 	return result;
 }
@@ -564,7 +531,7 @@ add_a(dns_db_t *db, dns_dbversion_t *version, const dns_name_t *name,
 	CHECK(dns_db_addrdataset(db, node, version, 0, &rdataset, 0, NULL));
 cleanup:
 	if (node != NULL) {
-		dns_db_detachnode(db, &node);
+		dns_db_detachnode(&node);
 	}
 	return result;
 }

@@ -54,11 +54,11 @@ ISC_LOOP_TEST_IMPL(getoriginnode) {
 
 	result = dns_db_getoriginnode(db, &node);
 	assert_int_equal(result, ISC_R_SUCCESS);
-	dns_db_detachnode(db, &node);
+	dns_db_detachnode(&node);
 
 	result = dns_db_getoriginnode(db, &node);
 	assert_int_equal(result, ISC_R_SUCCESS);
-	dns_db_detachnode(db, &node);
+	dns_db_detachnode(&node);
 
 	dns_db_detach(&db);
 	isc_loopmgr_shutdown();
@@ -165,7 +165,7 @@ ISC_LOOP_TEST_IMPL(dns_dbfind_staleok) {
 					    NULL);
 		assert_int_equal(result, ISC_R_SUCCESS);
 
-		dns_db_detachnode(db, &node);
+		dns_db_detachnode(&node);
 		dns_rdataset_disassociate(&rdataset);
 
 		result = dns_db_find(db, example, NULL, dns_rdatatype_a, 0, 0,
@@ -181,7 +181,7 @@ ISC_LOOP_TEST_IMPL(dns_dbfind_staleok) {
 			assert_in_range(count, 1, 21); /* loop sanity */
 			assert_int_equal(rdataset.attributes.stale, false);
 			assert_true(rdataset.ttl > 0);
-			dns_db_detachnode(db, &node);
+			dns_db_detachnode(&node);
 			dns_rdataset_disassociate(&rdataset);
 
 			usleep(100000); /* 100 ms */
@@ -215,7 +215,7 @@ ISC_LOOP_TEST_IMPL(dns_dbfind_staleok) {
 				assert_int_equal(result, ISC_R_SUCCESS);
 				assert_int_equal(rdataset.attributes.stale,
 						 true);
-				dns_db_detachnode(db, &node);
+				dns_db_detachnode(&node);
 				dns_rdataset_disassociate(&rdataset);
 
 				usleep(100000); /* 100 ms */
@@ -314,7 +314,7 @@ ISC_LOOP_TEST_IMPL(version) {
 			     foundname, &rdataset, NULL);
 	assert_int_equal(result, ISC_R_SUCCESS);
 	dns_rdataset_disassociate(&rdataset);
-	dns_db_detachnode(db, &node);
+	dns_db_detachnode(&node);
 	dns_db_closeversion(db, &ver, false);
 
 	/* Open new version for writing */
@@ -335,7 +335,7 @@ ISC_LOOP_TEST_IMPL(version) {
 	assert_int_equal(result, ISC_R_SUCCESS);
 
 	dns_rdataset_disassociate(&rdataset);
-	dns_db_detachnode(db, &node);
+	dns_db_detachnode(&node);
 
 	/* This should fail now */
 	result = dns_db_find(db, name, new, dns_rdatatype_a, 0, 0, &node,
@@ -348,7 +348,7 @@ ISC_LOOP_TEST_IMPL(version) {
 	result = dns_db_find(db, name, ver, dns_rdatatype_a, 0, 0, &node,
 			     foundname, &rdataset, NULL);
 	assert_int_equal(result, ISC_R_SUCCESS);
-	dns_db_detachnode(db, &node);
+	dns_db_detachnode(&node);
 
 	/* Now we create a node with an empty parent */
 	result = dns_db_newversion(db, &new);
@@ -362,7 +362,7 @@ ISC_LOOP_TEST_IMPL(version) {
 
 	/* look up the ENT; it should be empty */
 	dns_test_namefromstring("ent.name.test.test.", &fname);
-	dns_db_detachnode(db, &node);
+	dns_db_detachnode(&node);
 	result = dns_db_find(db, name, new, dns_rdatatype_a, 0, 0, &node,
 			     foundname, &rdataset, NULL);
 	assert_int_equal(result, DNS_R_EMPTYNAME);
@@ -380,7 +380,7 @@ ISC_LOOP_TEST_IMPL(version) {
 		dns_rdataset_disassociate(&rdataset);
 	}
 	if (node != NULL) {
-		dns_db_detachnode(db, &node);
+		dns_db_detachnode(&node);
 	}
 	dns_db_closeversion(db, &ver, false);
 

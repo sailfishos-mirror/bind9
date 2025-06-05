@@ -564,29 +564,29 @@ dns__db_findzonecut(dns_db_t *db, const dns_name_t *name, unsigned int options,
 }
 
 void
-dns__db_attachnode(dns_db_t *db, dns_dbnode_t *source,
-		   dns_dbnode_t **targetp DNS__DB_FLARG) {
+dns__db_attachnode(dns_dbnode_t *source, dns_dbnode_t **targetp DNS__DB_FLARG) {
 	/*
 	 * Attach *targetp to source.
 	 */
 
-	REQUIRE(DNS_DB_VALID(db));
 	REQUIRE(source != NULL);
 	REQUIRE(targetp != NULL && *targetp == NULL);
+	REQUIRE(source->methods != NULL && source->methods->attachnode != NULL);
 
-	(db->methods->attachnode)(db, source, targetp DNS__DB_FLARG_PASS);
+	(source->methods->attachnode)(source, targetp DNS__DB_FLARG_PASS);
 }
 
 void
-dns__db_detachnode(dns_db_t *db, dns_dbnode_t **nodep DNS__DB_FLARG) {
+dns__db_detachnode(dns_dbnode_t **nodep DNS__DB_FLARG) {
 	/*
 	 * Detach *nodep from its node.
 	 */
 
-	REQUIRE(DNS_DB_VALID(db));
 	REQUIRE(nodep != NULL && *nodep != NULL);
+	dns_dbnode_t *node = *nodep;
+	REQUIRE(node->methods != NULL && node->methods->detachnode != NULL);
 
-	(db->methods->detachnode)(db, nodep DNS__DB_FLARG_PASS);
+	(node->methods->detachnode)(nodep DNS__DB_FLARG_PASS);
 
 	ENSURE(*nodep == NULL);
 }
@@ -786,7 +786,7 @@ freerdataset:
 	dns_rdataset_disassociate(&rdataset);
 
 freenode:
-	dns_db_detachnode(db, &node);
+	dns_db_detachnode(&node);
 	return result;
 }
 
@@ -1118,41 +1118,44 @@ dns_db_addglue(dns_db_t *db, dns_dbversion_t *version, dns_rdataset_t *rdataset,
 }
 
 void
-dns_db_locknode(dns_db_t *db, dns_dbnode_t *node, isc_rwlocktype_t type) {
-	if (db->methods->locknode != NULL) {
-		(db->methods->locknode)(db, node, type);
+dns_db_locknode(dns_dbnode_t *node, isc_rwlocktype_t type) {
+	REQUIRE(node != NULL && node->methods != NULL);
+	if (node->methods->locknode != NULL) {
+		(node->methods->locknode)(node, type);
 	}
 }
 
 void
-dns_db_unlocknode(dns_db_t *db, dns_dbnode_t *node, isc_rwlocktype_t type) {
-	if (db->methods->unlocknode != NULL) {
-		(db->methods->unlocknode)(db, node, type);
+dns_db_unlocknode(dns_dbnode_t *node, isc_rwlocktype_t type) {
+	REQUIRE(node != NULL && node->methods != NULL);
+	if (node->methods->unlocknode != NULL) {
+		(node->methods->unlocknode)(node, type);
 	}
 }
 
 void
-dns_db_expiredata(dns_db_t *db, dns_dbnode_t *node, void *data) {
-	if (db->methods->expiredata != NULL) {
-		(db->methods->expiredata)(db, node, data);
+dns_db_expiredata(dns_dbnode_t *node, void *data) {
+	REQUIRE(node != NULL && node->methods != NULL);
+	if (node->methods->expiredata != NULL) {
+		(node->methods->expiredata)(node, data);
 	}
 }
 
 void
-dns_db_deletedata(dns_db_t *db, dns_dbnode_t *node, void *data) {
-	if (db->methods->deletedata != NULL) {
-		(db->methods->deletedata)(db, node, data);
+dns_db_deletedata(dns_dbnode_t *node, void *data) {
+	REQUIRE(node != NULL && node->methods != NULL);
+	if (node->methods->deletedata != NULL) {
+		(node->methods->deletedata)(node, data);
 	}
 }
 
 isc_result_t
-dns_db_nodefullname(dns_db_t *db, dns_dbnode_t *node, dns_name_t *name) {
-	REQUIRE(db != NULL);
-	REQUIRE(node != NULL);
+dns_db_nodefullname(dns_dbnode_t *node, dns_name_t *name) {
+	REQUIRE(node != NULL && node->methods != NULL);
 	REQUIRE(name != NULL);
 
-	if (db->methods->nodefullname != NULL) {
-		return (db->methods->nodefullname)(db, node, name);
+	if (node->methods != NULL && node->methods->nodefullname != NULL) {
+		return node->methods->nodefullname(node, name);
 	}
 	return ISC_R_NOTIMPLEMENTED;
 }

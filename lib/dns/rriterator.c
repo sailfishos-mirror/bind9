@@ -68,7 +68,7 @@ dns_rriterator_first(dns_rriterator_t *it) {
 		dns_rdatasetiter_destroy(&it->rdatasetit);
 	}
 	if (it->node != NULL) {
-		dns_db_detachnode(it->db, &it->node);
+		dns_db_detachnode(&it->node);
 	}
 	it->result = dns_dbiterator_first(it->dbit);
 
@@ -96,7 +96,7 @@ dns_rriterator_first(dns_rriterator_t *it) {
 			 * This node is empty. Try next node.
 			 */
 			dns_rdatasetiter_destroy(&it->rdatasetit);
-			dns_db_detachnode(it->db, &it->node);
+			dns_db_detachnode(&it->node);
 			it->result = dns_dbiterator_next(it->dbit);
 			continue;
 		}
@@ -122,7 +122,7 @@ dns_rriterator_nextrrset(dns_rriterator_t *it) {
 	 */
 	while (it->result == ISC_R_NOMORE) {
 		dns_rdatasetiter_destroy(&it->rdatasetit);
-		dns_db_detachnode(it->db, &it->node);
+		dns_db_detachnode(&it->node);
 		it->result = dns_dbiterator_next(it->dbit);
 		if (it->result == ISC_R_NOMORE) {
 			/* We are at the end of the entire database. */
@@ -188,7 +188,7 @@ dns_rriterator_destroy(dns_rriterator_t *it) {
 		dns_rdatasetiter_destroy(&it->rdatasetit);
 	}
 	if (it->node != NULL) {
-		dns_db_detachnode(it->db, &it->node);
+		dns_db_detachnode(&it->node);
 	}
 	dns_dbiterator_destroy(&it->dbit);
 }
