@@ -105,7 +105,7 @@ typedef struct filter_instance {
  * Forward declarations of functions referenced in install_hooks().
  */
 static ns_hookresult_t
-filter_qctx_initialize(void *arg, void *cbdata, isc_result_t *resp);
+filter_initialize(void *arg, void *cbdata, isc_result_t *resp);
 static ns_hookresult_t
 filter_respond_begin(void *arg, void *cbdata, isc_result_t *resp);
 static ns_hookresult_t
@@ -127,7 +127,7 @@ static void
 install_hooks(ns_hooktable_t *hooktable, isc_mem_t *mctx,
 	      filter_instance_t *inst) {
 	const ns_hook_t filter_init = {
-		.action = filter_qctx_initialize,
+		.action = filter_initialize,
 		.action_data = inst,
 	};
 
@@ -157,6 +157,7 @@ install_hooks(ns_hooktable_t *hooktable, isc_mem_t *mctx,
 	};
 
 	ns_hook_add(hooktable, mctx, NS_QUERY_QCTX_INITIALIZED, &filter_init);
+	ns_hook_add(hooktable, mctx, NS_QUERY_AUTHZONE_ATTACHED, &filter_init);
 	ns_hook_add(hooktable, mctx, NS_QUERY_RESPOND_BEGIN, &filter_respbegin);
 	ns_hook_add(hooktable, mctx, NS_QUERY_RESPOND_ANY_FOUND,
 		    &filter_respanyfound);
@@ -620,9 +621,15 @@ process_section(const section_filter_t *filter) {
  * in a hash table keyed according to the client object; this enables us to
  * retrieve persistent data related to a client query for as long as the
  * object persists.
+ *
+ * Whether the plugin is registered at view level and the server makes authority
+ * on zones, this can be called twice (once when the query context is
+ * initialized, once when the authoritative zone is found). This is all fine:
+ * the state will be initialized on the first call, and the function bails off
+ * early on the second call (the state is already initialized).
  */
 static ns_hookresult_t
-filter_qctx_initialize(void *arg, void *cbdata, isc_result_t *resp) {
+filter_initialize(void *arg, void *cbdata, isc_result_t *resp) {
 	query_ctx_t *qctx = (query_ctx_t *)arg;
 	filter_instance_t *inst = (filter_instance_t *)cbdata;
 	filter_data_t *client_state;

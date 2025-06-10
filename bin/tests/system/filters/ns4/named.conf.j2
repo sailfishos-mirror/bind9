@@ -29,15 +29,15 @@ options {
 };
 
 {% if family == "v6" %}
-        plugin query "@TOP_BUILDDIR@/filter-@filtertype@.@DYLIB@" {
-                filter-@filtertype@-on-v6 break-dnssec;
-                filter-@filtertype@ { fd92:7065:b8e:ffff::4; };
-        };
+	plugin query "@TOP_BUILDDIR@/filter-@filtertype@.@DYLIB@" {
+		filter-@filtertype@-on-v6 break-dnssec;
+		filter-@filtertype@ { fd92:7065:b8e:ffff::4; };
+	};
 {% else %}
-        plugin query "@TOP_BUILDDIR@/filter-@filtertype@.@DYLIB@" {
-                filter-@filtertype@-on-v4 break-dnssec;
-                filter-@filtertype@ { 10.53.0.4; };
-        };
+	plugin query "@TOP_BUILDDIR@/filter-@filtertype@.@DYLIB@" {
+		filter-@filtertype@-on-v4 break-dnssec;
+		filter-@filtertype@ { 10.53.0.4; };
+	};
 {% endif %}
 
 key rndc_key {
@@ -50,5 +50,35 @@ controls {
 };
 
 zone "." { type primary; file "root.db"; };
-zone "signed" { type primary; file "signed.db.signed"; };
-zone "unsigned" { type primary; file "unsigned.db"; };
+
+zone "signed" {
+	type primary;
+	file "signed.db.signed";
+	{% if family == "v6" %}
+		plugin query "@TOP_BUILDDIR@/filter-@filtertype@.@DYLIB@" {
+			filter-@filtertype@-on-v6 break-dnssec;
+			filter-@filtertype@ { fd92:7065:b8e:ffff::4; };
+		};
+	{% else %}
+		plugin query "@TOP_BUILDDIR@/filter-@filtertype@.@DYLIB@" {
+			filter-@filtertype@-on-v4 break-dnssec;
+			filter-@filtertype@ { 10.53.0.4; };
+		};
+	{% endif %}
+};
+
+zone "unsigned" {
+	type primary;
+	file "unsigned.db";
+	{% if family == "v6" %}
+		plugin query "@TOP_BUILDDIR@/filter-@filtertype@.@DYLIB@" {
+			filter-@filtertype@-on-v6 break-dnssec;
+			filter-@filtertype@ { fd92:7065:b8e:ffff::4; };
+		};
+	{% else %}
+		plugin query "@TOP_BUILDDIR@/filter-@filtertype@.@DYLIB@" {
+			filter-@filtertype@-on-v4 break-dnssec;
+			filter-@filtertype@ { 10.53.0.4; };
+		};
+	{% endif %}
+};
