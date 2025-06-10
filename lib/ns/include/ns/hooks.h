@@ -402,6 +402,7 @@ typedef enum {
 	NS_QUERY_PREP_RESPONSE_BEGIN,
 	NS_QUERY_DONE_BEGIN,
 	NS_QUERY_DONE_SEND,
+	NS_QUERY_AUTHZONE_ATTACHED,
 
 	/* XXX other files could be added later */
 

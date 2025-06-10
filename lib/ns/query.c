@@ -317,8 +317,8 @@ static ns_hooktable_t *
 ns__zone_hooktab(query_ctx_t *qctx) {
 	ns_hooktable_t *hooktab = NULL;
 
-	if (qctx && qctx->zone) {
-		hooktab = dns_zone_gethooktable(qctx->zone);
+	if (qctx != NULL && qctx->client->query.authzone != NULL) {
+		hooktab = dns_zone_gethooktable(qctx->client->query.authzone);
 	}
 
 	return hooktab;
@@ -328,7 +328,7 @@ static ns_hooktable_t *
 ns__view_hooktab(query_ctx_t *qctx) {
 	ns_hooktable_t *hooktab = NULL;
 
-	if (qctx && qctx->view) {
+	if (qctx != NULL && qctx->view != NULL) {
 		hooktab = qctx->view->hooktable;
 	}
 
@@ -5668,6 +5668,7 @@ ns__query_start(query_ctx_t *qctx) {
 				 */
 				dns_zone_attach(qctx->zone,
 						&qctx->client->query.authzone);
+				CALL_HOOK(NS_QUERY_AUTHZONE_ATTACHED, qctx);
 			}
 			dns_db_attach(qctx->db, &qctx->client->query.authdb);
 		}
