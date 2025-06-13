@@ -1508,11 +1508,8 @@ find_coveringnsec(qpc_search_t *search, const dns_name_t *name,
 	 * Lookup the predecessor in the normal namespace.
 	 */
 	node = NULL;
-	result = dns_qp_getname(search->qpdb->tree, predecessor,
-				DNS_DBNAMESPACE_NORMAL, (void **)&node, NULL);
-	if (result != ISC_R_SUCCESS) {
-		return result;
-	}
+	RETERR(dns_qp_getname(search->qpdb->tree, predecessor,
+			      DNS_DBNAMESPACE_NORMAL, (void **)&node, NULL));
 	dns_name_copy(&node->name, fname);
 
 	nlock = &search->qpdb->buckets[node->locknum].lock;

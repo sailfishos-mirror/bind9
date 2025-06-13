@@ -204,17 +204,13 @@ typedef struct {
  */
 static isc_result_t
 foreach_node_rr_action(void *data, dns_rdataset_t *rdataset) {
-	isc_result_t result;
 	foreach_node_rr_ctx_t *ctx = data;
 	DNS_RDATASET_FOREACH(rdataset) {
 		rr_t rr = { 0, DNS_RDATA_INIT };
 
 		dns_rdataset_current(rdataset, &rr.rdata);
 		rr.ttl = rdataset->ttl;
-		result = (*ctx->rr_action)(ctx->rr_action_data, &rr);
-		if (result != ISC_R_SUCCESS) {
-			return result;
-		}
+		RETERR((*ctx->rr_action)(ctx->rr_action_data, &rr));
 	}
 
 	return ISC_R_SUCCESS;

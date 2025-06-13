@@ -323,15 +323,11 @@ dns_cache_getservestalerefresh(dns_cache_t *cache) {
 
 isc_result_t
 dns_cache_flush(dns_cache_t *cache) {
-	dns_db_t *db = NULL, *olddb;
-	isc_mem_t *tmctx = NULL, *oldtmctx;
-	isc_mem_t *hmctx = NULL, *oldhmctx;
-	isc_result_t result;
+	dns_db_t *db = NULL, *olddb = NULL;
+	isc_mem_t *tmctx = NULL, *oldtmctx = NULL;
+	isc_mem_t *hmctx = NULL, *oldhmctx = NULL;
 
-	result = cache_create_db(cache, &db, &tmctx, &hmctx);
-	if (result != ISC_R_SUCCESS) {
-		return result;
-	}
+	RETERR(cache_create_db(cache, &db, &tmctx, &hmctx));
 
 	LOCK(&cache->lock);
 	isc_mem_clearwater(cache->tmctx);
@@ -353,16 +349,13 @@ dns_cache_flush(dns_cache_t *cache) {
 
 static isc_result_t
 clearnode(dns_db_t *db, dns_dbnode_t *node) {
-	isc_result_t result;
 	dns_rdatasetiter_t *iter = NULL;
 
-	result = dns_db_allrdatasets(db, node, NULL, DNS_DB_STALEOK,
-				     (isc_stdtime_t)0, &iter);
-	if (result != ISC_R_SUCCESS) {
-		return result;
-	}
+	RETERR(dns_db_allrdatasets(db, node, NULL, DNS_DB_STALEOK,
+				   (isc_stdtime_t)0, &iter));
 
 	DNS_RDATASETITER_FOREACH(iter) {
+		isc_result_t result;
 		dns_rdataset_t rdataset = DNS_RDATASET_INIT;
 
 		dns_rdatasetiter_current(iter, &rdataset);
@@ -375,7 +368,7 @@ clearnode(dns_db_t *db, dns_dbnode_t *node) {
 	}
 
 	dns_rdatasetiter_destroy(&iter);
-	return result;
+	return ISC_R_SUCCESS;
 }
 
 static isc_result_t

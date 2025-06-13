@@ -1200,18 +1200,12 @@ catz_process_coo(dns_catz_zone_t *catz, dns_label_t *mhash,
 		return ISC_R_FAILURE;
 	}
 
-	result = dns_rdataset_first(value);
-	if (result != ISC_R_SUCCESS) {
-		return result;
-	}
+	RETERR(dns_rdataset_first(value));
 
 	dns_rdata_init(&rdata);
 	dns_rdataset_current(value, &rdata);
 
-	result = dns_rdata_tostruct(&rdata, &ptr, NULL);
-	if (result != ISC_R_SUCCESS) {
-		return result;
-	}
+	RETERR(dns_rdata_tostruct(&rdata, &ptr, NULL));
 
 	if (dns_name_countlabels(&ptr.ptr) == 0) {
 		CHECK(ISC_R_FAILURE);
@@ -1253,18 +1247,12 @@ catz_process_zones_entry(dns_catz_zone_t *catz, dns_rdataset_t *value,
 		return ISC_R_FAILURE;
 	}
 
-	result = dns_rdataset_first(value);
-	if (result != ISC_R_SUCCESS) {
-		return result;
-	}
+	RETERR(dns_rdataset_first(value));
 
 	dns_rdata_init(&rdata);
 	dns_rdataset_current(value, &rdata);
 
-	result = dns_rdata_tostruct(&rdata, &ptr, NULL);
-	if (result != ISC_R_SUCCESS) {
-		return result;
-	}
+	RETERR(dns_rdata_tostruct(&rdata, &ptr, NULL));
 
 	result = isc_ht_find(catz->entries, mhash->base, mhash->length,
 			     (void **)&entry);
@@ -1314,18 +1302,12 @@ catz_process_version(dns_catz_zone_t *catz, dns_rdataset_t *value) {
 		return ISC_R_FAILURE;
 	}
 
-	result = dns_rdataset_first(value);
-	if (result != ISC_R_SUCCESS) {
-		return result;
-	}
+	RETERR(dns_rdataset_first(value));
 
 	dns_rdata_init(&rdata);
 	dns_rdataset_current(value, &rdata);
 
-	result = dns_rdata_tostruct(&rdata, &rdatatxt, NULL);
-	if (result != ISC_R_SUCCESS) {
-		return result;
-	}
+	RETERR(dns_rdata_tostruct(&rdata, &rdatatxt, NULL));
 
 	CHECK(dns_rdata_txt_first(&rdatatxt));
 
@@ -1559,10 +1541,7 @@ catz_process_apl(dns_catz_zone_t *catz, isc_buffer_t **aclbp,
 	RUNTIME_CHECK(result == ISC_R_SUCCESS);
 	dns_rdata_init(&rdata);
 	dns_rdataset_current(value, &rdata);
-	result = dns_rdata_tostruct(&rdata, &rdata_apl, catz->catzs->mctx);
-	if (result != ISC_R_SUCCESS) {
-		return result;
-	}
+	RETERR(dns_rdata_tostruct(&rdata, &rdata_apl, catz->catzs->mctx));
 	isc_buffer_allocate(catz->catzs->mctx, &aclb, 16);
 	for (result = dns_rdata_apl_first(&rdata_apl); result == ISC_R_SUCCESS;
 	     result = dns_rdata_apl_next(&rdata_apl))
@@ -1802,10 +1781,7 @@ dns__catz_update_process(dns_catz_zone_t *catz, const dns_name_t *src_name,
 	nrres = dns_name_fullcompare(src_name, &catz->name, &order, &nlabels);
 	if (nrres == dns_namereln_equal) {
 		if (rdataset->type == dns_rdatatype_soa) {
-			result = dns_rdataset_first(rdataset);
-			if (result != ISC_R_SUCCESS) {
-				return result;
-			}
+			RETERR(dns_rdataset_first(rdataset));
 
 			dns_rdataset_current(rdataset, &rdata);
 			result = dns_rdata_tostruct(&rdata, &soa, NULL);

@@ -71,7 +71,6 @@ configure_zone_acl(const cfg_obj_t *zconfig, const cfg_obj_t *vconfig,
 		   cfg_aclconfctx_t *aclctx, dns_zone_t *zone,
 		   void (*setzacl)(dns_zone_t *, dns_acl_t *),
 		   void (*clearzacl)(dns_zone_t *)) {
-	isc_result_t result;
 	const cfg_obj_t *maps[6] = { 0 };
 	const cfg_obj_t *aclobj = NULL;
 	int i = 0;
@@ -169,11 +168,7 @@ configure_zone_acl(const cfg_obj_t *zconfig, const cfg_obj_t *vconfig,
 	}
 
 parse_acl:
-	result = cfg_acl_fromconfig(aclobj, config, aclctx, isc_g_mctx, 0,
-				    &acl);
-	if (result != ISC_R_SUCCESS) {
-		return result;
-	}
+	RETERR(cfg_acl_fromconfig(aclobj, config, aclctx, isc_g_mctx, 0, &acl));
 	(*setzacl)(zone, acl);
 
 	/* Set the view default now */
@@ -558,12 +553,9 @@ configure_staticstub(const cfg_obj_t *zconfig, const cfg_obj_t *tconfig,
 	isc_region_t region;
 
 	/* Create the DB beforehand */
-	result = dns_db_create(mctx, dbtype, dns_zone_getorigin(zone),
-			       dns_dbtype_stub, dns_zone_getclass(zone), 0,
-			       NULL, &db);
-	if (result != ISC_R_SUCCESS) {
-		return result;
-	}
+	RETERR(dns_db_create(mctx, dbtype, dns_zone_getorigin(zone),
+			     dns_dbtype_stub, dns_zone_getclass(zone), 0, NULL,
+			     &db));
 
 	dns_rdataset_init(&rdataset);
 
@@ -694,8 +686,6 @@ zonetype_fromconfig(const cfg_obj_t *zmap, const cfg_obj_t *tmap) {
 static isc_result_t
 strtoargvsub(isc_mem_t *mctx, char *s, unsigned int *argcp, char ***argvp,
 	     unsigned int n) {
-	isc_result_t result;
-
 	/* Discard leading whitespace. */
 	while (*s == ' ' || *s == '\t') {
 		s++;
@@ -714,10 +704,7 @@ strtoargvsub(isc_mem_t *mctx, char *s, unsigned int *argcp, char ***argvp,
 			*p++ = '\0';
 		}
 
-		result = strtoargvsub(mctx, p, argcp, argvp, n + 1);
-		if (result != ISC_R_SUCCESS) {
-			return result;
-		}
+		RETERR(strtoargvsub(mctx, p, argcp, argvp, n + 1));
 		(*argvp)[n] = s;
 	}
 	return ISC_R_SUCCESS;
@@ -1917,10 +1904,7 @@ named_zone_configure_writeable_dlz(dns_dlzdb_t *dlzdatabase, dns_zone_t *zone,
 	isc_result_t result;
 
 	dns_zone_settype(zone, dns_zone_dlz);
-	result = dns_sdlz_setdb(dlzdatabase, rdclass, name, &db);
-	if (result != ISC_R_SUCCESS) {
-		return result;
-	}
+	RETERR(dns_sdlz_setdb(dlzdatabase, rdclass, name, &db));
 	result = dns_zone_dlzpostload(zone, db);
 	dns_db_detach(&db);
 	return result;

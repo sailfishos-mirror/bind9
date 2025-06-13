@@ -436,16 +436,11 @@ cfg_parser_currentfile(cfg_parser_t *pctx) {
 
 isc_result_t
 cfg_parse_obj(cfg_parser_t *pctx, const cfg_type_t *type, cfg_obj_t **ret) {
-	isc_result_t result;
-
 	REQUIRE(pctx != NULL);
 	REQUIRE(type != NULL);
 	REQUIRE(ret != NULL && *ret == NULL);
 
-	result = type->parse(pctx, type, ret);
-	if (result != ISC_R_SUCCESS) {
-		return result;
-	}
+	RETERR(type->parse(pctx, type, ret));
 	ENSURE(*ret != NULL);
 	return ISC_R_SUCCESS;
 }
@@ -2007,17 +2002,13 @@ cfg_obj_asboolean(const cfg_obj_t *obj) {
 isc_result_t
 cfg_parse_boolean(cfg_parser_t *pctx, const cfg_type_t *type ISC_ATTR_UNUSED,
 		  cfg_obj_t **ret) {
-	isc_result_t result;
 	bool value;
 	cfg_obj_t *obj = NULL;
 
 	REQUIRE(pctx != NULL);
 	REQUIRE(ret != NULL && *ret == NULL);
 
-	result = cfg_gettoken(pctx, 0);
-	if (result != ISC_R_SUCCESS) {
-		return result;
-	}
+	RETERR(cfg_gettoken(pctx, 0));
 
 	if (pctx->token.type != isc_tokentype_string) {
 		goto bad_boolean;
@@ -2891,7 +2882,6 @@ cfg_obj_ismap(const cfg_obj_t *obj) {
 
 isc_result_t
 cfg_map_get(const cfg_obj_t *mapobj, const char *name, const cfg_obj_t **obj) {
-	isc_result_t result;
 	isc_symvalue_t val;
 	const cfg_map_t *map;
 
@@ -2901,10 +2891,7 @@ cfg_map_get(const cfg_obj_t *mapobj, const char *name, const cfg_obj_t **obj) {
 
 	map = &mapobj->value.map;
 
-	result = isc_symtab_lookup(map->symtab, name, SYMTAB_DUMMY_TYPE, &val);
-	if (result != ISC_R_SUCCESS) {
-		return result;
-	}
+	RETERR(isc_symtab_lookup(map->symtab, name, SYMTAB_DUMMY_TYPE, &val));
 	*obj = val.as_pointer;
 	return ISC_R_SUCCESS;
 }
@@ -3143,13 +3130,8 @@ token_addr(cfg_parser_t *pctx, unsigned int flags, isc_netaddr_t *na) {
 
 			if (inet_pton(AF_INET6, buf, &in6a) == 1) {
 				if (d != NULL) {
-					isc_result_t result;
-
-					result = isc_netscope_pton(
-						AF_INET6, d + 1, &in6a, &zone);
-					if (result != ISC_R_SUCCESS) {
-						return result;
-					}
+					RETERR(isc_netscope_pton(
+						AF_INET6, d + 1, &in6a, &zone));
 				}
 
 				isc_netaddr_fromin6(na, &in6a);
@@ -3769,12 +3751,7 @@ cleanup:
  */
 static isc_result_t
 cfg_getstringtoken(cfg_parser_t *pctx) {
-	isc_result_t result;
-
-	result = cfg_gettoken(pctx, CFG_LEXOPT_QSTRING);
-	if (result != ISC_R_SUCCESS) {
-		return result;
-	}
+	RETERR(cfg_gettoken(pctx, CFG_LEXOPT_QSTRING));
 
 	if (pctx->token.type != isc_tokentype_string &&
 	    pctx->token.type != isc_tokentype_qstring)

@@ -2204,17 +2204,12 @@ cleanup:
 static isc_result_t
 read_and_check(bool do_read, isc_buffer_t *buffer, size_t len, FILE *f,
 	       uint32_t *totallen) {
-	isc_result_t result;
-
 	REQUIRE(totallen != NULL);
 
 	if (do_read) {
 		INSIST(isc_buffer_availablelength(buffer) >= len);
-		result = isc_stdio_read(isc_buffer_used(buffer), 1, len, f,
-					NULL);
-		if (result != ISC_R_SUCCESS) {
-			return result;
-		}
+		RETERR(isc_stdio_read(isc_buffer_used(buffer), 1, len, f,
+				      NULL));
 		isc_buffer_add(buffer, (unsigned int)len);
 		if (*totallen < len) {
 			return ISC_R_RANGE;
@@ -2336,10 +2331,7 @@ load_raw(dns_loadctx_t *lctx) {
 	dctx = DNS_DECOMPRESS_NEVER;
 
 	if (lctx->first) {
-		result = load_header(lctx);
-		if (result != ISC_R_SUCCESS) {
-			return result;
-		}
+		RETERR(load_header(lctx));
 	}
 
 	ISC_LIST_INIT(head);

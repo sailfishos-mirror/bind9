@@ -142,8 +142,6 @@ skrbundle_addtuple(dns_skrbundle_t *bundle, dns_difftuple_t **tuple) {
 isc_result_t
 dns_skrbundle_getsig(dns_skrbundle_t *bundle, dst_key_t *key,
 		     dns_rdatatype_t covering_type, dns_rdata_t *sigrdata) {
-	isc_result_t result = ISC_R_SUCCESS;
-
 	REQUIRE(DNS_SKRBUNDLE_VALID(bundle));
 	REQUIRE(DNS_DIFF_VALID(&bundle->diff));
 
@@ -155,10 +153,7 @@ dns_skrbundle_getsig(dns_skrbundle_t *bundle, dst_key_t *key,
 		}
 		INSIST(tuple->rdata.type == dns_rdatatype_rrsig);
 
-		result = dns_rdata_tostruct(&tuple->rdata, &rrsig, NULL);
-		if (result != ISC_R_SUCCESS) {
-			return result;
-		}
+		RETERR(dns_rdata_tostruct(&tuple->rdata, &rrsig, NULL));
 
 		/*
 		 * Check if covering type matches, and if the signature is

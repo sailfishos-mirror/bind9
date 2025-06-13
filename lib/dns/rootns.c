@@ -101,7 +101,6 @@ static struct upcoming {
 
 static isc_result_t
 in_rootns(dns_rdataset_t *rootns, dns_name_t *name) {
-	isc_result_t result;
 	dns_rdata_ns_t ns;
 
 	if (!dns_rdataset_isassociated(rootns)) {
@@ -111,10 +110,7 @@ in_rootns(dns_rdataset_t *rootns, dns_name_t *name) {
 	DNS_RDATASET_FOREACH(rootns) {
 		dns_rdata_t rdata = DNS_RDATA_INIT;
 		dns_rdataset_current(rootns, &rdata);
-		result = dns_rdata_tostruct(&rdata, &ns, NULL);
-		if (result != ISC_R_SUCCESS) {
-			return result;
-		}
+		RETERR(dns_rdata_tostruct(&rdata, &ns, NULL));
 		if (dns_name_compare(name, &ns.name) == 0) {
 			return ISC_R_SUCCESS;
 		}

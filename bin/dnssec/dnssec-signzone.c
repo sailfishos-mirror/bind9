@@ -1377,10 +1377,7 @@ setsoaserial(uint32_t serial, dns_updatemethod_t method) {
 	uint32_t old_serial, new_serial = 0;
 	dns_updatemethod_t used = dns_updatemethod_none;
 
-	result = dns_db_getoriginnode(gdb, &node);
-	if (result != ISC_R_SUCCESS) {
-		return result;
-	}
+	RETERR(dns_db_getoriginnode(gdb, &node));
 
 	dns_rdataset_init(&rdataset);
 

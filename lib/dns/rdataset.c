@@ -447,13 +447,9 @@ dns_rdataset_additionaldata(dns_rdataset_t *rdataset,
 	}
 
 	DNS_RDATASET_FOREACH(rdataset) {
-		isc_result_t result;
 		dns_rdata_t rdata = DNS_RDATA_INIT;
 		dns_rdataset_current(rdataset, &rdata);
-		result = dns_rdata_additionaldata(&rdata, owner_name, add, arg);
-		if (result != ISC_R_SUCCESS) {
-			return result;
-		}
+		RETERR(dns_rdata_additionaldata(&rdata, owner_name, add, arg));
 	}
 
 	return ISC_R_SUCCESS;

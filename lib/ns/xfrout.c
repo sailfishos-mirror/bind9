@@ -330,11 +330,9 @@ cleanup:
 static isc_result_t
 axfr_rrstream_first(rrstream_t *rs) {
 	axfr_rrstream_t *s = (axfr_rrstream_t *)rs;
-	isc_result_t result;
-	result = dns_rriterator_first(&s->it);
-	if (result != ISC_R_SUCCESS) {
-		return result;
-	}
+
+	RETERR(dns_rriterator_first(&s->it));
+
 	/* Skip SOA records. */
 	for (;;) {
 		dns_name_t *name_dummy = NULL;
@@ -345,12 +343,10 @@ axfr_rrstream_first(rrstream_t *rs) {
 		if (rdata->type != dns_rdatatype_soa) {
 			break;
 		}
-		result = dns_rriterator_next(&s->it);
-		if (result != ISC_R_SUCCESS) {
-			break;
-		}
+		RETERR(dns_rriterator_next(&s->it));
 	}
-	return result;
+
+	return ISC_R_SUCCESS;
 }
 
 static isc_result_t

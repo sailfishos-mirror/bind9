@@ -574,10 +574,7 @@ find_tkey(dns_message_t *msg, dns_name_t **name, dns_rdata_t *rdata,
 		result = dns_message_findtype(cur, dns_rdatatype_tkey, 0,
 					      &tkeyset);
 		if (result == ISC_R_SUCCESS) {
-			result = dns_rdataset_first(tkeyset);
-			if (result != ISC_R_SUCCESS) {
-				return result;
-			}
+			RETERR(dns_rdataset_first(tkeyset));
 
 			dns_rdataset_current(tkeyset, rdata);
 			*name = cur;

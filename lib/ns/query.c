@@ -1774,11 +1774,8 @@ query_additionalauth(query_ctx_t *qctx, const dns_name_t *name,
 		version = NULL;
 		dns_db_detach(&db);
 		dns_getdb_options_t options = { .nolog = true };
-		result = query_getzonedb(client, name, type, options, &zone,
-					 &db, &version);
-		if (result != ISC_R_SUCCESS) {
-			return result;
-		}
+		RETERR(query_getzonedb(client, name, type, options, &zone, &db,
+				       &version));
 		dns_zone_detach(&zone);
 
 		CTRACE(ISC_LOG_DEBUG(3), "query_additionalauth: other zone");
@@ -3734,11 +3731,8 @@ rpz_rewrite_ip_rrset(ns_client_t *client, dns_name_t *name,
 				continue;
 			}
 
-			result = rpz_rewrite_ip(client, &netaddr, qtype,
-						rpz_type, zbits, p_rdatasetp);
-			if (result != ISC_R_SUCCESS) {
-				return result;
-			}
+			RETERR(rpz_rewrite_ip(client, &netaddr, qtype, rpz_type,
+					      zbits, p_rdatasetp));
 		}
 	} while (!done &&
 		 client->query.rpz_st->m.policy == DNS_RPZ_POLICY_MISS);
@@ -6344,10 +6338,7 @@ ns_query_recurse(ns_client_t *client, dns_rdatatype_t qtype, dns_name_t *qname,
 		inc_stats(client, ns_statscounter_recursion);
 	}
 
-	result = acquire_recursionquota(client);
-	if (result != ISC_R_SUCCESS) {
-		return result;
-	}
+	RETERR(acquire_recursionquota(client));
 
 	/*
 	 * Invoke the resolver.
@@ -9558,10 +9549,7 @@ query_synthcnamewildcard(query_ctx_t *qctx, dns_rdataset_t *rdataset,
 	dns_rdata_t rdata = DNS_RDATA_INIT;
 	dns_rdata_cname_t cname;
 
-	result = query_synthwildcard(qctx, rdataset, sigrdataset);
-	if (result != ISC_R_SUCCESS) {
-		return result;
-	}
+	RETERR(query_synthwildcard(qctx, rdataset, sigrdataset));
 
 	qctx->client->query.attributes |= NS_QUERYATTR_PARTIALANSWER;
 

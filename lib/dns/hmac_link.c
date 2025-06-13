@@ -456,18 +456,15 @@ static isc_result_t
 hmac_parse(const isc_md_type_t *type, dst_key_t *key, isc_lex_t *lexer,
 	   dst_key_t *pub) {
 	dst_private_t priv;
-	isc_result_t result, tresult;
+	isc_result_t result = ISC_R_SUCCESS, tresult;
 	isc_buffer_t b;
 	isc_mem_t *mctx = key->mctx;
 	unsigned int i;
 
 	UNUSED(pub);
 	/* read private key file */
-	result = dst__privstruct_parse(key, hmac__to_dst_alg(type), lexer, mctx,
-				       &priv);
-	if (result != ISC_R_SUCCESS) {
-		return result;
-	}
+	RETERR(dst__privstruct_parse(key, hmac__to_dst_alg(type), lexer, mctx,
+				     &priv));
 
 	if (key->external) {
 		result = DST_R_EXTERNALKEY;

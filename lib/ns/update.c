@@ -523,17 +523,13 @@ typedef struct {
  */
 static isc_result_t
 foreach_node_rr_action(void *data, dns_rdataset_t *rdataset) {
-	isc_result_t result;
 	foreach_node_rr_ctx_t *ctx = data;
 	DNS_RDATASET_FOREACH(rdataset) {
 		rr_t rr = { 0, DNS_RDATA_INIT };
 
 		dns_rdataset_current(rdataset, &rr.rdata);
 		rr.ttl = rdataset->ttl;
-		result = (*ctx->rr_action)(ctx->rr_action_data, &rr);
-		if (result != ISC_R_SUCCESS) {
-			return result;
-		}
+		RETERR((*ctx->rr_action)(ctx->rr_action_data, &rr));
 	}
 	return ISC_R_SUCCESS;
 }
@@ -1537,14 +1533,10 @@ check_soa_increment(dns_db_t *db, dns_dbversion_t *ver,
 		    dns_rdata_t *update_rdata, bool *ok) {
 	uint32_t db_serial;
 	uint32_t update_serial;
-	isc_result_t result;
 
 	update_serial = dns_soa_getserial(update_rdata);
 
-	result = dns_db_getsoaserial(db, ver, &db_serial);
-	if (result != ISC_R_SUCCESS) {
-		return result;
-	}
+	RETERR(dns_db_getsoaserial(db, ver, &db_serial));
 
 	if (DNS_SERIAL_GE(db_serial, update_serial)) {
 		*ok = false;
@@ -2170,10 +2162,7 @@ get_iterations(dns_db_t *db, dns_dbversion_t *ver, dns_rdatatype_t privatetype,
 
 	dns_rdataset_init(&rdataset);
 
-	result = dns_db_getoriginnode(db, &node);
-	if (result != ISC_R_SUCCESS) {
-		return result;
-	}
+	RETERR(dns_db_getoriginnode(db, &node));
 	result = dns_db_findrdataset(db, node, ver, dns_rdatatype_nsec3param, 0,
 				     (isc_stdtime_t)0, &rdataset, NULL);
 	if (result == ISC_R_NOTFOUND) {
@@ -3430,12 +3419,9 @@ send_forward(ns_client_t *client, dns_zone_t *zone) {
 	char classbuf[DNS_RDATACLASS_FORMATSIZE];
 	update_t *uev = NULL;
 
-	result = checkupdateacl(client, dns_zone_getforwardacl(zone),
-				"update forwarding", dns_zone_getorigin(zone),
-				true, false);
-	if (result != ISC_R_SUCCESS) {
-		return result;
-	}
+	RETERR(checkupdateacl(client, dns_zone_getforwardacl(zone),
+			      "update forwarding", dns_zone_getorigin(zone),
+			      true, false));
 
 	result = isc_quota_acquire(&client->manager->sctx->updquota);
 	if (result != ISC_R_SUCCESS) {

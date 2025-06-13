@@ -1480,7 +1480,6 @@ dns_rpz_new_zones(dns_view_t *view, dns_rpz_zones_t **rpzsp, bool first_time) {
 
 isc_result_t
 dns_rpz_new_zone(dns_rpz_zones_t *rpzs, dns_rpz_zone_t **rpzp) {
-	isc_result_t result;
 	dns_rpz_zone_t *rpz = NULL;
 
 	REQUIRE(DNS_RPZ_ZONES_VALID(rpzs));
@@ -1490,10 +1489,7 @@ dns_rpz_new_zone(dns_rpz_zones_t *rpzs, dns_rpz_zone_t **rpzp) {
 		return ISC_R_NOSPACE;
 	}
 
-	result = dns__rpz_shuttingdown(rpzs);
-	if (result != ISC_R_SUCCESS) {
-		return result;
-	}
+	RETERR(dns__rpz_shuttingdown(rpzs));
 
 	rpz = isc_mem_get(rpzs->mctx, sizeof(*rpz));
 	*rpz = (dns_rpz_zone_t){

@@ -315,16 +315,12 @@ check_forward(const cfg_obj_t *config, const cfg_obj_t *options,
 		return ISC_R_FAILURE;
 	}
 	if (forwarders != NULL) {
-		isc_result_t result = ISC_R_SUCCESS;
 		const cfg_obj_t *tlspobj = cfg_tuple_get(forwarders, "tls");
 
 		if (tlspobj != NULL && cfg_obj_isstring(tlspobj)) {
 			const char *tls = cfg_obj_asstring(tlspobj);
 			if (tls != NULL) {
-				result = validate_tls(config, tlspobj, tls);
-				if (result != ISC_R_SUCCESS) {
-					return result;
-				}
+				RETERR(validate_tls(config, tlspobj, tls));
 			}
 		}
 
@@ -333,10 +329,7 @@ check_forward(const cfg_obj_t *config, const cfg_obj_t *options,
 			const cfg_obj_t *forwarder = cfg_listelt_value(element);
 			const char *tls = cfg_obj_getsockaddrtls(forwarder);
 			if (tls != NULL) {
-				result = validate_tls(config, faddresses, tls);
-				if (result != ISC_R_SUCCESS) {
-					return result;
-				}
+				RETERR(validate_tls(config, faddresses, tls));
 			}
 		}
 	}
@@ -2380,13 +2373,9 @@ check_tls_definitions(const cfg_obj_t *config, isc_mem_t *mctx) {
 static isc_result_t
 get_remotes(const cfg_obj_t *cctx, const char *list, const char *name,
 	    const cfg_obj_t **ret) {
-	isc_result_t result = ISC_R_SUCCESS;
 	const cfg_obj_t *obj = NULL;
 
-	result = cfg_map_get(cctx, list, &obj);
-	if (result != ISC_R_SUCCESS) {
-		return result;
-	}
+	RETERR(cfg_map_get(cctx, list, &obj));
 
 	CFG_LIST_FOREACH(obj, elt) {
 		const char *listname = NULL;
@@ -4490,10 +4479,7 @@ check_keylist(const cfg_obj_t *keys, isc_symtab_t *symtab, isc_mem_t *mctx) {
 			result = tresult;
 			continue;
 		}
-		tresult = isccfg_check_key(key);
-		if (tresult != ISC_R_SUCCESS) {
-			return tresult;
-		}
+		RETERR(isccfg_check_key(key));
 
 		dns_name_format(name, namebuf, sizeof(namebuf));
 		keyname = isc_mem_strdup(mctx, namebuf);

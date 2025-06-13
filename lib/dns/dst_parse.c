@@ -619,11 +619,7 @@ dst__privstruct_writefile(const dst_key_t *key, const dst_private_t *priv,
 	}
 
 	isc_buffer_init(&fileb, filename, sizeof(filename));
-	result = dst_key_buildfilename(key, DST_TYPE_PRIVATE, directory,
-				       &fileb);
-	if (result != ISC_R_SUCCESS) {
-		return result;
-	}
+	RETERR(dst_key_buildfilename(key, DST_TYPE_PRIVATE, directory, &fileb));
 
 	result = isc_file_mode(filename, &mode);
 	if (result == ISC_R_SUCCESS && mode != (S_IRUSR | S_IWUSR)) {
@@ -640,11 +636,7 @@ dst__privstruct_writefile(const dst_key_t *key, const dst_private_t *priv,
 	}
 
 	isc_buffer_init(&tmpb, tmpname, sizeof(tmpname));
-	result = dst_key_buildfilename(key, DST_TYPE_TEMPLATE, directory,
-				       &tmpb);
-	if (result != ISC_R_SUCCESS) {
-		return result;
-	}
+	RETERR(dst_key_buildfilename(key, DST_TYPE_TEMPLATE, directory, &tmpb));
 
 	fp = dst_key_open(tmpname, S_IRUSR | S_IWUSR);
 	if (fp == NULL) {

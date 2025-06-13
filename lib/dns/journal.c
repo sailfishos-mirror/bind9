@@ -460,17 +460,12 @@ journal_fsync(dns_journal_t *j) {
  */
 static isc_result_t
 journal_read_xhdr(dns_journal_t *j, journal_xhdr_t *xhdr) {
-	isc_result_t result;
-
 	j->it.cpos.offset = j->offset;
 
 	switch (j->xhdr_version) {
 	case XHDR_VERSION1: {
 		journal_rawxhdr_ver1_t raw;
-		result = journal_read(j, &raw, sizeof(raw));
-		if (result != ISC_R_SUCCESS) {
-			return result;
-		}
+		RETERR(journal_read(j, &raw, sizeof(raw)));
 		xhdr->size = decode_uint32(raw.size);
 		xhdr->count = 0;
 		xhdr->serial0 = decode_uint32(raw.serial0);
@@ -481,10 +476,7 @@ journal_read_xhdr(dns_journal_t *j, journal_xhdr_t *xhdr) {
 
 	case XHDR_VERSION2: {
 		journal_rawxhdr_t raw;
-		result = journal_read(j, &raw, sizeof(raw));
-		if (result != ISC_R_SUCCESS) {
-			return result;
-		}
+		RETERR(journal_read(j, &raw, sizeof(raw)));
 		xhdr->size = decode_uint32(raw.size);
 		xhdr->count = decode_uint32(raw.count);
 		xhdr->serial0 = decode_uint32(raw.serial0);
@@ -524,12 +516,8 @@ journal_write_xhdr(dns_journal_t *j, uint32_t size, uint32_t count,
 static isc_result_t
 journal_read_rrhdr(dns_journal_t *j, journal_rrhdr_t *rrhdr) {
 	journal_rawrrhdr_t raw;
-	isc_result_t result;
 
-	result = journal_read(j, &raw, sizeof(raw));
-	if (result != ISC_R_SUCCESS) {
-		return result;
-	}
+	RETERR(journal_read(j, &raw, sizeof(raw)));
 	rrhdr->size = decode_uint32(raw.size);
 	return ISC_R_SUCCESS;
 }
@@ -929,10 +917,7 @@ journal_next(dns_journal_t *j, journal_pos_t *pos) {
 
 	REQUIRE(DNS_JOURNAL_VALID(j));
 
-	result = journal_seek(j, pos->offset);
-	if (result != ISC_R_SUCCESS) {
-		return result;
-	}
+	RETERR(journal_seek(j, pos->offset));
 
 	if (pos->serial == j->header.end.serial) {
 		return ISC_R_NOMORE;
@@ -942,10 +927,7 @@ journal_next(dns_journal_t *j, journal_pos_t *pos) {
 	 * Read the header of the current transaction.
 	 * This will return ISC_R_NOMORE if we are at EOF.
 	 */
-	result = journal_read_xhdr(j, &xhdr);
-	if (result != ISC_R_SUCCESS) {
-		return result;
-	}
+	RETERR(journal_read_xhdr(j, &xhdr));
 
 	if (j->header_ver1) {
 		CHECK(maybe_fixup_xhdr(j, &xhdr, pos->serial, pos->offset));
@@ -1096,7 +1078,6 @@ index_invalidate(dns_journal_t *j, uint32_t serial) {
  */
 static isc_result_t
 journal_find(dns_journal_t *j, uint32_t serial, journal_pos_t *pos) {
-	isc_result_t result;
 	journal_pos_t current_pos;
 
 	REQUIRE(DNS_JOURNAL_VALID(j));
@@ -1119,10 +1100,7 @@ journal_find(dns_journal_t *j, uint32_t serial, journal_pos_t *pos) {
 		if (DNS_SERIAL_GT(current_pos.serial, serial)) {
 			return ISC_R_NOTFOUND;
 		}
-		result = journal_next(j, &current_pos);
-		if (result != ISC_R_SUCCESS) {
-			return result;
-		}
+		RETERR(journal_next(j, &current_pos));
 	}
 	*pos = current_pos;
 	return ISC_R_SUCCESS;
@@ -2111,10 +2089,7 @@ get_name_diff(dns_db_t *db, dns_dbversion_t *ver, isc_stdtime_t now,
 	dns_rdatasetiter_t *rdsiter = NULL;
 	dns_difftuple_t *tuple = NULL;
 
-	result = dns_dbiterator_current(dbit, &node, name);
-	if (result != ISC_R_SUCCESS) {
-		return result;
-	}
+	RETERR(dns_dbiterator_current(dbit, &node, name));
 
 	result = dns_db_allrdatasets(db, node, ver, 0, now, &rdsiter);
 	if (result != ISC_R_SUCCESS) {
@@ -2250,10 +2225,7 @@ diff_namespace(dns_db_t *dba, dns_dbversion_t *dbvera, dns_db_t *dbb,
 	dns_fixedname_init(&fixname[0]);
 	dns_fixedname_init(&fixname[1]);
 
-	result = dns_db_createiterator(db[0], options, &dbit[0]);
-	if (result != ISC_R_SUCCESS) {
-		return result;
-	}
+	RETERR(dns_db_createiterator(db[0], options, &dbit[0]));
 	result = dns_db_createiterator(db[1], options, &dbit[1]);
 	if (result != ISC_R_SUCCESS) {
 		goto cleanup_iterator;
@@ -2363,11 +2335,8 @@ dns_db_diffx(dns_diff_t *diff, dns_db_t *dba, dns_dbversion_t *dbvera,
 	dns_journal_t *journal = NULL;
 
 	if (filename != NULL) {
-		result = dns_journal_open(diff->mctx, filename,
-					  DNS_JOURNAL_CREATE, &journal);
-		if (result != ISC_R_SUCCESS) {
-			return result;
-		}
+		RETERR(dns_journal_open(diff->mctx, filename,
+					DNS_JOURNAL_CREATE, &journal));
 	}
 
 	CHECK(diff_namespace(dba, dbvera, dbb, dbverb, DNS_DB_NONSEC3, diff));

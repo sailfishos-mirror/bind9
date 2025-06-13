@@ -1252,33 +1252,23 @@ dns_rdata_fromtext(dns_rdata_t *rdata, dns_rdataclass_t rdclass,
 static isc_result_t
 unknown_totext(dns_rdata_t *rdata, dns_rdata_textctx_t *tctx,
 	       isc_buffer_t *target) {
-	isc_result_t result;
+	isc_result_t result = ISC_R_SUCCESS;
 	char buf[sizeof("65535")];
 	isc_region_t sr;
 
 	strlcpy(buf, "\\# ", sizeof(buf));
-	result = str_totext(buf, target);
-	if (result != ISC_R_SUCCESS) {
-		return result;
-	}
+	RETERR(str_totext(buf, target));
 
 	dns_rdata_toregion(rdata, &sr);
 	INSIST(sr.length < 65536);
 	snprintf(buf, sizeof(buf), "%u", sr.length);
-	result = str_totext(buf, target);
-	if (result != ISC_R_SUCCESS) {
-		return result;
-	}
+	RETERR(str_totext(buf, target));
 
 	if (sr.length != 0U) {
 		if ((tctx->flags & DNS_STYLEFLAG_MULTILINE) != 0) {
-			result = str_totext(" ( ", target);
+			RETERR(str_totext(" ( ", target));
 		} else {
-			result = str_totext(" ", target);
-		}
-
-		if (result != ISC_R_SUCCESS) {
-			return result;
+			RETERR(str_totext(" ", target));
 		}
 
 		if (tctx->width == 0) { /* No splitting */

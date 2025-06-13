@@ -748,8 +748,6 @@ dns_request_cancel(dns_request_t *request) {
 isc_result_t
 dns_request_getresponse(dns_request_t *request, dns_message_t *message,
 			unsigned int options) {
-	isc_result_t result;
-
 	REQUIRE(VALID_REQUEST(request));
 	REQUIRE(request->tid == isc_tid());
 	REQUIRE(request->answer != NULL);
@@ -757,18 +755,12 @@ dns_request_getresponse(dns_request_t *request, dns_message_t *message,
 	req_log(ISC_LOG_DEBUG(3), "%s: request %p", __func__, request);
 
 	dns_message_setquerytsig(message, request->tsig);
-	result = dns_message_settsigkey(message, request->tsigkey);
-	if (result != ISC_R_SUCCESS) {
-		return result;
-	}
-	result = dns_message_parse(message, request->answer, options);
-	if (result != ISC_R_SUCCESS) {
-		return result;
-	}
+	RETERR(dns_message_settsigkey(message, request->tsigkey));
+	RETERR(dns_message_parse(message, request->answer, options));
 	if (request->tsigkey != NULL) {
-		result = dns_tsig_verify(request->answer, message, NULL, NULL);
+		RETERR(dns_tsig_verify(request->answer, message, NULL, NULL));
 	}
-	return result;
+	return ISC_R_SUCCESS;
 }
 
 isc_buffer_t *

@@ -1757,15 +1757,8 @@ reverse_octets(const char *in, char **p, char *end) {
 	char *dot = strchr(in, '.');
 	int len;
 	if (dot != NULL) {
-		isc_result_t result;
-		result = reverse_octets(dot + 1, p, end);
-		if (result != ISC_R_SUCCESS) {
-			return result;
-		}
-		result = append_str(".", 1, p, end);
-		if (result != ISC_R_SUCCESS) {
-			return result;
-		}
+		RETERR(reverse_octets(dot + 1, p, end));
+		RETERR(append_str(".", 1, p, end));
 		len = (int)(dot - in);
 	} else {
 		len = strlen(in);
@@ -1776,7 +1769,6 @@ reverse_octets(const char *in, char **p, char *end) {
 static isc_result_t
 get_reverse(char *reverse, size_t len, char *value, bool strict) {
 	int r;
-	isc_result_t result;
 	isc_netaddr_t addr;
 
 	addr.family = AF_INET6;
@@ -1787,10 +1779,7 @@ get_reverse(char *reverse, size_t len, char *value, bool strict) {
 		dns_name_t *name;
 
 		name = dns_fixedname_initname(&fname);
-		result = dns_byaddr_createptrname(&addr, name);
-		if (result != ISC_R_SUCCESS) {
-			return result;
-		}
+		RETERR(dns_byaddr_createptrname(&addr, name));
 		dns_name_format(name, reverse, (unsigned int)len);
 		return ISC_R_SUCCESS;
 	} else {
@@ -1807,14 +1796,8 @@ get_reverse(char *reverse, size_t len, char *value, bool strict) {
 		if (strict && inet_pton(AF_INET, value, &addr.type.in) != 1) {
 			return DNS_R_BADDOTTEDQUAD;
 		}
-		result = reverse_octets(value, &p, end);
-		if (result != ISC_R_SUCCESS) {
-			return result;
-		}
-		result = append_str(".in-addr.arpa.", 15, &p, end);
-		if (result != ISC_R_SUCCESS) {
-			return result;
-		}
+		RETERR(reverse_octets(value, &p, end));
+		RETERR(append_str(".in-addr.arpa.", 15, &p, end));
 		return ISC_R_SUCCESS;
 	}
 }

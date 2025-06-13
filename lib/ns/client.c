@@ -1074,10 +1074,7 @@ ns_client_addopt(ns_client_t *client, dns_message_t *message) {
 				.value = (unsigned char *)nsidp,
 				.length = (uint16_t)strlen(nsidp),
 			};
-			result = dns_message_ednsaddopt(message, &option);
-			if (result != ISC_R_SUCCESS) {
-				return result;
-			}
+			RETERR(dns_message_ednsaddopt(message, &option));
 		}
 	}
 
@@ -1093,10 +1090,7 @@ ns_client_addopt(ns_client_t *client, dns_message_t *message) {
 		dns_ednsopt_t option = { .code = DNS_OPT_COOKIE,
 					 .length = COOKIE_SIZE,
 					 .value = cookie };
-		result = dns_message_ednsaddopt(message, &option);
-		if (result != ISC_R_SUCCESS) {
-			return result;
-		}
+		RETERR(dns_message_ednsaddopt(message, &option));
 	}
 
 	if ((client->inner.attributes & NS_CLIENTATTR_HAVEEXPIRE) != 0) {
@@ -1108,10 +1102,7 @@ ns_client_addopt(ns_client_t *client, dns_message_t *message) {
 		dns_ednsopt_t option = { .code = DNS_OPT_EXPIRE,
 					 .value = expire,
 					 .length = 4 };
-		result = dns_message_ednsaddopt(message, &option);
-		if (result != ISC_R_SUCCESS) {
-			return result;
-		}
+		RETERR(dns_message_ednsaddopt(message, &option));
 	}
 
 	if (((client->inner.attributes & NS_CLIENTATTR_HAVEECS) != 0) &&
@@ -1170,10 +1161,7 @@ ns_client_addopt(ns_client_t *client, dns_message_t *message) {
 		dns_ednsopt_t option = { .code = DNS_OPT_CLIENT_SUBNET,
 					 .length = addrl + 4,
 					 .value = ecs };
-		result = dns_message_ednsaddopt(message, &option);
-		if (result != ISC_R_SUCCESS) {
-			return result;
-		}
+		RETERR(dns_message_ednsaddopt(message, &option));
 	}
 
 	if (TCP_CLIENT(client) && USEKEEPALIVE(client)) {
@@ -1187,10 +1175,7 @@ ns_client_addopt(ns_client_t *client, dns_message_t *message) {
 		dns_ednsopt_t option = { .code = DNS_OPT_TCP_KEEPALIVE,
 					 .length = 2,
 					 .value = advtimo };
-		result = dns_message_ednsaddopt(message, &option);
-		if (result != ISC_R_SUCCESS) {
-			return result;
-		}
+		RETERR(dns_message_ednsaddopt(message, &option));
 	}
 
 	for (size_t i = 0; i < DNS_EDE_MAX_ERRORS; i++) {
@@ -1203,10 +1188,7 @@ ns_client_addopt(ns_client_t *client, dns_message_t *message) {
 		dns_ednsopt_t option = { .code = DNS_OPT_EDE,
 					 .length = ede->length,
 					 .value = ede->value };
-		result = dns_message_ednsaddopt(message, &option);
-		if (result != ISC_R_SUCCESS) {
-			return result;
-		}
+		RETERR(dns_message_ednsaddopt(message, &option));
 	}
 	if ((client->inner.attributes & NS_CLIENTATTR_HAVEZONEVERSION) != 0) {
 		dns_ednsopt_t option = {
@@ -1214,10 +1196,7 @@ ns_client_addopt(ns_client_t *client, dns_message_t *message) {
 			.length = client->inner.zoneversionlength,
 			.value = client->inner.zoneversion
 		};
-		result = dns_message_ednsaddopt(message, &option);
-		if (result != ISC_R_SUCCESS) {
-			return result;
-		}
+		RETERR(dns_message_ednsaddopt(message, &option));
 	}
 
 	if (WANTRC(client)) {
@@ -1231,10 +1210,7 @@ ns_client_addopt(ns_client_t *client, dns_message_t *message) {
 				.length = rad->length,
 				.value = rad->ndata,
 			};
-			result = dns_message_ednsaddopt(message, &option);
-			if (result != ISC_R_SUCCESS) {
-				return result;
-			}
+			RETERR(dns_message_ednsaddopt(message, &option));
 		}
 	}
 

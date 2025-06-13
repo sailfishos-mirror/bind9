@@ -108,7 +108,6 @@ get_checknames(const cfg_obj_t **maps, const cfg_obj_t **obj) {
 
 static isc_result_t
 configure_hint(const char *zfile, const char *zclass) {
-	isc_result_t result;
 	dns_db_t *db = NULL;
 	dns_rdataclass_t rdclass;
 	isc_textregion_t r;
@@ -119,15 +118,8 @@ configure_hint(const char *zfile, const char *zclass) {
 
 	r.base = UNCONST(zclass);
 	r.length = strlen(zclass);
-	result = dns_rdataclass_fromtext(&rdclass, &r);
-	if (result != ISC_R_SUCCESS) {
-		return result;
-	}
-
-	result = dns_rootns_create(isc_g_mctx, rdclass, zfile, &db);
-	if (result != ISC_R_SUCCESS) {
-		return result;
-	}
+	RETERR(dns_rdataclass_fromtext(&rdclass, &r));
+	RETERR(dns_rootns_create(isc_g_mctx, rdclass, zfile, &db));
 
 	dns_db_detach(&db);
 	return ISC_R_SUCCESS;

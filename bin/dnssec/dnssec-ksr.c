@@ -967,10 +967,7 @@ parse_dnskey(isc_lex_t *lex, char *owner, isc_buffer_t *buf, dns_ttl_t *ttl) {
 	dname = dns_fixedname_initname(&dfname);
 	isc_buffer_init(&b, owner, strlen(owner));
 	isc_buffer_add(&b, strlen(owner));
-	result = dns_name_fromtext(dname, &b, dns_rootname, 0);
-	if (result != ISC_R_SUCCESS) {
-		goto cleanup;
-	}
+	CHECK(dns_name_fromtext(dname, &b, dns_rootname, 0));
 	if (dns_name_compare(dname, name) != 0) {
 		result = DNS_R_BADOWNERNAME;
 		goto cleanup;

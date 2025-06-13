@@ -281,7 +281,6 @@ static isc_result_t
 resconf_parsenameserver(irs_resconf_t *conf, FILE *fp) {
 	char word[RESCONFMAXLINELEN];
 	int cp;
-	isc_result_t result;
 
 	cp = getword(fp, word, sizeof(word));
 	if (cp == EOF || strlen(word) == 0U) {
@@ -298,10 +297,7 @@ resconf_parsenameserver(irs_resconf_t *conf, FILE *fp) {
 		return ISC_R_SUCCESS;
 	}
 
-	result = add_server(conf->mctx, word, &conf->nameservers);
-	if (result != ISC_R_SUCCESS) {
-		return result;
-	}
+	RETERR(add_server(conf->mctx, word, &conf->nameservers));
 	conf->numns++;
 
 	return ISC_R_SUCCESS;
@@ -370,7 +366,6 @@ static isc_result_t
 resconf_parsesearch(irs_resconf_t *conf, FILE *fp) {
 	int delim;
 	char word[RESCONFMAXLINELEN];
-	isc_result_t result;
 
 	if (conf->domainname != NULL) {
 		/*
@@ -389,10 +384,7 @@ resconf_parsesearch(irs_resconf_t *conf, FILE *fp) {
 		return ISC_R_UNEXPECTEDEND; /* Nothing else on line. */
 	}
 	do {
-		result = add_search(conf, word);
-		if (result != ISC_R_SUCCESS) {
-			return result;
-		}
+		RETERR(add_search(conf, word));
 
 		if (delim == '\n') {
 			break;

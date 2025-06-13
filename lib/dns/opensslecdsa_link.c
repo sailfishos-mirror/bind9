@@ -916,22 +916,18 @@ cleanup:
 
 static isc_result_t
 opensslecdsa_generate(dst_key_t *key, int unused, void (*callback)(int)) {
-	isc_result_t ret;
 	EVP_PKEY *pkey = NULL;
 
 	REQUIRE(opensslecdsa_valid_key_alg(key->key_alg));
 	UNUSED(unused);
 	UNUSED(callback);
 
-	ret = opensslecdsa_generate_pkey(key->key_alg, key->label, &pkey);
-	if (ret != ISC_R_SUCCESS) {
-		return ret;
-	}
+	RETERR(opensslecdsa_generate_pkey(key->key_alg, key->label, &pkey));
 
 	key->key_size = EVP_PKEY_bits(pkey);
 	key->keydata.pkeypair.priv = pkey;
 	key->keydata.pkeypair.pub = pkey;
-	return ret;
+	return ISC_R_SUCCESS;
 }
 
 static isc_result_t

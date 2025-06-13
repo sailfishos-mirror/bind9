@@ -248,17 +248,13 @@ named_config_getzonetype(const cfg_obj_t *zonetypeobj) {
 isc_result_t
 named_config_getremotesdef(const cfg_obj_t *cctx, const char *list,
 			   const char *name, const cfg_obj_t **ret) {
-	isc_result_t result;
 	const cfg_obj_t *obj = NULL;
 
 	REQUIRE(cctx != NULL);
 	REQUIRE(name != NULL);
 	REQUIRE(ret != NULL && *ret == NULL);
 
-	result = cfg_map_get(cctx, list, &obj);
-	if (result != ISC_R_SUCCESS) {
-		return result;
-	}
+	RETERR(cfg_map_get(cctx, list, &obj));
 	CFG_LIST_FOREACH(obj, elt) {
 		obj = cfg_listelt_value(elt);
 		if (strcasecmp(cfg_obj_asstring(cfg_tuple_get(obj, "name")),
@@ -697,7 +693,6 @@ named_config_getkeyalgorithm(const char *str, unsigned int *typep,
 	int i;
 	size_t len = 0;
 	uint16_t bits;
-	isc_result_t result;
 
 	for (i = 0; algorithms[i].str != NULL; i++) {
 		len = strlen(algorithms[i].str);
@@ -712,10 +707,7 @@ named_config_getkeyalgorithm(const char *str, unsigned int *typep,
 		return ISC_R_NOTFOUND;
 	}
 	if (str[len] == '-') {
-		result = isc_parse_uint16(&bits, str + len + 1, 10);
-		if (result != ISC_R_SUCCESS) {
-			return result;
-		}
+		RETERR(isc_parse_uint16(&bits, str + len + 1, 10));
 		if (bits > algorithms[i].size) {
 			return ISC_R_RANGE;
 		}

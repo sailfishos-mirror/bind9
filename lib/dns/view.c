@@ -537,12 +537,8 @@ dns_view_createresolver(dns_view_t *view, unsigned int options,
 	REQUIRE(view->resolver == NULL);
 	REQUIRE(view->dispatchmgr != NULL);
 
-	result = dns_resolver_create(view, options, tlsctx_cache, dispatchv4,
-				     dispatchv6, &view->resolver);
-	if (result != ISC_R_SUCCESS) {
-		return result;
-	}
-
+	RETERR(dns_resolver_create(view, options, tlsctx_cache, dispatchv4,
+				   dispatchv6, &view->resolver));
 	isc_mem_create("ADB", &mctx);
 	dns_adb_create(mctx, view, &view->adb);
 	isc_mem_detach(&mctx);
@@ -1353,15 +1349,9 @@ dns_view_getpeertsig(dns_view_t *view, const isc_netaddr_t *peeraddr,
 	dns_name_t *keyname = NULL;
 	dns_peer_t *peer = NULL;
 
-	result = dns_peerlist_peerbyaddr(view->peers, peeraddr, &peer);
-	if (result != ISC_R_SUCCESS) {
-		return result;
-	}
+	RETERR(dns_peerlist_peerbyaddr(view->peers, peeraddr, &peer));
 
-	result = dns_peer_getkey(peer, &keyname);
-	if (result != ISC_R_SUCCESS) {
-		return result;
-	}
+	RETERR(dns_peer_getkey(peer, &keyname));
 
 	result = dns_view_gettsig(view, keyname, keyp);
 	return (result == ISC_R_NOTFOUND) ? ISC_R_FAILURE : result;
@@ -1378,7 +1368,6 @@ dns_view_checksig(dns_view_t *view, isc_buffer_t *source, dns_message_t *msg) {
 
 isc_result_t
 dns_view_flushcache(dns_view_t *view, bool fixuponly) {
-	isc_result_t result;
 	dns_adb_t *adb = NULL;
 
 	REQUIRE(DNS_VIEW_VALID(view));
@@ -1387,10 +1376,7 @@ dns_view_flushcache(dns_view_t *view, bool fixuponly) {
 		return ISC_R_SUCCESS;
 	}
 	if (!fixuponly) {
-		result = dns_cache_flush(view->cache);
-		if (result != ISC_R_SUCCESS) {
-			return result;
-		}
+		RETERR(dns_cache_flush(view->cache));
 	}
 	dns_db_detach(&view->cachedb);
 	dns_cache_attachdb(view->cache, &view->cachedb);

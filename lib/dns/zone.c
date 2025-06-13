@@ -4540,16 +4540,11 @@ cleanup:
 static isc_result_t
 delete_keydata(dns_db_t *db, dns_dbversion_t *ver, dns_diff_t *diff,
 	       dns_name_t *name, dns_rdataset_t *rdataset) {
-	isc_result_t uresult;
-
 	DNS_RDATASET_FOREACH(rdataset) {
 		dns_rdata_t rdata = DNS_RDATA_INIT;
 		dns_rdataset_current(rdataset, &rdata);
-		uresult = update_one_rr(db, ver, diff, DNS_DIFFOP_DEL, name, 0,
-					&rdata);
-		if (uresult != ISC_R_SUCCESS) {
-			return uresult;
-		}
+		RETERR(update_one_rr(db, ver, diff, DNS_DIFFOP_DEL, name, 0,
+				     &rdata));
 	}
 
 	return ISC_R_SUCCESS;
@@ -6930,11 +6925,8 @@ offline(dns_db_t *db, dns_dbversion_t *ver, dns__zonediff_t *zonediff,
 	if ((rdata->flags & DNS_RDATA_OFFLINE) != 0) {
 		return ISC_R_SUCCESS;
 	}
-	result = update_one_rr(db, ver, zonediff->diff, DNS_DIFFOP_DELRESIGN,
-			       name, ttl, rdata);
-	if (result != ISC_R_SUCCESS) {
-		return result;
-	}
+	RETERR(update_one_rr(db, ver, zonediff->diff, DNS_DIFFOP_DELRESIGN,
+			     name, ttl, rdata));
 	rdata->flags |= DNS_RDATA_OFFLINE;
 	result = update_one_rr(db, ver, zonediff->diff, DNS_DIFFOP_ADDRESIGN,
 			       name, ttl, rdata);
@@ -12786,24 +12778,16 @@ create_query(dns_zone_t *zone, dns_rdatatype_t rdtype, dns_name_t *name,
 static isc_result_t
 add_opt(dns_message_t *message, uint16_t udpsize, bool reqnsid,
 	bool reqexpire) {
-	isc_result_t result;
-
 	dns_message_ednsinit(message, 0, udpsize, 0, 0);
 
 	/* Set EDNS options if applicable. */
 	if (reqnsid) {
 		dns_ednsopt_t option = { .code = DNS_OPT_NSID };
-		result = dns_message_ednsaddopt(message, &option);
-		if (result != ISC_R_SUCCESS) {
-			return result;
-		}
+		RETERR(dns_message_ednsaddopt(message, &option));
 	}
 	if (reqexpire) {
 		dns_ednsopt_t option = { .code = DNS_OPT_EXPIRE };
-		result = dns_message_ednsaddopt(message, &option);
-		if (result != ISC_R_SUCCESS) {
-			return result;
-		}
+		RETERR(dns_message_ednsaddopt(message, &option));
 	}
 
 	return dns_message_setopt(message);
@@ -17143,10 +17127,7 @@ zone_replacedb(dns_zone_t *zone, dns_db_t *db, bool dump) {
 		return result;
 	}
 
-	result = check_nsec3param(zone, db);
-	if (result != ISC_R_SUCCESS) {
-		return result;
-	}
+	RETERR(check_nsec3param(zone, db));
 
 	ver = NULL;
 	dns_db_currentversion(db, &ver);
@@ -20128,15 +20109,11 @@ checkds_destroy(dns_checkds_t *checkds, bool locked) {
 static isc_result_t
 make_dnskey(dst_key_t *key, unsigned char *buf, int bufsize,
 	    dns_rdata_t *target) {
-	isc_result_t result;
 	isc_buffer_t b;
 	isc_region_t r;
 
 	isc_buffer_init(&b, buf, bufsize);
-	result = dst_key_todns(key, &b);
-	if (result != ISC_R_SUCCESS) {
-		return result;
-	}
+	RETERR(dst_key_todns(key, &b));
 
 	dns_rdata_reset(target);
 	isc_buffer_usedregion(&b, &r);
@@ -22190,10 +22167,7 @@ dns_zone_nscheck(dns_zone_t *zone, dns_db_t *db, dns_dbversion_t *version,
 	REQUIRE(DNS_ZONE_VALID(zone));
 	REQUIRE(errors != NULL);
 
-	result = dns_db_getoriginnode(db, &node);
-	if (result != ISC_R_SUCCESS) {
-		return result;
-	}
+	RETERR(dns_db_getoriginnode(db, &node));
 	result = zone_count_ns_rr(zone, db, node, version, NULL, errors, false);
 	dns_db_detachnode(&node);
 	return result;
@@ -22212,10 +22186,7 @@ dns_zone_cdscheck(dns_zone_t *zone, dns_db_t *db, dns_dbversion_t *version) {
 
 	REQUIRE(DNS_ZONE_VALID(zone));
 
-	result = dns_db_getoriginnode(db, &node);
-	if (result != ISC_R_SUCCESS) {
-		return result;
-	}
+	RETERR(dns_db_getoriginnode(db, &node));
 
 	dns_rdataset_init(&cds);
 	dns_rdataset_init(&dnskey);

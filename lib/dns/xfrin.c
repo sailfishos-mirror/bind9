@@ -1526,24 +1526,16 @@ request_type(dns_xfrin_t *xfr) {
 static isc_result_t
 add_opt(dns_message_t *message, uint16_t udpsize, bool reqnsid,
 	bool reqexpire) {
-	isc_result_t result;
-
 	dns_message_ednsinit(message, 0, udpsize, 0, 0);
 
 	/* Set EDNS options if applicable. */
 	if (reqnsid) {
 		dns_ednsopt_t option = { .code = DNS_OPT_NSID };
-		result = dns_message_ednsaddopt(message, &option);
-		if (result != ISC_R_SUCCESS) {
-			return result;
-		}
+		RETERR(dns_message_ednsaddopt(message, &option));
 	}
 	if (reqexpire) {
 		dns_ednsopt_t option = { .code = DNS_OPT_EXPIRE };
-		result = dns_message_ednsaddopt(message, &option);
-		if (result != ISC_R_SUCCESS) {
-			return result;
-		}
+		RETERR(dns_message_ednsaddopt(message, &option));
 	}
 
 	return dns_message_setopt(message);

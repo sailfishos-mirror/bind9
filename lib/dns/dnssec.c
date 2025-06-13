@@ -145,17 +145,13 @@ static isc_result_t
 digest_sig(dst_context_t *ctx, bool downcase, dns_rdata_t *sigrdata,
 	   dns_rdata_rrsig_t *rrsig) {
 	isc_region_t r;
-	isc_result_t ret;
 	dns_fixedname_t fname;
 
 	dns_rdata_toregion(sigrdata, &r);
 	INSIST(r.length >= 19);
 
 	r.length = 18;
-	ret = dst_context_adddata(ctx, &r);
-	if (ret != ISC_R_SUCCESS) {
-		return ret;
-	}
+	RETERR(dst_context_adddata(ctx, &r));
 	if (downcase) {
 		dns_fixedname_init(&fname);
 
@@ -225,10 +221,7 @@ dns_dnssec_sign(const dns_name_t *name, dns_rdataset_t *set, dst_key_t *key,
 	sig.timesigned = *inception;
 	sig.timeexpire = *expire;
 	sig.keyid = dst_key_id(key);
-	ret = dst_key_sigsize(key, &sigsize);
-	if (ret != ISC_R_SUCCESS) {
-		return ret;
-	}
+	RETERR(dst_key_sigsize(key, &sigsize));
 	sig.siglen = sigsize;
 	/*
 	 * The actual contents of sig.signature are not important yet, since
@@ -368,10 +361,7 @@ dns_dnssec_verify(const dns_name_t *name, dns_rdataset_t *set, dst_key_t *key,
 	REQUIRE(mctx != NULL);
 	REQUIRE(sigrdata != NULL && sigrdata->type == dns_rdatatype_rrsig);
 
-	ret = dns_rdata_tostruct(sigrdata, &sig, NULL);
-	if (ret != ISC_R_SUCCESS) {
-		return ret;
-	}
+	RETERR(dns_rdata_tostruct(sigrdata, &sig, NULL));
 
 	if (set->type != sig.covered) {
 		return DNS_R_SIGINVALID;
@@ -1701,15 +1691,11 @@ cleanup:
 isc_result_t
 dns_dnssec_make_dnskey(dst_key_t *key, unsigned char *buf, int bufsize,
 		       dns_rdata_t *target) {
-	isc_result_t result;
 	isc_buffer_t b;
 	isc_region_t r;
 
 	isc_buffer_init(&b, buf, bufsize);
-	result = dst_key_todns(key, &b);
-	if (result != ISC_R_SUCCESS) {
-		return result;
-	}
+	RETERR(dst_key_todns(key, &b));
 
 	dns_rdata_reset(target);
 	isc_buffer_usedregion(&b, &r);
@@ -1851,16 +1837,12 @@ static isc_result_t
 delete_cds(dns_dnsseckey_t *key, dns_rdata_t *keyrdata, const char *keystr,
 	   dns_rdataset_t *cds, unsigned int digesttype, dns_diff_t *diff,
 	   isc_mem_t *mctx) {
-	isc_result_t r;
 	unsigned char dsbuf[DNS_DS_BUFFERSIZE];
 	dns_rdata_t cdsrdata = DNS_RDATA_INIT;
 	dns_name_t *origin = dst_key_name(key->key);
 
-	r = dns_ds_buildrdata(origin, keyrdata, digesttype, dsbuf,
-			      sizeof(dsbuf), &cdsrdata);
-	if (r != ISC_R_SUCCESS) {
-		return r;
-	}
+	RETERR(dns_ds_buildrdata(origin, keyrdata, digesttype, dsbuf,
+				 sizeof(dsbuf), &cdsrdata));
 
 	cdsrdata.type = dns_rdatatype_cds;
 	if (exists(cds, &cdsrdata)) {

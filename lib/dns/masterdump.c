@@ -645,11 +645,8 @@ rdataset_totext(dns_rdataset_t *rdataset, const dns_name_t *owner_name,
 			INDENT_TO(ttl_column);
 			if ((ctx->style.flags & DNS_STYLEFLAG_TTL_UNITS) != 0) {
 				length = target->used;
-				result = dns_ttl_totext(rdataset->ttl, false,
-							false, target);
-				if (result != ISC_R_SUCCESS) {
-					return result;
-				}
+				RETERR(dns_ttl_totext(rdataset->ttl, false,
+						      false, target));
 				column += target->used - length;
 			} else {
 				length = snprintf(ttlbuf, sizeof(ttlbuf), "%u",
@@ -1740,17 +1737,13 @@ dns_master_dumptostreamasync(isc_mem_t *mctx, dns_db_t *db,
 			     isc_loop_t *loop, dns_dumpdonefunc_t done,
 			     void *done_arg, dns_dumpctx_t **dctxp) {
 	dns_dumpctx_t *dctx = NULL;
-	isc_result_t result;
 
 	REQUIRE(loop != NULL);
 	REQUIRE(f != NULL);
 	REQUIRE(done != NULL);
 
-	result = dumpctx_create(mctx, db, version, style, f, &dctx,
-				dns_masterformat_text, NULL);
-	if (result != ISC_R_SUCCESS) {
-		return result;
-	}
+	RETERR(dumpctx_create(mctx, db, version, style, f, &dctx,
+			      dns_masterformat_text, NULL));
 	dctx->done = done;
 	dctx->done_arg = done_arg;
 
@@ -1768,11 +1761,8 @@ dns_master_dumptostream(isc_mem_t *mctx, dns_db_t *db, dns_dbversion_t *version,
 	dns_dumpctx_t *dctx = NULL;
 	isc_result_t result;
 
-	result = dumpctx_create(mctx, db, version, style, f, &dctx, format,
-				header);
-	if (result != ISC_R_SUCCESS) {
-		return result;
-	}
+	RETERR(dumpctx_create(mctx, db, version, style, f, &dctx, format,
+			      header));
 
 	result = dumptostream(dctx);
 	INSIST(result != DNS_R_CONTINUE);
@@ -1871,10 +1861,7 @@ dns_master_dump(isc_mem_t *mctx, dns_db_t *db, dns_dbversion_t *version,
 	char *tempname;
 	dns_dumpctx_t *dctx = NULL;
 
-	result = opentmp(mctx, filename, &tempname, &f);
-	if (result != ISC_R_SUCCESS) {
-		return result;
-	}
+	RETERR(opentmp(mctx, filename, &tempname, &f));
 
 	CHECK(dumpctx_create(mctx, db, version, style, f, &dctx, format,
 			     header));

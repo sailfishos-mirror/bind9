@@ -330,7 +330,6 @@ openssleddsa_todns(const dst_key_t *key, isc_buffer_t *data) {
 static isc_result_t
 openssleddsa_fromdns(dst_key_t *key, isc_buffer_t *data) {
 	const eddsa_alginfo_t *alginfo = openssleddsa_alg_info(key->key_alg);
-	isc_result_t ret;
 	isc_region_t r;
 	size_t len;
 	EVP_PKEY *pkey = NULL;
@@ -343,10 +342,7 @@ openssleddsa_fromdns(dst_key_t *key, isc_buffer_t *data) {
 	}
 
 	len = r.length;
-	ret = raw_key_to_ossl(alginfo, 0, r.base, &len, &pkey);
-	if (ret != ISC_R_SUCCESS) {
-		return ret;
-	}
+	RETERR(raw_key_to_ossl(alginfo, 0, r.base, &len, &pkey));
 
 	isc_buffer_forward(data, len);
 	key->keydata.pkeypair.pub = pkey;

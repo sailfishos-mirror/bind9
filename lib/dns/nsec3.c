@@ -53,7 +53,6 @@ dns_nsec3_buildrdata(dns_db_t *db, dns_dbversion_t *version, dns_dbnode_t *node,
 		     size_t salt_length, const unsigned char *nexthash,
 		     size_t hash_length, unsigned char *buffer,
 		     dns_rdata_t *rdata) {
-	isc_result_t result;
 	isc_region_t r;
 	unsigned int i;
 	bool found;
@@ -108,10 +107,7 @@ dns_nsec3_buildrdata(dns_db_t *db, dns_dbversion_t *version, dns_dbnode_t *node,
 		goto collapse_bitmap;
 	}
 	rdsiter = NULL;
-	result = dns_db_allrdatasets(db, node, version, 0, 0, &rdsiter);
-	if (result != ISC_R_SUCCESS) {
-		return result;
-	}
+	RETERR(dns_db_allrdatasets(db, node, version, 0, 0, &rdsiter));
 	found = found_ns = need_rrsig = false;
 	DNS_RDATASETITER_FOREACH(rdsiter) {
 		dns_rdataset_t rdataset = DNS_RDATASET_INIT;
@@ -883,10 +879,7 @@ dns_nsec3_addnsec3s(dns_db_t *db, dns_dbversion_t *version,
 	/*
 	 * Find the NSEC3 parameters for this zone.
 	 */
-	result = dns_db_getoriginnode(db, &node);
-	if (result != ISC_R_SUCCESS) {
-		return result;
-	}
+	RETERR(dns_db_getoriginnode(db, &node));
 
 	result = dns_db_findrdataset(db, node, version,
 				     dns_rdatatype_nsec3param, 0, 0, &rdataset,
@@ -1016,7 +1009,6 @@ cleanup:
 isc_result_t
 dns_nsec3param_salttotext(dns_rdata_nsec3param_t *nsec3param, char *dst,
 			  size_t dstlen) {
-	isc_result_t result;
 	isc_region_t r;
 	isc_buffer_t b;
 
@@ -1035,10 +1027,7 @@ dns_nsec3param_salttotext(dns_rdata_nsec3param_t *nsec3param, char *dst,
 	r.length = nsec3param->salt_length;
 	isc_buffer_init(&b, dst, (unsigned int)dstlen);
 
-	result = isc_hex_totext(&r, 2, "", &b);
-	if (result != ISC_R_SUCCESS) {
-		return result;
-	}
+	RETERR(isc_hex_totext(&r, 2, "", &b));
 
 	if (isc_buffer_availablelength(&b) < 1) {
 		return ISC_R_NOSPACE;
@@ -1064,10 +1053,7 @@ dns_nsec3param_deletechains(dns_db_t *db, dns_dbversion_t *ver,
 	dns_name_init(&next);
 	dns_rdataset_init(&rdataset);
 
-	result = dns_db_getoriginnode(db, &node);
-	if (result != ISC_R_SUCCESS) {
-		return result;
-	}
+	RETERR(dns_db_getoriginnode(db, &node));
 
 	/*
 	 * Cause all NSEC3 chains to be deleted.
@@ -1180,10 +1166,7 @@ dns_nsec3_addnsec3sx(dns_db_t *db, dns_dbversion_t *version,
 	/*
 	 * Find the NSEC3 parameters for this zone.
 	 */
-	result = dns_db_getoriginnode(db, &node);
-	if (result != ISC_R_SUCCESS) {
-		return result;
-	}
+	RETERR(dns_db_getoriginnode(db, &node));
 
 	result = dns_db_findrdataset(db, node, version, type, 0, 0, &prdataset,
 				     NULL);
@@ -1588,10 +1571,7 @@ dns_nsec3_delnsec3sx(dns_db_t *db, dns_dbversion_t *version,
 	/*
 	 * Find the NSEC3 parameters for this zone.
 	 */
-	result = dns_db_getoriginnode(db, &node);
-	if (result != ISC_R_SUCCESS) {
-		return result;
-	}
+	RETERR(dns_db_getoriginnode(db, &node));
 
 	result = dns_db_findrdataset(db, node, version,
 				     dns_rdatatype_nsec3param, 0, 0, &rdataset,
@@ -1693,10 +1673,7 @@ dns_nsec3_activex(dns_db_t *db, dns_dbversion_t *version, bool complete,
 
 	dns_rdataset_init(&rdataset);
 
-	result = dns_db_getoriginnode(db, &node);
-	if (result != ISC_R_SUCCESS) {
-		return result;
-	}
+	RETERR(dns_db_getoriginnode(db, &node));
 
 	result = dns_db_findrdataset(db, node, version,
 				     dns_rdatatype_nsec3param, 0, 0, &rdataset,
@@ -1819,10 +1796,7 @@ dns_nsec3_noexistnodata(dns_rdatatype_t type, const dns_name_t *name,
 
 	dns_rdataset_current(nsec3set, &rdata);
 
-	result = dns_rdata_tostruct(&rdata, &nsec3, NULL);
-	if (result != ISC_R_SUCCESS) {
-		return result;
-	}
+	RETERR(dns_rdata_tostruct(&rdata, &nsec3, NULL));
 
 	(*logit)(arg, ISC_LOG_DEBUG(3), "looking for relevant NSEC3");
 
@@ -1884,10 +1858,7 @@ dns_nsec3_noexistnodata(dns_rdatatype_t type, const dns_name_t *name,
 	dns_name_getlabel(nsec3name, 0, &hashlabel);
 	isc_region_consume(&hashlabel, 1);
 	isc_buffer_init(&buffer, owner, sizeof(owner));
-	result = isc_base32hex_decoderegion(&hashlabel, &buffer);
-	if (result != ISC_R_SUCCESS) {
-		return result;
-	}
+	RETERR(isc_base32hex_decoderegion(&hashlabel, &buffer));
 
 	/*
 	 * The hash lengths should match.  If not ignore the record.

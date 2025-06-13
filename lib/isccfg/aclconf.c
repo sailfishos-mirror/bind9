@@ -75,13 +75,9 @@ ISC_REFCOUNT_IMPL(cfg_aclconfctx, destroy_aclctx);
  */
 static isc_result_t
 get_acl_def(const cfg_obj_t *cctx, const char *name, const cfg_obj_t **ret) {
-	isc_result_t result;
 	const cfg_obj_t *acls = NULL;
 
-	result = cfg_map_get(cctx, "acl", &acls);
-	if (result != ISC_R_SUCCESS) {
-		return result;
-	}
+	RETERR(cfg_map_get(cctx, "acl", &acls));
 	CFG_LIST_FOREACH(acls, elt) {
 		const cfg_obj_t *acl = cfg_listelt_value(elt);
 		const char *aclname =
@@ -202,11 +198,8 @@ count_acl_elements(const cfg_obj_t *caml, const cfg_obj_t *cctx,
 		} else if (cfg_obj_islist(ce)) {
 			bool negative;
 			uint32_t sub;
-			result = count_acl_elements(ce, cctx, ctx, mctx, &sub,
-						    &negative);
-			if (result != ISC_R_SUCCESS) {
-				return result;
-			}
+			RETERR(count_acl_elements(ce, cctx, ctx, mctx, &sub,
+						  &negative));
 			n += sub;
 			if (negative) {
 				n++;
@@ -642,11 +635,8 @@ cfg_acl_fromconfig(const cfg_obj_t *acl_data, const cfg_obj_t *cctx,
 		uint32_t nelem;
 
 		if (nest_level == 0) {
-			result = count_acl_elements(caml, cctx, ctx, mctx,
-						    &nelem, NULL);
-			if (result != ISC_R_SUCCESS) {
-				return result;
-			}
+			RETERR(count_acl_elements(caml, cctx, ctx, mctx, &nelem,
+						  NULL));
 		} else {
 			nelem = cfg_list_length(caml, false);
 		}

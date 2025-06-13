@@ -675,7 +675,6 @@ dst_key_fromdns(const dns_name_t *name, dns_rdataclass_t rdclass,
 	dst_key_t *key = NULL;
 	dns_keytag_t id, rid;
 	isc_region_t r;
-	isc_result_t result;
 
 	isc_buffer_remainingregion(source, &r);
 
@@ -697,11 +696,8 @@ dst_key_fromdns(const dns_name_t *name, dns_rdataclass_t rdclass,
 		flags |= (extflags << 16);
 	}
 
-	result = frombuffer(name, alg, flags, proto, rdclass, source, mctx,
-			    &key);
-	if (result != ISC_R_SUCCESS) {
-		return result;
-	}
+	RETERR(frombuffer(name, alg, flags, proto, rdclass, source, mctx,
+			  &key));
 	key->key_id = id;
 	key->key_rid = rid;
 
@@ -716,11 +712,8 @@ dst_key_frombuffer(const dns_name_t *name, unsigned int alg, unsigned int flags,
 	dst_key_t *key = NULL;
 	isc_result_t result;
 
-	result = frombuffer(name, alg, flags, protocol, rdclass, source, mctx,
-			    &key);
-	if (result != ISC_R_SUCCESS) {
-		return result;
-	}
+	RETERR(frombuffer(name, alg, flags, protocol, rdclass, source, mctx,
+			  &key));
 
 	result = computeid(key);
 	if (result != ISC_R_SUCCESS) {
@@ -1900,17 +1893,10 @@ write_key_state(const dst_key_t *key, int type, const char *directory) {
 	 * Make the filename.
 	 */
 	isc_buffer_init(&fileb, filename, sizeof(filename));
-	result = dst_key_buildfilename(key, DST_TYPE_STATE, directory, &fileb);
-	if (result != ISC_R_SUCCESS) {
-		return result;
-	}
+	RETERR(dst_key_buildfilename(key, DST_TYPE_STATE, directory, &fileb));
 
 	isc_buffer_init(&tmpb, tmpname, sizeof(tmpname));
-	result = dst_key_buildfilename(key, DST_TYPE_TEMPLATE, directory,
-				       &tmpb);
-	if (result != ISC_R_SUCCESS) {
-		return result;
-	}
+	RETERR(dst_key_buildfilename(key, DST_TYPE_TEMPLATE, directory, &tmpb));
 
 	mode_t mode = issymmetric(key) ? S_IRUSR | S_IWUSR
 				       : S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
@@ -1993,10 +1979,7 @@ write_public_key(const dst_key_t *key, int type, const char *directory) {
 	isc_buffer_init(&textb, text_array, sizeof(text_array));
 	isc_buffer_init(&classb, class_array, sizeof(class_array));
 
-	result = dst_key_todns(key, &keyb);
-	if (result != ISC_R_SUCCESS) {
-		return result;
-	}
+	RETERR(dst_key_todns(key, &keyb));
 
 	isc_buffer_usedregion(&keyb, &r);
 	dns_rdata_fromregion(&rdata, key->key_class, dns_rdatatype_dnskey, &r);
@@ -2015,17 +1998,10 @@ write_public_key(const dst_key_t *key, int type, const char *directory) {
 	 * Make the filename.
 	 */
 	isc_buffer_init(&fileb, filename, sizeof(filename));
-	result = dst_key_buildfilename(key, DST_TYPE_PUBLIC, directory, &fileb);
-	if (result != ISC_R_SUCCESS) {
-		return result;
-	}
+	RETERR(dst_key_buildfilename(key, DST_TYPE_PUBLIC, directory, &fileb));
 
 	isc_buffer_init(&tmpb, tmpname, sizeof(tmpname));
-	result = dst_key_buildfilename(key, DST_TYPE_TEMPLATE, directory,
-				       &tmpb);
-	if (result != ISC_R_SUCCESS) {
-		return result;
-	}
+	RETERR(dst_key_buildfilename(key, DST_TYPE_TEMPLATE, directory, &tmpb));
 
 	/* Create temporary public key file. */
 	mode_t mode = issymmetric(key) ? S_IRUSR | S_IWUSR
@@ -2096,7 +2072,6 @@ static isc_result_t
 buildfilename(dns_name_t *name, dns_keytag_t id, unsigned int alg,
 	      unsigned int type, const char *directory, isc_buffer_t *out) {
 	const char *suffix = "";
-	isc_result_t result;
 
 	REQUIRE(out != NULL);
 	REQUIRE(alg != 0 && alg != DST_ALG_PRIVATEOID &&
@@ -2127,10 +2102,7 @@ buildfilename(dns_name_t *name, dns_keytag_t id, unsigned int alg,
 		return ISC_R_NOSPACE;
 	}
 	isc_buffer_putstr(out, "K");
-	result = dns_name_tofilenametext(name, false, out);
-	if (result != ISC_R_SUCCESS) {
-		return result;
-	}
+	RETERR(dns_name_tofilenametext(name, false, out));
 
 	return isc_buffer_printf(out, "+%03d+%05d%s", alg, id, suffix);
 }

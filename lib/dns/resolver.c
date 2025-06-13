@@ -6174,7 +6174,7 @@ rctx_cache_insecure(respctx_t *rctx, dns_message_t *message, dns_name_t *name,
 
 static isc_result_t
 rctx_cachename(respctx_t *rctx, dns_message_t *message, dns_name_t *name) {
-	isc_result_t result;
+	isc_result_t result = ISC_R_SUCCESS;
 	fetchctx_t *fctx = rctx->fctx;
 	resquery_t *query = rctx->query;
 	dns_resolver_t *res = fctx->res;
@@ -6198,10 +6198,7 @@ rctx_cachename(respctx_t *rctx, dns_message_t *message, dns_name_t *name) {
 	/*
 	 * Find or create the cache node.
 	 */
-	result = dns_db_findnode(fctx->cache, name, true, &node);
-	if (result != ISC_R_SUCCESS) {
-		return result;
-	}
+	RETERR(dns_db_findnode(fctx->cache, name, true, &node));
 
 	/*
 	 * Cache or validate each cacheable rdataset.
@@ -6239,9 +6236,7 @@ rctx_cachename(respctx_t *rctx, dns_message_t *message, dns_name_t *name) {
 			result = rctx_cache_insecure(rctx, message, name, node,
 						     rdataset, sigrdataset);
 		}
-		if (result != ISC_R_SUCCESS) {
-			goto cleanup;
-		}
+		CHECK(result);
 	}
 
 	/*
