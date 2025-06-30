@@ -130,6 +130,21 @@ isc__uv_free(void *ptr) {
 
 void
 isc__uv_initialize(void) {
+	/*
+	 * Ensure the first 3 file descriptors are open
+	 * otherwise, libuv may use one and trigger abort
+	 * when closing it.
+	 *
+	 * See https://github.com/libuv/libuv/pull/4559
+	 */
+	do {
+		int fd = open("/dev/null", O_RDWR, 0);
+		RUNTIME_CHECK(fd >= 0);
+		if (fd > STDERR_FILENO) {
+			close(fd);
+			break;
+		}
+	} while (true);
 #if UV_VERSION_HEX >= UV_VERSION(1, 38, 0)
 	int r;
 	isc_mem_create("uv", &isc__uv_mctx);
