@@ -8435,8 +8435,8 @@ rctx_answer_dname(respctx_t *rctx) {
  * section to be subdomains of the domain being queried; any that are
  * not are skipped.  We expect to find only *one* owner name; any names
  * after the first one processed are ignored. We expect to find only
- * rdatasets of type NS, RRSIG, or SIG; all others are ignored. Whatever
- * remains can be cached at trust level authauthority or additional
+ * rdatasets of type NS; all others are ignored. Whatever remains can
+ * be cached at trust level authauthority or additional
  * (depending on whether the AA bit was set on the answer).
  */
 static void
@@ -8445,7 +8445,9 @@ rctx_authority_positive(respctx_t *rctx) {
 
 	dns_message_t *msg = rctx->query->rmessage;
 	MSG_SECTION_FOREACH(msg, DNS_SECTION_AUTHORITY, name) {
-		if (!name_external(name, dns_rdatatype_ns, fctx)) {
+		if (!name_external(name, dns_rdatatype_ns, fctx) &&
+		    dns_name_issubdomain(fctx->name, name))
+		{
 			/*
 			 * We expect to find NS or SIG NS rdatasets, and
 			 * nothing else.
