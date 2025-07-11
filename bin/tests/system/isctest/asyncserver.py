@@ -768,12 +768,35 @@ class AsyncDnsServer(AsyncServer):
             self._zone_tree.add(zone)
 
     def _load_zone(self, zone_file_path: pathlib.Path) -> dns.zone.Zone:
-        origin = dns.name.from_text(zone_file_path.stem)
         logging.info("Loading zone file %s", zone_file_path)
-        with open(zone_file_path, encoding="utf-8") as zone_file:
-            zone = dns.zone.from_file(zone_file, origin, relativize=False)
+        zone = self._load_zone_file(zone_file_path)
         self._abort_if_dname_found_unless_acknowledged(zone)
         return zone
+
+    def _load_zone_file(self, zone_file_path: pathlib.Path) -> dns.zone.Zone:
+        try:
+            zone = self._load_zone_file_with_origin(zone_file_path)
+        except dns.zone.UnknownOrigin:
+            zone = self._load_zone_file_without_origin(zone_file_path)
+
+        return zone
+
+    def _load_zone_file_with_origin(
+        self, zone_file_path: pathlib.Path
+    ) -> dns.zone.Zone:
+        zone = dns.zone.from_file(str(zone_file_path), origin=None, relativize=False)
+        if zone.origin != dns.name.root:
+            error = "only the root zone may use $ORIGIN in the zone file; "
+            error += "for every other zone, its origin is determined by "
+            error += "the name of the file it is loaded from"
+            raise ValueError(error)
+        return zone
+
+    def _load_zone_file_without_origin(
+        self, zone_file_path: pathlib.Path
+    ) -> dns.zone.Zone:
+        origin = dns.name.from_text(zone_file_path.stem)
+        return dns.zone.from_file(str(zone_file_path), origin=origin, relativize=False)
 
     def _abort_if_dname_found_unless_acknowledged(self, zone: dns.zone.Zone) -> None:
         if self._acknowledge_manual_dname_handling:
