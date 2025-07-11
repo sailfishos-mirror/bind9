@@ -683,7 +683,7 @@ vulture:
   <<: *python_triggering_rules
   needs: []
   script:
-    - vulture --exclude "*/ans*/ans.py,conftest.py,get_algorithms.py,re_compile_checker.py,isctest" --ignore-names "after_servers_start,bootstrap,pytestmark" bin/tests/system/
+    - vulture --exclude "*ans.py,conftest.py,get_algorithms.py,re_compile_checker.py,isctest" --ignore-names "after_servers_start,bootstrap,pytestmark,autouse_*" bin/tests/system/
 
 ci-variables:
   <<: *precheck_job
