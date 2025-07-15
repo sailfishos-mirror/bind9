@@ -1965,7 +1965,6 @@ add(qpzonedb_t *qpdb, qpznode_t *node, const dns_name_t *nodename,
 				dns_slabheader_destroy(&newheader);
 				newheader = merged;
 				dns_slabheader_reset(newheader,
-						     (dns_db_t *)qpdb,
 						     (dns_dbnode_t *)node);
 				dns_slabheader_copycase(newheader, header);
 				if (loading && RESIGN(newheader) &&
@@ -2227,7 +2226,7 @@ loading_addrdataset(void *arg, const dns_name_t *name,
 	}
 
 	newheader = (dns_slabheader_t *)region.base;
-	dns_slabheader_reset(newheader, (dns_db_t *)qpdb, (dns_dbnode_t *)node);
+	dns_slabheader_reset(newheader, (dns_dbnode_t *)node);
 
 	newheader->ttl = rdataset->ttl;
 	newheader->trust = rdataset->trust;
@@ -4842,7 +4841,7 @@ qpzone_addrdataset(dns_db_t *db, dns_dbnode_t *dbnode,
 	dns_rdataset_getownercase(rdataset, name);
 
 	newheader = (dns_slabheader_t *)region.base;
-	dns_slabheader_reset(newheader, db, (dns_dbnode_t *)node);
+	dns_slabheader_reset(newheader, (dns_dbnode_t *)node);
 	newheader->ttl = rdataset->ttl;
 	if (rdataset->ttl == 0U) {
 		DNS_SLABHEADER_SETATTR(newheader, DNS_SLABHEADERATTR_ZEROTTL);
@@ -4955,7 +4954,7 @@ qpzone_subtractrdataset(dns_db_t *db, dns_dbnode_t *dbnode,
 	}
 
 	newheader = (dns_slabheader_t *)region.base;
-	dns_slabheader_reset(newheader, db, (dns_dbnode_t *)node);
+	dns_slabheader_reset(newheader, (dns_dbnode_t *)node);
 	newheader->ttl = rdataset->ttl;
 	atomic_init(&newheader->attributes, 0);
 	newheader->serial = version->serial;
@@ -5010,8 +5009,7 @@ qpzone_subtractrdataset(dns_db_t *db, dns_dbnode_t *dbnode,
 		if (result == ISC_R_SUCCESS) {
 			dns_slabheader_destroy(&newheader);
 			newheader = subresult;
-			dns_slabheader_reset(newheader, db,
-					     (dns_dbnode_t *)node);
+			dns_slabheader_reset(newheader, (dns_dbnode_t *)node);
 			dns_slabheader_copycase(newheader, header);
 			if (RESIGN(header)) {
 				DNS_SLABHEADER_SETATTR(

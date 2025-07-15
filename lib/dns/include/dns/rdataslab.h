@@ -292,7 +292,7 @@ dns_slabheader_copycase(dns_slabheader_t *dest, dns_slabheader_t *src);
  */
 
 void
-dns_slabheader_reset(dns_slabheader_t *h, dns_db_t *db, dns_dbnode_t *node);
+dns_slabheader_reset(dns_slabheader_t *h, dns_dbnode_t *node);
 /*%<
  * Reset an rdataslab header 'h' so it can be used to store data in
  * database 'db' and node 'node'.

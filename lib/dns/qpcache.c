@@ -2991,7 +2991,7 @@ qpcache_addrdataset(dns_db_t *db, dns_dbnode_t *node, dns_dbversion_t *version,
 	dns_rdataset_getownercase(rdataset, name);
 
 	newheader = (dns_slabheader_t *)region.base;
-	dns_slabheader_reset(newheader, db, node);
+	dns_slabheader_reset(newheader, node);
 
 	/*
 	 * By default, dns_rdataslab_fromrdataset() sets newheader->ttl
