@@ -9,7 +9,8 @@
 # See the COPYRIGHT file distributed with this work for additional
 # information regarding copyright ownership.
 
-probe_src = [dtrace_header.process('probes.d'), files('xfrin.c')]
+probe_hdr = dtrace_header.process('probes-dns.d')
+probe_src = [probe_hdr, files('xfrin.c')]
 
 # dns_inc += include_directories('include')
 dns_inc_p += include_directories('.')
@@ -57,17 +58,20 @@ endif
 
 dns_srcset.add(
     when: 'HAVE_DTRACE',
-    if_true: custom_target(
-        'dns-probe',
-        input: [files('probes.d'), dns_probe_objects],
-        output: 'dns-probes.o',
-        command: [
-            dtrace,
-            '-G',
-            '-o', '@OUTPUT@',
-            '-s', '@INPUT@',
-        ],
-    ),
+    if_true: [
+        custom_target(
+            'dns-probe',
+            input: [files('probes-dns.d'), dns_probe_objects],
+            output: 'dns-probes.o',
+            command: [
+                dtrace,
+                '-G',
+                '-o', '@OUTPUT@',
+                '-s', '@INPUT@',
+            ],
+        ),
+        probe_hdr,
+    ],
     if_false: probe_src,
 )
 

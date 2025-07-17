@@ -49,7 +49,7 @@
 
 #include <dst/dst.h>
 
-#include "probes.h"
+#include "probes-dns.h"
 
 /*
  * Incoming AXFR and IXFR.
