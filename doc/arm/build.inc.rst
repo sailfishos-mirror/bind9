@@ -87,6 +87,22 @@ To improve performance, use of the ``jemalloc`` library
 (https://jemalloc.net/) is strongly recommended. Version 4.0.0 or newer is
 required when in use.
 
+To further improve performance, compilation with link-time optimization is
+recommended. This is enabled by default via the ``-Dnamed-lto`` option
+(default: ``thin``). Link-time optimization can be disabled if needed by
+using ``-Dnamed-lto=off``. The optimization level can be controlled with
+``-Dnamed-lto=thin`` or ``-Dnamed-lto=full``.
+
+Link-time optimization requires close coordination between the compiler and
+the linker. Due to ``clang`` limitations, compiling ``named`` with ``clang``
+and link-time optimization is only supported with the ``lld`` linker.
+
+Meson provides an alternative way to enable link-time optimization through
+the ``-Db_lto=true`` flag. However, this option is incompatible with
+BIND's ``-Dnamed-lto`` option. Meson's ``-Db_lto`` may also be incompatible
+with certain BIND build options and can result in lower performance and
+higher compile times compared to ``-Dnamed-lto``.
+
 To support :rfc:`DNS over HTTPS (DoH) <8484>`, the server must be linked
 with ``libnghttp2`` (https://nghttp2.org/). If the library is
 unavailable, ``-Ddoh=disabled`` can be used to disable DoH support.

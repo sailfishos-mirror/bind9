@@ -1214,7 +1214,7 @@ scan-build:
   variables:
     CC: "${CLANG}"
     CFLAGS: "${CFLAGS_COMMON}"
-    EXTRA_CONFIGURE: "-Didn=enabled"
+    EXTRA_CONFIGURE: "-Didn=enabled --native-file ci/clang-trixie.ini"
   before_script:
     - *list_installed_package_versions
   script:
@@ -1427,7 +1427,7 @@ clang:asan:
   variables:
     CC: ${CLANG}
     CFLAGS: "${CFLAGS_COMMON}"
-    EXTRA_CONFIGURE: "-Db_sanitize=address,undefined -Db_lundef=false -Didn=enabled -Djemalloc=disabled -Dtracing=disabled"
+    EXTRA_CONFIGURE: "-Db_sanitize=address,undefined -Db_lundef=false -Didn=enabled -Djemalloc=disabled -Dtracing=disabled --native-file ci/clang-trixie.ini"
   <<: *base_image
   <<: *build_job
 
@@ -1487,7 +1487,8 @@ clang:tsan:
     CC: "${CLANG}"
     CFLAGS: "${CFLAGS_COMMON}"
     LDFLAGS: "-Wl,--disable-new-dtags"
-    EXTRA_CONFIGURE: "${TSAN_CONFIGURE_FLAGS_COMMON} -Db_lundef=false"
+    EXTRA_CONFIGURE: "${TSAN_CONFIGURE_FLAGS_COMMON} -Db_lundef=false -Dnamed-lto=off --native-file ci/clang-trixie.ini"
+  <<: *build_job
 
 system:clang:tsan:
   variables:
@@ -1542,6 +1543,7 @@ clang:trixie:amd64:
   variables:
     CC: ${CLANG}
     CFLAGS: "${CFLAGS_COMMON}"
+    EXTRA_CONFIGURE: "--native-file ci/clang-trixie.ini"
     RUN_MESON_INSTALL: 1
   <<: *debian_trixie_amd64_image
   <<: *build_job
@@ -1801,7 +1803,7 @@ respdiff:tsan:
     CC: "${CLANG}"
     CFLAGS: "${CFLAGS_COMMON}"
     LDFLAGS: "-Wl,--disable-new-dtags"
-    EXTRA_CONFIGURE: "${TSAN_CONFIGURE_FLAGS_COMMON} -Db_lundef=false"
+    EXTRA_CONFIGURE: "${TSAN_CONFIGURE_FLAGS_COMMON} -Dnamed-lto=off -Db_lundef=false"
     MAX_DISAGREEMENTS_PERCENTAGE: "0.3"
     TSAN_OPTIONS: "${TSAN_OPTIONS_DEBIAN}"
   script:
@@ -1928,9 +1930,13 @@ reproducible-build:
   before_script:
     - *list_installed_package_versions
   script:
+    # dnstap produces an intermediate .a file, and meson considers all .a
+    # files to be final results independently of whether they are installed or
+    # not. But the content of the .a file might be unstable under LTO due to
+    # -ffat-lto-objects. Hence we disable dnstap for reproducibility tests.
     - meson reprotest
-      --intermediaries
       --
+      -Ddnstap=disabled
       -Ddoc=disabled
       -Doptimization=1
   artifacts:

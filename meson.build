@@ -45,6 +45,7 @@ developer_mode = get_option('developer').enabled()
 c_std = get_option('c_std')
 optimization = get_option('optimization')
 sanitizer = get_option('b_sanitize')
+meson_lto = get_option('b_lto')
 
 trace_logging = get_option('trace-logging')
 rcu_flavor = get_option('rcu-flavor')
@@ -64,6 +65,7 @@ leak_opt = get_option('leak-detection')
 line_opt = get_option('line')
 lmdb_opt = get_option('lmdb')
 locktype_opt = get_option('locktype')
+named_lto_opt = get_option('named-lto')
 stats_json_opt = get_option('stats-json')
 stats_xml_opt = get_option('stats-xml')
 tracing_opt = get_option('tracing')
@@ -898,6 +900,61 @@ assert(
     'tracing is requested but dtrace is not found',
 )
 
+# LTO
+
+static_lto_c_args = []
+static_lto_link_args = []
+
+if named_lto_opt == 'full'
+    static_lto_c_args = ['-ffat-lto-objects', '-flto']
+    static_lto_link_args = ['-flto']
+elif named_lto_opt == 'thin' and cc.get_id() == 'clang' and cc.get_linker_id() == 'ld.lld'
+    # Per LLVM docs [1], -ffat-lto-objects is supported only with lld and gold,
+    # and gold is deprecated/unmantained.
+    # [1]: https://llvm.org/docs/FatLTO.html
+
+    static_lto_c_args = ['-ffat-lto-objects', '-flto=thin']
+    static_lto_link_args = ['-flto=thin']
+elif named_lto_opt == 'thin' and cc.get_id() == 'gcc'
+    static_lto_c_args = ['-ffat-lto-objects', '-flto=auto']
+    static_lto_link_args = ['-flto=auto']
+elif named_lto_opt == 'thin'
+    error('LTO requires clang with ld.lld, or gcc with any linker')
+endif
+
+add_project_arguments(static_lto_c_args, language: 'c')
+if named_lto_opt != 'off' and cc.get_id() == 'clang' and sanitizer.contains('address')
+    # Needed to suppress the
+    #    warning: Redundant instrumentation detected, with module flag:
+    #    nosanitize_address [-Werror,-Wbackend-plugin]
+    # warning in address sanitizer. This warning indicates that the object file
+    # has been processed already by address sanitizer instrumentation pass.
+    # From looking at the pass code, when address sanitizer detects that
+    # an object file has already been instrumented, it just skips it.
+    # Therefore it should be safe to suppress the warning.
+
+    add_project_arguments('-Wno-backend-plugin', language: 'c')
+endif
+
+if meson_lto and named_lto_opt != 'off'
+    # Meson's builtin LTO settings do not set -ffat-lto-objects, which can cause
+    # build issues.
+    # Since we don't want two, possibly conflicting, sets of LTO flags, we
+    # error out if both are set.
+
+    error(
+        '''
+            Meson builtin -Db_lto and BIND's -Dnamed-lto options are incompatible.
+            Either disable named-lto with -Dnamed-lto=off, or avoid setting
+            -Db_lto.
+
+            Note that using -Db_lto is not a recommended configuration, might
+            yield reduced performance compared to -Dnamed-lto and conflict
+            with other build flags.
+        ''',
+    )
+endif
+
 ### Finalize configuration
 configure_file(output: 'config.h', configuration: config)
 add_project_arguments('-include', meson.project_build_root() / 'config.h', language: 'c')
@@ -1157,8 +1214,6 @@ libisccfg_dep = declare_dependency(
     link_with: libisccfg,
     include_directories: isccfg_inc,
 )
-
-named_srcconf = named_srcset.apply(config, strict: false)
 
 executable(
     'arpaname',
@@ -1459,22 +1514,58 @@ executable(
 
 )
 
-executable(
-    'named',
-    named_srcconf.sources(),
-    export_dynamic: true,
-    implicit_include_directories: true,
-    include_directories: named_inc_p,
-    install: true,
-    install_dir: sbindir,
-    sources: bind_keys,
-    dependencies: [
+named_c_args = []
+named_link_args = []
+named_deps = []
+
+if named_lto_opt == 'off'
+    named_deps = [
         libdns_dep,
         libisc_dep,
         libisccc_dep,
         libisccfg_dep,
         libns_dep,
+    ]
+    named_inc = named_inc_p
 
+    named_objects = []
+else
+    named_deps = [
+        dns_srcconf.dependencies(),
+        isc_srcconf.dependencies(),
+        isccc_srcconf.dependencies(),
+        isccfg_srcconf.dependencies(),
+        ns_srcconf.dependencies(),
+    ]
+    named_inc = [isc_inc, dns_inc, isccc_inc, isccfg_inc, ns_inc, named_inc_p]
+
+    named_srcset.add(dns_gen_headers)
+
+    named_objects = [
+        libisc.extract_all_objects(recursive: true),
+        libdns.extract_all_objects(recursive: true),
+        libns.extract_all_objects(recursive: true),
+        libisccc.extract_all_objects(recursive: true),
+        libisccfg.extract_all_objects(recursive: true),
+    ]
+endif
+
+named_srcconf = named_srcset.apply(config, strict: false)
+
+executable(
+    'named',
+    named_srcconf.sources(),
+    objects: named_objects,
+    c_args: static_lto_c_args,
+    link_args: static_lto_link_args,
+    export_dynamic: true,
+    implicit_include_directories: true,
+    include_directories: named_inc,
+    install: true,
+    install_dir: sbindir,
+    sources: bind_keys,
+    dependencies: named_deps
+    + [
         openssl_dep,
 
         cap_dep,
