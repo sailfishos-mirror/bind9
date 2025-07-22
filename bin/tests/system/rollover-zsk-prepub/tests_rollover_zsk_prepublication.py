@@ -34,7 +34,7 @@ CONFIG = {
     "signatures-validity": TIMEDELTA["P14D"],
     "zone-propagation-delay": TIMEDELTA["PT1H"],
 }
-POLICY = "zsk-prepub"
+POLICY = "zsk-prepub-autosign"
 ZSK_LIFETIME = TIMEDELTA["P30D"]
 LIFETIME_POLICY = int(ZSK_LIFETIME.total_seconds())
 IPUB = Ipub(CONFIG)
