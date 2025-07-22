@@ -30,7 +30,7 @@ from rollover.common import (
 
 
 CDSS = ["CDS (SHA-256)"]
-POLICY = "ksk-doubleksk"
+POLICY = "ksk-doubleksk-autosign"
 OFFSETS = {}
 OFFSETS["step1-p"] = -int(TIMEDELTA["P7D"].total_seconds())
 OFFSETS["step2-p"] = -int(KSK_LIFETIME.total_seconds() - KSK_IPUBC.total_seconds())

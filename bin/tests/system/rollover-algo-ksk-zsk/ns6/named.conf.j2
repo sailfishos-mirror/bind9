@@ -13,44 +13,48 @@
 
 {% set alg_roll = alg_roll | default(False) %}
 {% set policy = "rsasha256" if not alg_roll else "ecdsa256" %}
+{% set zones = ["kasp", "manual"] %}
 
 include "kasp.conf";
 include "named.common.conf";
 
-zone "step1.algorithm-roll.kasp" {
+{% for tld in zones %}
+zone "step1.algorithm-roll.@tld@" {
 	type primary;
-	file "step1.algorithm-roll.kasp.db";
-	dnssec-policy @policy@;
+	file "step1.algorithm-roll.@tld@.db";
+	dnssec-policy @policy@-@tld@;
 };
 
 {% if alg_roll %}
-zone "step2.algorithm-roll.kasp" {
+zone "step2.algorithm-roll.@tld@" {
 	type primary;
-	file "step2.algorithm-roll.kasp.db";
-	dnssec-policy "ecdsa256";
+	file "step2.algorithm-roll.@tld@.db";
+	dnssec-policy "ecdsa256-@tld@";
 };
 
-zone "step3.algorithm-roll.kasp" {
+zone "step3.algorithm-roll.@tld@" {
 	type primary;
-	file "step3.algorithm-roll.kasp.db";
-	dnssec-policy "ecdsa256";
+	file "step3.algorithm-roll.@tld@.db";
+	dnssec-policy "ecdsa256-@tld@";
 };
 
-zone "step4.algorithm-roll.kasp" {
+zone "step4.algorithm-roll.@tld@" {
 	type primary;
-	file "step4.algorithm-roll.kasp.db";
-	dnssec-policy "ecdsa256";
+	file "step4.algorithm-roll.@tld@.db";
+	dnssec-policy "ecdsa256-@tld@";
 };
 
-zone "step5.algorithm-roll.kasp" {
+zone "step5.algorithm-roll.@tld@" {
 	type primary;
-	file "step5.algorithm-roll.kasp.db";
-	dnssec-policy "ecdsa256";
+	file "step5.algorithm-roll.@tld@.db";
+	dnssec-policy "ecdsa256-@tld@";
 };
 
-zone "step6.algorithm-roll.kasp" {
+zone "step6.algorithm-roll.@tld@" {
 	type primary;
-	file "step6.algorithm-roll.kasp.db";
-	dnssec-policy "ecdsa256";
+	file "step6.algorithm-roll.@tld@.db";
+	dnssec-policy "ecdsa256-@tld@";
 };
+
 {% endif %}
+{% endfor %}
