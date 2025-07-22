@@ -435,6 +435,8 @@ fetch_callback_dnskey(isc_task_t *task, isc_event_t *event) {
 			result = select_signing_key(val, rdataset);
 			if (result == ISC_R_SUCCESS) {
 				val->keyset = &val->frdataset;
+			} else {
+				val->failed = true;
 			}
 		}
 		result = validate_answer(val, true);
@@ -1174,6 +1176,8 @@ select_signing_key(dns_validator_t *val, dns_rdataset_t *rdataset) {
 				goto done;
 			}
 			dst_key_free(&val->key);
+		} else {
+			break;
 		}
 		dns_rdata_reset(&rdata);
 		result = dns_rdataset_next(rdataset);
@@ -1291,13 +1295,15 @@ seek_dnskey(dns_validator_t *val) {
 				      "keyset with trust %s",
 				      dns_trust_totext(val->frdataset.trust));
 			result = select_signing_key(val, val->keyset);
-			if (result != ISC_R_SUCCESS) {
+			if (result == ISC_R_NOTFOUND) {
 				/*
-				 * Either the key we're looking for is not
-				 * in the rrset, or something bad happened.
-				 * Give up.
+				 * The key we're looking for is not
+				 * in the rrset
 				 */
 				result = DNS_R_CONTINUE;
+			} else if (result != ISC_R_SUCCESS) {
+				/* Something bad happened. Give up. */
+				break;
 			}
 		}
 		break;
@@ -1417,7 +1423,7 @@ selfsigned_dnskey(dns_validator_t *val) {
 			result = dns_dnssec_keyfromrdata(name, &keyrdata, mctx,
 							 &dstkey);
 			if (result != ISC_R_SUCCESS) {
-				continue;
+				return result;
 			}
 
 			/*
@@ -1688,10 +1694,7 @@ check_signer(dns_validator_t *val, dns_rdata_t *keyrdata, uint16_t keyid,
 				val->event->name, keyrdata, val->view->mctx,
 				&dstkey);
 			if (result != ISC_R_SUCCESS) {
-				/*
-				 * This really shouldn't happen, but...
-				 */
-				continue;
+				return result;
 			}
 		}
 		result = verify(val, dstkey, &rdata, sig.keyid);
