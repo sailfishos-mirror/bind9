@@ -1284,6 +1284,8 @@ def check_rollover_step(server, config, policy, step):
     if nextev is not None:
         isctest.run.retry_with_timeout(check_next_key_event, timeout=5)
 
+    return expected
+
 
 def verify_update_is_signed(server, fqdn, qname, qtype, rdata, ksks, zsks, tsig=None):
     """
