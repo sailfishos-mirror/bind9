@@ -29,6 +29,32 @@ ATTACKER_IP = "10.53.0.3"
 TTL = 3600
 
 
+class UnsolicitedNsSpoofer(ResponseSpoofer, mode="unsolicited-ns"):
+
+    qname = "trigger.victim."
+
+    async def get_responses(
+        self, qctx: QueryContext
+    ) -> AsyncGenerator[ResponseAction, None]:
+        response = qctx.prepare_new_response(with_zone_data=False)
+
+        txt_rrset = dns.rrset.from_text(
+            qctx.qname,
+            TTL,
+            qctx.qclass,
+            dns.rdatatype.TXT,
+            '"spoofed answer with extra NS"',
+        )
+        response.answer.append(txt_rrset)
+
+        ns_rrset = dns.rrset.from_text(
+            "victim.", TTL, qctx.qclass, dns.rdatatype.NS, "ns.attacker."
+        )
+        response.authority.append(ns_rrset)
+
+        yield DnsResponseSend(response, authoritative=True)
+
+
 def main() -> None:
     spoofing_server().run()
 
