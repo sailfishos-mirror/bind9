@@ -49,4 +49,11 @@ isc_os_umask(void);
  * Return umask of the current process as initialized at the program start
  */
 
+void
+isc_os_kernel(char **name, int *major, int *minor, int *patch);
+/*%<
+ * Fill the running kernel version into major, minor and patch.
+ * If any of these are not available then -1 is returned.
+ */
+
 ISC_LANG_ENDDECLS
