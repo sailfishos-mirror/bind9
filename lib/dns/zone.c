@@ -1783,10 +1783,20 @@ setstring(dns_zone_t *zone, char **field, const char *value) {
 	*field = copy;
 }
 
+typedef struct foundtoken foundtoken_t;
+typedef isc_result_t (*tokenparse_t)(const dns_zone_t *zone,
+				     const foundtoken_t *token,
+				     isc_buffer_t *b);
+struct foundtoken {
+	const char *pos;
+	size_t len;
+	tokenparse_t parse;
+};
+
 static int
-position_order(const void *a, const void *b) {
+foundtoken_order(const void *a, const void *b) {
 	/* sort char pointers in order of which occurs first in memory */
-	return (char *)*(char **)a - (char *)*(char **)b;
+	return ((foundtoken_t *)a)->pos - ((foundtoken_t *)b)->pos;
 }
 
 static isc_result_t
@@ -1801,16 +1811,157 @@ putmem(isc_buffer_t *b, const char *base, size_t length) {
 	return ISC_R_SUCCESS;
 }
 
+static isc_result_t
+tokenparse_type(const dns_zone_t *zone, const foundtoken_t *token,
+		isc_buffer_t *b) {
+	const char *typename = dns_zonetype_name(zone->type);
+
+	UNUSED(token);
+
+	return putmem(b, typename, strlen(typename));
+}
+
+static isc_result_t
+tokenparse_name(const dns_zone_t *zone, const foundtoken_t *token,
+		isc_buffer_t *b) {
+	isc_result_t result;
+	char buf[DNS_NAME_FORMATSIZE];
+	dns_fixedname_t fn;
+	dns_name_t *name = dns_fixedname_initname(&fn);
+
+	UNUSED(token);
+
+	result = dns_name_downcase(&zone->origin, name);
+	RUNTIME_CHECK(result == ISC_R_SUCCESS);
+	dns_name_format(name, buf, sizeof(buf));
+	result = putmem(b, buf, strlen(buf));
+
+	return result;
+}
+
+static isc_result_t
+tokenparse_view(const dns_zone_t *zone, const foundtoken_t *token,
+		isc_buffer_t *b) {
+	UNUSED(token);
+
+	return putmem(b, zone->view->name, strlen(zone->view->name));
+}
+
+static isc_result_t
+tokenparse_char(const dns_zone_t *zone, const foundtoken_t *token,
+		isc_buffer_t *b) {
+	isc_result_t result;
+	char buf[DNS_NAME_FORMATSIZE];
+	dns_fixedname_t fn;
+	dns_name_t *name = dns_fixedname_initname(&fn);
+	size_t chartokidx;
+	char c;
+
+	result = dns_name_downcase(&zone->origin, name);
+	RUNTIME_CHECK(result == ISC_R_SUCCESS);
+	dns_name_format(name, buf, sizeof(buf));
+
+	chartokidx = token->pos[token->len - 1] - '1';
+	INSIST(chartokidx <= 2);
+	if (chartokidx < strlen(buf)) {
+		c = buf[chartokidx];
+	} else {
+		c = '.';
+	}
+	result = putmem(b, &c, 1);
+
+	return result;
+}
+
+static isc_result_t
+tokenparse_label(const dns_zone_t *zone, const foundtoken_t *token,
+		 isc_buffer_t *b) {
+	isc_result_t result;
+	char buf[DNS_NAME_FORMATSIZE];
+	dns_fixedname_t fn;
+	dns_name_t *name = dns_fixedname_initname(&fn);
+	unsigned int labels = dns_name_countlabels(&zone->origin);
+	char labeltokidx;
+	int ilabel = -1;
+
+	result = dns_name_fromstring(name, ".", NULL, 0, NULL);
+	INSIST(result == ISC_R_SUCCESS);
+
+	labeltokidx = token->pos[token->len - 1];
+	if (token->len == 2) {
+		/*
+		 * %z, %y, %x pattern
+		 */
+		INSIST(labeltokidx >= 'x' && labeltokidx <= 'z');
+	} else {
+		/*
+		 * $label1, $label2, $label3 pattern
+		 */
+		INSIST(labeltokidx >= '1' && labeltokidx <= '3');
+	}
+
+	/*
+	 * Even if implicit, the root label counts as one label.
+	 */
+	if (labeltokidx == '1' || labeltokidx == 'z') {
+		ilabel = labels - 2;
+	} else if (labeltokidx == '2' || labeltokidx == 'y') {
+		ilabel = labels - 3;
+	} else if (labeltokidx == '3' || labeltokidx == 'x') {
+		ilabel = labels - 4;
+	}
+
+	if (ilabel >= 0) {
+		dns_name_getlabelsequence(&zone->origin, ilabel, 1, name);
+		result = dns_name_downcase(name, name);
+		RUNTIME_CHECK(result == ISC_R_SUCCESS);
+	}
+	dns_name_format(name, buf, sizeof(buf));
+	result = putmem(b, buf, strlen(buf));
+
+	return result;
+}
+
+typedef struct {
+	const char *name;
+	tokenparse_t parse;
+} token_t;
+static const token_t tokens[] = {
+	{ "$type", tokenparse_type },	 { "$name", tokenparse_name },
+	{ "$view", tokenparse_view },	 { "$char1", tokenparse_char },
+	{ "$char2", tokenparse_char },	 { "$char3", tokenparse_char },
+	{ "$label1", tokenparse_label }, { "$label2", tokenparse_label },
+	{ "$label3", tokenparse_label }, { "%t", tokenparse_type },
+	{ "%s", tokenparse_name },	 { "%v", tokenparse_view },
+	{ "%1", tokenparse_char },	 { "%2", tokenparse_char },
+	{ "%3", tokenparse_char },	 { "%z", tokenparse_label },
+	{ "%y", tokenparse_label },	 { "%x", tokenparse_label }
+};
+
 /*
- * Set the masterfile field, expanding $name to the zone name,
- * $type to the zone type, and $view to the view name. Cap the
- * length at PATH_MAX.
+ * Set the masterfile field, expanding:
+ *
+ *    - $name or "%s" to the zone name
+ *    - $type or "%t" to the zone type
+ *    - $view or "%v" to the view name.
+ *    - $char1 or "%1" to the first character of the zone name
+ *    - $char2 or "%2" to the second character of the zone name (or a dot if
+ *      there is no second character)
+ *    - $char3 or "%3" to the third character of the zone name (or a dot if
+ *      there is no third character)
+ *    - $label1 or "%z" to the toplevel domain of the zone (or a dot if it is
+ *      the TLD)
+ *    - $label2 or "%y" to the next label under the toplevel domain (or a dot if
+ *      there is no next label)
+ *    - $label2 or "%x" to the next-next label under the toplevel domain (or a
+ *      dot if there is no next-next label)
+ *
+ * Cap the length at PATH_MAX.
  */
 static void
 setfilename(dns_zone_t *zone, char **field, const char *value) {
 	isc_result_t result;
-	char *t = NULL, *n = NULL, *v = NULL;
-	char *positions[3];
+	foundtoken_t founds[ARRAY_SIZE(tokens)];
 	char filename[PATH_MAX];
 	isc_buffer_t b;
 	size_t tags = 0;
@@ -1820,19 +1971,16 @@ setfilename(dns_zone_t *zone, char **field, const char *value) {
 		return;
 	}
 
-	t = strcasestr(value, "$type");
-	if (t != NULL) {
-		positions[tags++] = t;
-	}
+	for (size_t i = 0; i < ARRAY_SIZE(tokens); i++) {
+		const token_t *token = &tokens[i];
+		const char *p = strcasestr(value, token->name);
 
-	n = strcasestr(value, "$name");
-	if (n != NULL) {
-		positions[tags++] = n;
-	}
-
-	v = strcasestr(value, "$view");
-	if (v != NULL) {
-		positions[tags++] = v;
+		if (p != NULL) {
+			founds[tags++] =
+				(foundtoken_t){ .pos = p,
+						.len = strlen(token->name),
+						.parse = token->parse };
+		}
 	}
 
 	if (tags == 0) {
@@ -1843,38 +1991,20 @@ setfilename(dns_zone_t *zone, char **field, const char *value) {
 	isc_buffer_init(&b, filename, sizeof(filename));
 
 	/* sort the tag offsets in order of occurrence */
-	qsort(positions, tags, sizeof(char *), position_order);
+	qsort(founds, tags, sizeof(foundtoken_t), foundtoken_order);
 
 	const char *p = value;
 	for (size_t i = 0; i < tags; i++) {
-		size_t tokenlen = 0;
+		foundtoken_t *token = &founds[i];
 
-		CHECK(putmem(&b, p, positions[i] - p));
+		CHECK(putmem(&b, p, token->pos - p));
 
-		p = positions[i];
+		p = token->pos;
 		INSIST(p != NULL);
-		if (p == n) {
-			dns_fixedname_t fn;
-			dns_name_t *name = dns_fixedname_initname(&fn);
-			char namebuf[DNS_NAME_FORMATSIZE];
-
-			result = dns_name_downcase(&zone->origin, name);
-			RUNTIME_CHECK(result == ISC_R_SUCCESS);
-			dns_name_format(name, namebuf, sizeof(namebuf));
-			CHECK(putmem(&b, namebuf, strlen(namebuf)));
-			tokenlen = 5; /* "$name" */
-		} else if (p == t) {
-			const char *typename = dns_zonetype_name(zone->type);
-			CHECK(putmem(&b, typename, strlen(typename)));
-			tokenlen = 5; /* "$type" */
-		} else if (p == v) {
-			CHECK(putmem(&b, zone->view->name,
-				     strlen(zone->view->name)));
-			tokenlen = 5; /* "$view" */
-		}
+		CHECK(token->parse(zone, token, &b));
 
 		/* Advance the input pointer past the token */
-		p += tokenlen;
+		p += founds[i].len;
 	}
 
 	const char *end = value + strlen(value);

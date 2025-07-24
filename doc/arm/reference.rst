@@ -7177,11 +7177,39 @@ Zone Options
    to other zone types.
 
    The filename can be generated parametrically by including special
-   tokens in the string: the first instance of ``$name`` in the string
-   is replaced with the zone name in lower case; the first instance of
-   ``$type`` is replaced with the zone type -- i.e., ``primary``,
-   ``secondary``, etc); and the first instance of ``$view`` is replaced
-   with the view name. These tokens are case-insensitive.
+   tokens in the string. The first instance of each token is replaced
+   as shown in the table below; any subsequent uses of the same token are
+   ignored.
+
+   An alternate set of tokens has been provided for compatibility with other
+   servers which use a different format for filename templates.
+
+   All tokens are case-insensitive.
+
+   +-------------+------------+-----------------------------------------------+
+   | Token       | Alternate  | Replaced with:                                |
+   +=============+============+===============================================+
+   | ``$name``   | ``%s``     |  Zone name, in lower case                     |
+   +-------------+------------+-----------------------------------------------+
+   | ``$type``   | ``%t``     |  Zone type (``primary``, ``secondary``, etc)  |
+   +-------------+------------+-----------------------------------------------+
+   | ``$view``   | ``%v``     |  View name                                    |
+   +-------------+------------+-----------------------------------------------+
+   | ``$label1`` | ``%z``     |  Top-level domain name (or ``.`` for the      |
+   |             |            |  root zone)                                   |
+   +-------------+------------+-----------------------------------------------+
+   | ``$label2`` | ``%y``     |  Second label under the TLD (or ``.`` if      |
+   |             |            |  there is no second label)                    |
+   +-------------+------------+-----------------------------------------------+
+   | ``$label3`` | ``%x``     |  Third label under the TLD (or ``.`` if       |
+   |             |            |  there is no third label)                     |
+   +-------------+------------+-----------------------------------------------+
+   | ``$char1``  | ``%1``     |  First character of the zone name             |
+   +-------------+------------+-----------------------------------------------+
+   | ``$char2``  | ``%2``     |  Second character of the zone name (or ``.``) |
+   +-------------+------------+-----------------------------------------------+
+   | ``$char3``  | ``%3``     |  Third character of the zone name (or ``.``)  |
+   +-------------+------------+-----------------------------------------------+
 
 :any:`forward`
    This option is only meaningful if the zone has a forwarders list. The ``only`` value
