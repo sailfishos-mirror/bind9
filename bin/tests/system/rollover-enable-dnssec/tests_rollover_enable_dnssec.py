@@ -11,8 +11,11 @@
 
 # pylint: disable=redefined-outer-name,unused-import
 
+import pytest
+
 import isctest
 from isctest.kasp import Ipub, IpubC, Iret
+from isctest.util import param
 from rollover.common import (
     pytestmark,
     alg,
@@ -44,10 +47,39 @@ OFFSETS["step3"] = -int(IRETZSK.total_seconds())
 OFFSETS["step4"] = -int(IPUBC.total_seconds() + IRETKSK.total_seconds())
 
 
-def test_rollover_enable_dnssec_step1(alg, size, ns3):
-    zone = "step1.enable-dnssec.autosign"
+@pytest.mark.parametrize(
+    "tld",
+    [
+        param("autosign"),
+        param("manual"),
+    ],
+)
+def test_rollover_enable_dnssec_step1(tld, alg, size, ns3):
+    zone = f"step1.enable-dnssec.{tld}"
+    policy = f"{POLICY}-{tld}"
 
     isctest.kasp.wait_keymgr_done(ns3, zone)
+
+    if tld == "manual":
+        # Same as insecure.
+        step = {
+            "zone": zone,
+            "cdss": CDSS,
+            "keyprops": [],
+            "manual-mode": True,
+            "zone-signed": False,
+            "nextev": None,
+        }
+        isctest.kasp.check_rollover_step(ns3, CONFIG, policy, step)
+
+        # Check logs.
+        msg = f"keymgr-manual-mode: block new key generation for zone {zone} (policy {policy})"
+        ns3.log.expect(msg)
+
+        # Force step.
+        with ns3.watch_log_from_here() as watcher:
+            ns3.rndc(f"dnssec -step {zone}")
+            watcher.wait_for_line(f"keymgr: {zone} done")
 
     step = {
         "zone": zone,
@@ -59,13 +91,23 @@ def test_rollover_enable_dnssec_step1(alg, size, ns3):
         # after the publication interval.
         "nextev": IPUB,
     }
-    isctest.kasp.check_rollover_step(ns3, CONFIG, POLICY, step)
+    isctest.kasp.check_rollover_step(ns3, CONFIG, policy, step)
 
 
-def test_rollover_enable_dnssec_step2(alg, size, ns3):
-    zone = "step2.enable-dnssec.autosign"
+@pytest.mark.parametrize(
+    "tld",
+    [
+        param("autosign"),
+        param("manual"),
+    ],
+)
+def test_rollover_enable_dnssec_step2(tld, alg, size, ns3):
+    zone = f"step2.enable-dnssec.{tld}"
+    policy = f"{POLICY}-{tld}"
 
     isctest.kasp.wait_keymgr_done(ns3, zone)
+
+    # manual-mode: Nothing changing in the zone, no 'dnssec -step' required.
 
     step = {
         "zone": zone,
@@ -81,13 +123,44 @@ def test_rollover_enable_dnssec_step2(alg, size, ns3):
         # Minus the time already elapsed.
         "nextev": IRETZSK - IPUB,
     }
-    isctest.kasp.check_rollover_step(ns3, CONFIG, POLICY, step)
+    isctest.kasp.check_rollover_step(ns3, CONFIG, policy, step)
 
 
-def test_rollover_enable_dnssec_step3(alg, size, ns3):
-    zone = "step3.enable-dnssec.autosign"
+@pytest.mark.parametrize(
+    "tld",
+    [
+        param("autosign"),
+        param("manual"),
+    ],
+)
+def test_rollover_enable_dnssec_step3(tld, alg, size, ns3):
+    zone = f"step3.enable-dnssec.{tld}"
+    policy = f"{POLICY}-{tld}"
 
     isctest.kasp.wait_keymgr_done(ns3, zone)
+
+    if tld == "manual":
+        # Same as step 2, but zone signatures have become OMNIPRESENT.
+        step = {
+            "zone": zone,
+            "cdss": CDSS,
+            "keyprops": [
+                f"csk unlimited {alg} {size} goal:omnipresent dnskey:omnipresent krrsig:omnipresent zrrsig:omnipresent ds:hidden offset:{OFFSETS['step3']}",
+            ],
+            "manual-mode": True,
+            "nextev": None,
+        }
+        keys = isctest.kasp.check_rollover_step(ns3, CONFIG, policy, step)
+
+        # Check logs.
+        tag = keys[0].key.tag
+        msg = f"keymgr-manual-mode: block transition CSK {zone}/ECDSAP256SHA256/{tag} type DS state HIDDEN to state RUMOURED"
+        ns3.log.expect(msg)
+
+        # Force step.
+        with ns3.watch_log_from_here() as watcher:
+            ns3.rndc(f"dnssec -step {zone}")
+            watcher.wait_for_line(f"keymgr: {zone} done")
 
     step = {
         "zone": zone,
@@ -102,13 +175,23 @@ def test_rollover_enable_dnssec_step3(alg, size, ns3):
         # This is after the retire interval.
         "nextev": IRETKSK,
     }
-    isctest.kasp.check_rollover_step(ns3, CONFIG, POLICY, step)
+    isctest.kasp.check_rollover_step(ns3, CONFIG, policy, step)
 
 
-def test_rollover_enable_dnssec_step4(alg, size, ns3):
-    zone = "step4.enable-dnssec.autosign"
+@pytest.mark.parametrize(
+    "tld",
+    [
+        param("autosign"),
+        param("manual"),
+    ],
+)
+def test_rollover_enable_dnssec_step4(tld, alg, size, ns3):
+    zone = f"step4.enable-dnssec.{tld}"
+    policy = f"{POLICY}-{tld}"
 
     isctest.kasp.wait_keymgr_done(ns3, zone)
+
+    # manual-mode: Nothing changing in the zone, no 'dnssec -step' required.
 
     step = {
         "zone": zone,
@@ -122,4 +205,4 @@ def test_rollover_enable_dnssec_step4(alg, size, ns3):
         # established. So we fall back to the default loadkeys interval.
         "nextev": TIMEDELTA["PT1H"],
     }
-    isctest.kasp.check_rollover_step(ns3, CONFIG, POLICY, step)
+    isctest.kasp.check_rollover_step(ns3, CONFIG, policy, step)
