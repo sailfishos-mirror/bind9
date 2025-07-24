@@ -22233,6 +22233,7 @@ zone_rekey(dns_zone_t *zone) {
 	bool newalg = false;
 	bool fullsign;
 	bool offlineksk = false;
+	bool kasp_change = false;
 	uint8_t options = 0;
 	uint32_t sigval = 0;
 	dns_ttl_t ttl = 3600;
@@ -22468,7 +22469,11 @@ zone_rekey(dns_zone_t *zone) {
 						kasp, options, now, &nexttime);
 			dns_zone_unlock_keyfiles(zone);
 
-			if (result != ISC_R_SUCCESS) {
+			if (result == ISC_R_SUCCESS) {
+				kasp_change = true;
+			} else if (result == DNS_R_UNCHANGED) {
+				result = ISC_R_SUCCESS;
+			} else {
 				dnssec_log(zone, ISC_LOG_ERROR,
 					   "zone_rekey:dns_keymgr_run "
 					   "failed: %s",
@@ -22686,7 +22691,7 @@ zone_rekey(dns_zone_t *zone) {
 				   "allowed");
 		}
 
-		if (newactive || fullsign || sane_diff) {
+		if (newactive || fullsign || sane_diff || kasp_change) {
 			CHECK(dns_diff_apply(&diff, db, ver));
 			CHECK(clean_nsec3param(zone, db, ver, &diff));
 			CHECK(add_signing_records(db, zone->privatetype, ver,
