@@ -1481,6 +1481,7 @@ keymgr_transition_time(dns_dnsseckey_t *key, int type,
 static isc_result_t
 keymgr_update(dns_dnsseckeylist_t *keyring, dns_kasp_t *kasp, isc_stdtime_t now,
 	      isc_stdtime_t *nexttime, uint8_t opts) {
+	isc_result_t result = DNS_R_UNCHANGED;
 	bool changed;
 	bool force = ((opts & DNS_KEYMGRATTR_FORCESTEP) != 0);
 
@@ -1646,12 +1647,13 @@ transition:
 
 	/* We changed something, continue processing. */
 	if (changed) {
+		result = ISC_R_SUCCESS;
 		/* No longer force for the next run */
 		force = false;
 		goto transition;
 	}
 
-	return ISC_R_SUCCESS;
+	return result;
 }
 
 /*
@@ -2145,7 +2147,7 @@ dns_keymgr_run(const dns_name_t *origin, dns_rdataclass_t rdclass,
 	       dns_dnsseckeylist_t *dnskeys, const char *keydir,
 	       dns_kasp_t *kasp, uint8_t opts, isc_stdtime_t now,
 	       isc_stdtime_t *nexttime) {
-	isc_result_t result = ISC_R_SUCCESS;
+	isc_result_t result = DNS_R_UNCHANGED;
 	dns_dnsseckeylist_t newkeys;
 	dns_kasp_key_t *kkey;
 	dns_dnsseckey_t *newkey = NULL;
@@ -2358,7 +2360,7 @@ dns_keymgr_run(const dns_name_t *origin, dns_rdataclass_t rdclass,
 	}
 
 	/* Read to update key states. */
-	keymgr_update(keyring, kasp, now, nexttime, opts);
+	isc_result_t retval = keymgr_update(keyring, kasp, now, nexttime, opts);
 
 	/* Store key states and update hints. */
 	for (dns_dnsseckey_t *dkey = ISC_LIST_HEAD(*keyring); dkey != NULL;
@@ -2368,6 +2370,7 @@ dns_keymgr_run(const dns_name_t *origin, dns_rdataclass_t rdclass,
 		if (dst_key_getttl(dkey->key) != dns_kasp_dnskeyttl(kasp)) {
 			dst_key_setttl(dkey->key, dns_kasp_dnskeyttl(kasp));
 			modified = true;
+			retval = ISC_R_SUCCESS;
 		}
 		if (modified && !dkey->purge) {
 			const char *directory = dst_key_directory(dkey->key);
@@ -2393,10 +2396,9 @@ dns_keymgr_run(const dns_name_t *origin, dns_rdataclass_t rdclass,
 		dst_key_setmodified(dkey->key, false);
 	}
 
-	result = ISC_R_SUCCESS;
-
+	result = retval;
 failure:
-	if (result != ISC_R_SUCCESS) {
+	if (result != ISC_R_SUCCESS && result != DNS_R_UNCHANGED) {
 		while ((newkey = ISC_LIST_HEAD(newkeys)) != NULL) {
 			ISC_LIST_UNLINK(newkeys, newkey, link);
 			INSIST(newkey->key != NULL);
