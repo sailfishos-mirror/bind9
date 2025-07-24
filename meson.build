@@ -1020,7 +1020,6 @@ libisc = library(
     isc_srcconf.sources(),
     objects: isc_probe_objects,
     install: true,
-    install_rpath: libdir,
     implicit_include_directories: false,
     include_directories: [isc_inc, isc_inc_p],
     dependencies: isc_srcconf.dependencies(),
@@ -1047,7 +1046,6 @@ libdns = library(
     dns_srcconf.sources(),
     include_directories: dns_inc,
     install: true,
-    install_rpath: libdir,
     objects: dns_probe_objects,
     dependencies: [
         libisc_dep,
@@ -1081,7 +1079,6 @@ libns = library(
     ns_srcconf.sources(),
     objects: ns_probe_objects,
     install: true,
-    install_rpath: libdir,
     implicit_include_directories: false,
     include_directories: ns_inc,
     dependencies: [
@@ -1108,7 +1105,6 @@ libisccc = library(
     implicit_include_directories: false,
     include_directories: isccc_inc,
     install: true,
-    install_rpath: libdir,
     dependencies: [
         libdns_dep,
         libisc_dep,
@@ -1129,7 +1125,6 @@ libisccfg = library(
     implicit_include_directories: false,
     include_directories: isccfg_inc,
     install: true,
-    install_rpath: libdir,
     dependencies: [
         libdns_dep,
         libisc_dep,
@@ -1152,7 +1147,6 @@ executable(
     export_dynamic: true,
     implicit_include_directories: false,
     install: true,
-    install_rpath: libdir,
     dependencies: [
         libisc_dep,
     ],
@@ -1164,7 +1158,6 @@ executable(
     export_dynamic: true,
     implicit_include_directories: true,
     install: true,
-    install_rpath: libdir,
     sources: bind_keys,
     dependencies: [
         libisc_dep,
@@ -1179,7 +1172,6 @@ executable(
     export_dynamic: true,
     implicit_include_directories: false,
     install: true,
-    install_rpath: libdir,
     dependencies: [
         libdns_dep,
         libisc_dep,
@@ -1195,7 +1187,6 @@ executable(
     export_dynamic: true,
     implicit_include_directories: false,
     install: true,
-    install_rpath: libdir,
     dependencies: [
         libdns_dep,
         libisc_dep,
@@ -1209,7 +1200,6 @@ executable(
     export_dynamic: true,
     implicit_include_directories: false,
     install: true,
-    install_rpath: libdir,
     dependencies: [
         libdns_dep,
         libisc_dep,
@@ -1223,7 +1213,6 @@ executable(
     export_dynamic: true,
     implicit_include_directories: false,
     install: true,
-    install_rpath: libdir,
     dependencies: [
         libdns_dep,
         libisc_dep,
@@ -1237,7 +1226,6 @@ executable(
     export_dynamic: true,
     implicit_include_directories: false,
     install: true,
-    install_rpath: libdir,
     dependencies: [
         libdns_dep,
         libisc_dep,
@@ -1251,7 +1239,6 @@ executable(
     export_dynamic: true,
     implicit_include_directories: false,
     install: true,
-    install_rpath: libdir,
     dependencies: [
         libdns_dep,
         libisc_dep,
@@ -1265,7 +1252,6 @@ executable(
     export_dynamic: true,
     implicit_include_directories: false,
     install: true,
-    install_rpath: libdir,
     dependencies: [
         libdns_dep,
         libisc_dep,
@@ -1279,7 +1265,6 @@ executable(
     export_dynamic: true,
     implicit_include_directories: false,
     install: true,
-    install_rpath: libdir,
     dependencies: [
         libdns_dep,
         libisc_dep,
@@ -1293,7 +1278,6 @@ executable(
     export_dynamic: true,
     implicit_include_directories: false,
     install: true,
-    install_rpath: libdir,
     dependencies: [
         libdns_dep,
         libisc_dep,
@@ -1307,7 +1291,6 @@ executable(
     export_dynamic: true,
     implicit_include_directories: false,
     install: true,
-    install_rpath: libdir,
     dependencies: [
         libdns_dep,
         libisc_dep,
@@ -1321,7 +1304,6 @@ executable(
     export_dynamic: true,
     implicit_include_directories: false,
     install: true,
-    install_rpath: libdir,
     dependencies: [
         libdns_dep,
         libisc_dep,
@@ -1336,7 +1318,6 @@ if config.has('HAVE_DNSTAP')
         export_dynamic: true,
         implicit_include_directories: true,
         install: true,
-        install_rpath: libdir,
         dependencies: [
             libdns_dep,
             libisc_dep,
@@ -1352,7 +1333,6 @@ executable(
     export_dynamic: true,
     implicit_include_directories: false,
     install: true,
-    install_rpath: libdir,
     dependencies: [
         libdns_dep,
         libisc_dep,
@@ -1368,7 +1348,6 @@ executable(
     export_dynamic: true,
     implicit_include_directories: false,
     install: true,
-    install_rpath: libdir,
     dependencies: [
         libdns_dep,
         libisc_dep,
@@ -1381,7 +1360,6 @@ executable(
     export_dynamic: true,
     implicit_include_directories: false,
     install: true,
-    install_rpath: libdir,
     dependencies: [
         libisc_dep,
         libdns_dep,
@@ -1395,7 +1373,6 @@ executable(
     export_dynamic: true,
     implicit_include_directories: false,
     install: true,
-    install_rpath: libdir,
     dependencies: [
         libisc_dep,
         libdns_dep,
@@ -1416,7 +1393,6 @@ executable(
     export_dynamic: true,
     implicit_include_directories: false,
     install: true,
-    install_rpath: libdir,
     dependencies: [
         libdns_dep,
         libisc_dep,
@@ -1429,7 +1405,6 @@ executable(
     export_dynamic: true,
     implicit_include_directories: false,
     install: true,
-    install_rpath: libdir,
     dependencies: [
         libdns_dep,
         libisc_dep,
@@ -1443,7 +1418,6 @@ if config.has('HAVE_LMDB')
         export_dynamic: true,
         implicit_include_directories: false,
         install: true,
-        install_rpath: libdir,
         dependencies: [
             libdns_dep,
             libisc_dep,
@@ -1459,7 +1433,6 @@ executable(
     export_dynamic: true,
     implicit_include_directories: false,
     install: true,
-    install_rpath: libdir,
     dependencies: [
         libdns_dep,
         libisc_dep,
@@ -1475,7 +1448,6 @@ executable(
     include_directories: named_inc_p,
     install: true,
     install_dir: sbindir,
-    install_rpath: libdir,
     sources: bind_keys,
     dependencies: [
         libdns_dep,
@@ -1504,7 +1476,6 @@ executable(
     export_dynamic: true,
     implicit_include_directories: false,
     install: true,
-    install_rpath: libdir,
     dependencies: [
         libdns_dep,
         libisc_dep,
@@ -1517,7 +1488,6 @@ executable(
     export_dynamic: true,
     implicit_include_directories: false,
     install: true,
-    install_rpath: libdir,
     dependencies: [
         libdns_dep,
         libisc_dep,
@@ -1534,7 +1504,6 @@ executable(
     export_dynamic: true,
     implicit_include_directories: false,
     install: true,
-    install_rpath: libdir,
     dependencies: [
         libdns_dep,
         libisc_dep,
@@ -1553,7 +1522,6 @@ executable(
     implicit_include_directories: false,
     include_directories: confgen_inc_p,
     install: true,
-    install_rpath: libdir,
     install_dir: sbindir,
     dependencies: [
         libdns_dep,
@@ -1567,7 +1535,6 @@ executable(
     export_dynamic: true,
     implicit_include_directories: false,
     install: true,
-    install_rpath: libdir,
     install_dir: sbindir,
     dependencies: [
         libdns_dep,
@@ -1584,7 +1551,6 @@ executable(
     implicit_include_directories: false,
     include_directories: confgen_inc_p,
     install: true,
-    install_rpath: libdir,
     install_dir: sbindir,
     dependencies: [
         libdns_dep,
@@ -1605,7 +1571,6 @@ shared_library(
     filter_a_src,
     implicit_include_directories: false,
     install: true,
-    install_rpath: libdir,
     install_dir: libdir / 'bind',
     name_prefix: '',
     dependencies: [
@@ -1621,7 +1586,6 @@ shared_library(
     filter_aaaa_src,
     implicit_include_directories: false,
     install: true,
-    install_rpath: libdir,
     install_dir: libdir / 'bind',
     name_prefix: '',
     dependencies: [
