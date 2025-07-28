@@ -293,9 +293,14 @@ config.set_quoted('NAMED_CONFFILE', sysconfdir / 'named.conf')
 config.set_quoted('CACHEDB_DEFAULT', get_option('cachedb'))
 config.set_quoted('ZONEDB_DEFAULT', get_option('zonedb'))
 
-# Shim constexpr for pre-C23
-# "ne" => "none"
-if c_std.substring(-2) in ['ne', '89', '99', '11', '17', '18']
+constexpr_test = '''
+static constexpr int r = 0;
+
+int main(void) {
+    return r;
+}
+'''
+if not cc.compiles(constexpr_test, name: 'usage of constexpr')
     config.set('constexpr', 'static const')
 endif
 
