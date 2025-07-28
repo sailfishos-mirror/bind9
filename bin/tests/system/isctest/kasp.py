@@ -249,7 +249,9 @@ class KeyProperties:
         iret = Iret(config, zsk=self.key.is_zsk(), ksk=self.key.is_ksk())
         self.timing["Removed"] = self.timing["Retired"] + iret
 
-    def set_expected_keytimes(self, config, offset=None, pregenerated=False):
+    def set_expected_keytimes(
+        self, config, offset=None, pregenerated=False, migrate=False
+    ):
         if self.key is None:
             raise ValueError("KeyProperties must be attached to a Key")
 
@@ -260,18 +262,24 @@ class KeyProperties:
             offset = self.properties["offset"]
 
         self.timing["Generated"] = self.key.get_timing("Created")
-
-        self.timing["Published"] = self.timing["Generated"]
+        self.timing["Published"] = self.key.get_timing("Created")
         if pregenerated:
             self.timing["Published"] = self.key.get_timing("Publish")
-        self.timing["Published"] = self.timing["Published"] + offset
-        self.Ipub(config)
+
+        if migrate:
+            self.timing["Published"] = self.key.get_timing("Publish")
+            if self.key.is_ksk():
+                self.timing["PublishCDS"] = self.key.get_timing("SyncPublish")
+            self.timing["Active"] = self.key.get_timing("Activate")
+        else:
+            self.timing["Published"] = self.timing["Published"] + offset
+            self.Ipub(config)
+            self.IpubC(config)
 
         # Set Retired timing metadata if key has lifetime.
         if self.metadata["Lifetime"] != 0:
             self.timing["Retired"] = self.timing["Active"] + self.metadata["Lifetime"]
 
-        self.IpubC(config)
         self.Iret(config)
 
         # Key state change times must exist, but since we cannot reliably tell
