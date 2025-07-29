@@ -78,6 +78,14 @@ zone "omnipresent.kasp" {
 	allow-update { any; };
 };
 
+zone "no-syncpublish.kasp" {
+	type primary;
+	file "no-syncpublish.kasp.db";
+	dnssec-policy "timing-metadata";
+	inline-signing no;
+	allow-update { any; };
+};
+
 zone "migrate-nomatch-algnum.kasp" {
 	type primary;
 	file "migrate-nomatch-algnum.kasp.db";
