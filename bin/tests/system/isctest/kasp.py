@@ -237,13 +237,13 @@ class KeyProperties:
 
         self.timing["PublishCDS"] = self.timing["Published"] + ipubc
 
-        if self.metadata["Lifetime"] != 0:
+        if "Lifetime" in self.metadata and self.metadata["Lifetime"] != 0:
             self.timing["DeleteCDS"] = (
                 self.timing["PublishCDS"] + self.metadata["Lifetime"]
             )
 
     def Iret(self, config):
-        if self.metadata["Lifetime"] == 0:
+        if "Lifetime" not in self.metadata or self.metadata["Lifetime"] == 0:
             return
 
         iret = Iret(config, zsk=self.key.is_zsk(), ksk=self.key.is_ksk())
@@ -277,7 +277,7 @@ class KeyProperties:
             self.IpubC(config)
 
         # Set Retired timing metadata if key has lifetime.
-        if self.metadata["Lifetime"] != 0:
+        if "Lifetime" in self.metadata and self.metadata["Lifetime"] != 0:
             self.timing["Retired"] = self.timing["Active"] + self.metadata["Lifetime"]
 
         self.Iret(config)
@@ -1501,8 +1501,9 @@ def policy_to_properties(ttl, keys: List[str]) -> List[KeyProperties]:
         keyprop.properties["dnskey_ttl"] = ttl
         keyprop.metadata["Algorithm"] = line[2]
         keyprop.metadata["Length"] = line[3]
-        keyprop.metadata["Lifetime"] = 0
-        if line[1] != "unlimited":
+        if line[1] == "unlimited":
+            keyprop.metadata["Lifetime"] = 0
+        elif line[1] != "-":
             keyprop.metadata["Lifetime"] = int(line[1])
 
         for i in range(4, len(line)):
