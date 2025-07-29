@@ -146,3 +146,16 @@ cat template.db.in "${KSK}.key" "${ZSK}.key" >"$infile"
 private_type_record $zone $DEFAULT_ALGORITHM_NUMBER "$KSK" >>"$infile"
 private_type_record $zone $DEFAULT_ALGORITHM_NUMBER "$ZSK" >>"$infile"
 $SIGNER -S -x -s now-1h -e now+2w -o $zone -O full -f $zonefile $infile >signer.out.$zone.1 2>&1
+
+# Key states expected to be omnipresent after migration, except DS because -P sync is missing.
+setup no-syncpublish.kasp
+echo "$zone" >>zones
+Tsig="now-12h" # Zone's maximum TTL + propagation delay
+ksktimes="-P ${Tsig} -A ${Tsig}"
+zsktimes="-P ${Tsig} -A ${Tsig}"
+KSK=$($KEYGEN -a $DEFAULT_ALGORITHM -L 300 -f KSK $ksktimes $zone 2>keygen.out.$zone.1)
+ZSK=$($KEYGEN -a $DEFAULT_ALGORITHM -L 300 $zsktimes $zone 2>keygen.out.$zone.2)
+cat template.db.in "${KSK}.key" "${ZSK}.key" >"$infile"
+private_type_record $zone $DEFAULT_ALGORITHM_NUMBER "$KSK" >>"$infile"
+private_type_record $zone $DEFAULT_ALGORITHM_NUMBER "$ZSK" >>"$infile"
+$SIGNER -S -x -s now-1h -e now+2w -o $zone -O full -f $zonefile $infile >signer.out.$zone.1 2>&1

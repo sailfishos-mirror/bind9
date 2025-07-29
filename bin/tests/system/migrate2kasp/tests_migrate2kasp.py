@@ -199,6 +199,21 @@ lifetime = {
             },
             id="omnipresent.kasp",
         ),
+        # Testing key states derived from timing metadata: no SyncPublish.
+        pytest.param(
+            {
+                "zone": "no-syncpublish.kasp",
+                "policy": "timing-metadata",
+                "server": "ns3",
+                "config": timing_config,
+                "offset": -timedelta(hours=12),
+                "key-properties": [
+                    f"ksk {lifetime['P60D']} {os.environ['DEFAULT_ALGORITHM_NUMBER']} {os.environ['DEFAULT_BITS']} goal:omnipresent dnskey:omnipresent krrsig:omnipresent ds:rumoured",
+                    f"zsk {lifetime['P60D']} {os.environ['DEFAULT_ALGORITHM_NUMBER']} {os.environ['DEFAULT_BITS']} goal:omnipresent dnskey:omnipresent zrrsig:omnipresent",
+                ],
+            },
+            id="no-syncpublish.kasp",
+        ),
         # Test migration to dnssec-policy, existing keys do not match key algorithm.
         pytest.param(
             {
