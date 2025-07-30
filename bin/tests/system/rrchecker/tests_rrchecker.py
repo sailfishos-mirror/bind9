@@ -37,6 +37,7 @@ pytestmark = pytest.mark.extra_artifacts(
                 "APL",
                 "ATMA",
                 "AVC",
+                "BRID",
                 "CAA",
                 "CDNSKEY",
                 "CDS",
