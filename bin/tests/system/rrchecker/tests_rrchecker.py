@@ -55,6 +55,7 @@ pytestmark = pytest.mark.extra_artifacts(
                 "EUI64",
                 "GID",
                 "GPOS",
+                "HHIT",
                 "HINFO",
                 "HIP",
                 "HTTPS",
