@@ -1102,6 +1102,24 @@ ISC_RUN_TEST_IMPL(amtrelay) {
 		    dns_rdatatype_amtrelay, sizeof(dns_rdata_amtrelay_t));
 }
 
+/* BRIB RDATA - base64 encoded opaque */
+ISC_RUN_TEST_IMPL(brib) {
+	text_ok_t text_ok[] = { /* empty  */
+				TEXT_INVALID(""),
+				/* valid base64 string */
+				TEXT_VALID("aaaa"),
+				/* invalid base64 string */
+				TEXT_INVALID("aaaaa"),
+				/*
+				 * Sentinel.
+				 */
+				TEXT_SENTINEL()
+	};
+
+	check_rdata(text_ok, NULL, NULL, true, dns_rdataclass_in,
+		    dns_rdatatype_brid, sizeof(dns_rdata_brid_t));
+}
+
 ISC_RUN_TEST_IMPL(cdnskey) {
 	key_required(state, dns_rdatatype_cdnskey, sizeof(dns_rdata_cdnskey_t));
 }
@@ -2075,6 +2093,24 @@ ISC_RUN_TEST_IMPL(hip) {
 	assert_int_equal(result, DNS_R_FORMERR);
 	check_text_ok(text_ok, dns_rdataclass_in, dns_rdatatype_hip,
 		      sizeof(dns_rdata_hip_t));
+}
+
+/* HHIT RDATA - base64 encoded opaque */
+ISC_RUN_TEST_IMPL(hhit) {
+	text_ok_t text_ok[] = { /* empty  */
+				TEXT_INVALID(""),
+				/* valid base64 string */
+				TEXT_VALID("aaaa"),
+				/* invalid base64 string */
+				TEXT_INVALID("aaaaa"),
+				/*
+				 * Sentinel.
+				 */
+				TEXT_SENTINEL()
+	};
+
+	check_rdata(text_ok, NULL, NULL, true, dns_rdataclass_in,
+		    dns_rdatatype_hhit, sizeof(dns_rdata_hhit_t));
 }
 
 /*
