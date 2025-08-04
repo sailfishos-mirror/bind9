@@ -1020,7 +1020,7 @@ subdir('util')
 isc_srcconf = isc_srcset.apply(config, strict: false)
 
 libisc = library(
-    'isc',
+    'isc-' + meson.project_version(),
     isc_srcconf.sources(),
     objects: isc_probe_objects,
     install: true,
@@ -1046,7 +1046,7 @@ libisc_dep = declare_dependency(
 dns_srcconf = dns_srcset.apply(config, strict: false)
 
 libdns = library(
-    'dns',
+    'dns-' + meson.project_version(),
     dns_srcconf.sources(),
     include_directories: dns_inc,
     install: true,
@@ -1079,7 +1079,7 @@ libdns_dep = declare_dependency(
 ns_srcconf = ns_srcset.apply(config, strict: false)
 
 libns = library(
-    'ns',
+    'ns-' + meson.project_version(),
     ns_srcconf.sources(),
     objects: ns_probe_objects,
     install: true,
@@ -1104,7 +1104,7 @@ libns_dep = declare_dependency(
 isccc_srcconf = isccc_srcset.apply(config, strict: false)
 
 libisccc = library(
-    'isccc',
+    'isccc-' + meson.project_version(),
     isccc_srcconf.sources(),
     implicit_include_directories: false,
     include_directories: isccc_inc,
@@ -1124,7 +1124,7 @@ libisccc_dep = declare_dependency(
 isccfg_srcconf = isccfg_srcset.apply(config, strict: false)
 
 libisccfg = library(
-    'isccfg',
+    'isccfg-' + meson.project_version(),
     isccfg_srcconf.sources(),
     implicit_include_directories: false,
     include_directories: isccfg_inc,
