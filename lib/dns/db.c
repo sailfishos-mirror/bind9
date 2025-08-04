@@ -800,17 +800,6 @@ dns_db_nodecount(dns_db_t *db, dns_dbtree_t tree) {
 	return 0;
 }
 
-size_t
-dns_db_hashsize(dns_db_t *db) {
-	REQUIRE(DNS_DB_VALID(db));
-
-	if (db->methods->hashsize == NULL) {
-		return 0;
-	}
-
-	return (db->methods->hashsize)(db);
-}
-
 isc_result_t
 dns_db_register(const char *name, dns_dbcreatefunc_t create, void *driverarg,
 		isc_mem_t *mctx, dns_dbimplementation_t **dbimp) {

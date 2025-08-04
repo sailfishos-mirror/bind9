@@ -173,7 +173,6 @@ typedef struct dns_db_methods {
 				dns_rdataset_t		   *rdataset,
 				dns_rdataset_t *sigrdataset DNS__DB_FLARG);
 	isc_result_t (*setcachestats)(dns_db_t *db, isc_stats_t *stats);
-	size_t (*hashsize)(dns_db_t *db);
 	isc_result_t (*getsize)(dns_db_t *db, dns_dbversion_t *version,
 				uint64_t *records, uint64_t *bytes);
 	isc_result_t (*setservestalettl)(dns_db_t *db, dns_ttl_t ttl);
