@@ -100,15 +100,6 @@ typedef struct dns_db_methods {
 			      dns_dbversion_t **targetp);
 	void (*closeversion)(dns_db_t *db, dns_dbversion_t **versionp,
 			     bool commit DNS__DB_FLARG);
-	isc_result_t (*findnode)(dns_db_t *db, const dns_name_t *name,
-				 bool		      create,
-				 dns_dbnode_t **nodep DNS__DB_FLARG);
-	isc_result_t (*find)(dns_db_t *db, const dns_name_t *name,
-			     dns_dbversion_t *version, dns_rdatatype_t type,
-			     unsigned int options, isc_stdtime_t now,
-			     dns_dbnode_t **nodep, dns_name_t *foundname,
-			     dns_rdataset_t		*rdataset,
-			     dns_rdataset_t *sigrdataset DNS__DB_FLARG);
 	isc_result_t (*findzonecut)(dns_db_t *db, const dns_name_t *name,
 				    unsigned int options, isc_stdtime_t now,
 				    dns_dbnode_t **nodep, dns_name_t *foundname,
@@ -159,19 +150,18 @@ typedef struct dns_db_methods {
 				       dns_name_t     *name,
 				       dns_typepair_t *typepair);
 	dns_stats_t *(*getrrsetstats)(dns_db_t *db);
-	isc_result_t (*findnodeext)(dns_db_t *db, const dns_name_t *name,
-				    bool		     create,
-				    dns_clientinfomethods_t *methods,
-				    dns_clientinfo_t	    *clientinfo,
-				    dns_dbnode_t **nodep     DNS__DB_FLARG);
-	isc_result_t (*findext)(dns_db_t *db, const dns_name_t *name,
-				dns_dbversion_t *version, dns_rdatatype_t type,
-				unsigned int options, isc_stdtime_t now,
-				dns_dbnode_t **nodep, dns_name_t *foundname,
-				dns_clientinfomethods_t	   *methods,
-				dns_clientinfo_t	   *clientinfo,
-				dns_rdataset_t		   *rdataset,
-				dns_rdataset_t *sigrdataset DNS__DB_FLARG);
+	isc_result_t (*findnode)(dns_db_t *db, const dns_name_t *name,
+				 bool create, dns_clientinfomethods_t *methods,
+				 dns_clientinfo_t    *clientinfo,
+				 dns_dbnode_t **nodep DNS__DB_FLARG);
+	isc_result_t (*find)(dns_db_t *db, const dns_name_t *name,
+			     dns_dbversion_t *version, dns_rdatatype_t type,
+			     unsigned int options, isc_stdtime_t now,
+			     dns_dbnode_t **nodep, dns_name_t *foundname,
+			     dns_clientinfomethods_t	*methods,
+			     dns_clientinfo_t		*clientinfo,
+			     dns_rdataset_t		*rdataset,
+			     dns_rdataset_t *sigrdataset DNS__DB_FLARG);
 	isc_result_t (*setcachestats)(dns_db_t *db, isc_stats_t *stats);
 	isc_result_t (*getsize)(dns_db_t *db, dns_dbversion_t *version,
 				uint64_t *records, uint64_t *bytes);
@@ -694,19 +684,14 @@ dns__db_closeversion(dns_db_t *db, dns_dbversion_t **versionp,
  ***/
 
 #define dns_db_findnode(db, name, create, nodep) \
-	dns__db_findnode(db, name, create, nodep DNS__DB_FILELINE)
+	dns__db_findnode(db, name, create, NULL, NULL, nodep DNS__DB_FILELINE)
+#define dns_db_findnodeext(db, name, create, methods, clientinfo, nodep) \
+	dns__db_findnode(db, name, create, methods, clientinfo,          \
+			 nodep DNS__DB_FILELINE)
 isc_result_t
 dns__db_findnode(dns_db_t *db, const dns_name_t *name, bool create,
+		 dns_clientinfomethods_t *methods, dns_clientinfo_t *clientinfo,
 		 dns_dbnode_t **nodep DNS__DB_FLARG);
-
-#define dns_db_findnodeext(db, name, create, methods, clientinfo, nodep) \
-	dns__db_findnodeext(db, name, create, methods, clientinfo,       \
-			    nodep DNS__DB_FILELINE)
-isc_result_t
-dns__db_findnodeext(dns_db_t *db, const dns_name_t *name, bool create,
-		    dns_clientinfomethods_t *methods,
-		    dns_clientinfo_t	    *clientinfo,
-		    dns_dbnode_t **nodep     DNS__DB_FLARG);
 /*%<
  * Find the node with name 'name'.
  *
@@ -748,26 +733,19 @@ dns__db_findnodeext(dns_db_t *db, const dns_name_t *name, bool create,
 #define dns_db_find(db, name, version, type, options, now, nodep, foundname,  \
 		    rdataset, sigrdataset)                                    \
 	dns__db_find(db, name, version, type, options, now, nodep, foundname, \
-		     rdataset, sigrdataset DNS__DB_FILELINE)
+		     NULL, NULL, rdataset, sigrdataset DNS__DB_FILELINE)
+#define dns_db_findext(db, name, version, type, options, now, nodep,          \
+		       foundname, methods, clientinfo, rdataset, sigrdataset) \
+	dns__db_find(db, name, version, type, options, now, nodep, foundname, \
+		     methods, clientinfo, rdataset,                           \
+		     sigrdataset DNS__DB_FILELINE)
 isc_result_t
 dns__db_find(dns_db_t *db, const dns_name_t *name, dns_dbversion_t *version,
 	     dns_rdatatype_t type, unsigned int options, isc_stdtime_t now,
 	     dns_dbnode_t **nodep, dns_name_t *foundname,
+	     dns_clientinfomethods_t *methods, dns_clientinfo_t *clientinfo,
 	     dns_rdataset_t		*rdataset,
 	     dns_rdataset_t *sigrdataset DNS__DB_FLARG);
-
-#define dns_db_findext(db, name, version, type, options, now, nodep,          \
-		       foundname, methods, clientinfo, rdataset, sigrdataset) \
-	dns__db_findext(db, name, version, type, options, now, nodep,         \
-			foundname, methods, clientinfo, rdataset,             \
-			sigrdataset DNS__DB_FILELINE)
-isc_result_t
-dns__db_findext(dns_db_t *db, const dns_name_t *name, dns_dbversion_t *version,
-		dns_rdatatype_t type, unsigned int options, isc_stdtime_t now,
-		dns_dbnode_t **nodep, dns_name_t *foundname,
-		dns_clientinfomethods_t *methods, dns_clientinfo_t *clientinfo,
-		dns_rdataset_t		   *rdataset,
-		dns_rdataset_t *sigrdataset DNS__DB_FLARG);
 /*%<
  * Find the best match for 'name' and 'type' in version 'version' of 'db'.
  *

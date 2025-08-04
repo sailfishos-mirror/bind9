@@ -2505,6 +2505,8 @@ findnodeintree(qpzonedb_t *qpdb, const dns_name_t *name, bool create,
 
 static isc_result_t
 qpzone_findnode(dns_db_t *db, const dns_name_t *name, bool create,
+		dns_clientinfomethods_t *methods ISC_ATTR_UNUSED,
+		dns_clientinfo_t *clientinfo ISC_ATTR_UNUSED,
 		dns_dbnode_t **nodep DNS__DB_FLARG) {
 	qpzonedb_t *qpdb = (qpzonedb_t *)db;
 
@@ -3269,7 +3271,10 @@ static isc_result_t
 qpzone_find(dns_db_t *db, const dns_name_t *name, dns_dbversion_t *version,
 	    dns_rdatatype_t type, unsigned int options,
 	    isc_stdtime_t now ISC_ATTR_UNUSED, dns_dbnode_t **nodep,
-	    dns_name_t *foundname, dns_rdataset_t *rdataset,
+	    dns_name_t *foundname,
+	    dns_clientinfomethods_t *methods ISC_ATTR_UNUSED,
+	    dns_clientinfo_t *clientinfo ISC_ATTR_UNUSED,
+	    dns_rdataset_t *rdataset,
 	    dns_rdataset_t *sigrdataset DNS__DB_FLARG) {
 	isc_result_t result;
 	qpzonedb_t *qpdb = (qpzonedb_t *)db;
@@ -4992,7 +4997,7 @@ glue_nsdname_cb(void *arg, const dns_name_t *name, dns_rdatatype_t qtype,
 
 	result = qpzone_find(ctx->db, name, ctx->version, dns_rdatatype_a,
 			     DNS_DBFIND_GLUEOK, 0, (dns_dbnode_t **)&node_a,
-			     name_a, &rdataset_a,
+			     name_a, NULL, NULL, &rdataset_a,
 			     &sigrdataset_a DNS__DB_FLARG_PASS);
 	if (result == DNS_R_GLUE) {
 		glue = new_glue(ctx->db->mctx, name_a);
@@ -5011,7 +5016,7 @@ glue_nsdname_cb(void *arg, const dns_name_t *name, dns_rdatatype_t qtype,
 
 	result = qpzone_find(ctx->db, name, ctx->version, dns_rdatatype_aaaa,
 			     DNS_DBFIND_GLUEOK, 0, (dns_dbnode_t **)&node_aaaa,
-			     name_aaaa, &rdataset_aaaa,
+			     name_aaaa, NULL, NULL, &rdataset_aaaa,
 			     &sigrdataset_aaaa DNS__DB_FLARG_PASS);
 	if (result == DNS_R_GLUE) {
 		if (glue == NULL) {

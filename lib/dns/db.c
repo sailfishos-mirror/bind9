@@ -415,28 +415,8 @@ dns__db_closeversion(dns_db_t *db, dns_dbversion_t **versionp,
 
 isc_result_t
 dns__db_findnode(dns_db_t *db, const dns_name_t *name, bool create,
+		 dns_clientinfomethods_t *methods, dns_clientinfo_t *clientinfo,
 		 dns_dbnode_t **nodep DNS__DB_FLARG) {
-	/*
-	 * Find the node with name 'name'.
-	 */
-
-	REQUIRE(DNS_DB_VALID(db));
-	REQUIRE(nodep != NULL && *nodep == NULL);
-
-	if (db->methods->findnode != NULL) {
-		return (db->methods->findnode)(db, name, create,
-					       nodep DNS__DB_FLARG_PASS);
-	} else {
-		return (db->methods->findnodeext)(db, name, create, NULL, NULL,
-						  nodep DNS__DB_FLARG_PASS);
-	}
-}
-
-isc_result_t
-dns__db_findnodeext(dns_db_t *db, const dns_name_t *name, bool create,
-		    dns_clientinfomethods_t *methods,
-		    dns_clientinfo_t *clientinfo,
-		    dns_dbnode_t **nodep DNS__DB_FLARG) {
 	/*
 	 * Find the node with name 'name', passing 'arg' to the database
 	 * implementation.
@@ -445,14 +425,12 @@ dns__db_findnodeext(dns_db_t *db, const dns_name_t *name, bool create,
 	REQUIRE(DNS_DB_VALID(db));
 	REQUIRE(nodep != NULL && *nodep == NULL);
 
-	if (db->methods->findnodeext != NULL) {
-		return (db->methods->findnodeext)(db, name, create, methods,
-						  clientinfo,
-						  nodep DNS__DB_FLARG_PASS);
-	} else {
-		return (db->methods->findnode)(db, name, create,
+	if (db->methods->findnode != NULL) {
+		return (db->methods->findnode)(db, name, create, methods,
+					       clientinfo,
 					       nodep DNS__DB_FLARG_PASS);
 	}
+	return ISC_R_NOTIMPLEMENTED;
 }
 
 isc_result_t
@@ -473,41 +451,9 @@ isc_result_t
 dns__db_find(dns_db_t *db, const dns_name_t *name, dns_dbversion_t *version,
 	     dns_rdatatype_t type, unsigned int options, isc_stdtime_t now,
 	     dns_dbnode_t **nodep, dns_name_t *foundname,
+	     dns_clientinfomethods_t *methods, dns_clientinfo_t *clientinfo,
 	     dns_rdataset_t *rdataset,
 	     dns_rdataset_t *sigrdataset DNS__DB_FLARG) {
-	/*
-	 * Find the best match for 'name' and 'type' in version 'version'
-	 * of 'db'.
-	 */
-
-	REQUIRE(DNS_DB_VALID(db));
-	REQUIRE(type != dns_rdatatype_rrsig);
-	REQUIRE(nodep == NULL || *nodep == NULL);
-	REQUIRE(dns_name_hasbuffer(foundname));
-	REQUIRE(rdataset == NULL || (DNS_RDATASET_VALID(rdataset) &&
-				     !dns_rdataset_isassociated(rdataset)));
-	REQUIRE(sigrdataset == NULL ||
-		(DNS_RDATASET_VALID(sigrdataset) &&
-		 !dns_rdataset_isassociated(sigrdataset)));
-
-	if (db->methods->find != NULL) {
-		return (db->methods->find)(db, name, version, type, options,
-					   now, nodep, foundname, rdataset,
-					   sigrdataset DNS__DB_FLARG_PASS);
-	} else {
-		return (db->methods->findext)(
-			db, name, version, type, options, now, nodep, foundname,
-			NULL, NULL, rdataset, sigrdataset DNS__DB_FLARG_PASS);
-	}
-}
-
-isc_result_t
-dns__db_findext(dns_db_t *db, const dns_name_t *name, dns_dbversion_t *version,
-		dns_rdatatype_t type, unsigned int options, isc_stdtime_t now,
-		dns_dbnode_t **nodep, dns_name_t *foundname,
-		dns_clientinfomethods_t *methods, dns_clientinfo_t *clientinfo,
-		dns_rdataset_t *rdataset,
-		dns_rdataset_t *sigrdataset DNS__DB_FLARG) {
 	/*
 	 * Find the best match for 'name' and 'type' in version 'version'
 	 * of 'db', passing in 'arg'.
@@ -523,16 +469,13 @@ dns__db_findext(dns_db_t *db, const dns_name_t *name, dns_dbversion_t *version,
 		(DNS_RDATASET_VALID(sigrdataset) &&
 		 !dns_rdataset_isassociated(sigrdataset)));
 
-	if (db->methods->findext != NULL) {
-		return (db->methods->findext)(db, name, version, type, options,
-					      now, nodep, foundname, methods,
-					      clientinfo, rdataset,
-					      sigrdataset DNS__DB_FLARG_PASS);
-	} else {
+	if (db->methods->find != NULL) {
 		return (db->methods->find)(db, name, version, type, options,
-					   now, nodep, foundname, rdataset,
+					   now, nodep, foundname, methods,
+					   clientinfo, rdataset,
 					   sigrdataset DNS__DB_FLARG_PASS);
 	}
+	return ISC_R_NOTIMPLEMENTED;
 }
 
 isc_result_t

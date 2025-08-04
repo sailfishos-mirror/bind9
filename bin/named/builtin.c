@@ -859,6 +859,8 @@ getoriginnode(dns_db_t *db, dns_dbnode_t **nodep DNS__DB_FLARG) {
 
 static isc_result_t
 findnode(dns_db_t *db, const dns_name_t *name, bool create,
+	 dns_clientinfomethods_t *methods ISC_ATTR_UNUSED,
+	 dns_clientinfo_t *clientinfo ISC_ATTR_UNUSED,
 	 dns_dbnode_t **nodep DNS__DB_FLARG) {
 	bdb_t *bdb = (bdb_t *)db;
 	bdbnode_t *node = NULL;
@@ -906,7 +908,9 @@ findnode(dns_db_t *db, const dns_name_t *name, bool create,
 static isc_result_t
 find(dns_db_t *db, const dns_name_t *name, dns_dbversion_t *version,
      dns_rdatatype_t type, unsigned int options, isc_stdtime_t now,
-     dns_dbnode_t **nodep, dns_name_t *foundname, dns_rdataset_t *rdataset,
+     dns_dbnode_t **nodep, dns_name_t *foundname,
+     dns_clientinfomethods_t *methods ISC_ATTR_UNUSED,
+     dns_clientinfo_t *clientinfo ISC_ATTR_UNUSED, dns_rdataset_t *rdataset,
      dns_rdataset_t *sigrdataset DNS__DB_FLARG) {
 	bdb_t *bdb = (bdb_t *)db;
 	isc_result_t result;
@@ -942,7 +946,8 @@ find(dns_db_t *db, const dns_name_t *name, dns_dbversion_t *version,
 		 * Look up the next label.
 		 */
 		dns_name_getlabelsequence(name, nlabels - i, i, xname);
-		result = findnode(db, xname, false, &node DNS__DB_FLARG_PASS);
+		result = findnode(db, xname, false, NULL, NULL,
+				  &node DNS__DB_FLARG_PASS);
 		if (result == ISC_R_NOTFOUND) {
 			/*
 			 * No data at zone apex?
