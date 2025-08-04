@@ -130,12 +130,6 @@ cache_create_db(dns_cache_t *cache, dns_db_t **dbp, isc_mem_t **tmctxp,
 	dns_db_setmaxrrperset(db, cache->maxrrperset);
 	dns_db_setmaxtypepername(db, cache->maxtypepername);
 
-	/*
-	 * XXX this is only used by the RBT cache, and can
-	 * be removed when it is.
-	 */
-	dns_db_setloop(db, isc_loop_main());
-
 	*dbp = db;
 	*hmctxp = hmctx;
 	*tmctxp = tmctx;

@@ -1122,12 +1122,6 @@ nodecount(dns_db_t *db, dns_dbtree_t tree) {
 	return 0;
 }
 
-static void
-setloop(dns_db_t *db, isc_loop_t *loop) {
-	UNUSED(db);
-	UNUSED(loop);
-}
-
 /*
  * getoriginnode() is used by the update code to find the
  * dns_rdatatype_dnskey record for a zone
@@ -1167,7 +1161,6 @@ static dns_dbmethods_t sdlzdb_methods = {
 	.deleterdataset = deleterdataset,
 	.issecure = issecure,
 	.nodecount = nodecount,
-	.setloop = setloop,
 	.getoriginnode = getoriginnode,
 	.findnodeext = findnodeext,
 	.findext = findext,

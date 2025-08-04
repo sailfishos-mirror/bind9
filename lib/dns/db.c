@@ -811,15 +811,6 @@ dns_db_hashsize(dns_db_t *db) {
 	return (db->methods->hashsize)(db);
 }
 
-void
-dns_db_setloop(dns_db_t *db, isc_loop_t *loop) {
-	REQUIRE(DNS_DB_VALID(db));
-
-	if (db->methods->setloop != NULL) {
-		(db->methods->setloop)(db, loop);
-	}
-}
-
 isc_result_t
 dns_db_register(const char *name, dns_dbcreatefunc_t create, void *driverarg,
 		isc_mem_t *mctx, dns_dbimplementation_t **dbimp) {

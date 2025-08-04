@@ -25,7 +25,6 @@
 #include <isc/heap.h>
 #include <isc/hex.h>
 #include <isc/log.h>
-#include <isc/loop.h>
 #include <isc/mem.h>
 #include <isc/mutex.h>
 #include <isc/os.h>
@@ -238,7 +237,6 @@ struct qpzonedb {
 	qpz_version_t *current_version;
 	qpz_version_t *future_version;
 	qpz_versionlist_t open_versions;
-	isc_loop_t *loop;
 	struct rcu_head rcu_head;
 
 	qpz_heap_t *heap; /* Resigning heap */
@@ -515,10 +513,6 @@ free_db_rcu(struct rcu_head *rcu_head) {
 
 	if (qpdb->gluecachestats != NULL) {
 		isc_stats_detach(&qpdb->gluecachestats);
-	}
-
-	if (qpdb->loop != NULL) {
-		isc_loop_detach(&qpdb->loop);
 	}
 
 	isc_rwlock_destroy(&qpdb->lock);
@@ -3872,24 +3866,6 @@ nodecount(dns_db_t *db, dns_dbtree_t tree ISC_ATTR_UNUSED) {
 	return mu.leaves;
 }
 
-static void
-setloop(dns_db_t *db, isc_loop_t *loop) {
-	qpzonedb_t *qpdb = NULL;
-
-	qpdb = (qpzonedb_t *)db;
-
-	REQUIRE(VALID_QPZONE(qpdb));
-
-	RWLOCK(&qpdb->lock, isc_rwlocktype_write);
-	if (qpdb->loop != NULL) {
-		isc_loop_detach(&qpdb->loop);
-	}
-	if (loop != NULL) {
-		isc_loop_attach(loop, &qpdb->loop);
-	}
-	RWUNLOCK(&qpdb->lock, isc_rwlocktype_write);
-}
-
 static isc_result_t
 getoriginnode(dns_db_t *db, dns_dbnode_t **nodep DNS__DB_FLARG) {
 	qpzonedb_t *qpdb = (qpzonedb_t *)db;
@@ -5308,7 +5284,6 @@ static dns_dbmethods_t qpdb_zonemethods = {
 	.deleterdataset = qpzone_deleterdataset,
 	.issecure = issecure,
 	.nodecount = nodecount,
-	.setloop = setloop,
 	.getoriginnode = getoriginnode,
 	.getnsec3parameters = getnsec3parameters,
 	.findnsec3node = qpzone_findnsec3node,

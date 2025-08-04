@@ -284,15 +284,6 @@ nodecount(dns_db_t *db, dns_dbtree_t tree) {
 	return dns_db_nodecount(sampledb->db, tree);
 }
 
-static void
-setloop(dns_db_t *db, isc_loop_t *loop) {
-	sampledb_t *sampledb = (sampledb_t *)db;
-
-	REQUIRE(VALID_SAMPLEDB(sampledb));
-
-	dns_db_setloop(sampledb->db, loop);
-}
-
 static isc_result_t
 getoriginnode(dns_db_t *db, dns_dbnode_t **nodep DNS__DB_FLARG) {
 	sampledb_t *sampledb = (sampledb_t *)db;
@@ -410,7 +401,6 @@ static dns_dbmethods_t sampledb_methods = {
 	.deleterdataset = deleterdataset,
 	.issecure = issecure,
 	.nodecount = nodecount,
-	.setloop = setloop,
 	.getoriginnode = getoriginnode,
 	.getnsec3parameters = getnsec3parameters,
 	.findnsec3node = findnsec3node,

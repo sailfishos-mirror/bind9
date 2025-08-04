@@ -142,7 +142,6 @@ typedef struct dns_db_methods {
 				       dns_rdatatype_t covers DNS__DB_FLARG);
 	bool (*issecure)(dns_db_t *db);
 	unsigned int (*nodecount)(dns_db_t *db, dns_dbtree_t);
-	void (*setloop)(dns_db_t *db, isc_loop_t *);
 	isc_result_t (*getoriginnode)(dns_db_t		  *db,
 				      dns_dbnode_t **nodep DNS__DB_FLARG);
 	isc_result_t (*getnsec3parameters)(dns_db_t	   *db,
@@ -1420,16 +1419,6 @@ dns_db_hashsize(dns_db_t *db);
  * Returns:
  * \li	The number of buckets in the database's hash table, or
  *      0 if not implemented.
- */
-
-void
-dns_db_setloop(dns_db_t *db, isc_loop_t *loop);
-/*%<
- * If loop is set then the final detach may be performed asynchronously.
- *
- * Requires:
- * \li	'db' is a valid database.
- * \li	'loop' to be valid or NULL.
  */
 
 bool

@@ -15128,7 +15128,6 @@ ns_query(dns_zone_t *zone, dns_rdataset_t *soardataset, dns_stub_t *stub) {
 					     isc_result_totext(result));
 				goto cleanup;
 			}
-			dns_db_setloop(stub->db, zone->loop);
 			dns_db_setmaxrrperset(stub->db, zone->maxrrperset);
 			dns_db_setmaxtypepername(stub->db,
 						 zone->maxtypepername);
@@ -18172,7 +18171,6 @@ zone_replacedb(dns_zone_t *zone, dns_db_t *db, bool dump) {
 		zone_detachdb(zone);
 	}
 	zone_attachdb(zone, db);
-	dns_db_setloop(zone->db, zone->loop);
 	dns_db_setmaxrrperset(zone->db, zone->maxrrperset);
 	dns_db_setmaxtypepername(zone->db, zone->maxtypepername);
 	DNS_ZONE_SETFLAG(zone, DNS_ZONEFLG_LOADED | DNS_ZONEFLG_NEEDNOTIFY);
@@ -24800,7 +24798,6 @@ dns_zone_makedb(dns_zone_t *zone, dns_db_t **dbp) {
 		break;
 	}
 
-	dns_db_setloop(db, zone->loop);
 	dns_db_setmaxrrperset(db, zone->maxrrperset);
 	dns_db_setmaxtypepername(db, zone->maxtypepername);
 
