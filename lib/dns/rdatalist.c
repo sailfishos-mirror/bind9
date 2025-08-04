@@ -26,17 +26,17 @@
 
 static dns_rdatasetmethods_t methods = {
 	.disassociate = dns_rdatalist_disassociate,
-	.first = dns_rdatalist_first,
-	.next = dns_rdatalist_next,
-	.current = dns_rdatalist_current,
-	.clone = dns_rdatalist_clone,
-	.count = dns_rdatalist_count,
-	.addnoqname = dns_rdatalist_addnoqname,
-	.getnoqname = dns_rdatalist_getnoqname,
-	.addclosest = dns_rdatalist_addclosest,
-	.getclosest = dns_rdatalist_getclosest,
-	.setownercase = dns_rdatalist_setownercase,
-	.getownercase = dns_rdatalist_getownercase,
+	.first = dns__rdatalist_first,
+	.next = dns__rdatalist_next,
+	.current = dns__rdatalist_current,
+	.clone = dns__rdatalist_clone,
+	.count = dns__rdatalist_count,
+	.addnoqname = dns__rdatalist_addnoqname,
+	.getnoqname = dns__rdatalist_getnoqname,
+	.addclosest = dns__rdatalist_addclosest,
+	.getclosest = dns__rdatalist_getclosest,
+	.setownercase = dns__rdatalist_setownercase,
+	.getownercase = dns__rdatalist_getownercase,
 };
 
 void
@@ -100,7 +100,7 @@ dns_rdatalist_disassociate(dns_rdataset_t *rdataset DNS__DB_FLARG) {
 }
 
 isc_result_t
-dns_rdatalist_first(dns_rdataset_t *rdataset) {
+dns__rdatalist_first(dns_rdataset_t *rdataset) {
 	dns_rdatalist_t *rdatalist = NULL;
 
 	rdatalist = rdataset->rdlist.list;
@@ -114,7 +114,7 @@ dns_rdatalist_first(dns_rdataset_t *rdataset) {
 }
 
 isc_result_t
-dns_rdatalist_next(dns_rdataset_t *rdataset) {
+dns__rdatalist_next(dns_rdataset_t *rdataset) {
 	dns_rdata_t *rdata;
 
 	rdata = rdataset->rdlist.iter;
@@ -132,7 +132,7 @@ dns_rdatalist_next(dns_rdataset_t *rdataset) {
 }
 
 void
-dns_rdatalist_current(dns_rdataset_t *rdataset, dns_rdata_t *rdata) {
+dns__rdatalist_current(dns_rdataset_t *rdataset, dns_rdata_t *rdata) {
 	dns_rdata_t *list_rdata;
 
 	list_rdata = rdataset->rdlist.iter;
@@ -142,8 +142,8 @@ dns_rdatalist_current(dns_rdataset_t *rdataset, dns_rdata_t *rdata) {
 }
 
 void
-dns_rdatalist_clone(dns_rdataset_t *source,
-		    dns_rdataset_t *target DNS__DB_FLARG) {
+dns__rdatalist_clone(dns_rdataset_t *source,
+		     dns_rdataset_t *target DNS__DB_FLARG) {
 	REQUIRE(source != NULL);
 	REQUIRE(target != NULL);
 
@@ -153,7 +153,7 @@ dns_rdatalist_clone(dns_rdataset_t *source,
 }
 
 unsigned int
-dns_rdatalist_count(dns_rdataset_t *rdataset) {
+dns__rdatalist_count(dns_rdataset_t *rdataset) {
 	dns_rdatalist_t *rdatalist = NULL;
 	unsigned int count;
 
@@ -170,7 +170,7 @@ dns_rdatalist_count(dns_rdataset_t *rdataset) {
 }
 
 isc_result_t
-dns_rdatalist_addnoqname(dns_rdataset_t *rdataset, dns_name_t *name) {
+dns__rdatalist_addnoqname(dns_rdataset_t *rdataset, dns_name_t *name) {
 	dns_rdataset_t *neg = NULL;
 	dns_rdataset_t *negsig = NULL;
 	dns_ttl_t ttl;
@@ -218,9 +218,9 @@ dns_rdatalist_addnoqname(dns_rdataset_t *rdataset, dns_name_t *name) {
 }
 
 isc_result_t
-dns_rdatalist_getnoqname(dns_rdataset_t *rdataset, dns_name_t *name,
-			 dns_rdataset_t *neg,
-			 dns_rdataset_t *negsig DNS__DB_FLARG) {
+dns__rdatalist_getnoqname(dns_rdataset_t *rdataset, dns_name_t *name,
+			  dns_rdataset_t *neg,
+			  dns_rdataset_t *negsig DNS__DB_FLARG) {
 	dns_rdataclass_t rdclass;
 	dns_rdataset_t *tneg = NULL;
 	dns_rdataset_t *tnegsig = NULL;
@@ -264,7 +264,7 @@ dns_rdatalist_getnoqname(dns_rdataset_t *rdataset, dns_name_t *name,
 }
 
 isc_result_t
-dns_rdatalist_addclosest(dns_rdataset_t *rdataset, dns_name_t *name) {
+dns__rdatalist_addclosest(dns_rdataset_t *rdataset, dns_name_t *name) {
 	dns_rdataset_t *neg = NULL;
 	dns_rdataset_t *negsig = NULL;
 	dns_ttl_t ttl;
@@ -311,9 +311,9 @@ dns_rdatalist_addclosest(dns_rdataset_t *rdataset, dns_name_t *name) {
 }
 
 isc_result_t
-dns_rdatalist_getclosest(dns_rdataset_t *rdataset, dns_name_t *name,
-			 dns_rdataset_t *neg,
-			 dns_rdataset_t *negsig DNS__DB_FLARG) {
+dns__rdatalist_getclosest(dns_rdataset_t *rdataset, dns_name_t *name,
+			  dns_rdataset_t *neg,
+			  dns_rdataset_t *negsig DNS__DB_FLARG) {
 	dns_rdataclass_t rdclass;
 	dns_rdataset_t *tneg = NULL;
 	dns_rdataset_t *tnegsig = NULL;
@@ -357,7 +357,7 @@ dns_rdatalist_getclosest(dns_rdataset_t *rdataset, dns_name_t *name,
 }
 
 void
-dns_rdatalist_setownercase(dns_rdataset_t *rdataset, const dns_name_t *name) {
+dns__rdatalist_setownercase(dns_rdataset_t *rdataset, const dns_name_t *name) {
 	dns_rdatalist_t *rdatalist;
 	unsigned int i;
 
@@ -379,7 +379,7 @@ dns_rdatalist_setownercase(dns_rdataset_t *rdataset, const dns_name_t *name) {
 }
 
 void
-dns_rdatalist_getownercase(const dns_rdataset_t *rdataset, dns_name_t *name) {
+dns__rdatalist_getownercase(const dns_rdataset_t *rdataset, dns_name_t *name) {
 	dns_rdatalist_t *rdatalist;
 	unsigned int i;
 

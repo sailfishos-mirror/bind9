@@ -107,43 +107,38 @@ dns_rdatalist_fromrdataset(dns_rdataset_t   *rdataset,
  *\li		'rdatalist' is pointed to the rdatalist in rdataset.
  */
 
+/*%
+ * The following are implementation functions for list-based rdatasets.
+ * They are called by rdataset implementations in rdatalist.c, sdlz.c,
+ * and builtin.c. They are not meant to be used directly by callers of
+ * those implmentations.
+ */
 void
 dns_rdatalist_disassociate(dns_rdataset_t *rdatasetp DNS__DB_FLARG);
-
 isc_result_t
-dns_rdatalist_first(dns_rdataset_t *rdataset);
-
+dns__rdatalist_first(dns_rdataset_t *rdataset);
 isc_result_t
-dns_rdatalist_next(dns_rdataset_t *rdataset);
-
+dns__rdatalist_next(dns_rdataset_t *rdataset);
 void
-dns_rdatalist_current(dns_rdataset_t *rdataset, dns_rdata_t *rdata);
-
+dns__rdatalist_current(dns_rdataset_t *rdataset, dns_rdata_t *rdata);
 void
-dns_rdatalist_clone(dns_rdataset_t	  *source,
-		    dns_rdataset_t *target DNS__DB_FLARG);
-
+dns__rdatalist_clone(dns_rdataset_t	   *source,
+		     dns_rdataset_t *target DNS__DB_FLARG);
 unsigned int
-dns_rdatalist_count(dns_rdataset_t *rdataset);
-
+dns__rdatalist_count(dns_rdataset_t *rdataset);
 isc_result_t
-dns_rdatalist_addnoqname(dns_rdataset_t *rdataset, dns_name_t *name);
-
+dns__rdatalist_addnoqname(dns_rdataset_t *rdataset, dns_name_t *name);
 isc_result_t
-dns_rdatalist_getnoqname(dns_rdataset_t *rdataset, dns_name_t *name,
-			 dns_rdataset_t	       *neg,
-			 dns_rdataset_t *negsig DNS__DB_FLARG);
-
+dns__rdatalist_getnoqname(dns_rdataset_t *rdataset, dns_name_t *name,
+			  dns_rdataset_t	*neg,
+			  dns_rdataset_t *negsig DNS__DB_FLARG);
 isc_result_t
-dns_rdatalist_addclosest(dns_rdataset_t *rdataset, dns_name_t *name);
-
+dns__rdatalist_addclosest(dns_rdataset_t *rdataset, dns_name_t *name);
 isc_result_t
-dns_rdatalist_getclosest(dns_rdataset_t *rdataset, dns_name_t *name,
-			 dns_rdataset_t	       *neg,
-			 dns_rdataset_t *negsig DNS__DB_FLARG);
-
+dns__rdatalist_getclosest(dns_rdataset_t *rdataset, dns_name_t *name,
+			  dns_rdataset_t	*neg,
+			  dns_rdataset_t *negsig DNS__DB_FLARG);
 void
-dns_rdatalist_setownercase(dns_rdataset_t *rdataset, const dns_name_t *name);
-
+dns__rdatalist_setownercase(dns_rdataset_t *rdataset, const dns_name_t *name);
 void
-dns_rdatalist_getownercase(const dns_rdataset_t *rdataset, dns_name_t *name);
+dns__rdatalist_getownercase(const dns_rdataset_t *rdataset, dns_name_t *name);
