@@ -316,12 +316,14 @@ endif
 
 foreach fn : [
     '__builtin_add_overflow',
+    '__builtin_expect',
     '__builtin_mul_overflow',
+    '__builtin_prefetch',
     '__builtin_sub_overflow',
     '__builtin_unreachable',
 ]
-    if cc.has_function(fn)
-        config.set('HAVE_@0@'.format(fn.substring(2).to_upper()), 1)
+    if not cc.has_function(fn)
+        error('@0@ support required'.format(fn))
     endif
 endforeach
 

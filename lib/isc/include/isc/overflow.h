@@ -39,29 +39,11 @@
  *	INSIST(!overflow);
  */
 
-#if HAVE_BUILTIN_MUL_OVERFLOW
 #define ISC_OVERFLOW_MUL(a, b, cp) __builtin_mul_overflow(a, b, cp)
-#else
-#define ISC_OVERFLOW_MUL(a, b, cp)                                           \
-	((ISC_OVERFLOW_UINT_MAX(a) / (b) > (a)) ? (*(cp) = (a) * (b), false) \
-						: true)
-#endif
 
-#if HAVE_BUILTIN_ADD_OVERFLOW
 #define ISC_OVERFLOW_ADD(a, b, cp) __builtin_add_overflow(a, b, cp)
-#else
-#define ISC_OVERFLOW_ADD(a, b, cp)                                           \
-	((ISC_OVERFLOW_UINT_MAX(a) - (b) > (a)) ? (*(cp) = (a) + (b), false) \
-						: true)
-#endif
 
-#if HAVE_BUILTIN_SUB_OVERFLOW
 #define ISC_OVERFLOW_SUB(a, b, cp) __builtin_sub_overflow(a, b, cp)
-#else
-#define ISC_OVERFLOW_SUB(a, b, cp)                                           \
-	((ISC_OVERFLOW_UINT_MIN(a) + (b) < (a)) ? (*(cp) = (a) - (b), false) \
-						: true)
-#endif
 
 #define ISC_CHECKED_MUL(a, b)                                      \
 	({                                                         \
