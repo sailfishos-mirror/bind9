@@ -295,14 +295,14 @@ void
 dns_slabheader_reset(dns_slabheader_t *h, dns_dbnode_t *node);
 /*%<
  * Reset an rdataslab header 'h' so it can be used to store data in
- * database 'db' and node 'node'.
+ * database node 'node'.
  */
 
 dns_slabheader_t *
-dns_slabheader_new(dns_db_t *db, dns_dbnode_t *node);
+dns_slabheader_new(isc_mem_t *mctx, dns_dbnode_t *node);
 /*%<
  * Allocate memory for an rdataslab header and initialize it for use
- * in database 'db'/node 'node'.
+ * in database node 'node'.
  */
 
 void

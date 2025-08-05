@@ -886,14 +886,14 @@ dns_slabheader_reset(dns_slabheader_t *h, dns_dbnode_t *node) {
 }
 
 dns_slabheader_t *
-dns_slabheader_new(dns_db_t *db, dns_dbnode_t *node) {
+dns_slabheader_new(isc_mem_t *mctx, dns_dbnode_t *node) {
 	dns_slabheader_t *h = NULL;
 
-	h = isc_mem_get(db->mctx, sizeof(*h));
+	h = isc_mem_get(mctx, sizeof(*h));
 	*h = (dns_slabheader_t){
 		.link = ISC_LINK_INITIALIZER,
+		.node = node,
 	};
-	dns_slabheader_reset(h, node);
 	return h;
 }
 

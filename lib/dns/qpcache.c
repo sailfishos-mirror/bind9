@@ -3163,7 +3163,7 @@ qpcache_deleterdataset(dns_db_t *db, dns_dbnode_t *node,
 		return ISC_R_NOTIMPLEMENTED;
 	}
 
-	newheader = dns_slabheader_new(db, node);
+	newheader = dns_slabheader_new(db->mctx, node);
 	newheader->typepair = DNS_TYPEPAIR_VALUE(type, covers);
 	setttl(newheader, 0);
 	atomic_init(&newheader->attributes, attributes);

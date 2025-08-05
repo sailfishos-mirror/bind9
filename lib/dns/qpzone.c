@@ -5026,7 +5026,7 @@ qpzone_subtractrdataset(dns_db_t *db, dns_dbnode_t *dbnode,
 			 * add a nonexistent header instead.
 			 */
 			dns_slabheader_destroy(&newheader);
-			newheader = dns_slabheader_new((dns_db_t *)qpdb,
+			newheader = dns_slabheader_new(db->mctx,
 						       (dns_dbnode_t *)node);
 			newheader->ttl = 0;
 			newheader->typepair = topheader->typepair;
@@ -5110,7 +5110,7 @@ qpzone_deleterdataset(dns_db_t *db, dns_dbnode_t *dbnode,
 		return ISC_R_NOTIMPLEMENTED;
 	}
 
-	newheader = dns_slabheader_new(db, (dns_dbnode_t *)node);
+	newheader = dns_slabheader_new(db->mctx, (dns_dbnode_t *)node);
 	newheader->typepair = DNS_TYPEPAIR_VALUE(type, covers);
 	newheader->ttl = 0;
 	atomic_init(&newheader->attributes, DNS_SLABHEADERATTR_NONEXISTENT);
