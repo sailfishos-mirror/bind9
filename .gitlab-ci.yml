@@ -225,12 +225,12 @@ stages:
   image: "$CI_REGISTRY_IMAGE:debian-trixie-amd64"
   <<: *linux_amd64
 
-.tsan-debian-bookworm-amd64: &tsan_debian_bookworm_amd64_image
-  image: "$CI_REGISTRY_IMAGE:tsan-debian-bookworm-amd64"
+.tsan-debian-trixie-amd64: &tsan_debian_trixie_amd64_image
+  image: "$CI_REGISTRY_IMAGE:tsan-debian-trixie-amd64"
   <<: *linux_amd64
 
-.debian-bookworm-amd64cross32: &debian_bookworm_amd64cross32_image
-  image: "$CI_REGISTRY_IMAGE:debian-bookworm-amd64cross32"
+.debian-trixie-amd64cross32: &debian_trixie_amd64cross32_image
+  image: "$CI_REGISTRY_IMAGE:debian-trixie-amd64cross32"
   <<: *linux_amd64
 
 .debian-sid-amd64: &debian_sid_amd64_image
@@ -271,7 +271,7 @@ stages:
 # This is a meta image that is used as a base for non-specific jobs
 
 .base: &base_image
-  <<: *debian_bookworm_amd64_image
+  <<: *debian_trixie_amd64_image
 
 ### Job Templates
 
@@ -671,13 +671,7 @@ clang-format:
     when: on_failure
 
 coccinelle:
-  ######################################################################
-  # Revert to using the "precheck_job" anchor after the "base" image is
-  # upgraded to Debian trixie, which has Coccinelle 1.2.
-  <<: *default_triggering_rules
-  <<: *debian_trixie_amd64_image
-  stage: precheck
-  ######################################################################
+  <<: *precheck_job
   needs: []
   script:
     - util/check-cocci
@@ -697,9 +691,7 @@ doctest:
       artifacts: true
 
 pylint:
-  <<: *default_triggering_rules
-  <<: *debian_trixie_amd64_image
-  stage: precheck
+  <<: *precheck_job
   needs: []
   variables:
     PYTHONPATH: "${CI_PROJECT_DIR}/bin/tests/system"
@@ -746,9 +738,7 @@ checkbashisms:
     - checkbashisms $(find . -path './.git' -prune -o -type f -exec sh -c 'head -n 1 "{}" | grep -qsF "#!/bin/sh"' \; -print)
 
 mypy:
-  <<: *default_triggering_rules
-  <<: *debian_trixie_amd64_image
-  stage: precheck
+  <<: *precheck_job
   script:
     - mypy "bin/tests/system/isctest/"
 
@@ -773,7 +763,7 @@ tarball-create:
     - job: autoreconf
       artifacts: true
 
-# Jobs for doc builds on Debian 12 "bookworm" (amd64)
+# Jobs for doc builds on Debian 13 "trixie" (amd64)
 
 changelog:
   <<: *base_image
@@ -1099,61 +1089,52 @@ gcc:tarball:nosphinx:
 gcc:bookworm:amd64:
   variables:
     CC: gcc
-    CFLAGS: "${CFLAGS_COMMON} --coverage -O0"
-    # Tracing needs to be disabled otherwise gcovr fails
-    EXTRA_CONFIGURE: "--with-libidn2 ${WITH_READLINE_LIBEDIT} --disable-tracing"
-    RUN_MAKE_INSTALL: 1
+    CFLAGS: "${CFLAGS_COMMON} -DOPENSSL_API_COMPAT=10100"
+    # See https://gitlab.isc.org/isc-projects/bind9/-/issues/3444
+    EXTRA_CONFIGURE: "--without-jemalloc --disable-leak-detection"
   <<: *debian_bookworm_amd64_image
   <<: *build_job
 
 system:gcc:bookworm:amd64:
   <<: *debian_bookworm_amd64_image
   <<: *system_test_job
+  # Set up environment variables that allow the "keyfromlabel" system test to be run
   variables:
-    CI_ENABLE_LONG_TESTS: 1
-    CLEAN_BUILD_ARTIFACTS_ON_SUCCESS: 0
-    TZ: Australia/Sydney
-  needs:  # using artifacts from unit test job is required for gcov
-    - job: unit:gcc:bookworm:amd64
-      artifacts: true
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "schedule"'
-      variables:
-        CI_ENABLE_LIVE_INTERENT_TESTS: 1
-    - *default_triggering_rules_list
-
-unit:gcc:bookworm:amd64:
-  <<: *debian_bookworm_amd64_image
-  <<: *unit_test_job
-  variables:
-    CI_ENABLE_LONG_TESTS: 1
-    CLEAN_BUILD_ARTIFACTS_ON_SUCCESS: 0
+    OPENSSL_CONF: "/var/tmp/etc/openssl.cnf"
+    SOFTHSM2_CONF: "/var/tmp/softhsm2/softhsm2.conf"
   needs:
     - job: gcc:bookworm:amd64
       artifacts: true
 
-# Jobs for RBT zone- & cache-enabled GCC builds on Debian 12 "bookworm" (amd64)
+unit:gcc:bookworm:amd64:
+  <<: *debian_bookworm_amd64_image
+  <<: *unit_test_job
+  needs:
+    - job: gcc:bookworm:amd64
+      artifacts: true
 
-gcc:bookworm:rbt:amd64:
+# Jobs for RBT zone- & cache-enabled GCC builds on Debian 13 "trixie" (amd64)
+
+gcc:trixie:rbt:amd64:
   variables:
     CC: gcc
     CFLAGS: "${CFLAGS_COMMON}"
     EXTRA_CONFIGURE: "--with-libidn2 --with-zonedb=rbt --with-cachedb=rbt"
-  <<: *debian_bookworm_amd64_image
+  <<: *debian_trixie_amd64_image
   <<: *build_job
 
-system:gcc:bookworm:rbt:amd64:
-  <<: *debian_bookworm_amd64_image
+system:gcc:trixie:rbt:amd64:
+  <<: *debian_trixie_amd64_image
   <<: *system_test_job
   needs:
-    - job: gcc:bookworm:rbt:amd64
+    - job: gcc:trixie:rbt:amd64
       artifacts: true
 
-unit:gcc:bookworm:rbt:amd64:
-  <<: *debian_bookworm_amd64_image
+unit:gcc:trixie:rbt:amd64:
+  <<: *debian_trixie_amd64_image
   <<: *unit_test_job
   needs:
-    - job: gcc:bookworm:rbt:amd64
+    - job: gcc:trixie:rbt:amd64
       artifacts: true
 
 # Jobs for regular GCC builds on Debian 13 "trixie" (amd64)
@@ -1161,8 +1142,9 @@ unit:gcc:bookworm:rbt:amd64:
 gcc:trixie:amd64:
   variables:
     CC: gcc
-    CFLAGS: "${CFLAGS_COMMON}"
-    EXTRA_CONFIGURE: "--with-libidn2"
+    CFLAGS: "${CFLAGS_COMMON} --coverage -O0"
+    # Tracing needs to be disabled otherwise gcovr fails
+    EXTRA_CONFIGURE: "--with-libidn2 ${WITH_READLINE_LIBEDIT} --disable-tracing"
     RUN_MAKE_INSTALL: 1
   <<: *debian_trixie_amd64_image
   <<: *build_job
@@ -1170,29 +1152,42 @@ gcc:trixie:amd64:
 system:gcc:trixie:amd64:
   <<: *debian_trixie_amd64_image
   <<: *system_test_job
+  variables:
+    CI_ENABLE_LONG_TESTS: 1
+    CLEAN_BUILD_ARTIFACTS_ON_SUCCESS: 0
+    TZ: Australia/Sydney
+  # using artifacts from unit test job is required for gcov
   needs:
-    - job: gcc:trixie:amd64
+    - job: unit:gcc:trixie:amd64
       artifacts: true
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+      variables:
+        CI_ENABLE_LIVE_INTERNET_TESTS: 1
+    - *default_triggering_rules_list
 
 unit:gcc:trixie:amd64:
   <<: *debian_trixie_amd64_image
   <<: *unit_test_job
+  variables:
+    CI_ENABLE_LONG_TESTS: 1
+    CLEAN_BUILD_ARTIFACTS_ON_SUCCESS: 0
   needs:
     - job: gcc:trixie:amd64
       artifacts: true
 
-# Build job for cross-compiled GCC builds on 64-bit Debian 12 "bookworm"
+# Build job for cross-compiled GCC builds on 64-bit Debian 13 "trixie"
 # (amd64) with 32-bit BIND 9.
 
-gcc:bookworm:amd64cross32:
+gcc:trixie:amd64cross32:
   variables:
     CFLAGS: "${CFLAGS_COMMON}"
     CROSS_COMPILATION: 1
     EXTRA_CONFIGURE: "--build=x86_64-linux-gnu --host=i686-linux-gnu --with-libidn2 ${WITH_READLINE_LIBEDIT}"
-  <<: *debian_bookworm_amd64cross32_image
+  <<: *debian_trixie_amd64cross32_image
   <<: *build_job
 
-# Jobs for scan-build builds on Debian 12 "bookworm" (amd64)
+# Jobs for scan-build builds on Debian 13 "trixie" (amd64)
 
 .scan_build: &scan_build
   - ${SCAN_BUILD} --html-title="BIND 9 ($CI_COMMIT_SHORT_SHA)"
@@ -1282,7 +1277,7 @@ unit:gcc:sid:amd64:
     - job: gcc:sid:amd64
       artifacts: true
 
-# Job for out-of-tree GCC build on Debian 12 "bookworm" (amd64)
+# Job for out-of-tree GCC build on Debian 13 "trixie" (amd64)
 # Also tests configration option: --with-lmdb.
 
 gcc:out-of-tree:
@@ -1314,7 +1309,7 @@ unit:gcc:out-of-tree:
   <<: *base_image
   <<: *unit_test_job
 
-# Jobs for tarball GCC builds on Debian 12 "bookworm" (amd64)
+# Jobs for tarball GCC builds on Debian 13 "trixie" (amd64)
 
 gcc:tarball:
   variables:
@@ -1519,7 +1514,7 @@ unit:gcc:tsan:
       artifacts: true
 
 clang:tsan:
-  <<: *tsan_debian_bookworm_amd64_image
+  <<: *tsan_debian_trixie_amd64_image
   <<: *build_job
   variables:
     CC: "${CLANG}"
@@ -1531,7 +1526,7 @@ clang:tsan:
 system:clang:tsan:
   variables:
     TSAN_OPTIONS: "${TSAN_OPTIONS_DEBIAN}"
-  <<: *tsan_debian_bookworm_amd64_image
+  <<: *tsan_debian_trixie_amd64_image
   <<: *system_test_tsan_job
   needs:
     - job: clang:tsan
@@ -1540,7 +1535,7 @@ system:clang:tsan:
 unit:clang:tsan:
   variables:
     TSAN_OPTIONS: "${TSAN_OPTIONS_DEBIAN}"
-  <<: *tsan_debian_bookworm_amd64_image
+  <<: *tsan_debian_trixie_amd64_image
   <<: *unit_test_tsan_job
   needs:
     - job: clang:tsan
@@ -1573,38 +1568,6 @@ tsan:stress:
     - job: gcc:tsan
       artifacts: true
     - job: clang:tsan
-      artifacts: true
-
-# Jobs for Clang builds on Debian 12 "bookworm" (amd64)
-
-clang:bookworm:amd64:
-  variables:
-    CC: ${CLANG}
-    CFLAGS: "${CFLAGS_COMMON} -Wenum-conversion -DOPENSSL_API_COMPAT=10100"
-    # See https://gitlab.isc.org/isc-projects/bind9/-/issues/3444
-    EXTRA_CONFIGURE: "--without-jemalloc --disable-leak-detection"
-    RUN_MAKE_INSTALL: 1
-  <<: *debian_bookworm_amd64_image
-  <<: *build_job
-
-system:clang:bookworm:amd64:
-  # Set up environment variables that allow the "keyfromlabel" system test to be run
-  variables:
-    OPENSSL_CONF: "/var/tmp/etc/openssl.cnf"
-    SOFTHSM2_CONF: "/var/tmp/softhsm2/softhsm2.conf"
-  <<: *debian_bookworm_amd64_image
-  <<: *system_test_job
-  <<: *api_pipelines_schedules_tags_triggers_web_triggering_rules
-  needs:
-    - job: clang:bookworm:amd64
-      artifacts: true
-
-unit:clang:bookworm:amd64:
-  <<: *debian_bookworm_amd64_image
-  <<: *unit_test_job
-  <<: *api_pipelines_schedules_tags_triggers_web_triggering_rules
-  needs:
-    - job: clang:bookworm:amd64
       artifacts: true
 
 # Jobs for Clang builds on Debian 13 "trixie" (amd64)
@@ -1846,7 +1809,7 @@ coverity:
 respdiff:
   <<: *respdiff_job
   <<: *default_triggering_rules
-  <<: *debian_bookworm_amd64_image
+  <<: *base_image
   variables:
     CC: gcc
     CFLAGS: "${CFLAGS_COMMON} -Og -DISC_TRACK_PTHREADS_OBJECTS"
@@ -1858,7 +1821,7 @@ respdiff:
 respdiff:asan:
   <<: *respdiff_job
   <<: *default_triggering_rules
-  <<: *debian_bookworm_amd64_image
+  <<: *base_image
   variables:
     CC: gcc
     CFLAGS: "${CFLAGS_COMMON} -Og -fsanitize=address,undefined"
@@ -1872,7 +1835,7 @@ respdiff:asan:
 respdiff:tsan:
   <<: *respdiff_job
   <<: *default_triggering_rules
-  <<: *tsan_debian_bookworm_amd64_image
+  <<: *tsan_debian_trixie_amd64_image
   variables:
     CC: "${CLANG}"
     CFLAGS: "${CFLAGS_COMMON} -ggdb -O2 -fsanitize=thread"
@@ -1889,7 +1852,7 @@ respdiff:tsan:
 respdiff-third-party:
   <<: *respdiff_job
   <<: *default_triggering_rules
-  <<: *debian_bookworm_amd64_image
+  <<: *base_image
   variables:
     CC: gcc
     CFLAGS: "${CFLAGS_COMMON} -Og"
@@ -1900,7 +1863,7 @@ respdiff-third-party:
 
 .respdiff-recent-named: &respdiff_recent_named
   <<: *respdiff_job
-  <<: *debian_bookworm_amd64_image
+  <<: *base_image
   <<: *default_triggering_rules
   needs:
     - job: ci-variables
@@ -2005,7 +1968,7 @@ gcov:
   <<: *default_triggering_rules
   stage: postcheck
   needs:
-    - job: system:gcc:bookworm:amd64
+    - job: system:gcc:trixie:amd64
       artifacts: true
   script:
     # Ensure gcov files for unit tests are found via tests/ rather than
