@@ -1123,9 +1123,8 @@ static void
 rdataset_settrust(dns_rdataset_t *rdataset, dns_trust_t trust) {
 	dns_slabheader_t *header = dns_rdataset_getheader(rdataset);
 
-	dns_db_locknode(header->node, isc_rwlocktype_write);
-	header->trust = rdataset->trust = trust;
-	dns_db_unlocknode(header->node, isc_rwlocktype_write);
+	rdataset->trust = trust;
+	atomic_store(&header->trust, trust);
 }
 
 static void
@@ -1139,9 +1138,7 @@ static void
 rdataset_clearprefetch(dns_rdataset_t *rdataset) {
 	dns_slabheader_t *header = dns_rdataset_getheader(rdataset);
 
-	dns_db_locknode(header->node, isc_rwlocktype_write);
 	DNS_SLABHEADER_CLRATTR(header, DNS_SLABHEADERATTR_PREFETCH);
-	dns_db_unlocknode(header->node, isc_rwlocktype_write);
 }
 
 static void

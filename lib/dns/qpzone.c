@@ -981,7 +981,7 @@ bindrdataset(qpzonedb_t *qpdb, qpznode_t *node, dns_slabheader_t *header,
 	rdataset->type = DNS_TYPEPAIR_TYPE(header->typepair);
 	rdataset->covers = DNS_TYPEPAIR_COVERS(header->typepair);
 	rdataset->ttl = header->ttl;
-	rdataset->trust = header->trust;
+	rdataset->trust = atomic_load(&header->trust);
 
 	if (OPTOUT(header)) {
 		rdataset->attributes.optout = true;
@@ -2137,7 +2137,7 @@ loading_addrdataset(void *arg, const dns_name_t *name,
 	dns_slabheader_reset(newheader, (dns_dbnode_t *)node);
 
 	newheader->ttl = rdataset->ttl;
-	newheader->trust = rdataset->trust;
+	atomic_store(&newheader->trust, rdataset->trust);
 	newheader->serial = 1;
 
 	dns_slabheader_setownercase(newheader, name);
