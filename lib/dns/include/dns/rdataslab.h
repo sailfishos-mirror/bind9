@@ -64,6 +64,13 @@ struct dns_slabheader_proof {
 	dns_rdatatype_t type;
 };
 
+typedef struct dns_slabtop dns_slabtop_t;
+struct dns_slabtop {
+	dns_slabtop_t	 *next;
+	dns_slabheader_t *header;
+	dns_typepair_t	  typepair;
+};
+
 struct dns_slabheader {
 	_Atomic(uint16_t) attributes;
 
@@ -101,10 +108,8 @@ struct dns_slabheader {
 	 * both head and tail pointers, and is doubly linked.
 	 */
 
-	union {
-		struct dns_slabheader *next;
-		struct dns_slabheader *up;
-	};
+	dns_slabtop_t *top;
+
 	/*%<
 	 * If this is the top header for an rdataset, 'next' points
 	 * to the top header for the next rdataset (i.e., the next type).
@@ -317,8 +322,15 @@ dns_slabheader_freeproof(isc_mem_t *mctx, dns_slabheader_proof_t **proof);
  * Free all memory associated with a nonexistence proof.
  */
 
-dns_slabheader_t *
-dns_slabheader_top(dns_slabheader_t *header);
+dns_slabtop_t *
+dns_slabtop_new(isc_mem_t *mctx, dns_typepair_t typepair);
 /*%<
- * Return the top header for the type or the negtype
+ * Allocate memory for an rdataslab top and initialize it for use
+ * with 'typepair' type and covers pair.
+ */
+
+void
+dns_slabtop_destroy(isc_mem_t *mctx, dns_slabtop_t **topp);
+/*%<
+ * Free all memory associated with '*slabtopp'.
  */

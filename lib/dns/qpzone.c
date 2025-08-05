@@ -191,7 +191,7 @@ struct qpznode {
 	atomic_bool wild;
 	atomic_bool delegating;
 	atomic_bool dirty;
-	void *data;
+	dns_slabtop_t *data;
 };
 
 struct qpzonedb {
@@ -327,6 +327,7 @@ static dns_rdatasetitermethods_t rdatasetiter_methods = {
 
 typedef struct qpdb_rdatasetiter {
 	dns_rdatasetiter_t common;
+	dns_slabtop_t *currenttop;
 	dns_slabheader_t *current;
 } qpdb_rdatasetiter_t;
 
@@ -825,26 +826,30 @@ qpznode_acquire(qpzonedb_t *qpdb, qpznode_t *node DNS__DB_FLARG) {
 
 static void
 clean_zone_node(qpznode_t *node, uint32_t least_serial) {
-	dns_slabheader_t *current = NULL, *dcurrent = NULL;
-	dns_slabheader_t *dcurrent_down = NULL, *dparent = NULL;
-	dns_slabheader_t *top_prev = NULL, *top_next = NULL;
+	dns_slabtop_t *top = NULL, *top_prev = NULL, *top_next = NULL;
 	bool still_dirty = false;
+	dns_db_t *db = (dns_db_t *)node->qpdb;
 
 	/*
 	 * Caller must be holding the node lock.
 	 */
 	REQUIRE(least_serial != 0);
 
-	for (current = node->data; current != NULL; current = top_next) {
-		top_next = current->next;
+	for (top = node->data; top != NULL; top = top_next) {
+		top_next = top->next;
+
+		INSIST(top->header != NULL);
 
 		/*
 		 * First, we clean up any instances of multiple rdatasets
 		 * with the same serial number, or that have the IGNORE
 		 * attribute.
 		 */
-		dparent = current;
-		for (dcurrent = current->down; dcurrent != NULL;
+		dns_slabheader_t *dcurrent = NULL;
+		dns_slabheader_t *dcurrent_down = NULL, *dparent = NULL;
+
+		dparent = top->header;
+		for (dcurrent = dparent->down; dcurrent != NULL;
 		     dcurrent = dcurrent_down)
 		{
 			dcurrent_down = dcurrent->down;
@@ -852,9 +857,6 @@ clean_zone_node(qpznode_t *node, uint32_t least_serial) {
 			if (dcurrent->serial == dparent->serial ||
 			    IGNORE(dcurrent))
 			{
-				if (dcurrent_down != NULL) {
-					dcurrent_down->up = dparent;
-				}
 				dparent->down = dcurrent_down;
 				dns_slabheader_destroy(&dcurrent);
 			} else {
@@ -866,75 +868,51 @@ clean_zone_node(qpznode_t *node, uint32_t least_serial) {
 		 * We've now eliminated all IGNORE datasets with the possible
 		 * exception of current, which we now check.
 		 */
-		dcurrent = current;
+		dcurrent = top->header;
 		if (IGNORE(dcurrent)) {
-			dcurrent_down = current->down;
-			if (dcurrent_down == NULL) {
-				if (top_prev != NULL) {
-					top_prev->next = current->next;
-				} else {
-					node->data = current->next;
-				}
-				dns_slabheader_destroy(&current);
-				/*
-				 * current no longer exists, so we can
-				 * just continue with the loop.
-				 */
-				continue;
-			} else {
-				/*
-				 * Pull up current->down, making it the new
-				 * current.
-				 */
-				if (top_prev != NULL) {
-					top_prev->next = dcurrent_down;
-				} else {
-					node->data = dcurrent_down;
-				}
-				dcurrent_down->next = top_next;
-				dns_slabheader_destroy(&current);
-				current = dcurrent_down;
-			}
+			top->header = dcurrent->down;
+			dns_slabheader_destroy(&dcurrent);
+		}
+
+		if (top->header == NULL) {
+			goto empty;
 		}
 
 		/*
-		 * We now try to find the first down node less than the
-		 * least serial.
+		 * We now try to find the first down node less than the least
+		 * serial, and if there are such rdatasets, delete it and any
+		 * older versions.
 		 */
-		dparent = current;
-		for (dcurrent = current->down; dcurrent != NULL;
+		dparent = top->header;
+		for (dcurrent = dparent->down; dcurrent != NULL;
 		     dcurrent = dcurrent_down)
 		{
 			dcurrent_down = dcurrent->down;
 			if (dcurrent->serial < least_serial) {
-				break;
-			}
-			dparent = dcurrent;
-		}
-
-		/*
-		 * If there is a such an rdataset, delete it and any older
-		 * versions.
-		 */
-		if (dcurrent != NULL) {
-			do {
-				dcurrent_down = dcurrent->down;
-				INSIST(dcurrent->serial <= least_serial);
+				dparent->down = dcurrent_down;
 				dns_slabheader_destroy(&dcurrent);
-				dcurrent = dcurrent_down;
-			} while (dcurrent != NULL);
-			dparent->down = NULL;
+			} else {
+				dparent = dcurrent;
+			}
 		}
 
-		/*
-		 * Note.  The serial number of 'current' might be less than
-		 * least_serial too, but we cannot delete it because it is
-		 * the most recent version.
-		 */
-		if (current->down != NULL) {
+		if (top->header == NULL) {
+		empty:
+			if (top_prev != NULL) {
+				top_prev->next = top->next;
+			} else {
+				node->data = top->next;
+			}
+			dns_slabtop_destroy(db->mctx, &top);
+		} else {
+			/*
+			 * Note.  The serial number of 'current' might be less
+			 * than least_serial too, but we cannot delete it
+			 * because it is the most recent version.
+			 */
 			still_dirty = true;
+			top_prev = top;
 		}
-		top_prev = current;
 	}
 	if (!still_dirty) {
 		node->dirty = false;
@@ -1088,82 +1066,81 @@ static void
 setnsec3parameters(dns_db_t *db, qpz_version_t *version) {
 	qpznode_t *node = NULL;
 	dns_rdata_nsec3param_t nsec3param;
-	dns_rdata_t rdata = DNS_RDATA_INIT;
 	isc_region_t region;
 	isc_result_t result;
-	dns_slabheader_t *header = NULL, *header_next = NULL;
+	dns_slabtop_t *top = NULL;
 	unsigned char *raw; /* RDATASLAB */
 	unsigned int count, length;
 	qpzonedb_t *qpdb = (qpzonedb_t *)db;
 	isc_rwlocktype_t nlocktype = isc_rwlocktype_none;
 	isc_rwlock_t *nlock = NULL;
+	dns_slabheader_t *found = NULL;
 
 	version->havensec3 = false;
 	node = qpdb->origin;
 	nlock = qpzone_get_lock(node);
+
 	NODE_RDLOCK(nlock, &nlocktype);
-	for (header = node->data; header != NULL; header = header_next) {
-		header_next = header->next;
-		do {
-			if (header->serial <= version->serial &&
-			    !IGNORE(header))
-			{
-				if (!EXISTS(header)) {
-					header = NULL;
-				}
-				break;
-			} else {
-				header = header->down;
-			}
-		} while (header != NULL);
 
-		if (header != NULL &&
-		    (header->typepair == dns_rdatatype_nsec3param))
+	top = node->data;
+	while (top != NULL && top->typepair != dns_rdatatype_nsec3param) {
+		top = top->next;
+	}
+	if (top != NULL) {
+		dns_slabheader_t *header = top->header;
+		while (header != NULL &&
+		       (IGNORE(header) || header->serial > version->serial))
 		{
-			/*
-			 * Find an NSEC3PARAM with a supported algorithm.
-			 */
-			raw = dns_slabheader_raw(header);
-			count = raw[0] * 256 + raw[1]; /* count */
+			header = header->down;
+		}
+
+		if (header != NULL && EXISTS(header)) {
+			found = header;
+		}
+	}
+
+	if (found != NULL) {
+		/*
+		 * Find an NSEC3PARAM with a supported algorithm.
+		 */
+		raw = dns_slabheader_raw(found);
+		count = raw[0] * 256 + raw[1]; /* count */
+		raw += DNS_RDATASET_LENGTH;
+		while (count-- > 0U) {
+			dns_rdata_t rdata = DNS_RDATA_INIT;
+			length = raw[0] * 256 + raw[1];
 			raw += DNS_RDATASET_LENGTH;
-			while (count-- > 0U) {
-				length = raw[0] * 256 + raw[1];
-				raw += DNS_RDATASET_LENGTH;
-				region.base = raw;
-				region.length = length;
-				raw += length;
-				dns_rdata_fromregion(
-					&rdata, qpdb->common.rdclass,
-					dns_rdatatype_nsec3param, &region);
-				result = dns_rdata_tostruct(&rdata, &nsec3param,
-							    NULL);
-				INSIST(result == ISC_R_SUCCESS);
-				dns_rdata_reset(&rdata);
+			region.base = raw;
+			region.length = length;
+			raw += length;
+			dns_rdata_fromregion(&rdata, qpdb->common.rdclass,
+					     dns_rdatatype_nsec3param, &region);
+			result = dns_rdata_tostruct(&rdata, &nsec3param, NULL);
+			INSIST(result == ISC_R_SUCCESS);
 
-				if (nsec3param.hash != DNS_NSEC3_UNKNOWNALG &&
-				    !dns_nsec3_supportedhash(nsec3param.hash))
-				{
-					continue;
-				}
+			if (nsec3param.hash != DNS_NSEC3_UNKNOWNALG &&
+			    !dns_nsec3_supportedhash(nsec3param.hash))
+			{
+				continue;
+			}
 
-				if (nsec3param.flags != 0) {
-					continue;
-				}
+			if (nsec3param.flags != 0) {
+				continue;
+			}
 
-				memmove(version->salt, nsec3param.salt,
-					nsec3param.salt_length);
-				version->hash = nsec3param.hash;
-				version->salt_length = nsec3param.salt_length;
-				version->iterations = nsec3param.iterations;
-				version->flags = nsec3param.flags;
-				version->havensec3 = true;
-				/*
-				 * Look for a better algorithm than the
-				 * unknown test algorithm.
-				 */
-				if (nsec3param.hash != DNS_NSEC3_UNKNOWNALG) {
-					goto unlock;
-				}
+			memmove(version->salt, nsec3param.salt,
+				nsec3param.salt_length);
+			version->hash = nsec3param.hash;
+			version->salt_length = nsec3param.salt_length;
+			version->iterations = nsec3param.iterations;
+			version->flags = nsec3param.flags;
+			version->havensec3 = true;
+			/*
+			 * Look for a better algorithm than the
+			 * unknown test algorithm.
+			 */
+			if (nsec3param.hash != DNS_NSEC3_UNKNOWNALG) {
+				goto unlock;
 			}
 		}
 	}
@@ -1340,7 +1317,7 @@ make_least_version(qpzonedb_t *qpdb, qpz_version_t *version,
 
 static void
 rollback_node(qpznode_t *node, uint32_t serial) {
-	dns_slabheader_t *header = NULL, *dcurrent = NULL;
+	dns_slabtop_t *top = NULL;
 	bool make_dirty = false;
 
 	/*
@@ -1348,18 +1325,21 @@ rollback_node(qpznode_t *node, uint32_t serial) {
 	 * 'serial'.  When the reference count goes to zero, these rdatasets
 	 * will be cleaned up; until that time, they will be ignored.
 	 */
-	for (header = node->data; header != NULL; header = header->next) {
+	for (top = node->data; top != NULL; top = top->next) {
+		dns_slabheader_t *header = top->header;
+
 		if (header->serial == serial) {
 			DNS_SLABHEADER_SETATTR(header,
 					       DNS_SLABHEADERATTR_IGNORE);
 			make_dirty = true;
 		}
-		for (dcurrent = header->down; dcurrent != NULL;
-		     dcurrent = dcurrent->down)
+
+		for (header = header->down; header != NULL;
+		     header = header->down)
 		{
-			if (dcurrent->serial == serial) {
+			if (header->serial == serial) {
 				DNS_SLABHEADER_SETATTR(
-					dcurrent, DNS_SLABHEADERATTR_IGNORE);
+					header, DNS_SLABHEADERATTR_IGNORE);
 				make_dirty = true;
 			}
 		}
@@ -1603,7 +1583,7 @@ qpzone_findrdataset(dns_db_t *db, dns_dbnode_t *dbnode,
 		    dns_rdataset_t *sigrdataset DNS__DB_FLARG) {
 	qpzonedb_t *qpdb = (qpzonedb_t *)db;
 	qpznode_t *node = (qpznode_t *)dbnode;
-	dns_slabheader_t *header = NULL, *header_next = NULL;
+	dns_slabtop_t *top = NULL;
 	dns_slabheader_t *found = NULL, *foundsig = NULL;
 	uint32_t serial;
 	qpz_version_t *version = (qpz_version_t *)dbversion;
@@ -1636,8 +1616,8 @@ qpzone_findrdataset(dns_db_t *db, dns_dbnode_t *dbnode,
 		sigpair = dns_typepair_none;
 	}
 
-	for (header = node->data; header != NULL; header = header_next) {
-		header_next = header->next;
+	for (top = node->data; top != NULL; top = top->next) {
+		dns_slabheader_t *header = top->header;
 		do {
 			if (header->serial <= serial && !IGNORE(header)) {
 				if (!EXISTS(header)) {
@@ -1653,12 +1633,12 @@ qpzone_findrdataset(dns_db_t *db, dns_dbnode_t *dbnode,
 			 * We have an active, extant rdataset.  If it's a
 			 * type we're looking for, remember it.
 			 */
-			if (header->typepair == typepair) {
+			if (top->typepair == typepair) {
 				found = header;
 				if (foundsig != NULL) {
 					break;
 				}
-			} else if (header->typepair == sigpair) {
+			} else if (top->typepair == sigpair) {
 				foundsig = header;
 				if (found != NULL) {
 					break;
@@ -1690,8 +1670,8 @@ qpzone_findrdataset(dns_db_t *db, dns_dbnode_t *dbnode,
 
 static bool
 delegating_type(qpzonedb_t *qpdb, qpznode_t *node, dns_typepair_t typepair) {
-	return typepair == dns_rdatatype_dname ||
-	       (typepair == dns_rdatatype_ns &&
+	return typepair == DNS_TYPEPAIR(dns_rdatatype_dname) ||
+	       (typepair == DNS_TYPEPAIR(dns_rdatatype_ns) &&
 		(node != qpdb->origin || IS_STUB(qpdb)));
 }
 
@@ -1755,19 +1735,19 @@ done:
 
 static bool
 cname_and_other(qpznode_t *node, uint32_t serial) {
-	dns_slabheader_t *header = NULL, *header_next = NULL;
 	bool cname = false, other = false;
 	dns_rdatatype_t rdtype;
+	dns_slabtop_t *top = NULL;
 
 	/*
 	 * Look for CNAME and "other data" rdatasets active in our version.
 	 * ("Other data" is any rdataset whose type is not KEY, NSEC, SIG
 	 * or RRSIG.
 	 */
-	for (header = node->data; header != NULL; header = header_next) {
-		header_next = header->next;
+	for (top = node->data; top != NULL; top = top->next) {
+		dns_slabheader_t *header = top->header;
 
-		rdtype = DNS_TYPEPAIR_TYPE(header->typepair);
+		rdtype = DNS_TYPEPAIR_TYPE(top->typepair);
 		if (rdtype == dns_rdatatype_cname) {
 			do {
 				if (header->serial <= serial && !IGNORE(header))
@@ -1798,7 +1778,7 @@ cname_and_other(qpznode_t *node, uint32_t serial) {
 				header = header->down;
 			} while (header != NULL);
 			if (header != NULL) {
-				if (!prio_type(header->typepair)) {
+				if (!prio_type(rdtype)) {
 					/*
 					 * CNAME is in the priority list, so if
 					 * we are done with priority types, we
@@ -1868,9 +1848,8 @@ add(qpzonedb_t *qpdb, qpznode_t *node, const dns_name_t *nodename,
     bool loading, dns_rdataset_t *addedrdataset,
     isc_stdtime_t now ISC_ATTR_UNUSED DNS__DB_FLARG) {
 	qpz_changed_t *changed = NULL;
-	dns_slabheader_t *topheader = NULL, *topheader_prev = NULL;
-	dns_slabheader_t *prioheader = NULL;
-	dns_slabheader_t *header = NULL;
+	dns_slabtop_t *top = NULL;
+	dns_slabtop_t *priotop = NULL;
 	dns_slabheader_t *merged = NULL;
 	isc_result_t result;
 	bool merge = false;
@@ -1891,17 +1870,14 @@ add(qpzonedb_t *qpdb, qpznode_t *node, const dns_name_t *nodename,
 	}
 
 	ntypes = 0;
-	for (topheader = node->data; topheader != NULL;
-	     topheader = topheader->next)
-	{
+	for (top = node->data; top != NULL; top = top->next) {
 		++ntypes;
-		if (prio_type(topheader->typepair)) {
-			prioheader = topheader;
+		if (prio_type(top->typepair)) {
+			priotop = top;
 		}
-		if (topheader->typepair == newheader->typepair) {
+		if (top->typepair == newheader->typepair) {
 			break;
 		}
-		topheader_prev = topheader;
 	}
 
 	/*
@@ -1909,10 +1885,15 @@ add(qpzonedb_t *qpdb, qpznode_t *node, const dns_name_t *nodename,
 	 * IGNORE rdatasets between the top of the chain and the first real
 	 * data.  We skip over them.
 	 */
-	header = topheader;
-	while (header != NULL && IGNORE(header)) {
-		header = header->down;
+	dns_slabheader_t *header = NULL, *header_prev = NULL;
+	if (top != NULL) {
+		header = top->header;
+		while (header != NULL && IGNORE(header)) {
+			header_prev = header;
+			header = header->down;
+		}
 	}
+
 	if (header != NULL) {
 		/*
 		 * If 'merge' is true and header isn't empty/nonexistent,
@@ -1977,7 +1958,9 @@ add(qpzonedb_t *qpdb, qpznode_t *node, const dns_name_t *nodename,
 			}
 		}
 
-		INSIST(version->serial >= topheader->serial);
+		INSIST(version->serial >= top->header->serial);
+		INSIST(top->typepair == newheader->typepair);
+
 		if (loading) {
 			newheader->down = NULL;
 			if (RESIGN(newheader)) {
@@ -1991,14 +1974,11 @@ add(qpzonedb_t *qpdb, qpznode_t *node, const dns_name_t *nodename,
 			 * Since we don't generate changed records when
 			 * loading, we MUST clean up 'header' now.
 			 */
-			if (topheader_prev != NULL) {
-				topheader_prev->next = newheader;
-			} else {
-				node->data = newheader;
-			}
-			newheader->next = topheader->next;
+			newheader->top = top;
+			top->header = newheader;
 			maybe_update_recordsandsize(false, version, header,
 						    nodename->length);
+
 			dns_slabheader_destroy(&header);
 		} else {
 			if (RESIGN(newheader)) {
@@ -2006,14 +1986,16 @@ add(qpzonedb_t *qpdb, qpznode_t *node, const dns_name_t *nodename,
 				resigndelete(qpdb, version,
 					     header DNS__DB_FLARG_PASS);
 			}
-			if (topheader_prev != NULL) {
-				topheader_prev->next = newheader;
+
+			if (header_prev != NULL) {
+				header_prev->down = newheader;
 			} else {
-				node->data = newheader;
+				top->header = newheader;
 			}
-			newheader->next = topheader->next;
-			newheader->down = topheader;
-			topheader->up = newheader;
+
+			newheader->top = top;
+			newheader->down = header;
+
 			node->dirty = true;
 			if (changed != NULL) {
 				changed->dirty = true;
@@ -2038,7 +2020,7 @@ add(qpzonedb_t *qpdb, qpznode_t *node, const dns_name_t *nodename,
 			resigndelete(qpdb, version, header DNS__DB_FLARG_PASS);
 		}
 
-		if (topheader != NULL) {
+		if (top != NULL) {
 			/*
 			 * We have a list of rdatasets of the given type,
 			 * but they're all marked IGNORE.  We simply insert
@@ -2048,15 +2030,10 @@ add(qpzonedb_t *qpdb, qpznode_t *node, const dns_name_t *nodename,
 			 * we INSIST on it.
 			 */
 			INSIST(!loading);
-			INSIST(version->serial >= topheader->serial);
-			if (topheader_prev != NULL) {
-				topheader_prev->next = newheader;
-			} else {
-				node->data = newheader;
-			}
-			newheader->next = topheader->next;
-			newheader->down = topheader;
-			topheader->up = newheader;
+			INSIST(version->serial >= top->header->serial);
+			newheader->top = top;
+			newheader->down = top->header;
+			top->header = newheader;
 			if (changed != NULL) {
 				changed->dirty = true;
 			}
@@ -2073,20 +2050,24 @@ add(qpzonedb_t *qpdb, qpznode_t *node, const dns_name_t *nodename,
 				return DNS_R_TOOMANYRECORDS;
 			}
 
-			INSIST(newheader->down == NULL);
+			dns_slabtop_t *newtop = dns_slabtop_new(
+				((dns_db_t *)qpdb)->mctx, newheader->typepair);
+
+			newheader->top = newtop;
+			newtop->header = newheader;
 
 			if (prio_type(newheader->typepair)) {
 				/* This is a priority type, prepend it */
-				newheader->next = node->data;
-				node->data = newheader;
-			} else if (prioheader != NULL) {
+				newtop->next = node->data;
+				node->data = newtop;
+			} else if (priotop != NULL) {
 				/* Append after the priority headers */
-				newheader->next = prioheader->next;
-				prioheader->next = newheader;
+				newtop->next = priotop->next;
+				priotop->next = newtop;
 			} else {
 				/* There were no priority headers */
-				newheader->next = node->data;
-				node->data = newheader;
+				newtop->next = node->data;
+				node->data = newtop;
 			}
 		}
 	}
@@ -2610,20 +2591,21 @@ qpzone_findnsec3node(dns_db_t *db, const dns_name_t *name, bool create,
 
 static bool
 matchparams(dns_slabheader_t *header, qpz_search_t *search) {
-	dns_rdata_t rdata = DNS_RDATA_INIT;
 	dns_rdata_nsec3_t nsec3;
 	unsigned char *raw = NULL;
 	unsigned int rdlen, count;
 	isc_region_t region;
 	isc_result_t result;
 
-	REQUIRE(header->typepair == dns_rdatatype_nsec3);
+	REQUIRE(header->typepair == DNS_TYPEPAIR(dns_rdatatype_nsec3));
 
 	raw = (unsigned char *)header + sizeof(*header);
 	count = raw[0] * 256 + raw[1]; /* count */
 	raw += DNS_RDATASET_LENGTH;
 
 	while (count-- > 0) {
+		dns_rdata_t rdata = DNS_RDATA_INIT;
+
 		rdlen = raw[0] * 256 + raw[1];
 		raw += DNS_RDATASET_LENGTH;
 		region.base = raw;
@@ -2641,7 +2623,6 @@ matchparams(dns_slabheader_t *header, qpz_search_t *search) {
 		{
 			return true;
 		}
-		dns_rdata_reset(&rdata);
 	}
 	return false;
 }
@@ -2699,7 +2680,7 @@ qpzone_setup_delegation(qpz_search_t *search, dns_dbnode_t **nodep,
 		NODE_UNLOCK(nlock, &nlocktype);
 	}
 
-	if (typepair == dns_rdatatype_dname) {
+	if (typepair == DNS_TYPEPAIR(dns_rdatatype_dname)) {
 		return DNS_R_DNAME;
 	}
 	return DNS_R_DELEGATION;
@@ -2720,36 +2701,30 @@ step(qpz_search_t *search, dns_qpiter_t *it, direction_t direction,
 	dns_name_t *nodename = dns_fixedname_initname(&fnodename);
 	qpznode_t *node = NULL;
 	isc_result_t result = ISC_R_SUCCESS;
-	dns_slabheader_t *header = NULL;
 
 	result = dns_qpiter_current(it, nodename, (void **)&node, NULL);
 	while (result == ISC_R_SUCCESS) {
 		isc_rwlock_t *nlock = qpzone_get_lock(node);
 		isc_rwlocktype_t nlocktype = isc_rwlocktype_none;
-		dns_slabheader_t *header_next = NULL;
+		dns_slabtop_t *top = NULL;
+		dns_slabheader_t *found = NULL;
 
 		NODE_RDLOCK(nlock, &nlocktype);
-		for (header = node->data; header != NULL; header = header_next)
-		{
-			header_next = header->next;
-			while (header != NULL) {
-				if (header->serial <= search->serial &&
-				    !IGNORE(header))
-				{
-					if (!EXISTS(header)) {
-						header = NULL;
-					}
-					break;
-				} else {
-					header = header->down;
-				}
+		for (top = node->data; top != NULL; top = top->next) {
+			dns_slabheader_t *header = top->header;
+			while (header != NULL &&
+			       (IGNORE(header) ||
+				header->serial > search->serial))
+			{
+				header = header->down;
 			}
-			if (header != NULL) {
+			if (header != NULL && EXISTS(header)) {
+				found = header;
 				break;
 			}
 		}
 		NODE_UNLOCK(nlock, &nlocktype);
-		if (header != NULL) {
+		if (found != NULL) {
 			break;
 		}
 
@@ -2868,7 +2843,8 @@ wildcard_blocked(qpz_search_t *search, const dns_name_t *qname,
 static isc_result_t
 find_wildcard(qpz_search_t *search, qpznode_t **nodep, const dns_name_t *qname,
 	      dns_namespace_t nspace) {
-	dns_slabheader_t *header = NULL;
+	dns_slabtop_t *top = NULL;
+	dns_slabheader_t *found = NULL;
 	isc_result_t result = ISC_R_NOTFOUND;
 
 	/*
@@ -2896,16 +2872,17 @@ find_wildcard(qpz_search_t *search, qpznode_t **nodep, const dns_name_t *qname,
 		 * may not need the information, because it simplifies the
 		 * locking and code flow.
 		 */
-		for (header = node->data; header != NULL; header = header->next)
-		{
+		for (top = node->data; top != NULL; top = top->next) {
+			dns_slabheader_t *header = top->header;
 			if (header->serial <= search->serial &&
 			    !IGNORE(header) && EXISTS(header))
 			{
+				found = header;
 				break;
 			}
 		}
 
-		active = (header != NULL);
+		active = (found != NULL);
 		wild = node->wild;
 		NODE_UNLOCK(nlock, &nlocktype);
 
@@ -2935,17 +2912,19 @@ find_wildcard(qpz_search_t *search, qpznode_t **nodep, const dns_name_t *qname,
 				 */
 				nlock = qpzone_get_lock(wnode);
 				NODE_RDLOCK(nlock, &nlocktype);
-				for (header = wnode->data; header != NULL;
-				     header = header->next)
+				for (top = wnode->data; top != NULL;
+				     top = top->next)
 				{
+					dns_slabheader_t *header = top->header;
 					if (header->serial <= search->serial &&
 					    !IGNORE(header) && EXISTS(header))
 					{
+						found = header;
 						break;
 					}
 				}
 				NODE_UNLOCK(nlock, &nlocktype);
-				if (header != NULL ||
+				if (found != NULL ||
 				    activeempty(search, &wit, wname))
 				{
 					if (wildcard_blocked(search, qname,
@@ -3086,7 +3065,6 @@ find_closest_nsec(qpz_search_t *search, dns_dbnode_t **nodep,
 		  dns_rdataset_t *sigrdataset, bool nsec3,
 		  bool secure DNS__DB_FLARG) {
 	qpznode_t *node = NULL, *prevnode = NULL;
-	dns_slabheader_t *header = NULL, *header_next = NULL;
 	dns_qpiter_t nseciter;
 	bool empty_node;
 	isc_result_t result;
@@ -3110,14 +3088,14 @@ find_closest_nsec(qpz_search_t *search, dns_dbnode_t **nodep,
 	}
 again:
 	do {
+		dns_slabtop_t *top = NULL;
 		dns_slabheader_t *found = NULL, *foundsig = NULL;
 		isc_rwlocktype_t nlocktype = isc_rwlocktype_none;
 		isc_rwlock_t *nlock = qpzone_get_lock(node);
 		NODE_RDLOCK(nlock, &nlocktype);
 		empty_node = true;
-		for (header = node->data; header != NULL; header = header_next)
-		{
-			header_next = header->next;
+		for (top = node->data; top != NULL; top = top->next) {
+			dns_slabheader_t *header = top->header;
 			/*
 			 * Look for an active, extant NSEC or RRSIG NSEC.
 			 */
@@ -3139,12 +3117,12 @@ again:
 				 * active rdataset at this node.
 				 */
 				empty_node = false;
-				if (header->typepair == typepair) {
+				if (top->typepair == typepair) {
 					found = header;
 					if (foundsig != NULL) {
 						break;
 					}
-				} else if (header->typepair == sigpair) {
+				} else if (top->typepair == sigpair) {
 					foundsig = header;
 					if (found != NULL) {
 						break;
@@ -3154,7 +3132,8 @@ again:
 		}
 		if (!empty_node) {
 			if (found != NULL && search->version->havensec3 &&
-			    found->typepair == dns_rdatatype_nsec3 &&
+			    found->typepair ==
+				    DNS_TYPEPAIR(dns_rdatatype_nsec3) &&
 			    !matchparams(found, search))
 			{
 				empty_node = true;
@@ -3247,7 +3226,7 @@ again:
 static isc_result_t
 qpzone_check_zonecut(qpznode_t *node, void *arg DNS__DB_FLARG) {
 	qpz_search_t *search = arg;
-	dns_slabheader_t *header = NULL, *header_next = NULL;
+	dns_slabtop_t *top = NULL;
 	dns_slabheader_t *dname_header = NULL, *sigdname_header = NULL;
 	dns_slabheader_t *ns_header = NULL;
 	dns_slabheader_t *found = NULL;
@@ -3260,11 +3239,11 @@ qpzone_check_zonecut(qpznode_t *node, void *arg DNS__DB_FLARG) {
 	/*
 	 * Look for an NS or DNAME rdataset active in our version.
 	 */
-	for (header = node->data; header != NULL; header = header_next) {
-		header_next = header->next;
-		if (header->typepair == dns_rdatatype_ns ||
-		    header->typepair == dns_rdatatype_dname ||
-		    header->typepair == DNS_SIGTYPEPAIR(dns_rdatatype_dname))
+	for (top = node->data; top != NULL; top = top->next) {
+		dns_slabheader_t *header = top->header;
+		if (top->typepair == DNS_TYPEPAIR(dns_rdatatype_ns) ||
+		    top->typepair == DNS_TYPEPAIR(dns_rdatatype_dname) ||
+		    top->typepair == DNS_SIGTYPEPAIR(dns_rdatatype_dname))
 		{
 			do {
 				if (header->serial <= search->serial &&
@@ -3279,9 +3258,11 @@ qpzone_check_zonecut(qpznode_t *node, void *arg DNS__DB_FLARG) {
 				}
 			} while (header != NULL);
 			if (header != NULL) {
-				if (header->typepair == dns_rdatatype_dname) {
+				if (top->typepair ==
+				    DNS_TYPEPAIR(dns_rdatatype_dname))
+				{
 					dname_header = header;
-				} else if (header->typepair ==
+				} else if (top->typepair ==
 					   DNS_SIGTYPEPAIR(dns_rdatatype_dname))
 				{
 					sigdname_header = header;
@@ -3411,7 +3392,7 @@ qpzone_find(dns_db_t *db, const dns_name_t *name, dns_dbversion_t *version,
 	bool maybe_zonecut = false, at_zonecut = false;
 	bool wild = false, empty_node = false;
 	bool nsec3 = false;
-	dns_slabheader_t *header = NULL, *header_next = NULL;
+	dns_slabtop_t *top = NULL;
 	dns_slabheader_t *found = NULL, *nsecheader = NULL;
 	dns_slabheader_t *foundsig = NULL, *cnamesig = NULL, *nsecsig = NULL;
 	dns_typepair_t sigpair;
@@ -3589,8 +3570,8 @@ found:
 
 	sigpair = DNS_SIGTYPEPAIR(type);
 	empty_node = true;
-	for (header = node->data; header != NULL; header = header_next) {
-		header_next = header->next;
+	for (top = node->data; top != NULL; top = top->next) {
+		dns_slabheader_t *header = top->header;
 		/*
 		 * Look for an active, extant rdataset.
 		 */
@@ -3616,7 +3597,7 @@ found:
 			 * Do special zone cut handling, if requested.
 			 */
 			if (maybe_zonecut &&
-			    header->typepair == dns_rdatatype_ns)
+			    top->typepair == DNS_TYPEPAIR(dns_rdatatype_ns))
 			{
 				/*
 				 * We increment the reference count on node to
@@ -3658,7 +3639,8 @@ found:
 			 * If the NSEC3 record doesn't match the chain
 			 * we are using behave as if it isn't here.
 			 */
-			if (header->typepair == dns_rdatatype_nsec3 &&
+			if (top->typepair ==
+				    DNS_TYPEPAIR(dns_rdatatype_nsec3) &&
 			    !matchparams(header, &search))
 			{
 				NODE_UNLOCK(nlock, &nlocktype);
@@ -3668,16 +3650,18 @@ found:
 			 * If we found a type we were looking for,
 			 * remember it.
 			 */
-			if (header->typepair == type ||
+			if (top->typepair == type ||
 			    type == dns_rdatatype_any ||
-			    (header->typepair == dns_rdatatype_cname &&
+			    (top->typepair ==
+				     DNS_TYPEPAIR(dns_rdatatype_cname) &&
 			     cname_ok))
 			{
 				/*
 				 * We've found the answer!
 				 */
 				found = header;
-				if (header->typepair == dns_rdatatype_cname &&
+				if (top->typepair ==
+					    DNS_TYPEPAIR(dns_rdatatype_cname) &&
 				    cname_ok)
 				{
 					/*
@@ -3701,7 +3685,7 @@ found:
 				if (!maybe_zonecut && foundsig != NULL) {
 					break;
 				}
-			} else if (header->typepair == sigpair) {
+			} else if (top->typepair == sigpair) {
 				/*
 				 * We've found the RRSIG rdataset for our
 				 * target type.  Remember it.
@@ -3713,7 +3697,8 @@ found:
 				if (!maybe_zonecut && found != NULL) {
 					break;
 				}
-			} else if (header->typepair == dns_rdatatype_nsec &&
+			} else if (top->typepair ==
+					   DNS_TYPEPAIR(dns_rdatatype_nsec) &&
 				   !search.version->havensec3)
 			{
 				/*
@@ -3722,7 +3707,7 @@ found:
 				 * we might need it later.
 				 */
 				nsecheader = header;
-			} else if (header->typepair ==
+			} else if (top->typepair ==
 					   DNS_SIGTYPEPAIR(
 						   dns_rdatatype_nsec) &&
 				   !search.version->havensec3)
@@ -3733,7 +3718,7 @@ found:
 				 */
 				nsecsig = header;
 			} else if (cname_ok &&
-				   header->typepair ==
+				   top->typepair ==
 					   DNS_SIGTYPEPAIR(dns_rdatatype_cname))
 			{
 				/*
@@ -3831,7 +3816,7 @@ found:
 	 * We found what we were looking for, or we found a CNAME.
 	 */
 	if (type != found->typepair && type != dns_rdatatype_any &&
-	    found->typepair == dns_rdatatype_cname)
+	    found->typepair == DNS_TYPEPAIR(dns_rdatatype_cname))
 	{
 		/*
 		 * We weren't doing an ANY query and we found a CNAME instead
@@ -4102,36 +4087,33 @@ rdatasetiter_first(dns_rdatasetiter_t *iterator DNS__DB_FLARG) {
 	qpdb_rdatasetiter_t *qrditer = (qpdb_rdatasetiter_t *)iterator;
 	qpznode_t *node = (qpznode_t *)qrditer->common.node;
 	qpz_version_t *version = (qpz_version_t *)qrditer->common.version;
-	dns_slabheader_t *header = NULL, *top_next = NULL;
 	isc_rwlocktype_t nlocktype = isc_rwlocktype_none;
 	isc_rwlock_t *nlock = qpzone_get_lock(node);
+	dns_slabheader_t *found = NULL;
+	dns_slabtop_t *top = NULL;
 
 	NODE_RDLOCK(nlock, &nlocktype);
 
-	for (header = node->data; header != NULL; header = top_next) {
-		top_next = header->next;
-		do {
-			if (header->serial <= version->serial &&
-			    !IGNORE(header))
-			{
-				if (!EXISTS(header)) {
-					header = NULL;
-				}
-				break;
-			} else {
-				header = header->down;
-			}
-		} while (header != NULL);
-		if (header != NULL) {
+	for (top = node->data; top != NULL; top = top->next) {
+		dns_slabheader_t *header = top->header;
+		while (header != NULL &&
+		       (IGNORE(header) || header->serial > version->serial))
+		{
+			header = header->down;
+		}
+
+		if (header != NULL && EXISTS(header)) {
+			found = header;
 			break;
 		}
 	}
 
 	NODE_UNLOCK(nlock, &nlocktype);
 
-	qrditer->current = header;
+	qrditer->currenttop = top;
+	qrditer->current = found;
 
-	if (header == NULL) {
+	if (top == NULL) {
 		return ISC_R_NOMORE;
 	}
 
@@ -4143,13 +4125,12 @@ rdatasetiter_next(dns_rdatasetiter_t *iterator DNS__DB_FLARG) {
 	qpdb_rdatasetiter_t *qrditer = (qpdb_rdatasetiter_t *)iterator;
 	qpznode_t *node = (qpznode_t *)qrditer->common.node;
 	qpz_version_t *version = (qpz_version_t *)qrditer->common.version;
-	dns_slabheader_t *header = NULL;
-	dns_slabheader_t *topheader, *topheader_next = NULL;
 	isc_rwlocktype_t nlocktype = isc_rwlocktype_none;
 	isc_rwlock_t *nlock = qpzone_get_lock(node);
+	dns_slabtop_t *top = qrditer->currenttop;
+	dns_slabheader_t *found = NULL;
 
-	header = qrditer->current;
-	if (header == NULL) {
+	if (top == NULL) {
 		return ISC_R_NOMORE;
 	}
 
@@ -4158,38 +4139,26 @@ rdatasetiter_next(dns_rdatasetiter_t *iterator DNS__DB_FLARG) {
 	/*
 	 * Find the start of the header chain for the next type.
 	 */
-	topheader = dns_slabheader_top(header);
-
-	for (header = topheader->next; header != NULL; header = topheader_next)
-	{
-		topheader_next = header->next;
-		do {
-			if (header->serial <= version->serial &&
-			    !IGNORE(header))
-			{
-				if (!EXISTS(header)) {
-					header = NULL;
-				}
-				break;
-			} else {
-				header = header->down;
-			}
-		} while (header != NULL);
-		if (header != NULL) {
-			break;
+	for (top = top->next; top != NULL; top = top->next) {
+		dns_slabheader_t *header = top->header;
+		while (header != NULL &&
+		       (IGNORE(header) || header->serial > version->serial))
+		{
+			header = header->down;
 		}
 
-		/*
-		 * Find the start of the header chain for the next type.
-		 */
-		topheader = topheader->next;
+		if (header != NULL && EXISTS(header)) {
+			found = header;
+			break;
+		}
 	}
 
 	NODE_UNLOCK(nlock, &nlocktype);
 
-	qrditer->current = header;
+	qrditer->currenttop = top;
+	qrditer->current = found;
 
-	if (header == NULL) {
+	if (top == NULL) {
 		return ISC_R_NOMORE;
 	}
 
@@ -4201,17 +4170,16 @@ rdatasetiter_current(dns_rdatasetiter_t *iterator,
 		     dns_rdataset_t *rdataset DNS__DB_FLARG) {
 	qpdb_rdatasetiter_t *qrditer = (qpdb_rdatasetiter_t *)iterator;
 	qpzonedb_t *qpdb = (qpzonedb_t *)(qrditer->common.db);
-	qpznode_t *node = (qpznode_t *)qrditer->common.node;
-	dns_slabheader_t *header = NULL;
+	qpznode_t *qpnode = (qpznode_t *)qrditer->common.node;
 	isc_rwlocktype_t nlocktype = isc_rwlocktype_none;
-	isc_rwlock_t *nlock = qpzone_get_lock(node);
+	isc_rwlock_t *nlock = qpzone_get_lock(qpnode);
+	dns_slabheader_t *header = qrditer->current;
 
-	header = qrditer->current;
 	REQUIRE(header != NULL);
 
 	NODE_RDLOCK(nlock, &nlocktype);
 
-	bindrdataset(qpdb, node, header, rdataset DNS__DB_FLARG_PASS);
+	bindrdataset(qpdb, qpnode, header, rdataset DNS__DB_FLARG_PASS);
 
 	NODE_UNLOCK(nlock, &nlocktype);
 }
@@ -4917,8 +4885,8 @@ qpzone_subtractrdataset(dns_db_t *db, dns_dbnode_t *dbnode,
 	qpz_version_t *version = (qpz_version_t *)dbversion;
 	dns_fixedname_t fname;
 	dns_name_t *nodename = dns_fixedname_initname(&fname);
-	dns_slabheader_t *topheader = NULL, *topheader_prev = NULL;
-	dns_slabheader_t *header = NULL, *newheader = NULL;
+	dns_slabtop_t *top = NULL;
+	dns_slabheader_t *newheader = NULL;
 	dns_slabheader_t *subresult = NULL;
 	isc_region_t region;
 	isc_result_t result;
@@ -4961,22 +4929,22 @@ qpzone_subtractrdataset(dns_db_t *db, dns_dbnode_t *dbnode,
 	NODE_WRLOCK(nlock, &nlocktype);
 
 	changed = add_changed(newheader, version DNS__DB_FLARG_PASS);
-	for (topheader = node->data; topheader != NULL;
-	     topheader = topheader->next)
-	{
-		if (topheader->typepair == newheader->typepair) {
+	for (top = node->data; top != NULL; top = top->next) {
+		if (top->typepair == newheader->typepair) {
 			break;
 		}
-		topheader_prev = topheader;
 	}
 	/*
 	 * If header isn't NULL, we've found the right type.  There may be
 	 * IGNORE rdatasets between the top of the chain and the first real
 	 * data.  We skip over them.
 	 */
-	header = topheader;
-	while (header != NULL && IGNORE(header)) {
-		header = header->down;
+	dns_slabheader_t *header = NULL;
+	if (top != NULL) {
+		header = top->header;
+		while (header != NULL && IGNORE(header)) {
+			header = header->down;
+		}
 	}
 	if (header != NULL && EXISTS(header)) {
 		unsigned int flags = 0;
@@ -4992,7 +4960,7 @@ qpzone_subtractrdataset(dns_db_t *db, dns_dbnode_t *dbnode,
 			result = dns_rdataslab_subtract(
 				header, newheader, qpdb->common.mctx,
 				qpdb->common.rdclass,
-				DNS_TYPEPAIR_TYPE(header->typepair), flags,
+				DNS_TYPEPAIR_TYPE(top->typepair), flags,
 				&subresult);
 		}
 		if (result == ISC_R_SUCCESS) {
@@ -5029,7 +4997,7 @@ qpzone_subtractrdataset(dns_db_t *db, dns_dbnode_t *dbnode,
 			newheader = dns_slabheader_new(db->mctx,
 						       (dns_dbnode_t *)node);
 			newheader->ttl = 0;
-			newheader->typepair = topheader->typepair;
+			newheader->typepair = top->typepair;
 			atomic_init(&newheader->attributes,
 				    DNS_SLABHEADERATTR_NONEXISTENT);
 			newheader->serial = version->serial;
@@ -5039,20 +5007,16 @@ qpzone_subtractrdataset(dns_db_t *db, dns_dbnode_t *dbnode,
 		}
 
 		/*
-		 * If we're here, we want to link newheader in front of
-		 * topheader.
+		 * If we're here, we want to link newheader at the top.
 		 */
-		INSIST(version->serial >= topheader->serial);
+		INSIST(version->serial >= top->header->serial);
 		maybe_update_recordsandsize(false, version, header,
 					    nodename->length);
-		if (topheader_prev != NULL) {
-			topheader_prev->next = newheader;
-		} else {
-			node->data = newheader;
-		}
-		newheader->next = topheader->next;
-		newheader->down = topheader;
-		topheader->next = newheader;
+
+		newheader->top = top;
+		newheader->down = top->header;
+		top->header = newheader;
+
 		node->dirty = true;
 		changed->dirty = true;
 		resigndelete(qpdb, version, header DNS__DB_FLARG_PASS);
@@ -5517,19 +5481,20 @@ static dns_dbnode_methods_t qpznode_methods = (dns_dbnode_methods_t){
 
 static void
 destroy_qpznode(qpznode_t *node) {
-	dns_slabheader_t *current = NULL, *next = NULL;
+	dns_slabtop_t *top = NULL, *top_next = NULL;
+	dns_db_t *db = (dns_db_t *)node->qpdb;
 
-	for (current = node->data; current != NULL; current = next) {
-		dns_slabheader_t *down = current->down, *down_next = NULL;
+	for (top = node->data; top != NULL; top = top_next) {
+		top_next = top->next;
 
-		next = current->next;
-
-		for (down = current->down; down != NULL; down = down_next) {
+		dns_slabheader_t *down = NULL, *down_next = NULL;
+		for (down = top->header; down != NULL; down = down_next) {
 			down_next = down->down;
 			dns_slabheader_destroy(&down);
 		}
+		top->header = NULL;
 
-		dns_slabheader_destroy(&current);
+		dns_slabtop_destroy(db->mctx, &top);
 	}
 
 	qpz_heap_unref(node->heap);
