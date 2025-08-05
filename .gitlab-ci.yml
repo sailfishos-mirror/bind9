@@ -619,7 +619,7 @@ coccinelle:
   # Revert to using the "precheck_job" anchor after the "base" image is
   # upgraded to Debian trixie, which has Coccinelle 1.2.
   <<: *default_triggering_rules
-  <<: *debian_sid_amd64_image
+  <<: *debian_trixie_amd64_image
   stage: precheck
   ######################################################################
   needs: []
@@ -632,7 +632,7 @@ meson-format:
   # Revert to using the "precheck_job" anchor after the "base" image is
   # upgraded to Debian trixie, which has muon 0.4.0.
   <<: *default_triggering_rules
-  <<: *debian_sid_amd64_image
+  <<: *debian_trixie_amd64_image
   stage: precheck
   ######################################################################
   needs: []
@@ -663,7 +663,7 @@ doctest:
 
 pylint:
   <<: *default_triggering_rules
-  <<: *debian_sid_amd64_image
+  <<: *debian_trixie_amd64_image
   stage: precheck
   needs: []
   variables:
@@ -712,7 +712,7 @@ checkbashisms:
 
 mypy:
   <<: *default_triggering_rules
-  <<: *debian_sid_amd64_image
+  <<: *debian_trixie_amd64_image
   stage: precheck
   script:
     - mypy "bin/tests/system/isctest/"
@@ -1146,11 +1146,11 @@ scan-build:
       - scan-build.reports/
     when: on_failure
 
-# Jobs for strict OpenSSL 3.x (no deprecated) GCC builds on Debian "sid" (amd64)
+# Jobs for strict OpenSSL 3.x (no deprecated) GCC builds on Debian "trixie" (amd64)
 # Run with pkcs11-provider tests
 
-gcc:ossl3:sid:amd64:
-  <<: *debian_sid_amd64_image
+gcc:ossl3:trixie:amd64:
+  <<: *debian_trixie_amd64_image
   <<: *build_job
   variables:
     CC: gcc
@@ -1159,22 +1159,22 @@ gcc:ossl3:sid:amd64:
     EXTRA_CONFIGURE: "-Doptimization=3 -Djemalloc=disabled -Dleak-detection=disabled"
     RUN_MESON_INSTALL: 1
 
-system:gcc:ossl3:sid:amd64:
+system:gcc:ossl3:trixie:amd64:
   # Set up environment variables to run pkcs11-provider based system tests
   variables:
     OPENSSL_CONF: "/var/tmp/etc/openssl-provider.cnf"
     SOFTHSM2_CONF: "/var/tmp/softhsm2/softhsm2.conf"
-  <<: *debian_sid_amd64_image
+  <<: *debian_trixie_amd64_image
   <<: *system_test_job
   needs:
-    - job: gcc:ossl3:sid:amd64
+    - job: gcc:ossl3:trixie:amd64
       artifacts: true
 
 unit:gcc:ossl3:amd64:
-  <<: *debian_sid_amd64_image
+  <<: *debian_trixie_amd64_image
   <<: *unit_test_job
   needs:
-    - job: gcc:ossl3:sid:amd64
+    - job: gcc:ossl3:trixie:amd64
       artifacts: true
 
 # Jobs for regular GCC builds on Debian "sid" (amd64)
@@ -1186,8 +1186,7 @@ gcc:sid:amd64:
   variables:
     CC: gcc
     CFLAGS: "${CFLAGS_COMMON}"
-    EXTRA_CONFIGURE: "-Doptimization=3 -Didn=enabled -Dlmdb=disabled ${WITH_LIBEDIT}"
-    RUN_MESON_INSTALL: 1
+    EXTRA_CONFIGURE: "-Doptimization=3 -Didn=enabled -Dlmdb=disabled"
 
 system:gcc:sid:amd64:
   <<: *debian_sid_amd64_image
