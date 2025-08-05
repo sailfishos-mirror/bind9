@@ -525,6 +525,7 @@ foreach h : [
     'net/if6.h',
     'net/route.h',
     'regex.h',
+    'stdckdint.h',
     'sys/mman.h',
     'sys/select.h',
     'sys/sockio.h',

@@ -17,63 +17,45 @@
 
 #include <isc/util.h>
 
-/*
- * It is awkward to support signed numbers as well, so keep it simple
- * (with a safety check).
- */
-#define ISC_OVERFLOW_IS_UNSIGNED(a)                                      \
-	({                                                               \
-		STATIC_ASSERT((typeof(a))-1 > 0,                         \
-			      "overflow checks require unsigned types"); \
-		(a);                                                     \
+#if HAVE_STDCKDINT_H
+#include <stdckdint.h>
+
+#else /* HAVE_STDCKDINT_H */
+
+#define ckd_mul(cp, a, b) __builtin_mul_overflow(a, b, cp)
+#define ckd_add(cp, a, b) __builtin_add_overflow(a, b, cp)
+#define ckd_sub(cp, a, b) __builtin_sub_overflow(a, b, cp)
+
+#endif /* HAVE_STDCKDINT_H */
+
+#define ISC_CHECKED_MUL(a, b)                             \
+	({                                                \
+		typeof(a) _c;                             \
+		bool	  _overflow = ckd_mul(&_c, a, b); \
+		INSIST(!_overflow);                       \
+		_c;                                       \
 	})
 
-#define ISC_OVERFLOW_UINT_MAX(a) ISC_OVERFLOW_IS_UNSIGNED((typeof(a))-1)
-
-#define ISC_OVERFLOW_UINT_MIN(a) ISC_OVERFLOW_IS_UNSIGNED(0)
-
-/*
- * Return true on overflow, e.g.
- *
- *	bool overflow = ISC_OVERFLOW_MUL(count, sizeof(array[0]), &bytes);
- *	INSIST(!overflow);
- */
-
-#define ISC_OVERFLOW_MUL(a, b, cp) __builtin_mul_overflow(a, b, cp)
-
-#define ISC_OVERFLOW_ADD(a, b, cp) __builtin_add_overflow(a, b, cp)
-
-#define ISC_OVERFLOW_SUB(a, b, cp) __builtin_sub_overflow(a, b, cp)
-
-#define ISC_CHECKED_MUL(a, b)                                      \
-	({                                                         \
-		typeof(a) _c;                                      \
-		bool	  _overflow = ISC_OVERFLOW_MUL(a, b, &_c); \
-		INSIST(!_overflow);                                \
-		_c;                                                \
+#define ISC_CHECKED_ADD(a, b)                             \
+	({                                                \
+		typeof(a) _c;                             \
+		bool	  _overflow = ckd_add(&_c, a, b); \
+		INSIST(!_overflow);                       \
+		_c;                                       \
 	})
 
-#define ISC_CHECKED_ADD(a, b)                                      \
-	({                                                         \
-		typeof(a) _c;                                      \
-		bool	  _overflow = ISC_OVERFLOW_ADD(a, b, &_c); \
-		INSIST(!_overflow);                                \
-		_c;                                                \
+#define ISC_CHECKED_SUB(a, b)                             \
+	({                                                \
+		typeof(a) _c;                             \
+		bool	  _overflow = ckd_sub(&_c, a, b); \
+		INSIST(!_overflow);                       \
+		_c;                                       \
 	})
 
-#define ISC_CHECKED_SUB(a, b)                                     \
-	({                                                        \
-		typeof(a) _c;                                     \
-		bool	  _overflow = ISC_OVERFLOW_SUB(a, b, cp); \
-		INSIST(!_overflow);                               \
-		_c;                                               \
-	})
-
-#define ISC_CHECKED_MUL_ADD(a, b, c)                              \
-	({                                                        \
-		size_t _d;                                        \
-		bool   _overflow = ISC_OVERFLOW_MUL(a, b, &_d) || \
-				 ISC_OVERFLOW_ADD(_d, c, &_d);    \
-		INSIST(!_overflow);                               \
-		_d;                                               \
+#define ISC_CHECKED_MUL_ADD(a, b, c)                                          \
+	({                                                                    \
+		size_t _d;                                                    \
+		bool   _overflow = ckd_mul(&_d, a, b) || ckd_add(&_d, _d, c); \
+		INSIST(!_overflow);                                           \
+		_d;                                                           \
 	})
