@@ -145,9 +145,7 @@ tostruct_openpgpkey(ARGS_TOSTRUCT) {
 	REQUIRE(sig != NULL);
 	REQUIRE(rdata->length != 0);
 
-	sig->common.rdclass = rdata->rdclass;
-	sig->common.rdtype = rdata->type;
-	ISC_LINK_INIT(&sig->common, link);
+	DNS_RDATACOMMON_INIT(sig, rdata->type, rdata->rdclass);
 
 	dns_rdata_toregion(rdata, &sr);
 

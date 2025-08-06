@@ -188,9 +188,7 @@ tostruct_in_kx(ARGS_TOSTRUCT) {
 	REQUIRE(kx != NULL);
 	REQUIRE(rdata->length != 0);
 
-	kx->common.rdclass = rdata->rdclass;
-	kx->common.rdtype = rdata->type;
-	ISC_LINK_INIT(&kx->common, link);
+	DNS_RDATACOMMON_INIT(kx, rdata->type, rdata->rdclass);
 
 	dns_name_init(&name, NULL);
 	dns_rdata_toregion(rdata, &region);

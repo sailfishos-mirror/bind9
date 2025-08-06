@@ -225,9 +225,7 @@ tostruct_in_atma(ARGS_TOSTRUCT) {
 	REQUIRE(atma != NULL);
 	REQUIRE(rdata->length != 0);
 
-	atma->common.rdclass = rdata->rdclass;
-	atma->common.rdtype = rdata->type;
-	ISC_LINK_INIT(&atma->common, link);
+	DNS_RDATACOMMON_INIT(atma, rdata->type, rdata->rdclass);
 
 	dns_rdata_toregion(rdata, &r);
 	atma->format = r.base[0];

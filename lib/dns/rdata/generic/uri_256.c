@@ -211,9 +211,7 @@ tostruct_uri(ARGS_TOSTRUCT) {
 	REQUIRE(uri != NULL);
 	REQUIRE(rdata->length != 0);
 
-	uri->common.rdclass = rdata->rdclass;
-	uri->common.rdtype = rdata->type;
-	ISC_LINK_INIT(&uri->common, link);
+	DNS_RDATACOMMON_INIT(uri, rdata->type, rdata->rdclass);
 
 	dns_rdata_toregion(rdata, &sr);
 

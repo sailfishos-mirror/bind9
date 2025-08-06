@@ -165,9 +165,7 @@ tostruct_nsec(ARGS_TOSTRUCT) {
 	REQUIRE(nsec != NULL);
 	REQUIRE(rdata->length != 0);
 
-	nsec->common.rdclass = rdata->rdclass;
-	nsec->common.rdtype = rdata->type;
-	ISC_LINK_INIT(&nsec->common, link);
+	DNS_RDATACOMMON_INIT(nsec, rdata->type, rdata->rdclass);
 
 	dns_name_init(&name, NULL);
 	dns_rdata_toregion(rdata, &region);

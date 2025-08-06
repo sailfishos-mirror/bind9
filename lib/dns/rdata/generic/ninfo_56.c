@@ -75,9 +75,7 @@ tostruct_ninfo(ARGS_TOSTRUCT) {
 	REQUIRE(rdata->type == dns_rdatatype_ninfo);
 	REQUIRE(ninfo != NULL);
 
-	ninfo->common.rdclass = rdata->rdclass;
-	ninfo->common.rdtype = rdata->type;
-	ISC_LINK_INIT(&ninfo->common, link);
+	DNS_RDATACOMMON_INIT(ninfo, rdata->type, rdata->rdclass);
 
 	return generic_tostruct_txt(CALL_TOSTRUCT);
 }

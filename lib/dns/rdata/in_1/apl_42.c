@@ -288,9 +288,7 @@ tostruct_in_apl(ARGS_TOSTRUCT) {
 	REQUIRE(rdata->type == dns_rdatatype_apl);
 	REQUIRE(rdata->rdclass == dns_rdataclass_in);
 
-	apl->common.rdclass = rdata->rdclass;
-	apl->common.rdtype = rdata->type;
-	ISC_LINK_INIT(&apl->common, link);
+	DNS_RDATACOMMON_INIT(apl, rdata->type, rdata->rdclass);
 
 	dns_rdata_toregion(rdata, &r);
 	apl->apl_len = r.length;

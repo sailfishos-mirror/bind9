@@ -146,9 +146,7 @@ tostruct_x25(ARGS_TOSTRUCT) {
 	REQUIRE(x25 != NULL);
 	REQUIRE(rdata->length != 0);
 
-	x25->common.rdclass = rdata->rdclass;
-	x25->common.rdtype = rdata->type;
-	ISC_LINK_INIT(&x25->common, link);
+	DNS_RDATACOMMON_INIT(x25, rdata->type, rdata->rdclass);
 
 	dns_rdata_toregion(rdata, &r);
 	x25->x25_len = uint8_fromregion(&r);

@@ -169,9 +169,7 @@ tostruct_talink(ARGS_TOSTRUCT) {
 	REQUIRE(talink != NULL);
 	REQUIRE(rdata->length != 0);
 
-	talink->common.rdclass = rdata->rdclass;
-	talink->common.rdtype = rdata->type;
-	ISC_LINK_INIT(&talink->common, link);
+	DNS_RDATACOMMON_INIT(talink, rdata->type, rdata->rdclass);
 
 	dns_rdata_toregion(rdata, &region);
 
