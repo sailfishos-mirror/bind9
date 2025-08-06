@@ -76,7 +76,7 @@ struct dns_slabheader {
 		isc_stdtime_t expire;
 		dns_ttl_t     ttl;
 	};
-	dns_typepair_t type;
+	dns_typepair_t typepair;
 
 	_Atomic(uint16_t) count;
 	/*%<

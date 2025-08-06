@@ -346,8 +346,8 @@ dns_rdataslab_fromrdataset(dns_rdataset_t *rdataset, isc_mem_t *mctx,
 		dns_slabheader_t *new = (dns_slabheader_t *)region->base;
 
 		*new = (dns_slabheader_t){
-			.type = DNS_TYPEPAIR_VALUE(rdataset->type,
-						   rdataset->covers),
+			.typepair = DNS_TYPEPAIR_VALUE(rdataset->type,
+						       rdataset->covers),
 			.trust = rdataset->trust,
 			.ttl = rdataset->ttl,
 			.link = ISC_LINK_INITIALIZER,
@@ -934,24 +934,24 @@ dns_slabheader_freeproof(isc_mem_t *mctx, dns_slabheader_proof_t **proofp) {
 
 dns_slabheader_t *
 dns_slabheader_top(dns_slabheader_t *header) {
-	dns_typepair_t type, negtype;
+	dns_typepair_t typepair, negpair;
 	dns_rdatatype_t rdtype, covers;
 
-	type = header->type;
-	rdtype = DNS_TYPEPAIR_TYPE(header->type);
+	typepair = header->typepair;
+	rdtype = DNS_TYPEPAIR_TYPE(header->typepair);
 	if (NEGATIVE(header)) {
-		covers = DNS_TYPEPAIR_COVERS(header->type);
-		negtype = DNS_TYPEPAIR_VALUE(covers, 0);
+		covers = DNS_TYPEPAIR_COVERS(header->typepair);
+		negpair = DNS_TYPEPAIR_VALUE(covers, 0);
 	} else {
-		negtype = DNS_TYPEPAIR_VALUE(0, rdtype);
+		negpair = DNS_TYPEPAIR_VALUE(0, rdtype);
 	}
 
 	/*
 	 * Find the start of the header chain for the next type
 	 * by walking back up the list.
 	 */
-	while (header->up != NULL &&
-	       (header->up->type == type || header->up->type == negtype))
+	while (header->up != NULL && (header->up->typepair == typepair ||
+				      header->up->typepair == negpair))
 	{
 		header = header->up;
 	}
