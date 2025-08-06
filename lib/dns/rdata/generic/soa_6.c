@@ -312,8 +312,7 @@ tostruct_soa(ARGS_TOSTRUCT) {
 	REQUIRE(soa != NULL);
 	REQUIRE(rdata->length != 0);
 
-	soa->common.rdclass = rdata->rdclass;
-	soa->common.rdtype = rdata->type;
+	DNS_RDATACOMMON_INIT(soa, rdata->type, rdata->rdclass);
 
 	dns_rdata_toregion(rdata, &region);
 

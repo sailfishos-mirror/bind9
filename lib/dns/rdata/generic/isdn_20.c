@@ -137,8 +137,7 @@ tostruct_isdn(ARGS_TOSTRUCT) {
 	REQUIRE(isdn != NULL);
 	REQUIRE(rdata->length != 0);
 
-	isdn->common.rdclass = rdata->rdclass;
-	isdn->common.rdtype = rdata->type;
+	DNS_RDATACOMMON_INIT(isdn, rdata->type, rdata->rdclass);
 
 	dns_rdata_toregion(rdata, &r);
 

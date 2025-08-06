@@ -254,8 +254,7 @@ tostruct_in_px(ARGS_TOSTRUCT) {
 	REQUIRE(px != NULL);
 	REQUIRE(rdata->length != 0);
 
-	px->common.rdclass = rdata->rdclass;
-	px->common.rdtype = rdata->type;
+	DNS_RDATACOMMON_INIT(px, rdata->type, rdata->rdclass);
 
 	dns_name_init(&name);
 	dns_rdata_toregion(rdata, &region);

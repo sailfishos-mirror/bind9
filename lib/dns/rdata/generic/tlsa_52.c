@@ -263,8 +263,7 @@ tostruct_tlsa(ARGS_TOSTRUCT) {
 	REQUIRE(rdata->type == dns_rdatatype_tlsa);
 	REQUIRE(tlsa != NULL);
 
-	tlsa->common.rdclass = rdata->rdclass;
-	tlsa->common.rdtype = rdata->type;
+	DNS_RDATACOMMON_INIT(tlsa, rdata->type, rdata->rdclass);
 
 	return generic_tostruct_tlsa(CALL_TOSTRUCT);
 }

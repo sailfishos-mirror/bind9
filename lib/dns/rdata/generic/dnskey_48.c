@@ -89,8 +89,7 @@ tostruct_dnskey(ARGS_TOSTRUCT) {
 	REQUIRE(rdata != NULL);
 	REQUIRE(rdata->type == dns_rdatatype_dnskey);
 
-	dnskey->common.rdclass = rdata->rdclass;
-	dnskey->common.rdtype = rdata->type;
+	DNS_RDATACOMMON_INIT(dnskey, rdata->type, rdata->rdclass);
 
 	return generic_tostruct_key(CALL_TOSTRUCT);
 }

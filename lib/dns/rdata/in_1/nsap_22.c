@@ -168,8 +168,7 @@ tostruct_in_nsap(ARGS_TOSTRUCT) {
 	REQUIRE(nsap != NULL);
 	REQUIRE(rdata->length != 0);
 
-	nsap->common.rdclass = rdata->rdclass;
-	nsap->common.rdtype = rdata->type;
+	DNS_RDATACOMMON_INIT(nsap, rdata->type, rdata->rdclass);
 
 	dns_rdata_toregion(rdata, &r);
 	nsap->nsap_len = r.length;

@@ -82,8 +82,7 @@ tostruct_smimea(ARGS_TOSTRUCT) {
 	REQUIRE(rdata->type == dns_rdatatype_smimea);
 	REQUIRE(smimea != NULL);
 
-	smimea->common.rdclass = rdata->rdclass;
-	smimea->common.rdtype = rdata->type;
+	DNS_RDATACOMMON_INIT(smimea, rdata->type, rdata->rdclass);
 
 	return generic_tostruct_tlsa(CALL_TOSTRUCT);
 }

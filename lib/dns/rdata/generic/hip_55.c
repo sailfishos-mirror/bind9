@@ -303,8 +303,7 @@ tostruct_hip(ARGS_TOSTRUCT) {
 	REQUIRE(hip != NULL);
 	REQUIRE(rdata->length != 0);
 
-	hip->common.rdclass = rdata->rdclass;
-	hip->common.rdtype = rdata->type;
+	DNS_RDATACOMMON_INIT(hip, rdata->type, rdata->rdclass);
 
 	dns_rdata_toregion(rdata, &region);
 

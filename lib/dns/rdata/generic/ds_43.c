@@ -302,8 +302,7 @@ tostruct_ds(ARGS_TOSTRUCT) {
 	REQUIRE(rdata->type == dns_rdatatype_ds);
 	REQUIRE(ds != NULL);
 
-	ds->common.rdclass = rdata->rdclass;
-	ds->common.rdtype = rdata->type;
+	DNS_RDATACOMMON_INIT(ds, rdata->type, rdata->rdclass);
 
 	return generic_tostruct_ds(CALL_TOSTRUCT);
 }

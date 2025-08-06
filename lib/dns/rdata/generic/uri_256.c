@@ -210,8 +210,7 @@ tostruct_uri(ARGS_TOSTRUCT) {
 	REQUIRE(uri != NULL);
 	REQUIRE(rdata->length >= 4);
 
-	uri->common.rdclass = rdata->rdclass;
-	uri->common.rdtype = rdata->type;
+	DNS_RDATACOMMON_INIT(uri, rdata->type, rdata->rdclass);
 
 	dns_rdata_toregion(rdata, &sr);
 

@@ -214,8 +214,7 @@ tostruct_doa(ARGS_TOSTRUCT) {
 	REQUIRE(doa != NULL);
 	REQUIRE(rdata->length >= 10);
 
-	doa->common.rdclass = rdata->rdclass;
-	doa->common.rdtype = rdata->type;
+	DNS_RDATACOMMON_INIT(doa, rdata->type, rdata->rdclass);
 
 	dns_rdata_toregion(rdata, &region);
 

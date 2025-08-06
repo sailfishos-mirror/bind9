@@ -132,8 +132,7 @@ tostruct_gpos(ARGS_TOSTRUCT) {
 	REQUIRE(gpos != NULL);
 	REQUIRE(rdata->length != 0);
 
-	gpos->common.rdclass = rdata->rdclass;
-	gpos->common.rdtype = rdata->type;
+	DNS_RDATACOMMON_INIT(gpos, rdata->type, rdata->rdclass);
 
 	dns_rdata_toregion(rdata, &region);
 	gpos->long_len = uint8_fromregion(&region);

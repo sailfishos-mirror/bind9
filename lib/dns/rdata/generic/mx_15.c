@@ -231,8 +231,7 @@ tostruct_mx(ARGS_TOSTRUCT) {
 	REQUIRE(mx != NULL);
 	REQUIRE(rdata->length != 0);
 
-	mx->common.rdclass = rdata->rdclass;
-	mx->common.rdtype = rdata->type;
+	DNS_RDATACOMMON_INIT(mx, rdata->type, rdata->rdclass);
 
 	dns_name_init(&name);
 	dns_rdata_toregion(rdata, &region);

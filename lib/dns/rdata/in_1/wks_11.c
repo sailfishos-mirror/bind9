@@ -305,8 +305,7 @@ tostruct_in_wks(ARGS_TOSTRUCT) {
 	REQUIRE(rdata->rdclass == dns_rdataclass_in);
 	REQUIRE(rdata->length != 0);
 
-	wks->common.rdclass = rdata->rdclass;
-	wks->common.rdtype = rdata->type;
+	DNS_RDATACOMMON_INIT(wks, rdata->type, rdata->rdclass);
 
 	dns_rdata_toregion(rdata, &region);
 	n = uint32_fromregion(&region);

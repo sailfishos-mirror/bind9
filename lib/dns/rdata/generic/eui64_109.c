@@ -139,8 +139,7 @@ tostruct_eui64(ARGS_TOSTRUCT) {
 
 	UNUSED(mctx);
 
-	eui64->common.rdclass = rdata->rdclass;
-	eui64->common.rdtype = rdata->type;
+	DNS_RDATACOMMON_INIT(eui64, rdata->type, rdata->rdclass);
 
 	memmove(eui64->eui64, rdata->data, rdata->length);
 	return ISC_R_SUCCESS;

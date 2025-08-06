@@ -499,8 +499,7 @@ tostruct_naptr(ARGS_TOSTRUCT) {
 	REQUIRE(naptr != NULL);
 	REQUIRE(rdata->length != 0);
 
-	naptr->common.rdclass = rdata->rdclass;
-	naptr->common.rdtype = rdata->type;
+	DNS_RDATACOMMON_INIT(naptr, rdata->type, rdata->rdclass);
 
 	naptr->flags = NULL;
 	naptr->service = NULL;
