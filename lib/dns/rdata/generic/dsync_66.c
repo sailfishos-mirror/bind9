@@ -253,9 +253,7 @@ tostruct_dsync(ARGS_TOSTRUCT) {
 	REQUIRE(dsync != NULL);
 	REQUIRE(rdata->length != 0);
 
-	dsync->common.rdclass = rdata->rdclass;
-	dsync->common.rdtype = rdata->type;
-	ISC_LINK_INIT(&dsync->common, link);
+	DNS_RDATACOMMON_INIT(dsync, rdata->type, rdata->rdclass);
 
 	dns_name_init(&name, NULL);
 	dns_rdata_toregion(rdata, &region);

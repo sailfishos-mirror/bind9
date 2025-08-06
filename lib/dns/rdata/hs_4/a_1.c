@@ -158,9 +158,7 @@ tostruct_hs_a(ARGS_TOSTRUCT) {
 
 	UNUSED(mctx);
 
-	a->common.rdclass = rdata->rdclass;
-	a->common.rdtype = rdata->type;
-	ISC_LINK_INIT(&a->common, link);
+	DNS_RDATACOMMON_INIT(a, rdata->type, rdata->rdclass);
 
 	dns_rdata_toregion(rdata, &region);
 	n = uint32_fromregion(&region);

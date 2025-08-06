@@ -353,9 +353,7 @@ tostruct_ipseckey(ARGS_TOSTRUCT) {
 	REQUIRE(ipseckey != NULL);
 	REQUIRE(rdata->length >= 3);
 
-	ipseckey->common.rdclass = rdata->rdclass;
-	ipseckey->common.rdtype = rdata->type;
-	ISC_LINK_INIT(&ipseckey->common, link);
+	DNS_RDATACOMMON_INIT(ipseckey, rdata->type, rdata->rdclass);
 
 	dns_name_init(&name, NULL);
 	dns_rdata_toregion(rdata, &region);
