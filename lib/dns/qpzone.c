@@ -4922,18 +4922,6 @@ qpzone_deleterdataset(dns_db_t *db, dns_dbnode_t *dbnode,
 	return result;
 }
 
-static isc_result_t
-nodefullname(dns_dbnode_t *node, dns_name_t *name) {
-	REQUIRE(node != NULL);
-	REQUIRE(name != NULL);
-
-	qpznode_t *qpnode = (qpznode_t *)node;
-
-	dns_name_copy(&qpnode->name, name);
-
-	return ISC_R_SUCCESS;
-}
-
 static dns_glue_t *
 new_glue(isc_mem_t *mctx, const dns_name_t *name) {
 	dns_glue_t *glue = isc_mem_get(mctx, sizeof(*glue));
@@ -5302,7 +5290,6 @@ static dns_dbmethods_t qpdb_zonemethods = {
 };
 
 static dns_dbnode_methods_t qpznode_methods = (dns_dbnode_methods_t){
-	.nodefullname = nodefullname,
 	.attachnode = qpzone_attachnode,
 	.detachnode = qpzone_detachnode,
 	.locknode = locknode,

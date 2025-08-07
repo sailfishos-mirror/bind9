@@ -1072,17 +1072,6 @@ dns_db_deletedata(dns_dbnode_t *node, void *data) {
 	}
 }
 
-isc_result_t
-dns_db_nodefullname(dns_dbnode_t *node, dns_name_t *name) {
-	REQUIRE(node != NULL && node->methods != NULL);
-	REQUIRE(name != NULL);
-
-	if (node->methods != NULL && node->methods->nodefullname != NULL) {
-		return node->methods->nodefullname(node, name);
-	}
-	return ISC_R_NOTIMPLEMENTED;
-}
-
 void
 dns_db_setmaxrrperset(dns_db_t *db, uint32_t value) {
 	REQUIRE(DNS_DB_VALID(db));

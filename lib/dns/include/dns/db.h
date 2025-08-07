@@ -76,8 +76,6 @@ extern unsigned int dns_pps;
 *****/
 
 typedef struct dns_dbnode_methods {
-	isc_result_t (*nodefullname)(dns_dbnode_t *node, dns_name_t *name);
-
 	void (*attachnode)(dns_dbnode_t		 *source,
 			   dns_dbnode_t **targetp DNS__DB_FLARG);
 	void (*detachnode)(dns_dbnode_t **targetp DNS__DB_FLARG);
@@ -1762,17 +1760,6 @@ dns_db_deletedata(dns_dbnode_t *node, void *data);
  * Tell the database to prepare to delete the block of data 'data'
  * stored at node 'node. This may include, for example, removing the
  * data from an LRU list or a heap.
- */
-
-isc_result_t
-dns_db_nodefullname(dns_dbnode_t *node, dns_name_t *name);
-/*%<
- * Get the name associated with a database node.
- *
- * Requires:
- *
- * \li 'db' is a valid database
- * \li 'node' and 'name' are not NULL
  */
 
 void
