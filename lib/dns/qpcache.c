@@ -2066,7 +2066,7 @@ qpcache_findrdataset(dns_db_t *db, dns_dbnode_t *node, dns_dbversion_t *version,
 	dns_slabheader_t *header_prev = NULL, *header_next = NULL;
 	dns_slabheader_t *found = NULL, *foundsig = NULL;
 	dns_typepair_t typepair, sigpair, negpair;
-	isc_result_t result;
+	isc_result_t result = ISC_R_SUCCESS;
 	isc_rwlock_t *nlock = NULL;
 	isc_rwlocktype_t nlocktype = isc_rwlocktype_none;
 	qpc_search_t search = (qpc_search_t){
@@ -2078,7 +2078,9 @@ qpcache_findrdataset(dns_db_t *db, dns_dbnode_t *node, dns_dbversion_t *version,
 	REQUIRE(version == NULL);
 	REQUIRE(type != dns_rdatatype_any);
 
-	result = ISC_R_SUCCESS;
+	if (type == dns_rdatatype_none && covers == dns_rdatatype_none) {
+		return ISC_R_NOTFOUND;
+	}
 
 	nlock = &qpdb->buckets[qpnode->locknum].lock;
 	NODE_RDLOCK(nlock, &nlocktype);

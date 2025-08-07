@@ -1631,6 +1631,10 @@ qpzone_findrdataset(dns_db_t *db, dns_dbnode_t *dbnode,
 	REQUIRE(type != dns_rdatatype_any);
 	INSIST(version == NULL || version->qpdb == qpdb);
 
+	if (type == dns_rdatatype_none && covers == dns_rdatatype_none) {
+		return ISC_R_NOTFOUND;
+	}
+
 	if (version == NULL) {
 		currentversion(db, (dns_dbversion_t **)&version);
 		close_version = true;

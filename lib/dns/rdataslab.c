@@ -341,6 +341,12 @@ dns_rdataslab_fromrdataset(dns_rdataset_t *rdataset, isc_mem_t *mctx,
 			   isc_region_t *region, uint32_t maxrrperset) {
 	isc_result_t result;
 
+	if (rdataset->type == dns_rdatatype_none &&
+	    rdataset->covers == dns_rdatatype_none)
+	{
+		return DNS_R_DISALLOWED;
+	}
+
 	result = makeslab(rdataset, mctx, region, maxrrperset);
 	if (result == ISC_R_SUCCESS) {
 		dns_slabheader_t *new = (dns_slabheader_t *)region->base;

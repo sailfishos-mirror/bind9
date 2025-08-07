@@ -277,15 +277,25 @@ ISC_RUN_TEST_IMPL(deleterdataset) {
 ISC_RUN_TEST_IMPL(subtract) {
 	isc_result_t res;
 	dns_rdataset_t rdataset;
+	dns_rdata_t rdata = DNS_RDATA_INIT;
 	dns_rdatalist_t rdatalist;
 	dns_dbnode_t *node = NULL;
+	char *txt = (char *)"\006text 1";
+	size_t len = strlen(txt);
 
-	UNUSED(state);
+	rdata.rdclass = dns_rdataclass_in;
+	rdata.type = dns_rdatatype_txt;
+
+	rdata.length = len;
+	rdata.data = (unsigned char *)txt;
 
 	dns_rdataset_init(&rdataset);
 	dns_rdatalist_init(&rdatalist);
 
 	rdatalist.rdclass = dns_rdataclass_in;
+	rdatalist.type = dns_rdatatype_txt;
+
+	ISC_LIST_APPEND(rdatalist.rdata, &rdata, link);
 
 	dns_rdatalist_tordataset(&rdatalist, &rdataset);
 
@@ -316,15 +326,25 @@ ISC_RUN_TEST_IMPL(subtract) {
 ISC_RUN_TEST_IMPL(addrdataset) {
 	isc_result_t res;
 	dns_rdataset_t rdataset;
+	dns_rdata_t rdata = DNS_RDATA_INIT;
 	dns_dbnode_t *node = NULL;
 	dns_rdatalist_t rdatalist;
+	char *txt = (char *)"\006text 1";
+	size_t len = strlen(txt);
 
-	UNUSED(state);
+	rdata.rdclass = dns_rdataclass_in;
+	rdata.type = dns_rdatatype_txt;
+
+	rdata.length = len;
+	rdata.data = (unsigned char *)txt;
 
 	dns_rdataset_init(&rdataset);
 	dns_rdatalist_init(&rdatalist);
 
 	rdatalist.rdclass = dns_rdataclass_in;
+	rdatalist.type = dns_rdatatype_txt;
+
+	ISC_LIST_APPEND(rdatalist.rdata, &rdata, link);
 
 	dns_rdatalist_tordataset(&rdatalist, &rdataset);
 
