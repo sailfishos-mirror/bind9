@@ -1326,6 +1326,14 @@ def test_unknown_algorithms():
             res.extended_errors()[0].code == edns.EDECode.UNSUPPORTED_DNSKEY_ALGORITHM
         )
 
+    # check that DS records are still treated as secure at the
+    # disable-algorithm name
+    msg = isctest.query.create("badalg.secure.example", "DS")
+    res = isctest.query.tcp(msg, "10.53.0.4")
+    isctest.check.rr_count_eq(res.answer, 2)
+    isctest.check.noerror(res)
+    isctest.check.adflag(res)
+
     # check both EDE code 1 and 2 for unsupported digest on one DNSKEY
     # and unsupported algorithm on the other
     msg = isctest.query.create("a.digest-alg-unsupported.example", "A")

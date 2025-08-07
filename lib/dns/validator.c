@@ -1675,8 +1675,9 @@ validate_answer_process(void *arg) {
 	 * was known and "sufficiently good".
 	 */
 	if (!dns_resolver_algorithm_supported(
-		    val->view->resolver, val->name, val->siginfo->algorithm,
-		    val->siginfo->signature, val->siginfo->siglen))
+		    val->view->resolver, &val->siginfo->signer,
+		    val->siginfo->algorithm, val->siginfo->signature,
+		    val->siginfo->siglen))
 	{
 		if (val->unsupported_algorithm == 0) {
 			val->unsupported_algorithm = val->siginfo->algorithm;
