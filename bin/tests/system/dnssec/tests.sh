@@ -3771,6 +3771,7 @@ echo_i "checking EDE code 1 for bad alg mnemonic ($n)"
 ret=0
 dig_with_opts @10.53.0.4 badalg.secure.example >dig.out.ns4.test$n || ret=1
 grep "; EDE: 1 (Unsupported DNSKEY Algorithm): (ECDSAP256SHA256 badalg.secure.example/A)" dig.out.ns4.test$n >/dev/null || ret=1
+grep "status: NOERROR" dig.out.ns4.test$n >/dev/null || ret=1
 grep "flags:.*ad.*QUERY" dig.out.ns4.test$n >/dev/null && ret=1
 n=$((n + 1))
 test "$ret" -eq 0 || echo_i "failed"
