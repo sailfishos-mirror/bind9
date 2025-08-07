@@ -91,6 +91,12 @@ zone "secure.example" {
 	allow-update { any; };
 };
 
+zone "badalg.secure.example" {
+	type primary;
+	file "badalg.secure.example.db.signed";
+	allow-update { any; };
+};
+
 zone "bogus.example" {
 	type primary;
 	file "bogus.example.db.signed";

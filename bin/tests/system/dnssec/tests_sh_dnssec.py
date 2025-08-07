@@ -79,6 +79,7 @@ pytestmark = pytest.mark.extra_artifacts(
         "ns3/NSEC3",
         "ns3/auto-nsec.example.db",
         "ns3/auto-nsec3.example.db",
+        "ns3/badalg.secure.example.db",
         "ns3/badds.example.db",
         "ns3/bogus.example.db",
         "ns3/disabled.managed.db",

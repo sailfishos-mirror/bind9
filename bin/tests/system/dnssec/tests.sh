@@ -3757,6 +3757,16 @@ n=$((n + 1))
 test "$ret" -eq 0 || echo_i "failed"
 status=$((status + ret))
 
+echo_i "check that DS records are still treated as secure at the disable-algorithm name ($n)"
+ret=0
+dig_with_opts @10.53.0.4 badalg.secure.example DS >dig.out.ns4.test$n || ret=1
+grep "ANSWER: 2," dig.out.ns4.test$n >/dev/null || ret=1
+grep "status: NOERROR" dig.out.ns4.test$n >/dev/null || ret=1
+grep "flags:.*ad.*QUERY" dig.out.ns4.test$n >/dev/null || ret=1
+n=$((n + 1))
+test "$ret" -eq 0 || echo_i "failed"
+status=$((status + ret))
+
 echo_i "checking EDE code 1 for bad alg mnemonic ($n)"
 ret=0
 dig_with_opts @10.53.0.4 badalg.secure.example >dig.out.ns4.test$n || ret=1

@@ -77,6 +77,19 @@ done
 
 echo_i "ns3/sign.sh: example zones"
 
+# A zone that will be treated as insecure as the DEFAULT_ALGORITHM is
+# disabled for it.
+zone=badalg.secure.example.
+infile=badalg.secure.example.db.in
+zonefile=badalg.secure.example.db
+
+keyname=$("$KEYGEN" -q -a "$DEFAULT_ALGORITHM" -b "$DEFAULT_BITS" "$zone")
+
+cat "$infile" "$keyname.key" >"$zonefile"
+
+"$SIGNER" -z -o "$zone" "$zonefile" >/dev/null
+
+#
 zone=secure.example.
 infile=secure.example.db.in
 zonefile=secure.example.db
@@ -85,7 +98,7 @@ cnameandkey=$("$KEYGEN" -T KEY -q -a "$DEFAULT_ALGORITHM" -b "$DEFAULT_BITS" -n 
 dnameandkey=$("$KEYGEN" -T KEY -q -a "$DEFAULT_ALGORITHM" -b "$DEFAULT_BITS" -n host "dnameandkey.$zone")
 keyname=$("$KEYGEN" -q -a "$DEFAULT_ALGORITHM" -b "$DEFAULT_BITS" -n zone "$zone")
 
-cat "$infile" "$cnameandkey.key" "$dnameandkey.key" "$keyname.key" >"$zonefile"
+cat "$infile" dsset-badalg.secure.example. "$cnameandkey.key" "$dnameandkey.key" "$keyname.key" >"$zonefile"
 
 "$SIGNER" -z -D -o "$zone" "$zonefile" >/dev/null
 cat "$zonefile" "$zonefile".signed >"$zonefile".tmp

@@ -2504,7 +2504,8 @@ validate(ns_client_t *client, dns_db_t *db, dns_name_t *name,
 		result = dns_rdata_tostruct(&rdata, &rrsig, NULL);
 		RUNTIME_CHECK(result == ISC_R_SUCCESS);
 		if (!dns_resolver_algorithm_supported(client->view->resolver,
-						      name, rrsig.algorithm))
+						      &rrsig.signer,
+						      rrsig.algorithm))
 		{
 			char txt[DNS_NAME_FORMATSIZE + 32];
 			isc_buffer_t buffer;
