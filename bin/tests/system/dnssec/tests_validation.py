@@ -1320,6 +1320,7 @@ def test_unknown_algorithms():
     # check EDE code 1 for bad algorithm mnemonic
     msg = isctest.query.create("badalg.secure.example", "A")
     res = isctest.query.tcp(msg, "10.53.0.4")
+    isctest.check.noerror(res)
     isctest.check.noadflag(res)
     if hasattr(res, "extended_errors"):
         assert (
