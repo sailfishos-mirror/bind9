@@ -17,13 +17,38 @@
 
 #include <dns/types.h>
 
-#define DNS_TYPEPAIR_TYPE(type)	  ((dns_rdatatype_t)((type) & 0xFFFF))
-#define DNS_TYPEPAIR_COVERS(type) ((dns_rdatatype_t)((type) >> 16))
-#define DNS_TYPEPAIR_VALUE(base, ext) \
-	((dns_typepair_t)(((uint32_t)ext) << 16) | (((uint32_t)base) & 0xffff))
-#define DNS_SIGTYPE(type)                           \
-	((dns_typepair_t)(((uint32_t)type) << 16) | \
-	 (((uint32_t)dns_rdatatype_rrsig) & 0xffff))
+#if DNS_TYPEPAIR_CHECK
+#define DNS__TYPEPAIR_CHECK(base, covers)                    \
+	INSIST((dns_rdatatype_issig(base) && covers != 0) || \
+	       (base == 0 && covers != 0) || (base != 0 && covers == 0))
+#else
+#define DNS__TYPEPAIR_CHECK(base, covers)
+#endif
+
+#define DNS_TYPEPAIR_TYPE(type)                                              \
+	({                                                                   \
+		dns_rdatatype_t __base = (dns_rdatatype_t)((type) & 0xFFFF); \
+		dns_rdatatype_t __covers = (dns_rdatatype_t)((type) >> 16);  \
+		DNS__TYPEPAIR_CHECK(__base, __covers);                       \
+		__base;                                                      \
+	})
+#define DNS_TYPEPAIR_COVERS(type)                                            \
+	({                                                                   \
+		dns_rdatatype_t __base = (dns_rdatatype_t)((type) & 0xFFFF); \
+		dns_rdatatype_t __covers = (dns_rdatatype_t)((type) >> 16);  \
+		DNS__TYPEPAIR_CHECK(__base, __covers);                       \
+		__covers;                                                    \
+	})
+#define DNS__TYPEPAIR_VALUE(base, covers)             \
+	((dns_typepair_t)(((uint32_t)covers) << 16) | \
+	 (((uint32_t)base) & 0xffff))
+#define DNS_TYPEPAIR_VALUE(base, covers)           \
+	({                                         \
+		DNS__TYPEPAIR_CHECK(base, covers); \
+		DNS__TYPEPAIR_VALUE(base, covers); \
+	})
+
+#define DNS_SIGTYPE(type) DNS__TYPEPAIR_VALUE(dns_rdatatype_rrsig, type)
 
 isc_result_t
 dns_rdatatype_fromtext(dns_rdatatype_t *typep, isc_textregion_t *source);
