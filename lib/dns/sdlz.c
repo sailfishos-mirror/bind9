@@ -1092,21 +1092,6 @@ deleterdataset(dns_db_t *db, dns_dbnode_t *node, dns_dbversion_t *version,
 	return result;
 }
 
-static bool
-issecure(dns_db_t *db) {
-	UNUSED(db);
-
-	return false;
-}
-
-static unsigned int
-nodecount(dns_db_t *db, dns_dbtree_t tree) {
-	UNUSED(db);
-	UNUSED(tree);
-
-	return 0;
-}
-
 /*
  * getoriginnode() is used by the update code to find the
  * dns_rdatatype_dnskey record for a zone
@@ -1144,8 +1129,6 @@ static dns_dbmethods_t sdlzdb_methods = {
 	.addrdataset = addrdataset,
 	.subtractrdataset = subtractrdataset,
 	.deleterdataset = deleterdataset,
-	.issecure = issecure,
-	.nodecount = nodecount,
 	.getoriginnode = getoriginnode,
 };
 
