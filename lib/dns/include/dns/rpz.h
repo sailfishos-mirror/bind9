@@ -264,6 +264,7 @@ struct dns_rpz_zones {
 	isc_rwlock_t search_lock;
 	isc_mutex_t  maint_lock;
 
+	bool first_time;
 	bool shuttingdown;
 
 	dns_rpz_cidr_node_t *cidr;
@@ -393,7 +394,8 @@ dns_rpz_decode_cname(dns_rpz_zone_t *rpz, dns_rdataset_t *rdataset,
 
 isc_result_t
 dns_rpz_new_zones(dns_view_t *view, isc_loopmgr_t *loopmgr, char *rps_cstr,
-		  size_t rps_cstr_size, dns_rpz_zones_t **rpzsp);
+		  size_t rps_cstr_size, dns_rpz_zones_t **rpzsp,
+		  bool first_time);
 
 isc_result_t
 dns_rpz_new_zone(dns_rpz_zones_t *rpzs, dns_rpz_zone_t **rpzp);

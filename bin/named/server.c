@@ -2460,7 +2460,7 @@ configure_rpz_zone(dns_view_t *view, const cfg_listelt_t *element,
 
 static isc_result_t
 configure_rpz(dns_view_t *view, dns_view_t *pview, const cfg_obj_t **maps,
-	      const cfg_obj_t *rpz_obj, bool *old_rpz_okp) {
+	      const cfg_obj_t *rpz_obj, bool *old_rpz_okp, bool first_time) {
 	bool dnsrps_enabled;
 	const cfg_listelt_t *zone_element;
 	char *rps_cstr;
@@ -2545,7 +2545,7 @@ configure_rpz(dns_view_t *view, dns_view_t *pview, const cfg_obj_t **maps,
 #endif /* ifndef USE_DNSRPS */
 
 	result = dns_rpz_new_zones(view, named_g_loopmgr, rps_cstr,
-				   rps_cstr_size, &view->rpzs);
+				   rps_cstr_size, &view->rpzs, first_time);
 	if (result != ISC_R_SUCCESS) {
 		return result;
 	}
@@ -2681,8 +2681,17 @@ configure_rpz(dns_view_t *view, dns_view_t *pview, const cfg_obj_t **maps,
 	}
 
 	if (*old_rpz_okp) {
+		/* Discard the newly created rpzs. */
 		dns_rpz_zones_shutdown(view->rpzs);
 		dns_rpz_zones_detach(&view->rpzs);
+
+		/*
+		 * We are reusing the old rpzs, so it can no longer be its
+		 * first time.
+		 */
+		pview->rpzs->first_time = false;
+
+		/* Reuse rpzs from the old view. */
 		dns_rpz_zones_attach(pview->rpzs, &view->rpzs);
 		dns_rpz_zones_detach(&pview->rpzs);
 	} else if (old != NULL && pview != NULL) {
@@ -4142,7 +4151,8 @@ configure_view(dns_view_t *view, dns_viewlist_t *viewlist, cfg_obj_t *config,
 	       cfg_obj_t *vconfig, named_cachelist_t *cachelist,
 	       named_cachelist_t *oldcachelist, dns_kasplist_t *kasplist,
 	       dns_keystorelist_t *keystores, const cfg_obj_t *bindkeys,
-	       isc_mem_t *mctx, cfg_aclconfctx_t *actx, bool need_hints) {
+	       isc_mem_t *mctx, cfg_aclconfctx_t *actx, bool need_hints,
+	       bool first_time) {
 	const cfg_obj_t *maps[4];
 	const cfg_obj_t *cfgmaps[3];
 	const cfg_obj_t *optionmaps[3];
@@ -4249,7 +4259,8 @@ configure_view(dns_view_t *view, dns_viewlist_t *viewlist, cfg_obj_t *config,
 	if (view->rdclass == dns_rdataclass_in && need_hints &&
 	    named_config_get(maps, "response-policy", &obj) == ISC_R_SUCCESS)
 	{
-		CHECK(configure_rpz(view, NULL, maps, obj, &old_rpz_ok));
+		CHECK(configure_rpz(view, NULL, maps, obj, &old_rpz_ok,
+				    first_time));
 		rpz_configured = true;
 	}
 
@@ -6170,7 +6181,8 @@ cleanup:
 				 * done previously in the "correct" order.
 				 */
 				result2 = configure_rpz(pview, view, maps, obj,
-							&old_rpz_ok);
+							&old_rpz_ok,
+							first_time);
 				if (result2 != ISC_R_SUCCESS) {
 					isc_log_write(named_g_lctx,
 						      NAMED_LOGCATEGORY_GENERAL,
@@ -9364,11 +9376,11 @@ load_configuration(const char *filename, named_server_t *server,
 			goto cleanup_cachelist;
 		}
 
-		result = configure_view(view, &viewlist, config, vconfig,
-					&cachelist, &server->cachelist,
-					&server->kasplist,
-					&server->keystorelist, bindkeys,
-					named_g_mctx, named_g_aclconfctx, true);
+		result = configure_view(
+			view, &viewlist, config, vconfig, &cachelist,
+			&server->cachelist, &server->kasplist,
+			&server->keystorelist, bindkeys, named_g_mctx,
+			named_g_aclconfctx, true, first_time);
 		if (result != ISC_R_SUCCESS) {
 			dns_view_detach(&view);
 			goto cleanup_cachelist;
@@ -9387,11 +9399,11 @@ load_configuration(const char *filename, named_server_t *server,
 		if (result != ISC_R_SUCCESS) {
 			goto cleanup_cachelist;
 		}
-		result = configure_view(view, &viewlist, config, NULL,
-					&cachelist, &server->cachelist,
-					&server->kasplist,
-					&server->keystorelist, bindkeys,
-					named_g_mctx, named_g_aclconfctx, true);
+		result = configure_view(
+			view, &viewlist, config, NULL, &cachelist,
+			&server->cachelist, &server->kasplist,
+			&server->keystorelist, bindkeys, named_g_mctx,
+			named_g_aclconfctx, true, first_time);
 		if (result != ISC_R_SUCCESS) {
 			dns_view_detach(&view);
 			goto cleanup_cachelist;
@@ -9421,7 +9433,7 @@ load_configuration(const char *filename, named_server_t *server,
 			view, &viewlist, config, vconfig, &cachelist,
 			&server->cachelist, &server->kasplist,
 			&server->keystorelist, bindkeys, named_g_mctx,
-			named_g_aclconfctx, false);
+			named_g_aclconfctx, false, first_time);
 		if (result != ISC_R_SUCCESS) {
 			dns_view_detach(&view);
 			goto cleanup_cachelist;

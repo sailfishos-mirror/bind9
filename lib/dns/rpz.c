@@ -1499,7 +1499,8 @@ add_name(dns_rpz_zone_t *rpz, dns_rpz_type_t rpz_type,
  */
 isc_result_t
 dns_rpz_new_zones(dns_view_t *view, isc_loopmgr_t *loopmgr, char *rps_cstr,
-		  size_t rps_cstr_size, dns_rpz_zones_t **rpzsp) {
+		  size_t rps_cstr_size, dns_rpz_zones_t **rpzsp,
+		  bool first_time) {
 	dns_rpz_zones_t *rpzs = NULL;
 	isc_mem_t *mctx = NULL;
 #ifdef USE_DNSRPS
@@ -1517,6 +1518,7 @@ dns_rpz_new_zones(dns_view_t *view, isc_loopmgr_t *loopmgr, char *rps_cstr,
 		.rps_cstr_size = rps_cstr_size,
 		.loopmgr = loopmgr,
 		.magic = DNS_RPZ_ZONES_MAGIC,
+		.first_time = first_time,
 	};
 
 	isc_rwlock_init(&rpzs->search_lock);
