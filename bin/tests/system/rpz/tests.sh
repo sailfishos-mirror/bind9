@@ -34,6 +34,8 @@ ns10=$ns.10 # authoritative server
 
 HAVE_CORE=
 
+NS_PARAMS="-m record -c named.conf -d 99 -g"
+
 status=0
 t=0
 
@@ -932,5 +934,26 @@ if [ native = "$MODE" ]; then
   $DIG a7-2.tld2s -p ${PORT} @$ns6 +cd >dig.out.${t} || setret "failed"
   grep -w "1.1.1.1" dig.out.${t} >/dev/null || setret "failed"
 fi
+
+t=$((t + 1))
+echo_i "checking that 'servfail-until-ready yes' works (part 1) (${t})"
+# Restart ns3 with '-T rpzslow'
+stop_server ns3
+nextpart ns3/named.run >/dev/null
+start_server --noclean --restart --port ${PORT} ns3 -- "-D rpz-ns3 $NS_PARAMS -T rpzslow"
+wait_for_log 10 "all zones loaded" ns3/named.run
+# Just any query that is expected to success normally, but should return
+# SERVFAIL because RPZ is still processing.
+$DIG tld2. NS -p ${PORT} @$ns3 >dig.out.${t} || setret "failed"
+grep "status: SERVFAIL" dig.out.${t} >/dev/null || setret "failed"
+
+t=$((t + 1))
+echo_i "checking that 'servfail-until-ready yes' works (part 2) (${t})"
+# The 'slow-rpz.' zone has 30 records (RPZ rules), and '-T rpzslow' forces a
+# 100ms delay for each rule. Wait enough time for processing to finish.
+wait_for_log 10 "slow-rpz: reload done" ns3/named.run
+# Now the same request as in the previous test should return NOERROR
+$DIG tld2. NS -p ${PORT} @$ns3 >dig.out.${t} || setret "failed"
+grep "status: NOERROR" dig.out.${t} >/dev/null || setret "failed"
 
 [ $status -eq 0 ] || exit 1
