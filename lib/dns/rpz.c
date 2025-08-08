@@ -1451,7 +1451,7 @@ add_name(dns_rpz_zone_t *rpz, dns_rpz_type_t rpz_type,
  * Get ready for a new set of policy zones for a view.
  */
 isc_result_t
-dns_rpz_new_zones(dns_view_t *view, dns_rpz_zones_t **rpzsp) {
+dns_rpz_new_zones(dns_view_t *view, dns_rpz_zones_t **rpzsp, bool first_time) {
 	dns_rpz_zones_t *rpzs = NULL;
 	isc_mem_t *mctx = NULL;
 
@@ -1463,6 +1463,7 @@ dns_rpz_new_zones(dns_view_t *view, dns_rpz_zones_t **rpzsp) {
 	rpzs = isc_mem_get(mctx, sizeof(*rpzs));
 	*rpzs = (dns_rpz_zones_t){
 		.magic = DNS_RPZ_ZONES_MAGIC,
+		.first_time = first_time,
 	};
 
 	isc_rwlock_init(&rpzs->search_lock);
