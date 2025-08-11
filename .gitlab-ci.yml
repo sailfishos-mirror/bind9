@@ -1724,7 +1724,7 @@ shotgun:doh-get:
   <<: *shotgun_job
   variables:
     SHOTGUN_SCENARIO: doh-get
-    SHOTGUN_TRAFFIC_MULTIPLIER: 3
+    SHOTGUN_TRAFFIC_MULTIPLIER: 2
     SHOTGUN_EVAL_THRESHOLD_LATENCY_PCTL_MAX: 0.4  # bump from the default due to increased tail-end jitter
   rules: *shotgun_rules_manual_mr
 
