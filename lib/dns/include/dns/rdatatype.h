@@ -49,7 +49,11 @@
 		DNS__TYPEPAIR_VALUE(base, covers); \
 	})
 
-#define DNS_SIGTYPE(type) DNS__TYPEPAIR_VALUE(dns_rdatatype_rrsig, type)
+#define DNS_TYPEPAIR(type) DNS__TYPEPAIR_VALUE(type, dns_rdatatype_none)
+#define DNS_SIGTYPE(type)  DNS__TYPEPAIR_VALUE(dns_rdatatype_rrsig, type)
+
+constexpr dns_typepair_t dns_typepair_none = DNS_TYPEPAIR(dns_rdatatype_none);
+constexpr dns_typepair_t dns_typepair_any = DNS_TYPEPAIR(dns_rdatatype_any);
 
 isc_result_t
 dns_rdatatype_fromtext(dns_rdatatype_t *typep, isc_textregion_t *source);

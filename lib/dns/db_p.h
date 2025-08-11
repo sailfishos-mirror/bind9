@@ -19,8 +19,6 @@
 #include <dns/nsec3.h>
 #include <dns/types.h>
 
-#define RDATATYPE_NCACHEANY DNS_TYPEPAIR_VALUE(0, dns_rdatatype_any)
-
 #ifdef STRONG_RWLOCK_CHECK
 #define STRONG_RWLOCK_CHECK(cond) REQUIRE(cond)
 #else

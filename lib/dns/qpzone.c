@@ -1648,7 +1648,7 @@ qpzone_findrdataset(dns_db_t *db, dns_dbnode_t *dbnode,
 	if (covers == dns_rdatatype_none) {
 		sigpair = DNS_SIGTYPE(type);
 	} else {
-		sigpair = dns_rdatatype_none;
+		sigpair = dns_typepair_none;
 	}
 
 	for (header = node->data; header != NULL; header = header_next) {
@@ -3110,7 +3110,7 @@ find_closest_nsec(qpz_search_t *search, dns_dbnode_t **nodep,
 	dns_name_t *name = dns_fixedname_initname(&fname);
 	dns_rdatatype_t matchtype = nsec3 ? dns_rdatatype_nsec3
 					  : dns_rdatatype_nsec;
-	dns_typepair_t typepair = DNS_TYPEPAIR_VALUE(matchtype, 0);
+	dns_typepair_t typepair = DNS_TYPEPAIR(matchtype);
 	dns_typepair_t sigpair = DNS_SIGTYPE(matchtype);
 	bool wraps = nsec3;
 	bool first = true;

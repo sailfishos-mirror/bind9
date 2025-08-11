@@ -350,10 +350,23 @@ dns_rdataslab_fromrdataset(dns_rdataset_t *rdataset, isc_mem_t *mctx,
 	result = makeslab(rdataset, mctx, region, maxrrperset);
 	if (result == ISC_R_SUCCESS) {
 		dns_slabheader_t *new = (dns_slabheader_t *)region->base;
+		dns_typepair_t typepair;
+
+		if (rdataset->attributes.negative) {
+			INSIST(rdataset->type == dns_rdatatype_none);
+			INSIST(rdataset->covers != dns_rdatatype_none);
+			typepair = DNS_TYPEPAIR_VALUE(rdataset->covers,
+						      dns_rdatatype_none);
+		} else {
+			INSIST(rdataset->type != dns_rdatatype_none);
+			INSIST(dns_rdatatype_issig(rdataset->type) ||
+			       rdataset->covers == dns_rdatatype_none);
+			typepair = DNS_TYPEPAIR_VALUE(rdataset->type,
+						      rdataset->covers);
+		}
 
 		*new = (dns_slabheader_t){
-			.typepair = DNS_TYPEPAIR_VALUE(rdataset->type,
-						       rdataset->covers),
+			.typepair = typepair,
 			.trust = rdataset->trust,
 			.ttl = rdataset->ttl,
 			.link = ISC_LINK_INITIALIZER,
@@ -940,25 +953,11 @@ dns_slabheader_freeproof(isc_mem_t *mctx, dns_slabheader_proof_t **proofp) {
 
 dns_slabheader_t *
 dns_slabheader_top(dns_slabheader_t *header) {
-	dns_typepair_t typepair, negpair;
-	dns_rdatatype_t rdtype, covers;
-
-	typepair = header->typepair;
-	rdtype = DNS_TYPEPAIR_TYPE(header->typepair);
-	if (NEGATIVE(header)) {
-		covers = DNS_TYPEPAIR_COVERS(header->typepair);
-		negpair = DNS_TYPEPAIR_VALUE(covers, 0);
-	} else {
-		negpair = DNS_TYPEPAIR_VALUE(0, rdtype);
-	}
-
 	/*
 	 * Find the start of the header chain for the next type
 	 * by walking back up the list.
 	 */
-	while (header->up != NULL && (header->up->typepair == typepair ||
-				      header->up->typepair == negpair))
-	{
+	while (header->up != NULL && header->up->typepair == header->typepair) {
 		header = header->up;
 	}
 
