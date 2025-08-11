@@ -817,7 +817,7 @@ dns_rdata_init(dns_rdata_t *rdata) {
 	rdata->data = NULL;
 	rdata->length = 0;
 	rdata->rdclass = 0;
-	rdata->type = 0;
+	rdata->type = dns_rdatatype_none;
 	rdata->flags = 0;
 	ISC_LINK_INIT(rdata, link);
 	/* ISC_LIST_INIT(rdata->list); */
@@ -833,7 +833,7 @@ dns_rdata_reset(dns_rdata_t *rdata) {
 	rdata->data = NULL;
 	rdata->length = 0;
 	rdata->rdclass = 0;
-	rdata->type = 0;
+	rdata->type = dns_rdatatype_none;
 	rdata->flags = 0;
 }
 
@@ -977,7 +977,7 @@ dns_rdata_fromwire(dns_rdata_t *rdata, dns_rdataclass_t rdclass,
 	REQUIRE(source != NULL);
 	REQUIRE(target != NULL);
 
-	if (type == 0) {
+	if (type == dns_rdatatype_none) {
 		return DNS_R_FORMERR;
 	}
 
@@ -1092,7 +1092,7 @@ unknown_fromtext(dns_rdataclass_t rdclass, dns_rdatatype_t type,
 	isc_buffer_t *buf = NULL;
 	isc_token_t token;
 
-	if (type == 0 || dns_rdatatype_ismeta(type)) {
+	if (type == dns_rdatatype_none || dns_rdatatype_ismeta(type)) {
 		return DNS_R_METATYPE;
 	}
 

@@ -2087,7 +2087,8 @@ qpcache_findrdataset(dns_db_t *db, dns_dbnode_t *node, dns_dbversion_t *version,
 
 	typepair = DNS_TYPEPAIR_VALUE(type, covers);
 	negpair = DNS_TYPEPAIR_VALUE(0, type);
-	sigpair = (covers == 0) ? DNS_SIGTYPE(type) : 0;
+	sigpair = (covers == dns_rdatatype_none) ? DNS_SIGTYPE(type)
+						 : dns_rdatatype_none;
 
 	for (header = qpnode->data; header != NULL; header = header_next) {
 		header_next = header->next;
@@ -2598,7 +2599,8 @@ add(qpcache_t *qpdb, qpcnode_t *qpnode,
 					break;
 				}
 			}
-			negpair = DNS_TYPEPAIR_VALUE(covers, 0);
+			negpair = DNS_TYPEPAIR_VALUE(covers,
+						     dns_rdatatype_none);
 		} else {
 			/*
 			 * We're adding something that isn't a
@@ -2615,7 +2617,9 @@ add(qpcache_t *qpdb, qpcnode_t *qpnode,
 				     RDATATYPE_NCACHEANY) ||
 				    (newheader->typepair == sigpair &&
 				     topheader->typepair ==
-					     DNS_TYPEPAIR_VALUE(0, covers)))
+					     DNS_TYPEPAIR_VALUE(
+						     dns_rdatatype_none,
+						     covers)))
 				{
 					break;
 				}
@@ -3135,7 +3139,7 @@ qpcache_deleterdataset(dns_db_t *db, dns_dbnode_t *node,
 	if (type == dns_rdatatype_any) {
 		return ISC_R_NOTIMPLEMENTED;
 	}
-	if (type == dns_rdatatype_rrsig && covers == 0) {
+	if (type == dns_rdatatype_rrsig && covers == dns_rdatatype_none) {
 		return ISC_R_NOTIMPLEMENTED;
 	}
 

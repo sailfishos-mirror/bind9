@@ -1967,7 +1967,7 @@ recvresponse(void *arg) {
 	}
 
 	MSG_SECTION_FOREACH (response, DNS_SECTION_ANSWER, name) {
-		dns_rdatatype_t prevtype = 0;
+		dns_rdatatype_t prevtype = dns_rdatatype_none;
 
 		ISC_LIST_FOREACH (name->list, rdataset, link) {
 			dns_rdataset_t rds, sigs;

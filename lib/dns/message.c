@@ -989,7 +989,7 @@ getquestions(isc_buffer_t *source, dns_message_t *msg, dns_decompress_t dctx,
 		rdatalist = newrdatalist(msg);
 		rdatalist->type = rdtype;
 		rdatalist->rdclass = rdclass;
-		rdatalist->covers = 0;
+		rdatalist->covers = dns_rdatatype_none;
 
 		/*
 		 * Convert rdatalist to rdataset, and attach the latter to
@@ -1253,14 +1253,14 @@ getsection(isc_buffer_t *source, dns_message_t *msg, dns_decompress_t dctx,
 		rdata->rdclass = rdclass;
 		if (rdtype == dns_rdatatype_rrsig && rdata->flags == 0) {
 			covers = dns_rdata_covers(rdata);
-			if (covers == 0) {
+			if (covers == dns_rdatatype_none) {
 				DO_ERROR(DNS_R_FORMERR);
 			}
 		} else if (rdtype == dns_rdatatype_sig /* SIG(0) */ &&
 			   rdata->flags == 0)
 		{
 			covers = dns_rdata_covers(rdata);
-			if (covers == 0) {
+			if (covers == dns_rdatatype_none) {
 				if (sectionid != DNS_SECTION_ADDITIONAL ||
 				    count != msg->counts[sectionid] - 1 ||
 				    !dns_name_equal(name, dns_rootname))
@@ -1280,7 +1280,7 @@ getsection(isc_buffer_t *source, dns_message_t *msg, dns_decompress_t dctx,
 				}
 			}
 		} else {
-			covers = 0;
+			covers = dns_rdatatype_none;
 		}
 
 		/*

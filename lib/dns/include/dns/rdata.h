@@ -151,10 +151,10 @@ enum {
 
 #define DNS_RDATA_CHECKINITIALIZED
 #ifdef DNS_RDATA_CHECKINITIALIZED
-#define DNS_RDATA_INITIALIZED(rdata)                                           \
-	((rdata)->data == NULL && (rdata)->length == 0 &&                      \
-	 (rdata)->rdclass == 0 && (rdata)->type == 0 && (rdata)->flags == 0 && \
-	 !ISC_LINK_LINKED((rdata), link))
+#define DNS_RDATA_INITIALIZED(rdata)                                     \
+	((rdata)->data == NULL && (rdata)->length == 0 &&                \
+	 (rdata)->rdclass == 0 && (rdata)->type == dns_rdatatype_none && \
+	 (rdata)->flags == 0 && !ISC_LINK_LINKED((rdata), link))
 #else /* ifdef DNS_RDATA_CHECKINITIALIZED */
 #ifdef ISC_LIST_CHECKINIT
 #define DNS_RDATA_INITIALIZED(rdata) (!ISC_LINK_LINKED((rdata), link))

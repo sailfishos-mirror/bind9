@@ -7604,7 +7604,8 @@ query_respond_any(query_ctx_t *qctx) {
 	bool found = false, hidden = false;
 	dns_rdatasetiter_t *rdsiter = NULL;
 	isc_result_t result = ISC_R_UNSET;
-	dns_rdatatype_t onetype = 0; /* type to use for minimal-any */
+	dns_rdatatype_t onetype = dns_rdatatype_none; /* type to use for
+							 minimal-any */
 	isc_buffer_t b;
 
 	CCTRACE(ISC_LOG_DEBUG(3), "query_respond_any");
@@ -7671,7 +7672,8 @@ query_respond_any(query_ctx_t *qctx) {
 						  "minimal-any skip signature");
 			dns_rdataset_disassociate(qctx->rdataset);
 		} else if (qctx->view->minimal_any && !TCP(qctx->client) &&
-			   onetype != 0 && qctx->rdataset->type != onetype &&
+			   onetype != dns_rdatatype_none &&
+			   qctx->rdataset->type != onetype &&
 			   qctx->rdataset->covers != onetype)
 		{
 			CCTRACE(ISC_LOG_DEBUG(5), "query_respond_any: "

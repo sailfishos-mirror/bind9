@@ -1645,10 +1645,10 @@ qpzone_findrdataset(dns_db_t *db, dns_dbnode_t *dbnode,
 	NODE_RDLOCK(nlock, &nlocktype);
 
 	typepair = DNS_TYPEPAIR_VALUE(type, covers);
-	if (covers == 0) {
+	if (covers == dns_rdatatype_none) {
 		sigpair = DNS_SIGTYPE(type);
 	} else {
-		sigpair = 0;
+		sigpair = dns_rdatatype_none;
 	}
 
 	for (header = node->data; header != NULL; header = header_next) {
@@ -5122,7 +5122,7 @@ qpzone_deleterdataset(dns_db_t *db, dns_dbnode_t *dbnode,
 	if (type == dns_rdatatype_any) {
 		return ISC_R_NOTIMPLEMENTED;
 	}
-	if (type == dns_rdatatype_rrsig && covers == 0) {
+	if (type == dns_rdatatype_rrsig && covers == dns_rdatatype_none) {
 		return ISC_R_NOTIMPLEMENTED;
 	}
 
