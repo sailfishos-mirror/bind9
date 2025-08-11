@@ -2084,7 +2084,7 @@ doneparsing:
 	dns_message_gettemprdataset(updatemsg, &rdataset);
 	rdatalist->type = rdatatype;
 	rdatalist->rdclass = rdataclass;
-	rdatalist->covers = rdatatype;
+	rdatalist->covers = dns_rdatatype_none;
 	rdatalist->ttl = (dns_ttl_t)ttl;
 	ISC_LIST_APPEND(rdatalist->rdata, rdata, link);
 	dns_rdatalist_tordataset(rdatalist, rdataset);
