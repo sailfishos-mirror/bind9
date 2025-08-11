@@ -154,8 +154,7 @@ dns_ncache_add(dns_message_t *message, dns_db_t *cache, dns_dbnode_t *node,
 					type = rdataset->covers;
 				}
 				if (type == dns_rdatatype_soa ||
-				    type == dns_rdatatype_nsec ||
-				    type == dns_rdatatype_nsec3)
+				    dns_rdatatype_isnsec(type))
 				{
 					if (ttl > rdataset->ttl) {
 						ttl = rdataset->ttl;

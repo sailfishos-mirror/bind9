@@ -123,8 +123,7 @@ dns_nsec3_buildrdata(dns_db_t *db, dns_dbversion_t *version, dns_dbnode_t *node,
 	DNS_RDATASETITER_FOREACH (rdsiter) {
 		dns_rdataset_t rdataset = DNS_RDATASET_INIT;
 		dns_rdatasetiter_current(rdsiter, &rdataset);
-		if (rdataset.type != dns_rdatatype_nsec &&
-		    rdataset.type != dns_rdatatype_nsec3 &&
+		if (!dns_rdatatype_isnsec(rdataset.type) &&
 		    rdataset.type != dns_rdatatype_rrsig)
 		{
 			if (rdataset.type > max_type) {

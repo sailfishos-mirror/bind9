@@ -4376,8 +4376,7 @@ rpz_ck_dnssec(ns_client_t *client, isc_result_t qresult,
 	/*
 	 * Do not rewrite if there is any sign of signatures.
 	 */
-	if (rdataset->type == dns_rdatatype_nsec ||
-	    rdataset->type == dns_rdatatype_nsec3 ||
+	if (dns_rdatatype_isnsec(rdataset->type) ||
 	    rdataset->type == dns_rdatatype_rrsig)
 	{
 		return false;
@@ -4395,9 +4394,7 @@ rpz_ck_dnssec(ns_client_t *client, isc_result_t qresult,
 		dns_ncache_current(rdataset, found, &trdataset);
 		type = trdataset.type;
 		dns_rdataset_disassociate(&trdataset);
-		if (type == dns_rdatatype_nsec || type == dns_rdatatype_nsec3 ||
-		    type == dns_rdatatype_rrsig)
-		{
+		if (dns_rdatatype_isnsec(type) || type == dns_rdatatype_rrsig) {
 			return false;
 		}
 	}
@@ -4732,8 +4729,7 @@ redirect(ns_client_t *client, dns_name_t *name, dns_rdataset_t *rdataset,
 			return ISC_R_NOTFOUND;
 		}
 		if (rdataset->trust == dns_trust_ultimate &&
-		    (rdataset->type == dns_rdatatype_nsec ||
-		     rdataset->type == dns_rdatatype_nsec3))
+		    dns_rdatatype_isnsec(rdataset->type))
 		{
 			return ISC_R_NOTFOUND;
 		}
@@ -4742,8 +4738,7 @@ redirect(ns_client_t *client, dns_name_t *name, dns_rdataset_t *rdataset,
 				dns_ncache_current(rdataset, found, &trdataset);
 				type = trdataset.type;
 				dns_rdataset_disassociate(&trdataset);
-				if (type == dns_rdatatype_nsec ||
-				    type == dns_rdatatype_nsec3 ||
+				if (dns_rdatatype_isnsec(type) ||
 				    type == dns_rdatatype_rrsig)
 				{
 					return ISC_R_NOTFOUND;
@@ -4866,8 +4861,7 @@ redirect2(ns_client_t *client, dns_name_t *name, dns_rdataset_t *rdataset,
 			return ISC_R_NOTFOUND;
 		}
 		if (rdataset->trust == dns_trust_ultimate &&
-		    (rdataset->type == dns_rdatatype_nsec ||
-		     rdataset->type == dns_rdatatype_nsec3))
+		    dns_rdatatype_isnsec(rdataset->type))
 		{
 			return ISC_R_NOTFOUND;
 		}
@@ -4876,8 +4870,7 @@ redirect2(ns_client_t *client, dns_name_t *name, dns_rdataset_t *rdataset,
 				dns_ncache_current(rdataset, found, &trdataset);
 				type = trdataset.type;
 				dns_rdataset_disassociate(&trdataset);
-				if (type == dns_rdatatype_nsec ||
-				    type == dns_rdatatype_nsec3 ||
+				if (dns_rdatatype_isnsec(type) ||
 				    type == dns_rdatatype_rrsig)
 				{
 					return ISC_R_NOTFOUND;

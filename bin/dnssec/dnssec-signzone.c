@@ -214,8 +214,7 @@ dumpnode(dns_name_t *name, dns_dbnode_t *node) {
 		dns_rdatasetiter_current(iter, &rds);
 
 		if (rds.type != dns_rdatatype_rrsig &&
-		    rds.type != dns_rdatatype_nsec &&
-		    rds.type != dns_rdatatype_nsec3 &&
+		    !dns_rdatatype_isnsec(rds.type) &&
 		    rds.type != dns_rdatatype_nsec3param &&
 		    (!smartsign || rds.type != dns_rdatatype_dnskey))
 		{
@@ -1264,9 +1263,7 @@ active_node(dns_dbnode_t *node) {
 		dns_rdatatype_t t = rdataset.type;
 		dns_rdataset_disassociate(&rdataset);
 
-		if (t != dns_rdatatype_nsec && t != dns_rdatatype_nsec3 &&
-		    t != dns_rdatatype_rrsig)
-		{
+		if (!dns_rdatatype_isnsec(t) && t != dns_rdatatype_rrsig) {
 			active = true;
 			break;
 		}

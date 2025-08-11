@@ -3867,8 +3867,7 @@ found:
 			 * cut or not.  It is needed for RFC3007
 			 * validated updates.
 			 */
-			if (type == dns_rdatatype_nsec ||
-			    type == dns_rdatatype_nsec3 ||
+			if (dns_rdatatype_isnsec(type) ||
 			    type == dns_rdatatype_key)
 			{
 				result = ISC_R_SUCCESS;

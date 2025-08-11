@@ -750,11 +750,9 @@ failure:
 static isc_result_t
 is_non_nsec_action(void *data, dns_rdataset_t *rrset) {
 	UNUSED(data);
-	if (!(rrset->type == dns_rdatatype_nsec ||
-	      rrset->type == dns_rdatatype_nsec3 ||
+	if (!(dns_rdatatype_isnsec(rrset->type) ||
 	      (rrset->type == dns_rdatatype_rrsig &&
-	       (rrset->covers == dns_rdatatype_nsec ||
-		rrset->covers == dns_rdatatype_nsec3))))
+	       dns_rdatatype_isnsec(rrset->covers))))
 	{
 		return ISC_R_EXISTS;
 	}

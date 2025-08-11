@@ -737,6 +737,14 @@ dns_rdatatype_issig(dns_rdatatype_t type) {
 }
 
 /*%
+ * Return true iff the rdata type is a insecurity proof: either NSEC or NSEC3.
+ */
+static inline bool
+dns_rdatatype_isnsec(dns_rdatatype_t type) {
+	return type == dns_rdatatype_nsec || type == dns_rdatatype_nsec3;
+}
+
+/*%
  * Return true iff the rdata type is an address: either A or AAAA.
  */
 static inline bool
