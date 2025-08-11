@@ -1092,29 +1092,6 @@ deleterdataset(dns_db_t *db, dns_dbnode_t *node, dns_dbversion_t *version,
 	return result;
 }
 
-/*
- * getoriginnode() is used by the update code to find the
- * dns_rdatatype_dnskey record for a zone
- */
-static isc_result_t
-getoriginnode(dns_db_t *db, dns_dbnode_t **nodep DNS__DB_FLARG) {
-	dns_sdlz_db_t *sdlz = (dns_sdlz_db_t *)db;
-	isc_result_t result;
-
-	REQUIRE(VALID_SDLZDB(sdlz));
-	if (sdlz->dlzimp->methods->newversion == NULL) {
-		return ISC_R_NOTIMPLEMENTED;
-	}
-
-	result = getnodedata(db, &sdlz->common.origin, false, 0, NULL, NULL,
-			     nodep);
-	if (result != ISC_R_SUCCESS) {
-		sdlz_log(ISC_LOG_ERROR, "sdlz getoriginnode failed: %s",
-			 isc_result_totext(result));
-	}
-	return result;
-}
-
 static dns_dbmethods_t sdlzdb_methods = {
 	.destroy = destroy,
 	.currentversion = currentversion,
@@ -1129,7 +1106,6 @@ static dns_dbmethods_t sdlzdb_methods = {
 	.addrdataset = addrdataset,
 	.subtractrdataset = subtractrdataset,
 	.deleterdataset = deleterdataset,
-	.getoriginnode = getoriginnode,
 };
 
 /*

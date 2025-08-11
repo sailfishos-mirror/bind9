@@ -823,41 +823,6 @@ destroynode(bdbnode_t *node) {
 }
 
 static isc_result_t
-getoriginnode(dns_db_t *db, dns_dbnode_t **nodep DNS__DB_FLARG) {
-	bdb_t *bdb = (bdb_t *)db;
-	bdbnode_t *node = NULL;
-	isc_result_t result;
-	dns_name_t relname;
-	dns_name_t *name = NULL;
-
-	REQUIRE(VALID_BDB(bdb));
-	REQUIRE(nodep != NULL && *nodep == NULL);
-
-	dns_name_init(&relname);
-	name = &relname;
-
-	result = createnode(bdb, &node);
-	if (result != ISC_R_SUCCESS) {
-		return result;
-	}
-
-	result = builtin_lookup(bdb, name, node);
-	if (result != ISC_R_SUCCESS && result != ISC_R_NOTFOUND) {
-		destroynode(node);
-		return result;
-	}
-
-	result = builtin_authority(bdb, node);
-	if (result != ISC_R_SUCCESS) {
-		destroynode(node);
-		return result;
-	}
-
-	*nodep = (dns_dbnode_t *)node;
-	return ISC_R_SUCCESS;
-}
-
-static isc_result_t
 findnode(dns_db_t *db, const dns_name_t *name, bool create,
 	 dns_clientinfomethods_t *methods ISC_ATTR_UNUSED,
 	 dns_clientinfo_t *clientinfo ISC_ATTR_UNUSED,
@@ -1154,7 +1119,6 @@ static dns_dbmethods_t bdb_methods = {
 	.closeversion = closeversion,
 	.findrdataset = findrdataset,
 	.allrdatasets = allrdatasets,
-	.getoriginnode = getoriginnode,
 	.findnode = findnode,
 	.find = find,
 };

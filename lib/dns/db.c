@@ -797,6 +797,9 @@ dns__db_getoriginnode(dns_db_t *db, dns_dbnode_t **nodep DNS__DB_FLARG) {
 	if (db->methods->getoriginnode != NULL) {
 		return (db->methods->getoriginnode)(db,
 						    nodep DNS__DB_FLARG_PASS);
+	} else if (db->methods->findnode != NULL) {
+		return (db->methods->findnode)(db, &db->origin, false, NULL,
+					       NULL, nodep DNS__DB_FLARG_PASS);
 	}
 
 	return ISC_R_NOTFOUND;
