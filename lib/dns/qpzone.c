@@ -445,7 +445,7 @@ resign_sooner(void *v1, void *v2) {
 	return h1->resign < h2->resign ||
 	       (h1->resign == h2->resign && h1->resign_lsb < h2->resign_lsb) ||
 	       (h1->resign == h2->resign && h1->resign_lsb == h2->resign_lsb &&
-		h2->typepair == DNS_SIGTYPE(dns_rdatatype_soa));
+		h2->typepair == DNS_SIGTYPEPAIR(dns_rdatatype_soa));
 }
 
 /*%
@@ -1646,7 +1646,7 @@ qpzone_findrdataset(dns_db_t *db, dns_dbnode_t *dbnode,
 
 	typepair = DNS_TYPEPAIR_VALUE(type, covers);
 	if (covers == dns_rdatatype_none) {
-		sigpair = DNS_SIGTYPE(type);
+		sigpair = DNS_SIGTYPEPAIR(type);
 	} else {
 		sigpair = dns_typepair_none;
 	}
@@ -3111,7 +3111,7 @@ find_closest_nsec(qpz_search_t *search, dns_dbnode_t **nodep,
 	dns_rdatatype_t matchtype = nsec3 ? dns_rdatatype_nsec3
 					  : dns_rdatatype_nsec;
 	dns_typepair_t typepair = DNS_TYPEPAIR(matchtype);
-	dns_typepair_t sigpair = DNS_SIGTYPE(matchtype);
+	dns_typepair_t sigpair = DNS_SIGTYPEPAIR(matchtype);
 	bool wraps = nsec3;
 	bool first = true;
 	bool need_sig = secure;
@@ -3280,7 +3280,7 @@ qpzone_check_zonecut(qpznode_t *node, void *arg DNS__DB_FLARG) {
 		header_next = header->next;
 		if (header->typepair == dns_rdatatype_ns ||
 		    header->typepair == dns_rdatatype_dname ||
-		    header->typepair == DNS_SIGTYPE(dns_rdatatype_dname))
+		    header->typepair == DNS_SIGTYPEPAIR(dns_rdatatype_dname))
 		{
 			do {
 				if (header->serial <= search->serial &&
@@ -3298,7 +3298,7 @@ qpzone_check_zonecut(qpznode_t *node, void *arg DNS__DB_FLARG) {
 				if (header->typepair == dns_rdatatype_dname) {
 					dname_header = header;
 				} else if (header->typepair ==
-					   DNS_SIGTYPE(dns_rdatatype_dname))
+					   DNS_SIGTYPEPAIR(dns_rdatatype_dname))
 				{
 					sigdname_header = header;
 				} else if (node != search->qpdb->origin ||
@@ -3603,7 +3603,7 @@ found:
 	 * We now go looking for rdata...
 	 */
 
-	sigpair = DNS_SIGTYPE(type);
+	sigpair = DNS_SIGTYPEPAIR(type);
 	empty_node = true;
 	for (header = node->data; header != NULL; header = header_next) {
 		header_next = header->next;
@@ -3707,7 +3707,7 @@ found:
 					if (cnamesig != NULL) {
 						foundsig = cnamesig;
 					} else {
-						sigpair = DNS_SIGTYPE(
+						sigpair = DNS_SIGTYPEPAIR(
 							dns_rdatatype_cname);
 					}
 				}
@@ -3739,7 +3739,8 @@ found:
 				 */
 				nsecheader = header;
 			} else if (header->typepair ==
-					   DNS_SIGTYPE(dns_rdatatype_nsec) &&
+					   DNS_SIGTYPEPAIR(
+						   dns_rdatatype_nsec) &&
 				   !search.version->havensec3)
 			{
 				/*
@@ -3749,7 +3750,7 @@ found:
 				nsecsig = header;
 			} else if (cname_ok &&
 				   header->typepair ==
-					   DNS_SIGTYPE(dns_rdatatype_cname))
+					   DNS_SIGTYPEPAIR(dns_rdatatype_cname))
 			{
 				/*
 				 * If we get a CNAME match, we'll also need

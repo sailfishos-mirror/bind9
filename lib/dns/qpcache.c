@@ -1279,7 +1279,7 @@ static bool
 both_headers(dns_slabheader_t *header, dns_rdatatype_t type,
 	     dns_slabheader_t **foundp, dns_slabheader_t **foundsigp) {
 	dns_typepair_t typepair = DNS_TYPEPAIR_VALUE(type, 0);
-	dns_typepair_t sigpair = DNS_SIGTYPE(type);
+	dns_typepair_t sigpair = DNS_SIGTYPEPAIR(type);
 
 	bool done = related_headers(header, typepair, sigpair, foundp,
 				    foundsigp, NULL);
@@ -1671,7 +1671,7 @@ qpcache_find(dns_db_t *db, const dns_name_t *name, dns_dbversion_t *version,
 	found = NULL;
 	foundsig = NULL;
 	typepair = DNS_TYPEPAIR(type);
-	sigpair = DNS_SIGTYPE(type);
+	sigpair = DNS_SIGTYPEPAIR(type);
 	nsheader = NULL;
 	nsecheader = NULL;
 	nssig = NULL;
@@ -1749,11 +1749,11 @@ qpcache_find(dns_db_t *db, const dns_name_t *name, dns_dbversion_t *version,
 				foundsig = cnamesig;
 			} else {
 				/* Look for CNAME signature instead */
-				sigpair = DNS_SIGTYPE(dns_rdatatype_cname);
+				sigpair = DNS_SIGTYPEPAIR(dns_rdatatype_cname);
 				foundsig = NULL;
 			}
 			break;
-		case DNS_SIGTYPE(dns_rdatatype_cname):
+		case DNS_SIGTYPEPAIR(dns_rdatatype_cname):
 			if (!cname_ok) {
 				break;
 			}
@@ -1764,7 +1764,7 @@ qpcache_find(dns_db_t *db, const dns_name_t *name, dns_dbversion_t *version,
 			/* Remember the NS rdataset */
 			nsheader = header;
 			break;
-		case DNS_SIGTYPE(dns_rdatatype_ns):
+		case DNS_SIGTYPEPAIR(dns_rdatatype_ns):
 			/* ...and its signature */
 			nssig = header;
 			break;
@@ -1772,7 +1772,7 @@ qpcache_find(dns_db_t *db, const dns_name_t *name, dns_dbversion_t *version,
 		case dns_rdatatype_nsec:
 			nsecheader = header;
 			break;
-		case DNS_SIGTYPE(dns_rdatatype_nsec):
+		case DNS_SIGTYPEPAIR(dns_rdatatype_nsec):
 			nsecsig = header;
 			break;
 
@@ -1951,7 +1951,7 @@ seek_ns_headers(qpc_search_t *search, qpcnode_t *node, dns_dbnode_t **nodep,
 	for (header = node->data; header != NULL; header = header_next) {
 		header_next = header->next;
 		bool ns = header->typepair == DNS_TYPEPAIR(dns_rdatatype_ns) ||
-			  header->typepair == DNS_SIGTYPE(dns_rdatatype_ns);
+			  header->typepair == DNS_SIGTYPEPAIR(dns_rdatatype_ns);
 		if (check_stale_header(header, search, &header_prev)) {
 			if (ns) {
 				/*
@@ -2119,7 +2119,7 @@ qpcache_findrdataset(dns_db_t *db, dns_dbnode_t *node, dns_dbversion_t *version,
 	NODE_RDLOCK(nlock, &nlocktype);
 
 	typepair = DNS_TYPEPAIR_VALUE(type, covers);
-	sigpair = !dns_rdatatype_issig(type) ? DNS_SIGTYPE(type)
+	sigpair = !dns_rdatatype_issig(type) ? DNS_SIGTYPEPAIR(type)
 					     : dns_typepair_none;
 
 	for (header = qpnode->data; header != NULL; header = header_next) {
@@ -2582,7 +2582,7 @@ add(qpcache_t *qpdb, qpcnode_t *qpnode,
 	dns_rdatatype_t rdtype = DNS_TYPEPAIR_TYPE(newheader->typepair);
 	dns_rdatatype_t covers = DNS_TYPEPAIR_COVERS(newheader->typepair);
 	dns_typepair_t sigpair = !dns_rdatatype_issig(rdtype)
-					 ? DNS_SIGTYPE(rdtype)
+					 ? DNS_SIGTYPEPAIR(rdtype)
 					 : dns_typepair_none;
 
 	REQUIRE(rdtype != dns_rdatatype_none);
@@ -2822,7 +2822,7 @@ find_header:
 		    (header->typepair == DNS_TYPEPAIR(dns_rdatatype_a) ||
 		     header->typepair == DNS_TYPEPAIR(dns_rdatatype_aaaa) ||
 		     header->typepair == DNS_TYPEPAIR(dns_rdatatype_ds) ||
-		     header->typepair == DNS_SIGTYPE(dns_rdatatype_ds)) &&
+		     header->typepair == DNS_SIGTYPEPAIR(dns_rdatatype_ds)) &&
 		    EXISTS(header) && EXISTS(newheader) &&
 		    header->trust >= newheader->trust &&
 		    dns_rdataslab_equal(header, newheader))
