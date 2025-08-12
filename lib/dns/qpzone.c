@@ -70,9 +70,9 @@
 			goto failure;        \
 	} while (0)
 
-#define NONEXISTENT(header)                            \
+#define EXISTS(header)                                 \
 	((atomic_load_acquire(&(header)->attributes) & \
-	  DNS_SLABHEADERATTR_NONEXISTENT) != 0)
+	  DNS_SLABHEADERATTR_NONEXISTENT) == 0)
 #define IGNORE(header)                                 \
 	((atomic_load_acquire(&(header)->attributes) & \
 	  DNS_SLABHEADERATTR_IGNORE) != 0)
@@ -1123,7 +1123,7 @@ setnsec3parameters(dns_db_t *db, qpz_version_t *version) {
 			if (header->serial <= version->serial &&
 			    !IGNORE(header))
 			{
-				if (NONEXISTENT(header)) {
+				if (!EXISTS(header)) {
 					header = NULL;
 				}
 				break;
@@ -1655,7 +1655,7 @@ qpzone_findrdataset(dns_db_t *db, dns_dbnode_t *dbnode,
 		header_next = header->next;
 		do {
 			if (header->serial <= serial && !IGNORE(header)) {
-				if (NONEXISTENT(header)) {
+				if (!EXISTS(header)) {
 					header = NULL;
 				}
 				break;
@@ -1787,7 +1787,7 @@ cname_and_other(qpznode_t *node, uint32_t serial) {
 			do {
 				if (header->serial <= serial && !IGNORE(header))
 				{
-					if (NONEXISTENT(header)) {
+					if (!EXISTS(header)) {
 						header = NULL;
 					}
 					break;
@@ -1805,7 +1805,7 @@ cname_and_other(qpznode_t *node, uint32_t serial) {
 			do {
 				if (header->serial <= serial && !IGNORE(header))
 				{
-					if (NONEXISTENT(header)) {
+					if (!EXISTS(header)) {
 						header = NULL;
 					}
 					break;
@@ -1862,7 +1862,7 @@ recordsize(dns_slabheader_t *header, unsigned int namelen) {
 static void
 maybe_update_recordsandsize(bool add, qpz_version_t *version,
 			    dns_slabheader_t *header, unsigned int namelen) {
-	if (NONEXISTENT(header)) {
+	if (!EXISTS(header)) {
 		return;
 	}
 
@@ -1934,7 +1934,7 @@ add(qpzonedb_t *qpdb, qpznode_t *node, const dns_name_t *nodename,
 		 * we'll try to create a new rdataset that is the union
 		 * of 'newheader' and 'header'.
 		 */
-		if (merge && !NONEXISTENT(header)) {
+		if (merge && EXISTS(header)) {
 			unsigned int flags = 0;
 			INSIST(version->serial >= header->serial);
 			merged = NULL;
@@ -2043,7 +2043,7 @@ add(qpzonedb_t *qpdb, qpznode_t *node, const dns_name_t *nodename,
 		 *
 		 * If we're trying to delete the type, don't bother.
 		 */
-		if (NONEXISTENT(newheader)) {
+		if (!EXISTS(newheader)) {
 			dns_slabheader_destroy(&newheader);
 			return DNS_R_UNCHANGED;
 		}
@@ -2751,7 +2751,7 @@ step(qpz_search_t *search, dns_qpiter_t *it, direction_t direction,
 				if (header->serial <= search->serial &&
 				    !IGNORE(header))
 				{
-					if (NONEXISTENT(header)) {
+					if (!EXISTS(header)) {
 						header = NULL;
 					}
 					break;
@@ -2914,7 +2914,7 @@ find_wildcard(qpz_search_t *search, qpznode_t **nodep, const dns_name_t *qname,
 		for (header = node->data; header != NULL; header = header->next)
 		{
 			if (header->serial <= search->serial &&
-			    !IGNORE(header) && !NONEXISTENT(header))
+			    !IGNORE(header) && EXISTS(header))
 			{
 				break;
 			}
@@ -2954,8 +2954,7 @@ find_wildcard(qpz_search_t *search, qpznode_t **nodep, const dns_name_t *qname,
 				     header = header->next)
 				{
 					if (header->serial <= search->serial &&
-					    !IGNORE(header) &&
-					    !NONEXISTENT(header))
+					    !IGNORE(header) && EXISTS(header))
 					{
 						break;
 					}
@@ -3141,7 +3140,7 @@ again:
 				if (header->serial <= search->serial &&
 				    !IGNORE(header))
 				{
-					if (NONEXISTENT(header)) {
+					if (!EXISTS(header)) {
 						header = NULL;
 					}
 					break;
@@ -3286,7 +3285,7 @@ qpzone_check_zonecut(qpznode_t *node, void *arg DNS__DB_FLARG) {
 				if (header->serial <= search->serial &&
 				    !IGNORE(header))
 				{
-					if (NONEXISTENT(header)) {
+					if (!EXISTS(header)) {
 						header = NULL;
 					}
 					break;
@@ -3613,7 +3612,7 @@ found:
 		do {
 			if (header->serial <= search.serial && !IGNORE(header))
 			{
-				if (NONEXISTENT(header)) {
+				if (!EXISTS(header)) {
 					header = NULL;
 				}
 				break;
@@ -4130,7 +4129,7 @@ rdatasetiter_first(dns_rdatasetiter_t *iterator DNS__DB_FLARG) {
 			if (header->serial <= version->serial &&
 			    !IGNORE(header))
 			{
-				if (NONEXISTENT(header)) {
+				if (!EXISTS(header)) {
 					header = NULL;
 				}
 				break;
@@ -4183,7 +4182,7 @@ rdatasetiter_next(dns_rdatasetiter_t *iterator DNS__DB_FLARG) {
 			if (header->serial <= version->serial &&
 			    !IGNORE(header))
 			{
-				if (NONEXISTENT(header)) {
+				if (!EXISTS(header)) {
 					header = NULL;
 				}
 				break;
@@ -4994,7 +4993,7 @@ qpzone_subtractrdataset(dns_db_t *db, dns_dbnode_t *dbnode,
 	while (header != NULL && IGNORE(header)) {
 		header = header->down;
 	}
-	if (header != NULL && !NONEXISTENT(header)) {
+	if (header != NULL && EXISTS(header)) {
 		unsigned int flags = 0;
 		subresult = NULL;
 		result = ISC_R_SUCCESS;
