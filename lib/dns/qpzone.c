@@ -62,6 +62,7 @@
 
 #include "db_p.h"
 #include "qpzone_p.h"
+#include "rdataslab_p.h"
 
 #define CHECK(op)                            \
 	do {                                 \
@@ -69,22 +70,6 @@
 		if (result != ISC_R_SUCCESS) \
 			goto failure;        \
 	} while (0)
-
-#define EXISTS(header)                                 \
-	((atomic_load_acquire(&(header)->attributes) & \
-	  DNS_SLABHEADERATTR_NONEXISTENT) == 0)
-#define IGNORE(header)                                 \
-	((atomic_load_acquire(&(header)->attributes) & \
-	  DNS_SLABHEADERATTR_IGNORE) != 0)
-#define RESIGN(header)                                 \
-	((atomic_load_acquire(&(header)->attributes) & \
-	  DNS_SLABHEADERATTR_RESIGN) != 0)
-#define OPTOUT(header)                                 \
-	((atomic_load_acquire(&(header)->attributes) & \
-	  DNS_SLABHEADERATTR_OPTOUT) != 0)
-#define STATCOUNT(header)                              \
-	((atomic_load_acquire(&(header)->attributes) & \
-	  DNS_SLABHEADERATTR_STATCOUNT) != 0)
 
 #define HEADERNODE(h) ((qpznode_t *)((h)->node))
 

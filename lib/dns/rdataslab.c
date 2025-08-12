@@ -30,18 +30,7 @@
 #include <dns/rdataslab.h>
 #include <dns/stats.h>
 
-#define CASESET(header)                                \
-	((atomic_load_acquire(&(header)->attributes) & \
-	  DNS_SLABHEADERATTR_CASESET) != 0)
-#define CASEFULLYLOWER(header)                         \
-	((atomic_load_acquire(&(header)->attributes) & \
-	  DNS_SLABHEADERATTR_CASEFULLYLOWER) != 0)
-#define NONEXISTENT(header)                            \
-	((atomic_load_acquire(&(header)->attributes) & \
-	  DNS_SLABHEADERATTR_NONEXISTENT) != 0)
-#define NEGATIVE(header)                               \
-	((atomic_load_acquire(&(header)->attributes) & \
-	  DNS_SLABHEADERATTR_NEGATIVE) != 0)
+#include "rdataslab_p.h"
 
 /*
  * The rdataslab structure allows iteration to occur in both load order
@@ -915,10 +904,10 @@ dns_slabheader_destroy(dns_slabheader_t **headerp) {
 	isc_mem_t *mctx = header->node->mctx;
 	dns_db_deletedata(header->node, header);
 
-	if (NONEXISTENT(header)) {
-		size = sizeof(*header);
-	} else {
+	if (EXISTS(header)) {
 		size = dns_rdataslab_size(header);
+	} else {
+		size = sizeof(*header);
 	}
 
 	isc_mem_put(mctx, header, size);
