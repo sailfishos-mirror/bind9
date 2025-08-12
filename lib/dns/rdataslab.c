@@ -18,6 +18,7 @@
 #include <stdlib.h>
 
 #include <isc/ascii.h>
+#include <isc/atomic.h>
 #include <isc/mem.h>
 #include <isc/region.h>
 #include <isc/result.h>
@@ -833,36 +834,38 @@ dns_slabheader_raw(dns_slabheader_t *header) {
 
 void
 dns_slabheader_setownercase(dns_slabheader_t *header, const dns_name_t *name) {
-	unsigned int i;
-	bool fully_lower;
+	REQUIRE(!CASESET(header));
+
+	bool casefullylower = true;
 
 	/*
 	 * We do not need to worry about label lengths as they are all
 	 * less than or equal to 63.
 	 */
 	memset(header->upper, 0, sizeof(header->upper));
-	fully_lower = true;
-	for (i = 0; i < name->length; i++) {
+	for (size_t i = 0; i < name->length; i++) {
 		if (isupper(name->ndata[i])) {
 			header->upper[i / 8] |= 1 << (i % 8);
-			fully_lower = false;
+			casefullylower = false;
 		}
 	}
-	DNS_SLABHEADER_SETATTR(header, DNS_SLABHEADERATTR_CASESET);
-	if (fully_lower) {
+	if (casefullylower) {
 		DNS_SLABHEADER_SETATTR(header,
 				       DNS_SLABHEADERATTR_CASEFULLYLOWER);
 	}
+	DNS_SLABHEADER_SETATTR(header, DNS_SLABHEADERATTR_CASESET);
 }
 
 void
 dns_slabheader_copycase(dns_slabheader_t *dest, dns_slabheader_t *src) {
+	REQUIRE(!CASESET(dest));
 	if (CASESET(src)) {
-		uint_least16_t attr = DNS_SLABHEADER_GETATTR(
-			src, DNS_SLABHEADERATTR_CASESET |
-				     DNS_SLABHEADERATTR_CASEFULLYLOWER);
-		DNS_SLABHEADER_SETATTR(dest, attr);
 		memmove(dest->upper, src->upper, sizeof(src->upper));
+		if (CASEFULLYLOWER(src)) {
+			DNS_SLABHEADER_SETATTR(
+				dest, DNS_SLABHEADERATTR_CASEFULLYLOWER);
+		}
+		DNS_SLABHEADER_SETATTR(dest, DNS_SLABHEADERATTR_CASESET);
 	}
 }
 
@@ -1198,7 +1201,10 @@ static void
 rdataset_setownercase(dns_rdataset_t *rdataset, const dns_name_t *name) {
 	dns_slabheader_t *header = dns_rdataset_getheader(rdataset);
 
-	DNS_SLABHEADER_CLRATTR(header, DNS_SLABHEADERATTR_CASEFULLYLOWER);
+	/* The case could be set just once for the same header */
+	if (CASESET(header)) {
+		return;
+	}
 
 	dns_db_locknode(header->node, isc_rwlocktype_write);
 	dns_slabheader_setownercase(header, name);
@@ -1211,26 +1217,26 @@ rdataset_getownercase(const dns_rdataset_t *rdataset, dns_name_t *name) {
 	uint8_t mask = (1 << 7);
 	uint8_t bits = 0;
 
+	if (!CASESET(header)) {
+		return;
+	}
+
 	if (CASEFULLYLOWER(header)) {
 		isc_ascii_lowercopy(name->ndata, name->ndata, name->length);
 		return;
 	}
 
-	dns_db_locknode(header->node, isc_rwlocktype_read);
-	if (CASESET(header)) {
-		uint8_t *nd = name->ndata;
-		for (size_t i = 0; i < name->length; i++) {
-			if (mask == (1 << 7)) {
-				bits = header->upper[i / 8];
-				mask = 1;
-			} else {
-				mask <<= 1;
-			}
-			nd[i] = (bits & mask) ? isc_ascii_toupper(nd[i])
-					      : isc_ascii_tolower(nd[i]);
+	uint8_t *nd = name->ndata;
+	for (size_t i = 0; i < name->length; i++) {
+		if (mask == (1 << 7)) {
+			bits = header->upper[i / 8];
+			mask = 1;
+		} else {
+			mask <<= 1;
 		}
+		nd[i] = (bits & mask) ? isc_ascii_toupper(nd[i])
+				      : isc_ascii_tolower(nd[i]);
 	}
-	dns_db_unlocknode(header->node, isc_rwlocktype_read);
 }
 
 static dns_slabheader_t *
