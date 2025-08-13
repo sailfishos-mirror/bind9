@@ -592,7 +592,6 @@ stages:
     - *setup_interfaces
     - git clone --depth 1 https://gitlab.isc.org/isc-projects/bind9-qa.git
     - cd bind9-qa/respdiff
-    - sed -i -e 's|bin/named/|build/|g' -e 's|awk "/\\/bin\\/named\\/|awk "/build|g' respdiff.sh
   needs: []
   artifacts:
     paths:
