@@ -346,7 +346,6 @@ dns_rdataslab_fromrdataset(dns_rdataset_t *rdataset, isc_mem_t *mctx,
 			.typepair = typepair,
 			.trust = rdataset->trust,
 			.ttl = rdataset->ttl,
-			.link = ISC_LINK_INITIALIZER,
 		};
 	}
 
@@ -858,11 +857,9 @@ dns_slabheader_copycase(dns_slabheader_t *dest, dns_slabheader_t *src) {
 
 void
 dns_slabheader_reset(dns_slabheader_t *h, dns_dbnode_t *node) {
-	ISC_LINK_INIT(h, link);
 	h->heap_index = 0;
 	h->heap = NULL;
 	h->node = node;
-	h->visited = false;
 
 	atomic_init(&h->attributes, 0);
 	atomic_init(&h->last_refresh_fail_ts, 0);
@@ -878,7 +875,6 @@ dns_slabheader_new(isc_mem_t *mctx, dns_dbnode_t *node) {
 
 	h = isc_mem_get(mctx, sizeof(*h));
 	*h = (dns_slabheader_t){
-		.link = ISC_LINK_INITIALIZER,
 		.node = node,
 	};
 	return h;
@@ -1246,6 +1242,7 @@ dns_slabtop_new(isc_mem_t *mctx, dns_typepair_t typepair) {
 	dns_slabtop_t *top = isc_mem_get(mctx, sizeof(*top));
 	*top = (dns_slabtop_t){
 		.typepair = typepair,
+		.link = ISC_LINK_INITIALIZER,
 	};
 
 	return top;

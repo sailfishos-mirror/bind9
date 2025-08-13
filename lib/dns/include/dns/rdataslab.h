@@ -69,6 +69,11 @@ struct dns_slabtop {
 	dns_slabtop_t	 *next;
 	dns_slabheader_t *header;
 	dns_typepair_t	  typepair;
+
+	/*% Used for SIEVE-LRU (cache) and changed_list (zone) */
+	ISC_LINK(struct dns_slabtop) link;
+	/*% Used for SIEVE-LRU */
+	bool visited;
 };
 
 struct dns_slabheader {
@@ -131,11 +136,6 @@ struct dns_slabheader {
 	 */
 
 	dns_gluelist_t *gluelist;
-
-	/*% Used for SIEVE-LRU (cache) and changed_list (zone) */
-	ISC_LINK(struct dns_slabheader) link;
-	/*% Used for SIEVE-LRU */
-	bool visited;
 
 	/*%
 	 * Case vector.  If the bit is set then the corresponding

@@ -113,6 +113,13 @@ typedef struct qpz_changed {
 
 typedef ISC_LIST(qpz_changed_t) qpz_changedlist_t;
 
+typedef struct qpz_resigned {
+	dns_slabheader_t *header;
+	ISC_LINK(struct qpz_resigned) link;
+} qpz_resigned_t;
+
+typedef ISC_LIST(qpz_resigned_t) qpz_resignedlist_t;
+
 typedef struct qpz_version qpz_version_t;
 struct qpz_version {
 	/* Not locked */
@@ -122,7 +129,7 @@ struct qpz_version {
 	/* Locked by database lock. */
 	bool writer;
 	qpz_changedlist_t changed_list;
-	dns_slabheaderlist_t resigned_list;
+	qpz_resignedlist_t resigned_list;
 	ISC_LINK(qpz_version_t) link;
 	bool secure;
 	bool havensec3;
@@ -1284,7 +1291,6 @@ newversion(dns_db_t *db, dns_dbversion_t **versionp) {
 static void
 resigninsert(dns_slabheader_t *newheader) {
 	REQUIRE(newheader->heap_index == 0);
-	REQUIRE(!ISC_LINK_LINKED(newheader, link));
 
 	LOCK(get_heap_lock(newheader));
 	isc_heap_insert(HEADERNODE(newheader)->heap->heap, newheader);
@@ -1304,7 +1310,15 @@ resigndelete(qpzonedb_t *qpdb ISC_ATTR_UNUSED, qpz_version_t *version,
 
 	header->heap_index = 0;
 	qpznode_acquire(qpdb, HEADERNODE(header) DNS__DB_FLARG_PASS);
-	ISC_LIST_APPEND(version->resigned_list, header, link);
+
+	qpz_resigned_t *resigned = isc_mem_get(((dns_db_t *)qpdb)->mctx,
+					       sizeof(*resigned));
+	*resigned = (qpz_resigned_t){
+		.header = header,
+		.link = ISC_LINK_INITIALIZER,
+	};
+
+	ISC_LIST_APPEND(version->resigned_list, resigned, link);
 }
 
 static void
@@ -1358,7 +1372,7 @@ closeversion(dns_db_t *db, dns_dbversion_t **versionp,
 	qpznode_t *node = NULL;
 	bool rollback = false;
 	qpz_changedlist_t cleanup_list;
-	dns_slabheaderlist_t resigned_list;
+	qpz_resignedlist_t resigned_list;
 	uint32_t serial, least_serial;
 
 	REQUIRE(VALID_QPZONE(qpdb));
@@ -1532,11 +1546,14 @@ closeversion(dns_db_t *db, dns_dbversion_t **versionp,
 	/*
 	 * Commit/rollback re-signed headers.
 	 */
-	ISC_LIST_FOREACH (resigned_list, header, link) {
+	ISC_LIST_FOREACH (resigned_list, resigned, link) {
 		isc_rwlock_t *nlock = NULL;
 		isc_rwlocktype_t nlocktype = isc_rwlocktype_none;
+		dns_slabheader_t *header = resigned->header;
 
-		ISC_LIST_UNLINK(resigned_list, header, link);
+		ISC_LIST_UNLINK(resigned_list, resigned, link);
+
+		isc_mem_put(db->mctx, resigned, sizeof(*resigned));
 
 		nlock = qpzone_get_lock(HEADERNODE(header));
 		NODE_WRLOCK(nlock, &nlocktype);

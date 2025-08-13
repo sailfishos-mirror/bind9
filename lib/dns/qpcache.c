@@ -201,13 +201,13 @@ typedef struct qpcache_bucket {
 	isc_heap_t *heap;
 
 	/* SIEVE-LRU cache cleaning state. */
-	ISC_SIEVE(dns_slabheader_t) sieve;
+	ISC_SIEVE(dns_slabtop_t) sieve;
 
 	/* Padding to prevent false sharing between locks. */
 	uint8_t __padding[ISC_OS_CACHELINE_SIZE -
 			  (sizeof(isc_queue_t) + sizeof(isc_rwlock_t) +
 			   sizeof(isc_heap_t *) +
-			   sizeof(ISC_SIEVE(dns_slabheader_t))) %
+			   sizeof(ISC_SIEVE(dns_slabtop_t))) %
 				  ISC_OS_CACHELINE_SIZE];
 
 } qpcache_bucket_t;
@@ -486,13 +486,15 @@ expire_lru_headers(qpcache_t *qpdb, uint32_t idx, size_t requested,
 	size_t expired = 0;
 
 	do {
-		dns_slabheader_t *header =
-			ISC_SIEVE_NEXT(qpdb->buckets[idx].sieve, visited, link);
-		if (header == NULL) {
+		dns_slabtop_t *top = ISC_SIEVE_NEXT(qpdb->buckets[idx].sieve,
+						    visited, link);
+		if (top == NULL) {
 			return;
 		}
 
-		ISC_SIEVE_UNLINK(qpdb->buckets[idx].sieve, header, link);
+		ISC_SIEVE_UNLINK(qpdb->buckets[idx].sieve, top, link);
+
+		dns_slabheader_t *header = top->header;
 
 		expired += rdataset_size(header);
 
@@ -529,7 +531,7 @@ qpcache_miss(qpcache_t *qpdb, dns_slabheader_t *newheader,
 				   tlocktypep DNS__DB_FLARG_PASS);
 	}
 
-	ISC_SIEVE_INSERT(qpdb->buckets[idx].sieve, newheader, link);
+	ISC_SIEVE_INSERT(qpdb->buckets[idx].sieve, newheader->top, link);
 }
 
 static void
@@ -537,7 +539,7 @@ qpcache_hit(qpcache_t *qpdb ISC_ATTR_UNUSED, dns_slabheader_t *header) {
 	/*
 	 * On cache hit, we only mark the header as seen.
 	 */
-	ISC_SIEVE_MARK(header, visited);
+	ISC_SIEVE_MARK(header->top, visited);
 }
 
 /*
@@ -585,6 +587,12 @@ clean_cache_node(qpcache_t *qpdb, qpcnode_t *node) {
 				top_prev->next = top->next;
 			} else {
 				node->data = top->next;
+			}
+
+			if (ISC_LINK_LINKED(top, link)) {
+				ISC_SIEVE_UNLINK(
+					qpdb->buckets[node->locknum].sieve, top,
+					link);
 			}
 			dns_slabtop_destroy(((dns_db_t *)qpdb)->mctx, &top);
 		} else {
@@ -2804,12 +2812,15 @@ find_header:
 			return DNS_R_UNCHANGED;
 		}
 
-		qpcache_miss(qpdb, newheader, &nlocktype,
-			     &tlocktype DNS__DB_FLARG_PASS);
-
 		top->header = newheader;
 		newheader->top = top;
 		newheader->down = header;
+
+		ISC_SIEVE_UNLINK(qpdb->buckets[qpnode->locknum].sieve, top,
+				 link);
+
+		qpcache_miss(qpdb, newheader, &nlocktype,
+			     &tlocktype DNS__DB_FLARG_PASS);
 
 		mark_ancient(header);
 		if (sigheader != NULL) {
@@ -2827,11 +2838,11 @@ find_header:
 
 		dns_slabtop_t *newtop = dns_slabtop_new(
 			((dns_db_t *)qpdb)->mctx, newheader->typepair);
-		qpcache_miss(qpdb, newheader, &nlocktype,
-			     &tlocktype DNS__DB_FLARG_PASS);
-
 		newtop->header = newheader;
 		newheader->top = newtop;
+
+		qpcache_miss(qpdb, newheader, &nlocktype,
+			     &tlocktype DNS__DB_FLARG_PASS);
 
 		if (prio_header(newtop)) {
 			/* This is a priority type, prepend it */
@@ -3755,7 +3766,6 @@ static void
 qpcnode_deletedata(dns_dbnode_t *node ISC_ATTR_UNUSED, void *data) {
 	dns_slabheader_t *header = data;
 	qpcache_t *qpdb = HEADERNODE(header)->qpdb;
-	int idx = HEADERNODE(header)->locknum;
 
 	if (header->heap != NULL && header->heap_index != 0) {
 		isc_heap_delete(header->heap, header->heap_index);
@@ -3766,10 +3776,6 @@ qpcnode_deletedata(dns_dbnode_t *node ISC_ATTR_UNUSED, void *data) {
 	 */
 	update_rrsetstats(qpdb->rrsetstats, header->typepair,
 			  atomic_load_acquire(&header->attributes), false);
-
-	if (ISC_LINK_LINKED(header, link)) {
-		ISC_SIEVE_UNLINK(qpdb->buckets[idx].sieve, header, link);
-	}
 
 	if (header->noqname != NULL) {
 		dns_slabheader_freeproof(qpdb->common.mctx, &header->noqname);
@@ -3855,7 +3861,7 @@ static dns_dbmethods_t qpdb_cachemethods = {
 static void
 qpcnode_destroy(qpcnode_t *qpnode) {
 	dns_slabtop_t *top = NULL, *top_next = NULL;
-	dns_db_t *db = (dns_db_t *)qpnode->qpdb;
+	qpcache_t *qpdb = qpnode->qpdb;
 
 	for (top = qpnode->data; top != NULL; top = top_next) {
 		top_next = top->next;
@@ -3867,7 +3873,11 @@ qpcnode_destroy(qpcnode_t *qpnode) {
 		}
 		top->header = NULL;
 
-		dns_slabtop_destroy(db->mctx, &top);
+		if (ISC_LINK_LINKED(top, link)) {
+			ISC_SIEVE_UNLINK(qpdb->buckets[qpnode->locknum].sieve,
+					 top, link);
+		}
+		dns_slabtop_destroy(((dns_db_t *)qpdb)->mctx, &top);
 	}
 
 	dns_name_free(&qpnode->name, qpnode->mctx);
