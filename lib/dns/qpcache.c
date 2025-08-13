@@ -843,7 +843,6 @@ mark(dns_slabheader_t *header, uint_least16_t flag) {
 	uint_least16_t attributes = atomic_load_acquire(&header->attributes);
 	uint_least16_t newattributes = 0;
 	qpcache_t *qpdb = HEADERNODE(header)->qpdb;
-	dns_stats_t *stats = NULL;
 
 	/*
 	 * If we are already ancient there is nothing to do.
@@ -860,9 +859,10 @@ mark(dns_slabheader_t *header, uint_least16_t flag) {
 	 * Decrement and increment the stats counter for the appropriate
 	 * RRtype.
 	 */
-	stats = dns_db_getrrsetstats(&qpdb->common);
-	update_rrsetstats(stats, header->typepair, attributes, false);
-	update_rrsetstats(stats, header->typepair, newattributes, true);
+	update_rrsetstats(qpdb->rrsetstats, header->typepair, attributes,
+			  false);
+	update_rrsetstats(qpdb->rrsetstats, header->typepair, newattributes,
+			  true);
 }
 
 static void
@@ -2279,9 +2279,8 @@ qpcache__destroy(qpcache_t *qpdb) {
 		isc_heap_destroy(&qpdb->buckets[i].heap);
 	}
 
-	if (qpdb->rrsetstats != NULL) {
-		dns_stats_detach(&qpdb->rrsetstats);
-	}
+	dns_stats_detach(&qpdb->rrsetstats);
+
 	if (qpdb->cachestats != NULL) {
 		isc_stats_detach(&qpdb->cachestats);
 	}
@@ -3087,13 +3086,6 @@ qpcache_addrdataset(dns_db_t *db, dns_dbnode_t *node, dns_dbversion_t *version,
 
 	NODE_WRLOCK(nlock, &nlocktype);
 
-	if (qpdb->rrsetstats != NULL) {
-		DNS_SLABHEADER_SETATTR(newheader, DNS_SLABHEADERATTR_STATCOUNT);
-		update_rrsetstats(qpdb->rrsetstats, newheader->typepair,
-				  atomic_load_acquire(&newheader->attributes),
-				  true);
-	}
-
 	expire_ttl_headers(qpdb, qpnode->locknum, &nlocktype, &tlocktype,
 			   now DNS__DB_FLARG_PASS);
 
@@ -3117,6 +3109,10 @@ qpcache_addrdataset(dns_db_t *db, dns_dbnode_t *node, dns_dbversion_t *version,
 		     nlocktype, tlocktype DNS__DB_FLARG_PASS);
 
 	if (result == ISC_R_SUCCESS) {
+		DNS_SLABHEADER_SETATTR(newheader, DNS_SLABHEADERATTR_STATCOUNT);
+		update_rrsetstats(qpdb->rrsetstats, newheader->typepair,
+				  newheader->attributes, true);
+
 		if (delegating) {
 			qpnode->delegating = 1;
 		}
