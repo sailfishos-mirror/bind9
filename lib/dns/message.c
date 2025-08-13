@@ -428,6 +428,7 @@ msginit(dns_message_t *m) {
 	m->cc_bad = 0;
 	m->tkey = 0;
 	m->rdclass_set = 0;
+	m->has_dname = 0;
 	m->querytsig = NULL;
 	m->indent.string = "\t";
 	m->indent.count = 0;
@@ -1654,6 +1655,11 @@ getsection(isc_buffer_t *source, dns_message_t *msg, dns_decompress_t *dctx,
 			 */
 			msg->tsigname->attributes |= DNS_NAMEATTR_NOCOMPRESS;
 			free_name = false;
+		} else if (rdtype == dns_rdatatype_dname &&
+			   sectionid == DNS_SECTION_ANSWER &&
+			   msg->opcode == dns_opcode_query)
+		{
+			msg->has_dname = 1;
 		}
 		rdataset = NULL;
 
@@ -4797,4 +4803,10 @@ dns_message_response_minttl(dns_message_t *msg, dns_ttl_t *pttl) {
 	}
 
 	return ISC_R_SUCCESS;
+}
+
+bool
+dns_message_hasdname(dns_message_t *msg) {
+	REQUIRE(DNS_MESSAGE_VALID(msg));
+	return msg->has_dname;
 }
