@@ -815,6 +815,7 @@ typedef struct respctx {
 	bool get_nameservers; /* get a new NS rrset at
 			       * zone cut? */
 	bool resend;	      /* resend this query? */
+	bool secured;	      /* message was signed or had a valid cookie */
 	bool nextitem;	      /* invalid response; keep
 			       * listening for the correct one */
 	bool truncated;	      /* response was truncated */
@@ -7551,6 +7552,119 @@ cleanup:
 	isc_mem_putanddetach(&rctx->mctx, rctx, sizeof(*rctx));
 }
 
+static isc_result_t
+rctx_cookiecheck(respctx_t *rctx) {
+	fetchctx_t *fctx = rctx->fctx;
+	resquery_t *query = rctx->query;
+
+	/*
+	 * If the message was secured or TCP is already in the
+	 * retry flags, no need to continue.
+	 */
+	if (rctx->secured || (rctx->retryopts & DNS_FETCHOPT_TCP) != 0) {
+		return ISC_R_SUCCESS;
+	}
+
+	/*
+	 * If we've had a cookie from the same server previously,
+	 * retry with TCP. This may be a misconfigured anycast server
+	 * or an attempt to send a spoofed response.
+	 */
+	if (dns_adb_getcookie(query->addrinfo, NULL, 0) > CLIENT_COOKIE_SIZE) {
+		if (isc_log_wouldlog(dns_lctx, ISC_LOG_INFO)) {
+			char addrbuf[ISC_SOCKADDR_FORMATSIZE];
+			isc_sockaddr_format(&query->addrinfo->sockaddr, addrbuf,
+					    sizeof(addrbuf));
+			isc_log_write(dns_lctx, DNS_LOGCATEGORY_RESOLVER,
+				      DNS_LOGMODULE_RESOLVER, ISC_LOG_INFO,
+				      "missing expected cookie from %s",
+				      addrbuf);
+		}
+		rctx->retryopts |= DNS_FETCHOPT_TCP;
+		rctx->resend = true;
+		rctx_done(rctx, ISC_R_SUCCESS);
+		return ISC_R_COMPLETE;
+	}
+
+	/*
+	 * Retry over TCP if require-cookie is true.
+	 */
+	if (fctx->res->view->peers != NULL) {
+		isc_result_t result;
+		dns_peer_t *peer = NULL;
+		bool required = false;
+		isc_netaddr_t netaddr;
+
+		isc_netaddr_fromsockaddr(&netaddr, &query->addrinfo->sockaddr);
+		result = dns_peerlist_peerbyaddr(fctx->res->view->peers,
+						 &netaddr, &peer);
+		if (result == ISC_R_SUCCESS) {
+			dns_peer_getrequirecookie(peer, &required);
+		}
+		if (!required) {
+			return ISC_R_SUCCESS;
+		}
+
+		if (isc_log_wouldlog(dns_lctx, ISC_LOG_INFO)) {
+			char addrbuf[ISC_SOCKADDR_FORMATSIZE];
+			isc_sockaddr_format(&query->addrinfo->sockaddr, addrbuf,
+					    sizeof(addrbuf));
+			isc_log_write(dns_lctx, DNS_LOGCATEGORY_RESOLVER,
+				      DNS_LOGMODULE_RESOLVER, ISC_LOG_INFO,
+				      "missing required cookie from %s",
+				      addrbuf);
+		}
+
+		rctx->retryopts |= DNS_FETCHOPT_TCP;
+		rctx->resend = true;
+		rctx_done(rctx, ISC_R_SUCCESS);
+		return ISC_R_COMPLETE;
+	}
+
+	return ISC_R_SUCCESS;
+}
+
+static bool
+rctx_need_tcpretry(respctx_t *rctx) {
+	resquery_t *query = rctx->query;
+	if ((rctx->retryopts & DNS_FETCHOPT_TCP) != 0) {
+		/* TCP is already in the retry flags */
+		return false;
+	}
+
+	/*
+	 * If the message was secured, no need to continue.
+	 */
+	if (rctx->secured) {
+		return false;
+	}
+
+	/*
+	 * Currently the only extra reason why we might need to
+	 * retry a UDP response over TCP is a DNAME in the message.
+	 */
+	if (dns_message_hasdname(query->rmessage)) {
+		return true;
+	}
+
+	return false;
+}
+
+static isc_result_t
+rctx_tcpretry(respctx_t *rctx) {
+	/*
+	 * Do we need to retry a UDP response over TCP?
+	 */
+	if (rctx_need_tcpretry(rctx)) {
+		rctx->retryopts |= DNS_FETCHOPT_TCP;
+		rctx->resend = true;
+		rctx_done(rctx, ISC_R_SUCCESS);
+		return ISC_R_COMPLETE;
+	}
+
+	return ISC_R_SUCCESS;
+}
+
 static void
 resquery_response_continue(void *arg, isc_result_t result) {
 	respctx_t *rctx = arg;
@@ -7569,81 +7683,41 @@ resquery_response_continue(void *arg, isc_result_t result) {
 	}
 
 	/*
+	 * Remember whether this message was signed or had a
+	 * valid client cookie; if not, we may need to retry over
+	 * TCP later.
+	 */
+	if (query->rmessage->cc_ok || query->rmessage->tsig != NULL ||
+	    query->rmessage->sig0 != NULL)
+	{
+		rctx->secured = true;
+	}
+
+	/*
 	 * The dispatcher should ensure we only get responses with QR
 	 * set.
 	 */
 	INSIST((query->rmessage->flags & DNS_MESSAGEFLAG_QR) != 0);
 
 	/*
-	 * If we have had a server cookie and don't get one retry over
-	 * TCP. This may be a misconfigured anycast server or an attempt
-	 * to send a spoofed response.  Additionally retry over TCP if
-	 * require-cookie is true and we don't have a got client cookie.
-	 * Skip if we have a valid TSIG.
+	 * Check for cookie issues; if found, maybe retry over TCP.
 	 */
-	if (dns_message_gettsig(query->rmessage, NULL) == NULL &&
-	    !query->rmessage->cc_ok && !query->rmessage->cc_bad &&
-	    (rctx->retryopts & DNS_FETCHOPT_TCP) == 0)
-	{
-		if (dns_adb_getcookie(query->addrinfo, NULL, 0) >
-		    CLIENT_COOKIE_SIZE)
-		{
-			if (isc_log_wouldlog(dns_lctx, ISC_LOG_INFO)) {
-				char addrbuf[ISC_SOCKADDR_FORMATSIZE];
-				isc_sockaddr_format(&query->addrinfo->sockaddr,
-						    addrbuf, sizeof(addrbuf));
-				isc_log_write(
-					dns_lctx, DNS_LOGCATEGORY_RESOLVER,
-					DNS_LOGMODULE_RESOLVER, ISC_LOG_INFO,
-					"missing expected cookie "
-					"from %s",
-					addrbuf);
-			}
-			rctx->retryopts |= DNS_FETCHOPT_TCP;
-			rctx->resend = true;
-			rctx_done(rctx, result);
-			goto cleanup;
-		} else if (fctx->res->view->peers != NULL) {
-			dns_peer_t *peer = NULL;
-			isc_netaddr_t netaddr;
-			isc_netaddr_fromsockaddr(&netaddr,
-						 &query->addrinfo->sockaddr);
-			result = dns_peerlist_peerbyaddr(fctx->res->view->peers,
-							 &netaddr, &peer);
-			if (result == ISC_R_SUCCESS) {
-				bool required = false;
-				result = dns_peer_getrequirecookie(peer,
-								   &required);
-				if (result == ISC_R_SUCCESS && required) {
-					if (isc_log_wouldlog(dns_lctx,
-							     ISC_LOG_INFO))
-					{
-						char addrbuf
-							[ISC_SOCKADDR_FORMATSIZE];
-						isc_sockaddr_format(
-							&query->addrinfo
-								 ->sockaddr,
-							addrbuf,
-							sizeof(addrbuf));
-						isc_log_write(
-							dns_lctx,
-							DNS_LOGCATEGORY_RESOLVER,
-							DNS_LOGMODULE_RESOLVER,
-							ISC_LOG_INFO,
-							"missing required "
-							"cookie "
-							"from %s",
-							addrbuf);
-					}
-					rctx->retryopts |= DNS_FETCHOPT_TCP;
-					rctx->resend = true;
-					rctx_done(rctx, result);
-					goto cleanup;
-				}
-			}
-		}
+	result = rctx_cookiecheck(rctx);
+	if (result == ISC_R_COMPLETE) {
+		goto cleanup;
 	}
 
+	/*
+	 * Check whether we need to retry over TCP for some other reason.
+	 */
+	result = rctx_tcpretry(rctx);
+	if (result == ISC_R_COMPLETE) {
+		goto cleanup;
+	}
+
+	/*
+	 * Check for EDNS issues.
+	 */
 	rctx_edns(rctx);
 
 	/*
@@ -8375,8 +8449,8 @@ rctx_answer_positive(respctx_t *rctx) {
 	}
 
 	/*
-	 * Cache records in the authority section, if
-	 * there are any suitable for caching.
+	 * Cache records in the authority section, if there are
+	 * any suitable for caching.
 	 */
 	rctx_authority_positive(rctx);
 
@@ -8749,20 +8823,25 @@ rctx_answer_dname(respctx_t *rctx) {
 
 /*
  * rctx_authority_positive():
- * Examine the records in the authority section (if there are any) for a
- * positive answer.  We expect the names for all rdatasets in this
- * section to be subdomains of the domain being queried; any that are
- * not are skipped.  We expect to find only *one* owner name; any names
- * after the first one processed are ignored. We expect to find only
- * rdatasets of type NS, RRSIG, or SIG; all others are ignored. Whatever
- * remains can be cached at trust level authauthority or additional
- * (depending on whether the AA bit was set on the answer).
+ * If a positive answer was received over TCP or secured with a cookie
+ * or TSIG, examine the authority section.  We expect names for all
+ * rdatasets in this section to be subdomains of the domain being queried;
+ * any that are not are skipped.  We expect to find only *one* owner name;
+ * any names after the first one processed are ignored. We expect to find
+ * only rdatasets of type NS; all others are ignored. Whatever remains can
+ * be cached at trust level authauthority or additional (depending on
+ * whether the AA bit was set on the answer).
  */
 static void
 rctx_authority_positive(respctx_t *rctx) {
 	fetchctx_t *fctx = rctx->fctx;
 	bool done = false;
 	isc_result_t result;
+
+	/* If it's spoofable, don't cache it. */
+	if (!rctx->secured && (rctx->query->options & DNS_FETCHOPT_TCP) == 0) {
+		return;
+	}
 
 	result = dns_message_firstname(rctx->query->rmessage,
 				       DNS_SECTION_AUTHORITY);
