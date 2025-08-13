@@ -457,6 +457,7 @@ dns_zone_loadandthaw(dns_zone_t *zone);
  *\li	#ISC_R_UNEXPECTED
  *\li	#ISC_R_SUCCESS
  *\li	DNS_R_CONTINUE	  Incremental load has been queued.
+ *\li	ISC_R_LOADING	  Load was already in progress.
  *\li	DNS_R_UPTODATE	  The zone has already been loaded based on
  *			  file system timestamps.
  *\li	DNS_R_BADZONE

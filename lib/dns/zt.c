@@ -286,8 +286,8 @@ static isc_result_t
 load(dns_zone_t *zone, void *uap) {
 	isc_result_t result;
 	result = dns_zone_load(zone, uap != NULL);
-	if (result == DNS_R_CONTINUE || result == DNS_R_UPTODATE ||
-	    result == DNS_R_DYNAMIC)
+	if (result == DNS_R_CONTINUE || result == ISC_R_LOADING ||
+	    result == DNS_R_UPTODATE || result == DNS_R_DYNAMIC)
 	{
 		result = ISC_R_SUCCESS;
 	}
@@ -448,7 +448,7 @@ freezezones(dns_zone_t *zone, void *uap) {
 		if (frozen) {
 			result = dns_zone_loadandthaw(zone);
 			if (result == DNS_R_CONTINUE ||
-			    result == DNS_R_UPTODATE)
+			    result == ISC_R_LOADING || result == DNS_R_UPTODATE)
 			{
 				result = ISC_R_SUCCESS;
 			}

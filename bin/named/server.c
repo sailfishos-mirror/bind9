@@ -9458,7 +9458,7 @@ load_zones(named_server_t *server, bool reconfig) {
 			result = dns_zone_load(view->managed_keys, false);
 			if (result != ISC_R_SUCCESS &&
 			    result != DNS_R_UPTODATE &&
-			    result != DNS_R_CONTINUE)
+			    result != ISC_R_LOADING && result != DNS_R_CONTINUE)
 			{
 				goto cleanup;
 			}
@@ -9467,7 +9467,7 @@ load_zones(named_server_t *server, bool reconfig) {
 			result = dns_zone_load(view->redirect, false);
 			if (result != ISC_R_SUCCESS &&
 			    result != DNS_R_UPTODATE &&
-			    result != DNS_R_CONTINUE)
+			    result != ISC_R_LOADING && result != DNS_R_CONTINUE)
 			{
 				goto cleanup;
 			}
@@ -10473,6 +10473,10 @@ named_server_reloadcommand(named_server_t *server, isc_lex_t *lex,
 				break;
 			case DNS_R_CONTINUE:
 				msg = "zone reload queued";
+				result = ISC_R_SUCCESS;
+				break;
+			case ISC_R_LOADING:
+				msg = "zone reload was already queued";
 				result = ISC_R_SUCCESS;
 				break;
 			case DNS_R_UPTODATE:
@@ -12348,6 +12352,12 @@ named_server_freeze(named_server_t *server, bool freeze, isc_lex_t *lex,
 			case DNS_R_CONTINUE:
 				msg = "A zone reload and thaw was started.\n"
 				      "Check the logs to see the result.";
+				result = ISC_R_SUCCESS;
+				break;
+			case ISC_R_LOADING:
+				msg = "A zone reload and thaw was already "
+				      "in progress.\nCheck the logs to see "
+				      "the result.";
 				result = ISC_R_SUCCESS;
 				break;
 			default:
