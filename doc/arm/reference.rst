@@ -2207,6 +2207,8 @@ Boolean Options
    autodetection of DNS COOKIE support to determine when to retry a
    request over TCP.
 
+   For DNAME lookups the default is ``yes`` and it is enforced.  Servers
+   serving DNAME must correctly support DNS over TCP.
 
    .. note::
       If a UDP response is signed using TSIG, :iscman:`named` accepts it even if
