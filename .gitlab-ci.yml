@@ -1766,7 +1766,7 @@ shotgun:dot:
   <<: *shotgun_job
   variables:
     SHOTGUN_SCENARIO: dot
-    SHOTGUN_TRAFFIC_MULTIPLIER: 6
+    SHOTGUN_TRAFFIC_MULTIPLIER: 5
   rules: &shotgun_rules_manual_mr
     - if: '$CI_MERGE_REQUEST_DIFF_BASE_SHA != null'
       variables:
@@ -1780,7 +1780,7 @@ shotgun:doh-get:
   <<: *shotgun_job
   variables:
     SHOTGUN_SCENARIO: doh-get
-    SHOTGUN_TRAFFIC_MULTIPLIER: 3
+    SHOTGUN_TRAFFIC_MULTIPLIER: 2
     SHOTGUN_EVAL_THRESHOLD_LATENCY_PCTL_MAX: 0.4  # bump from the default due to increased tail-end jitter
   rules: *shotgun_rules_manual_mr
 
