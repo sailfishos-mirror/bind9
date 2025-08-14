@@ -5289,23 +5289,19 @@ cache_rrset(fetchctx_t *fctx, isc_stdtime_t now, dns_name_t *name,
 }
 
 static void
-delete_rrset(fetchctx_t *fctx, dns_name_t *name, dns_rdatatype_t type,
-	     bool delrrsig) {
+delete_rrset(fetchctx_t *fctx, dns_name_t *name, dns_rdatatype_t type) {
 	isc_result_t result;
 	dns_dbnode_t *node = NULL;
 
 	result = dns_db_findnode(fctx->cache, name, false, &node);
-	if (result == ISC_R_SUCCESS) {
-		dns_db_deleterdataset(fctx->cache, node, NULL, type, 0);
-		if (delrrsig) {
-			dns_db_deleterdataset(fctx->cache, node, NULL,
-					      dns_rdatatype_rrsig, type);
-		}
+	if (result != ISC_R_SUCCESS) {
+		return;
 	}
 
-	if (node != NULL) {
-		dns_db_detachnode(&node);
-	}
+	dns_db_deleterdataset(fctx->cache, node, NULL, type, 0);
+	dns_db_deleterdataset(fctx->cache, node, NULL, dns_rdatatype_rrsig,
+			      type);
+	dns_db_detachnode(&node);
 }
 
 static void
@@ -5437,10 +5433,7 @@ validated(void *arg) {
 		fctx->valfail++;
 		result = fctx->vresult = val->result;
 		if (result != DNS_R_BROKENCHAIN) {
-			if (val->rdataset != NULL) {
-				delete_rrset(fctx, val->name, val->type,
-					     val->sigrdataset != NULL);
-			}
+			delete_rrset(fctx, val->name, val->type);
 		} else if (!negative) {
 			/*
 			 * Cache the data as pending for later validation.
