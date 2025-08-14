@@ -661,7 +661,7 @@ cleanup:
 		dns_rdataset_disassociate(&rdataset);
 	}
 	if (apexnode != NULL) {
-		dns_db_detachnode(db, &apexnode);
+		dns_db_detachnode(&apexnode);
 	}
 	if (dbversion != NULL) {
 		dns_db_closeversion(db, &dbversion, false);

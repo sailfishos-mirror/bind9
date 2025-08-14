@@ -109,7 +109,7 @@ overmempurge_addrdataset(dns_db_t *db, isc_stdtime_t now, int idx,
 	result = dns_db_addrdataset(db, node, NULL, now, &rdataset, 0, NULL);
 	assert_int_equal(result, ISC_R_SUCCESS);
 
-	dns_db_detachnode(db, &node);
+	dns_db_detachnode(&node);
 }
 
 static void

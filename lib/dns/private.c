@@ -297,7 +297,7 @@ failure:
 		dns_rdataset_disassociate(&privateset);
 	}
 	if (node != NULL) {
-		dns_db_detachnode(db, &node);
+		dns_db_detachnode(&node);
 	}
 	return result;
 }

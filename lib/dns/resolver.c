@@ -4113,8 +4113,8 @@ resume_qmin(void *arg) {
 	dns_rdataset_init(&sigrdataset);
 
 	if (resp->node != NULL) {
-		dns_db_attachnode(resp->db, resp->node, &node);
-		dns_db_detachnode(resp->db, &resp->node);
+		dns_db_attachnode(resp->node, &node);
+		dns_db_detachnode(&resp->node);
 	}
 	if (resp->db != NULL) {
 		dns_db_attach(resp->db, &db);
@@ -4183,8 +4183,7 @@ resume_qmin(void *arg) {
 					dns_db_attach(db, &resp->db);
 				}
 				if (node != NULL) {
-					dns_db_attachnode(db, node,
-							  &resp->node);
+					dns_db_attachnode(node, &resp->node);
 				}
 				dns_name_copy(fname, resp->foundname);
 				clone_results(fctx);
@@ -4251,8 +4250,7 @@ resume_qmin(void *arg) {
 					dns_db_attach(db, &resp->db);
 				}
 				if (node != NULL) {
-					dns_db_attachnode(db, node,
-							  &resp->node);
+					dns_db_attachnode(node, &resp->node);
 				}
 				dns_name_copy(fname, resp->foundname);
 				if (result == DNS_R_CNAME &&
@@ -4347,7 +4345,7 @@ resume_qmin(void *arg) {
 
 cleanup:
 	if (node != NULL) {
-		dns_db_detachnode(db, &node);
+		dns_db_detachnode(&node);
 	}
 	if (db != NULL) {
 		dns_db_detach(&db);
@@ -5039,7 +5037,7 @@ clone_results(fetchctx_t *fctx) {
 		resp->result = hresp->result;
 		dns_name_copy(hresp->foundname, resp->foundname);
 		dns_db_attach(hresp->db, &resp->db);
-		dns_db_attachnode(hresp->db, hresp->node, &resp->node);
+		dns_db_attachnode(hresp->node, &resp->node);
 
 		INSIST(hresp->rdataset != NULL && resp->rdataset != NULL);
 		if (dns_rdataset_isassociated(hresp->rdataset)) {
@@ -5258,7 +5256,7 @@ cache_rrset(fetchctx_t *fctx, isc_stdtime_t now, dns_name_t *name,
 	 * detach it before returning.
 	 */
 	if (nodep != NULL && *nodep != NULL) {
-		dns_db_attachnode(fctx->cache, *nodep, &node);
+		dns_db_attachnode(*nodep, &node);
 	} else {
 		result = dns_db_findnode(fctx->cache, name, true, &node);
 	}
@@ -5284,7 +5282,7 @@ cache_rrset(fetchctx_t *fctx, isc_stdtime_t now, dns_name_t *name,
 	if (nodep != NULL && *nodep == NULL) {
 		*nodep = node;
 	} else if (node != NULL) {
-		dns_db_detachnode(fctx->cache, &node);
+		dns_db_detachnode(&node);
 	}
 
 	return result;
@@ -5306,7 +5304,7 @@ delete_rrset(fetchctx_t *fctx, dns_name_t *name, dns_rdatatype_t type,
 	}
 
 	if (node != NULL) {
-		dns_db_detachnode(fctx->cache, &node);
+		dns_db_detachnode(&node);
 	}
 }
 
@@ -5583,7 +5581,7 @@ cleanup:
 cleanup_unlocked:
 
 	if (node != NULL) {
-		dns_db_detachnode(fctx->cache, &node);
+		dns_db_detachnode(&node);
 	}
 
 	if (nextval != NULL) {
@@ -6069,7 +6067,7 @@ rctx_cachename(respctx_t *rctx, dns_message_t *message, dns_name_t *name) {
 
 cleanup:
 	if (node != NULL) {
-		dns_db_detachnode(fctx->cache, &node);
+		dns_db_detachnode(&node);
 	}
 
 	return result;
@@ -6269,7 +6267,7 @@ unlock:
 	UNLOCK(&fctx->lock);
 
 	if (node != NULL) {
-		dns_db_detachnode(fctx->cache, &node);
+		dns_db_detachnode(&node);
 	}
 
 done:
@@ -6731,7 +6729,7 @@ resume_dslookup(void *arg) {
 	FCTXTRACE("resume_dslookup");
 
 	if (resp->node != NULL) {
-		dns_db_detachnode(resp->db, &resp->node);
+		dns_db_detachnode(&resp->node);
 	}
 	if (resp->db != NULL) {
 		dns_db_detach(&resp->db);
@@ -9666,7 +9664,7 @@ prime_done(void *arg) {
 	}
 
 	if (resp->node != NULL) {
-		dns_db_detachnode(resp->db, &resp->node);
+		dns_db_detachnode(&resp->node);
 	}
 	if (resp->db != NULL) {
 		dns_db_detach(&resp->db);

@@ -844,7 +844,7 @@ db_find:
 			dns_rdataset_disassociate(sigrdataset);
 		}
 		if (node != NULL) {
-			dns_db_detachnode(db, &node);
+			dns_db_detachnode(&node);
 		}
 		if (!is_cache) {
 			dns_db_detach(&db);
@@ -878,7 +878,7 @@ db_find:
 					dns_db_detach(&db);
 				}
 				dns_db_attach(zdb, &db);
-				dns_db_attachnode(db, znode, &node);
+				dns_db_attachnode(znode, &node);
 				goto cleanup;
 			}
 		}
@@ -906,7 +906,7 @@ db_find:
 		}
 		if (db != NULL) {
 			if (node != NULL) {
-				dns_db_detachnode(db, &node);
+				dns_db_detachnode(&node);
 			}
 			dns_db_detach(&db);
 		}
@@ -937,7 +937,7 @@ db_find:
 		 * Cleanup if non-standard hints are used.
 		 */
 		if (db == NULL && node != NULL) {
-			dns_db_detachnode(view->hints, &node);
+			dns_db_detachnode(&node);
 		}
 	}
 
@@ -951,7 +951,7 @@ cleanup:
 
 	if (zdb != NULL) {
 		if (znode != NULL) {
-			dns_db_detachnode(zdb, &znode);
+			dns_db_detachnode(&znode);
 		}
 		dns_db_detach(&zdb);
 	}
@@ -961,7 +961,7 @@ cleanup:
 			if (nodep != NULL) {
 				*nodep = node;
 			} else {
-				dns_db_detachnode(db, &node);
+				dns_db_detachnode(&node);
 			}
 		}
 		if (dbp != NULL) {

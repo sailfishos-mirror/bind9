@@ -75,7 +75,21 @@ extern unsigned int dns_pps;
 ***** Types
 *****/
 
-typedef struct dns_dbmethods {
+typedef struct dns_dbnode_methods {
+	isc_result_t (*nodefullname)(dns_dbnode_t *node, dns_name_t *name);
+
+	void (*attachnode)(dns_dbnode_t		 *source,
+			   dns_dbnode_t **targetp DNS__DB_FLARG);
+	void (*detachnode)(dns_dbnode_t **targetp DNS__DB_FLARG);
+
+	void (*locknode)(dns_dbnode_t *node, isc_rwlocktype_t t);
+	void (*unlocknode)(dns_dbnode_t *node, isc_rwlocktype_t t);
+
+	void (*deletedata)(dns_dbnode_t *node, void *data);
+	void (*expiredata)(dns_dbnode_t *node, void *data);
+} dns_dbnode_methods_t;
+
+typedef struct dns_db_methods {
 	void (*destroy)(dns_db_t *db);
 	isc_result_t (*beginload)(dns_db_t	       *db,
 				  dns_rdatacallbacks_t *callbacks);
@@ -101,9 +115,6 @@ typedef struct dns_dbmethods {
 				    dns_name_t		       *dcname,
 				    dns_rdataset_t	       *rdataset,
 				    dns_rdataset_t *sigrdataset DNS__DB_FLARG);
-	void (*attachnode)(dns_db_t *db, dns_dbnode_t *source,
-			   dns_dbnode_t **targetp DNS__DB_FLARG);
-	void (*detachnode)(dns_db_t *db, dns_dbnode_t **targetp DNS__DB_FLARG);
 	isc_result_t (*createiterator)(dns_db_t *db, unsigned int options,
 				       dns_dbiterator_t **iteratorp);
 	isc_result_t (*findrdataset)(dns_db_t *db, dns_dbnode_t *node,
@@ -171,15 +182,8 @@ typedef struct dns_dbmethods {
 	isc_result_t (*setservestalerefresh)(dns_db_t *db, uint32_t interval);
 	isc_result_t (*getservestalerefresh)(dns_db_t *db, uint32_t *interval);
 	isc_result_t (*setgluecachestats)(dns_db_t *db, isc_stats_t *stats);
-	void (*locknode)(dns_db_t *db, dns_dbnode_t *node, isc_rwlocktype_t t);
-	void (*unlocknode)(dns_db_t *db, dns_dbnode_t *node,
-			   isc_rwlocktype_t t);
 	void (*addglue)(dns_db_t *db, dns_dbversion_t *version,
 			dns_rdataset_t *rdataset, dns_message_t *msg);
-	void (*expiredata)(dns_db_t *db, dns_dbnode_t *node, void *data);
-	void (*deletedata)(dns_db_t *db, dns_dbnode_t *node, void *data);
-	isc_result_t (*nodefullname)(dns_db_t *db, dns_dbnode_t *node,
-				     dns_name_t *name);
 	void (*setmaxrrperset)(dns_db_t *db, uint32_t value);
 	void (*setmaxtypepername)(dns_db_t *db, uint32_t value);
 	isc_result_t (*getzoneversion)(dns_db_t *db, isc_buffer_t *b);
@@ -196,6 +200,17 @@ typedef isc_result_t (*dns_dbupdate_callback_t)(dns_db_t *db, void *fn_arg);
 
 #define DNS_DB_MAGIC	 ISC_MAGIC('D', 'N', 'S', 'D')
 #define DNS_DB_VALID(db) ISC_MAGIC_VALID(db, DNS_DB_MAGIC)
+
+#define DBNODE_FIELDS                  \
+	unsigned int	      magic;   \
+	uint16_t	      locknum; \
+	dns_dbnode_methods_t *methods; \
+	isc_mem_t	     *mctx;    \
+	dns_name_t	      name;
+
+struct dns_dbnode {
+	DBNODE_FIELDS;
+};
 
 /*%
  * This structure is actually just the common prefix of a DNS db
@@ -986,11 +1001,10 @@ dns__db_findzonecut(dns_db_t *db, const dns_name_t *name, unsigned int options,
  *	errors.
  */
 
-#define dns_db_attachnode(db, source, targetp) \
-	dns__db_attachnode(db, source, targetp DNS__DB_FILELINE)
+#define dns_db_attachnode(source, targetp) \
+	dns__db_attachnode(source, targetp DNS__DB_FILELINE)
 void
-dns__db_attachnode(dns_db_t *db, dns_dbnode_t *source,
-		   dns_dbnode_t **targetp DNS__DB_FLARG);
+dns__db_attachnode(dns_dbnode_t *source, dns_dbnode_t **targetp DNS__DB_FLARG);
 /*%<
  * Attach *targetp to source.
  *
@@ -1007,10 +1021,9 @@ dns__db_attachnode(dns_db_t *db, dns_dbnode_t *source,
  * \li	*targetp is attached to source.
  */
 
-#define dns_db_detachnode(db, nodep) \
-	dns__db_detachnode(db, nodep DNS__DB_FILELINE)
+#define dns_db_detachnode(nodep) dns__db_detachnode(nodep DNS__DB_FILELINE)
 void
-dns__db_detachnode(dns_db_t *db, dns_dbnode_t **nodep DNS__DB_FLARG);
+dns__db_detachnode(dns_dbnode_t **nodep DNS__DB_FLARG);
 /*%<
  * Detach *nodep from its node.
  *
@@ -1734,9 +1747,9 @@ dns_db_setgluecachestats(dns_db_t *db, isc_stats_t *stats);
  */
 
 void
-dns_db_locknode(dns_db_t *db, dns_dbnode_t *node, isc_rwlocktype_t type);
+dns_db_locknode(dns_dbnode_t *node, isc_rwlocktype_t type);
 void
-dns_db_unlocknode(dns_db_t *db, dns_dbnode_t *node, isc_rwlocktype_t type);
+dns_db_unlocknode(dns_dbnode_t *node, isc_rwlocktype_t type);
 /*%<
  * Lock/unlock a single node within a database so that data stored
  * there can be manipulated directly.
@@ -1763,22 +1776,22 @@ dns_db_addglue(dns_db_t *db, dns_dbversion_t *version, dns_rdataset_t *rdataset,
  */
 
 void
-dns_db_expiredata(dns_db_t *db, dns_dbnode_t *node, void *data);
+dns_db_expiredata(dns_dbnode_t *node, void *data);
 /*%<
  * Tell the database 'db' to mark a block of data 'data' stored at
  * node 'node' as expired.
  */
 
 void
-dns_db_deletedata(dns_db_t *db, dns_dbnode_t *node, void *data);
+dns_db_deletedata(dns_dbnode_t *node, void *data);
 /*%<
- * Tell the database 'db' to prepare to delete the block of data 'data'
+ * Tell the database to prepare to delete the block of data 'data'
  * stored at node 'node. This may include, for example, removing the
  * data from an LRU list or a heap.
  */
 
 isc_result_t
-dns_db_nodefullname(dns_db_t *db, dns_dbnode_t *node, dns_name_t *name);
+dns_db_nodefullname(dns_dbnode_t *node, dns_name_t *name);
 /*%<
  * Get the name associated with a database node.
  *

@@ -526,7 +526,7 @@ client_resfind(resctx_t *rctx, dns_fetchresponse_t *resp) {
 				 */
 				if (node != NULL) {
 					INSIST(db != NULL);
-					dns_db_detachnode(db, &node);
+					dns_db_detachnode(&node);
 				}
 				if (db != NULL) {
 					dns_db_detach(&db);
@@ -774,7 +774,7 @@ client_resfind(resctx_t *rctx, dns_fetchresponse_t *resp) {
 		}
 
 		if (node != NULL) {
-			dns_db_detachnode(db, &node);
+			dns_db_detachnode(&node);
 		}
 		if (db != NULL) {
 			dns_db_detach(&db);

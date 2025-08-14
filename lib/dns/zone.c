@@ -3314,11 +3314,11 @@ zone_check_dup(dns_zone_t *zone, dns_db_t *db) {
 			dns_rdataset_disassociate(&rdataset);
 		}
 		dns_rdatasetiter_destroy(&rdsit);
-		dns_db_detachnode(db, &node);
+		dns_db_detachnode(&node);
 	}
 
 	if (node != NULL) {
-		dns_db_detachnode(db, &node);
+		dns_db_detachnode(&node);
 	}
 	dns_dbiterator_destroy(&dbiterator);
 
@@ -3723,7 +3723,7 @@ integrity_checks(dns_zone_t *zone, dns_db_t *db) {
 		}
 
 	next:
-		dns_db_detachnode(db, &node);
+		dns_db_detachnode(&node);
 	}
 
 	if (has_a) {
@@ -3792,7 +3792,7 @@ integrity_checks(dns_zone_t *zone, dns_db_t *db) {
 
 cleanup:
 	if (node != NULL) {
-		dns_db_detachnode(db, &node);
+		dns_db_detachnode(&node);
 	}
 	dns_dbiterator_destroy(&dbiterator);
 
@@ -3902,7 +3902,7 @@ zone_check_dnskeys(dns_zone_t *zone, dns_db_t *db) {
 
 cleanup:
 	if (node != NULL) {
-		dns_db_detachnode(db, &node);
+		dns_db_detachnode(&node);
 	}
 	if (version != NULL) {
 		dns_db_closeversion(db, &version, false);
@@ -3974,7 +3974,7 @@ resume_signingwithkey(dns_zone_t *zone) {
 cleanup:
 	if (db != NULL) {
 		if (node != NULL) {
-			dns_db_detachnode(db, &node);
+			dns_db_detachnode(&node);
 		}
 		if (version != NULL) {
 			dns_db_closeversion(db, &version, false);
@@ -4261,7 +4261,7 @@ resume_addnsec3chain(dns_zone_t *zone) {
 cleanup:
 	if (db != NULL) {
 		if (node != NULL) {
-			dns_db_detachnode(db, &node);
+			dns_db_detachnode(&node);
 		}
 		if (version != NULL) {
 			dns_db_closeversion(db, &version, false);
@@ -4419,7 +4419,7 @@ cleanup:
 		dns_rdataset_disassociate(&rdataset);
 	}
 	dns_db_closeversion(db, &version, false);
-	dns_db_detachnode(db, &node);
+	dns_db_detachnode(&node);
 	return result;
 }
 
@@ -5188,7 +5188,7 @@ check_reportchannel(dns_zone_t *zone, dns_db_t *db) {
 	result = dns_db_findrdataset(db, node, version, dns_rdatatype_txt,
 				     dns_rdatatype_none, 0, &rdataset, NULL);
 	dns_db_closeversion(db, &version, false);
-	dns_db_detachnode(db, &node);
+	dns_db_detachnode(&node);
 	if (result == ISC_R_SUCCESS) {
 		dns_rdataset_disassociate(&rdataset);
 	}
@@ -6060,7 +6060,7 @@ zone_get_from_db(dns_zone_t *zone, dns_db_t *db, unsigned int *nscount,
 		}
 	}
 
-	dns_db_detachnode(db, &node);
+	dns_db_detachnode(&node);
 closeversion:
 	dns_db_closeversion(db, &version, false);
 
@@ -6814,7 +6814,7 @@ dns_zone_findkeys(dns_zone_t *zone, dns_db_t *db, dns_dbversion_t *ver,
 failure:
 
 	if (node != NULL) {
-		dns_db_detachnode(db, &node);
+		dns_db_detachnode(&node);
 	}
 	return result;
 }
@@ -6897,7 +6897,7 @@ failure:
 		dns_rdataset_disassociate(&keyset);
 	}
 	if (node != NULL) {
-		dns_db_detachnode(db, &node);
+		dns_db_detachnode(&node);
 	}
 	ISC_LIST_FOREACH (dnskeys, key, link) {
 		ISC_LIST_UNLINK(dnskeys, key, link);
@@ -7091,7 +7091,7 @@ del_sigs(dns_zone_t *zone, dns_db_t *db, dns_dbversion_t *ver, dns_name_t *name,
 	}
 	result = dns_db_findrdataset(db, node, ver, dns_rdatatype_rrsig, type,
 				     (isc_stdtime_t)0, &rdataset, NULL);
-	dns_db_detachnode(db, &node);
+	dns_db_detachnode(&node);
 
 	if (result == ISC_R_NOTFOUND) {
 		INSIST(!dns_rdataset_isassociated(&rdataset));
@@ -7249,7 +7249,7 @@ del_sigs(dns_zone_t *zone, dns_db_t *db, dns_dbversion_t *ver, dns_name_t *name,
 	}
 failure:
 	if (node != NULL) {
-		dns_db_detachnode(db, &node);
+		dns_db_detachnode(&node);
 	}
 	return result;
 }
@@ -7291,7 +7291,7 @@ add_sigs(dns_db_t *db, dns_dbversion_t *ver, dns_name_t *name, dns_zone_t *zone,
 	}
 	result = dns_db_findrdataset(db, node, ver, type, 0, (isc_stdtime_t)0,
 				     &rdataset, NULL);
-	dns_db_detachnode(db, &node);
+	dns_db_detachnode(&node);
 	if (result == ISC_R_NOTFOUND) {
 		INSIST(!dns_rdataset_isassociated(&rdataset));
 		return ISC_R_SUCCESS;
@@ -7456,7 +7456,7 @@ failure:
 		dns_rdataset_disassociate(&rdataset);
 	}
 	if (node != NULL) {
-		dns_db_detachnode(db, &node);
+		dns_db_detachnode(&node);
 	}
 	return result;
 }
@@ -7741,7 +7741,7 @@ next_active(dns_db_t *db, dns_dbversion_t *version, dns_name_t *oldname,
 		if (bottom && dns_name_issubdomain(newname, oldname) &&
 		    !dns_name_equal(newname, oldname))
 		{
-			dns_db_detachnode(db, &node);
+			dns_db_detachnode(&node);
 			continue;
 		}
 		/*
@@ -7749,7 +7749,7 @@ next_active(dns_db_t *db, dns_dbversion_t *version, dns_name_t *oldname,
 		 */
 		CHECK(dns_db_allrdatasets(db, node, version, 0, 0, &rdsit));
 		result = dns_rdatasetiter_first(rdsit);
-		dns_db_detachnode(db, &node);
+		dns_db_detachnode(&node);
 		dns_rdatasetiter_destroy(&rdsit);
 		if (result != ISC_R_NOMORE) {
 			break;
@@ -7757,7 +7757,7 @@ next_active(dns_db_t *db, dns_dbversion_t *version, dns_name_t *oldname,
 	} while (1);
 failure:
 	if (node != NULL) {
-		dns_db_detachnode(db, &node);
+		dns_db_detachnode(&node);
 	}
 	if (dbit != NULL) {
 		dns_dbiterator_destroy(&dbit);
@@ -8097,7 +8097,7 @@ success:
 	result = ISC_R_SUCCESS;
 failure:
 	if (node != NULL) {
-		dns_db_detachnode(db, &node);
+		dns_db_detachnode(&node);
 	}
 	return result;
 }
@@ -8225,7 +8225,7 @@ failure:
 		dns_rdataset_disassociate(&rdataset);
 	}
 	if (node != NULL) {
-		dns_db_detachnode(signing->db, &node);
+		dns_db_detachnode(&node);
 	}
 	return result;
 }
@@ -8427,7 +8427,7 @@ add:
 	CHECK(update_one_rr(db, ver, diff, DNS_DIFFOP_ADD, name, ttl, &rdata));
 
 failure:
-	dns_db_detachnode(db, &node);
+	dns_db_detachnode(&node);
 	if (dns_rdataset_isassociated(&rdataset)) {
 		dns_rdataset_disassociate(&rdataset);
 	}
@@ -8522,11 +8522,11 @@ need_nsec_chain(dns_db_t *db, dns_dbversion_t *ver,
 				     &rdataset, NULL);
 	if (result == ISC_R_SUCCESS) {
 		dns_rdataset_disassociate(&rdataset);
-		dns_db_detachnode(db, &node);
+		dns_db_detachnode(&node);
 		return result;
 	}
 	if (result != ISC_R_NOTFOUND) {
-		dns_db_detachnode(db, &node);
+		dns_db_detachnode(&node);
 		return result;
 	}
 
@@ -8534,11 +8534,11 @@ need_nsec_chain(dns_db_t *db, dns_dbversion_t *ver,
 				     0, &rdataset, NULL);
 	if (result == ISC_R_NOTFOUND) {
 		*answer = true;
-		dns_db_detachnode(db, &node);
+		dns_db_detachnode(&node);
 		return ISC_R_SUCCESS;
 	}
 	if (result != ISC_R_SUCCESS) {
-		dns_db_detachnode(db, &node);
+		dns_db_detachnode(&node);
 		return result;
 	}
 
@@ -8578,7 +8578,7 @@ failure:
 	if (dns_rdataset_isassociated(&rdataset)) {
 		dns_rdataset_disassociate(&rdataset);
 	}
-	dns_db_detachnode(db, &node);
+	dns_db_detachnode(&node);
 	return result;
 }
 
@@ -8941,7 +8941,7 @@ zone_nsec3chain(dns_zone_t *zone) {
 		 */
 	next_addnode:
 		first = false;
-		dns_db_detachnode(db, &node);
+		dns_db_detachnode(&node);
 		do {
 			result = dns_dbiterator_next(nsec3chain->dbiterator);
 
@@ -8984,7 +8984,7 @@ zone_nsec3chain(dns_zone_t *zone) {
 			} else if (delegation) {
 				dns_dbiterator_current(nsec3chain->dbiterator,
 						       &node, nextname);
-				dns_db_detachnode(db, &node);
+				dns_db_detachnode(&node);
 				if (!dns_name_issubdomain(nextname, name)) {
 					break;
 				}
@@ -9184,7 +9184,7 @@ zone_nsec3chain(dns_zone_t *zone) {
 
 	next_removenode:
 		first = false;
-		dns_db_detachnode(db, &node);
+		dns_db_detachnode(&node);
 		do {
 			result = dns_dbiterator_next(nsec3chain->dbiterator);
 			if (result == ISC_R_NOMORE && buildnsecchain) {
@@ -9222,7 +9222,7 @@ zone_nsec3chain(dns_zone_t *zone) {
 			} else if (delegation) {
 				dns_dbiterator_current(nsec3chain->dbiterator,
 						       &node, nextname);
-				dns_db_detachnode(db, &node);
+				dns_db_detachnode(&node);
 				if (!dns_name_issubdomain(nextname, name)) {
 					break;
 				}
@@ -9271,7 +9271,7 @@ skip_removals:
 			dns_rdataset_disassociate(&rdataset);
 		}
 		dns_rdatasetiter_destroy(&iterator);
-		dns_db_detachnode(db, &node);
+		dns_db_detachnode(&node);
 
 		if (rebuild_nsec) {
 			if (nsec3chain != NULL) {
@@ -9498,7 +9498,7 @@ failure:
 	}
 
 	if (node != NULL) {
-		dns_db_detachnode(db, &node);
+		dns_db_detachnode(&node);
 	}
 	if (version != NULL) {
 		dns_db_closeversion(db, &version, false);
@@ -10051,7 +10051,7 @@ zone_sign(dns_zone_t *zone) {
 		 */
 	next_node:
 		first = false;
-		dns_db_detachnode(db, &node);
+		dns_db_detachnode(&node);
 		do {
 			result = dns_dbiterator_next(signing->dbiterator);
 			if (result == ISC_R_NOMORE) {
@@ -10099,7 +10099,7 @@ zone_sign(dns_zone_t *zone) {
 			} else if (is_bottom_of_zone) {
 				dns_dbiterator_current(signing->dbiterator,
 						       &node, nextname);
-				dns_db_detachnode(db, &node);
+				dns_db_detachnode(&node);
 				if (!dns_name_issubdomain(nextname, name)) {
 					break;
 				}
@@ -10242,7 +10242,7 @@ cleanup:
 	}
 
 	if (node != NULL) {
-		dns_db_detachnode(db, &node);
+		dns_db_detachnode(&node);
 	}
 
 	if (version != NULL) {
@@ -10588,7 +10588,7 @@ keyfetch_done(void *arg) {
 
 	/* Free resources which are not of interest */
 	if (resp->node != NULL) {
-		dns_db_detachnode(resp->db, &resp->node);
+		dns_db_detachnode(&resp->node);
 	}
 	if (resp->db != NULL) {
 		dns_db_detach(&resp->db);
@@ -13325,7 +13325,7 @@ cleanup3:
 		dns_name_free(&primary, zone->mctx);
 	}
 cleanup2:
-	dns_db_detachnode(zonedb, &node);
+	dns_db_detachnode(&node);
 cleanup1:
 	dns_db_closeversion(zonedb, &version, false);
 	dns_db_detach(&zonedb);
@@ -13621,7 +13621,7 @@ stub_glue_response(void *arg) {
 			     "dns_db_addrdataset() failed: %s",
 			     isc_result_totext(result));
 	}
-	dns_db_detachnode(stub->db, &node);
+	dns_db_detachnode(&node);
 
 cleanup:
 	if (msg != NULL) {
@@ -13754,7 +13754,7 @@ save_nsrrset(dns_message_t *message, dns_name_t *name,
 		goto done;
 	}
 	result = dns_db_addrdataset(db, node, version, 0, nsrdataset, 0, NULL);
-	dns_db_detachnode(db, &node);
+	dns_db_detachnode(&node);
 	if (result != ISC_R_SUCCESS) {
 		goto done;
 	}
@@ -13783,7 +13783,7 @@ save_nsrrset(dns_message_t *message, dns_name_t *name,
 			}
 			result = dns_db_addrdataset(db, node, version, 0,
 						    rdataset, 0, NULL);
-			dns_db_detachnode(db, &node);
+			dns_db_detachnode(&node);
 			if (result != ISC_R_SUCCESS) {
 				goto done;
 			}
@@ -13801,7 +13801,7 @@ save_nsrrset(dns_message_t *message, dns_name_t *name,
 			}
 			result = dns_db_addrdataset(db, node, version, 0,
 						    rdataset, 0, NULL);
-			dns_db_detachnode(db, &node);
+			dns_db_detachnode(&node);
 			if (result != ISC_R_SUCCESS) {
 				goto done;
 			}
@@ -15017,7 +15017,7 @@ ns_query(dns_zone_t *zone, dns_rdataset_t *soardataset, dns_stub_t *stub) {
 
 		result = dns_db_addrdataset(stub->db, node, stub->version, 0,
 					    soardataset, 0, NULL);
-		dns_db_detachnode(stub->db, &node);
+		dns_db_detachnode(&node);
 		if (result != ISC_R_SUCCESS) {
 			dns_zone_log(zone, ISC_LOG_INFO,
 				     "refreshing stub: "
@@ -15643,7 +15643,7 @@ notify_createmessage(dns_zone_t *zone, unsigned int flags,
 
 soa_cleanup:
 	if (node != NULL) {
-		dns_db_detachnode(zonedb, &node);
+		dns_db_detachnode(&node);
 	}
 	if (version != NULL) {
 		dns_db_closeversion(zonedb, &version, false);
@@ -16970,7 +16970,7 @@ sync_secure_db(dns_zone_t *seczone, dns_zone_t *raw, dns_db_t *secdb,
 		if (dns_rdataset_isassociated(&rdataset)) {
 			dns_rdataset_disassociate(&rdataset);
 		}
-		dns_db_detachnode(secdb, &node);
+		dns_db_detachnode(&node);
 	}
 
 	ISC_LIST_FOREACH (diff->tuples, tuple, link) {
@@ -17559,7 +17559,7 @@ done:
 
 failure:
 	if (node != NULL) {
-		dns_db_detachnode(db, &node);
+		dns_db_detachnode(&node);
 	}
 	if (version != NULL) {
 		dns_db_closeversion(db, &version, false);
@@ -17675,10 +17675,10 @@ cleanup:
 		dns_rdatasetiter_destroy(&rdsit);
 	}
 	if (rawnode) {
-		dns_db_detachnode(rawdb, &rawnode);
+		dns_db_detachnode(&rawnode);
 	}
 	if (node) {
-		dns_db_detachnode(db, &node);
+		dns_db_detachnode(&node);
 	}
 	return result;
 }
@@ -20511,7 +20511,7 @@ rr_exists(dns_db_t *db, dns_dbversion_t *ver, dns_name_t *name,
 
 failure:
 	if (node != NULL) {
-		dns_db_detachnode(db, &node);
+		dns_db_detachnode(&node);
 	}
 	return result;
 }
@@ -20799,7 +20799,7 @@ clean_nsec3param(dns_zone_t *zone, dns_db_t *db, dns_dbversion_t *ver,
 
 failure:
 	if (node != NULL) {
-		dns_db_detachnode(db, &node);
+		dns_db_detachnode(&node);
 	}
 	return result;
 }
@@ -21758,7 +21758,7 @@ nsfetch_done(void *arg) {
 
 	/* Free resources which are not of interest */
 	if (resp->node != NULL) {
-		dns_db_detachnode(resp->db, &resp->node);
+		dns_db_detachnode(&resp->node);
 	}
 	if (resp->db != NULL) {
 		dns_db_detach(&resp->db);
@@ -22964,7 +22964,7 @@ failure:
 		dns_rdataset_disassociate(&cdnskeyset);
 	}
 	if (node != NULL) {
-		dns_db_detachnode(db, &node);
+		dns_db_detachnode(&node);
 	}
 	if (db != NULL) {
 		dns_db_detach(&db);
@@ -23006,7 +23006,7 @@ dns_zone_nscheck(dns_zone_t *zone, dns_db_t *db, dns_dbversion_t *version,
 		return result;
 	}
 	result = zone_count_ns_rr(zone, db, node, version, NULL, errors, false);
-	dns_db_detachnode(db, &node);
+	dns_db_detachnode(&node);
 	return result;
 }
 
@@ -23255,7 +23255,7 @@ failure:
 	if (dns_rdataset_isassociated(&cdnskey)) {
 		dns_rdataset_disassociate(&cdnskey);
 	}
-	dns_db_detachnode(db, &node);
+	dns_db_detachnode(&node);
 	return result;
 }
 
@@ -23609,7 +23609,7 @@ failure:
 	}
 	if (db != NULL) {
 		if (node != NULL) {
-			dns_db_detachnode(db, &node);
+			dns_db_detachnode(&node);
 		}
 		if (oldver != NULL) {
 			dns_db_closeversion(db, &oldver, false);
@@ -23963,7 +23963,7 @@ failure:
 		dns_rdataset_disassociate(&nrdataset);
 	}
 	if (node != NULL) {
-		dns_db_detachnode(db, &node);
+		dns_db_detachnode(&node);
 	}
 	if (oldver != NULL) {
 		dns_db_closeversion(db, &oldver, false);
@@ -24129,7 +24129,7 @@ failure:
 		dns_rdataset_disassociate(&rdataset);
 	}
 	if (node != NULL) {
-		dns_db_detachnode(db, &node);
+		dns_db_detachnode(&node);
 	}
 	if (version != NULL) {
 		dns_db_closeversion(db, &version, false);

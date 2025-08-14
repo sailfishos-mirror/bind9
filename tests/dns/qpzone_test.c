@@ -109,10 +109,9 @@ ownercase_test_one(const char *str1, const char *str2) {
 		.common.methods = &qpdb_zonemethods,
 		.common.mctx = isc_g_mctx,
 	};
-	qpznode_t node = { .locknum = 0 };
+	qpznode_t node = { .methods = &qpznode_methods, .locknum = 0 };
 	dns_slabheader_t header = {
 		.node = (dns_dbnode_t *)&node,
-		.db = (dns_db_t *)qpdb,
 	};
 	unsigned char *raw = (unsigned char *)(&header) + sizeof(header);
 	dns_rdataset_t rdataset = {
@@ -172,10 +171,9 @@ ISC_RUN_TEST_IMPL(setownercase) {
 		.common.methods = &qpdb_zonemethods,
 		.common.mctx = isc_g_mctx,
 	};
-	qpznode_t node = { .locknum = 0 };
+	qpznode_t node = { .methods = &qpznode_methods, .locknum = 0 };
 	dns_slabheader_t header = {
 		.node = (dns_dbnode_t *)&node,
-		.db = (dns_db_t *)qpdb,
 	};
 	unsigned char *raw = (unsigned char *)(&header) + sizeof(header);
 	dns_rdataset_t rdataset = {

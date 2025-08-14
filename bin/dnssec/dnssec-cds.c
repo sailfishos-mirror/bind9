@@ -257,7 +257,7 @@ static void
 free_db(dns_db_t **dbp, dns_dbnode_t **nodep, dns_dbversion_t **versionp) {
 	if (*dbp != NULL) {
 		if (*nodep != NULL) {
-			dns_db_detachnode(*dbp, nodep);
+			dns_db_detachnode(nodep);
 		}
 		if (versionp != NULL && *versionp != NULL) {
 			dns_db_closeversion(*dbp, versionp, false);

@@ -1775,14 +1775,14 @@ update_nodes(dns_rpz_zone_t *rpz, isc_ht_t *newnodes) {
 				      "rpz: %s: failed to fetch "
 				      "rrdatasets - %s",
 				      domain, isc_result_totext(result));
-			dns_db_detachnode(rpz->updb, &node);
+			dns_db_detachnode(&node);
 			goto cleanup;
 		}
 
 		result = dns_rdatasetiter_first(rdsiter);
 
 		dns_rdatasetiter_destroy(&rdsiter);
-		dns_db_detachnode(rpz->updb, &node);
+		dns_db_detachnode(&node);
 
 		if (result != ISC_R_SUCCESS) { /* skip empty non-terminal */
 			if (result != ISC_R_NOMORE) {

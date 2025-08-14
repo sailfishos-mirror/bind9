@@ -502,7 +502,7 @@ diff_apply(const dns_diff_t *diff, dns_db_t *db, dns_dbversion_t *ver,
 				}
 				CHECK(result);
 			}
-			dns_db_detachnode(db, &node);
+			dns_db_detachnode(&node);
 			if (dns_rdataset_isassociated(&ardataset)) {
 				dns_rdataset_disassociate(&ardataset);
 			}
@@ -512,7 +512,7 @@ diff_apply(const dns_diff_t *diff, dns_db_t *db, dns_dbversion_t *ver,
 
 failure:
 	if (node != NULL) {
-		dns_db_detachnode(db, &node);
+		dns_db_detachnode(&node);
 	}
 	return result;
 }

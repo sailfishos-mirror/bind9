@@ -439,7 +439,7 @@ cleartree(dns_db_t *db, const dns_name_t *name) {
 		if (result != ISC_R_SUCCESS && answer == ISC_R_SUCCESS) {
 			answer = result;
 		}
-		dns_db_detachnode(db, &node);
+		dns_db_detachnode(&node);
 		result = dns_dbiterator_next(iter);
 	}
 
@@ -451,13 +451,13 @@ cleanup:
 		answer = result;
 	}
 	if (node != NULL) {
-		dns_db_detachnode(db, &node);
+		dns_db_detachnode(&node);
 	}
 	if (iter != NULL) {
 		dns_dbiterator_destroy(&iter);
 	}
 	if (top != NULL) {
-		dns_db_detachnode(db, &top);
+		dns_db_detachnode(&top);
 	}
 
 	return answer;
@@ -499,7 +499,7 @@ dns_cache_flushnode(dns_cache_t *cache, const dns_name_t *name, bool tree) {
 			goto cleanup_db;
 		}
 		result = clearnode(cache->db, node);
-		dns_db_detachnode(cache->db, &node);
+		dns_db_detachnode(&node);
 	}
 
 cleanup_db:

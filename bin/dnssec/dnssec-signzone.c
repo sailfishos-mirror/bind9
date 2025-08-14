@@ -953,7 +953,7 @@ addnowildcardhash(hashlist_t *l,
 
 	result = dns_db_findnode(gdb, wild, false, &node);
 	if (result == ISC_R_SUCCESS) {
-		dns_db_detachnode(gdb, &node);
+		dns_db_detachnode(&node);
 		return;
 	}
 
@@ -1031,7 +1031,7 @@ loadds(dns_name_t *name, uint32_t ttl, dns_rdataset_t *dsset) {
 			result = dns_db_findrdataset(db, node, NULL,
 						     dns_rdatatype_ds, 0, 0,
 						     dsset, NULL);
-			dns_db_detachnode(db, &node);
+			dns_db_detachnode(&node);
 			if (result == ISC_R_SUCCESS) {
 				vbprintf(2, "found DS records\n");
 				dsset->ttl = ttl;
@@ -1058,7 +1058,7 @@ loadds(dns_name_t *name, uint32_t ttl, dns_rdataset_t *dsset) {
 	result = dns_db_findrdataset(db, node, NULL, dns_rdatatype_dnskey, 0, 0,
 				     &keyset, NULL);
 	if (result != ISC_R_SUCCESS) {
-		dns_db_detachnode(db, &node);
+		dns_db_detachnode(&node);
 		dns_db_detach(&db);
 		return result;
 	}
@@ -1092,7 +1092,7 @@ loadds(dns_name_t *name, uint32_t ttl, dns_rdataset_t *dsset) {
 	check_result(result, "dns_db_findrdataset");
 
 	dns_rdataset_disassociate(&keyset);
-	dns_db_detachnode(db, &node);
+	dns_db_detachnode(&node);
 	dns_db_detach(&db);
 	return result;
 }
@@ -1454,7 +1454,7 @@ setsoaserial(uint32_t serial, dns_updatemethod_t method) {
 cleanup:
 	dns_rdataset_disassociate(&rdataset);
 	if (node != NULL) {
-		dns_db_detachnode(gdb, &node);
+		dns_db_detachnode(&node);
 	}
 	dns_rdata_reset(&rdata);
 
@@ -1500,7 +1500,7 @@ signapex(void) {
 	check_dns_dbiterator_current(result);
 	signname(node, true, name);
 	dumpnode(name, node);
-	dns_db_detachnode(gdb, &node);
+	dns_db_detachnode(&node);
 	result = dns_dbiterator_first(gdbiter);
 	if (result == ISC_R_NOMORE) {
 		atomic_store(&finished, true);
@@ -1559,7 +1559,7 @@ assignwork(void *arg) {
 		 * The origin was handled by signapex().
 		 */
 		if (dns_name_equal(name, gorigin)) {
-			dns_db_detachnode(gdb, &node);
+			dns_db_detachnode(&node);
 			goto next;
 		}
 		/*
@@ -1603,7 +1603,7 @@ assignwork(void *arg) {
 
 		if (!found) {
 			dumpnode(name, node);
-			dns_db_detachnode(gdb, &node);
+			dns_db_detachnode(&node);
 		}
 
 	next:
@@ -1633,7 +1633,7 @@ assignwork(void *arg) {
 	 * Write a node to the output file, and restart the worker task.
 	 */
 	lock_and_dumpnode(dns_fixedname_name(&fname), node);
-	dns_db_detachnode(gdb, &node);
+	dns_db_detachnode(&node);
 
 	isc_async_current(assignwork, NULL);
 }
@@ -1800,7 +1800,7 @@ nsecify(void) {
 					     "rrsig)");
 		}
 		dns_rdatasetiter_destroy(&rdsiter);
-		dns_db_detachnode(gdb, &node);
+		dns_db_detachnode(&node);
 	}
 	dns_dbiterator_destroy(&dbiter);
 
@@ -1823,7 +1823,7 @@ nsecify(void) {
 			} else {
 				check_result(result, "dns_dbiterator_next()");
 			}
-			dns_db_detachnode(gdb, &node);
+			dns_db_detachnode(&node);
 			continue;
 		}
 
@@ -1852,7 +1852,7 @@ nsecify(void) {
 			check_dns_dbiterator_current(result);
 			active = active_node(nextnode);
 			if (!active) {
-				dns_db_detachnode(gdb, &nextnode);
+				dns_db_detachnode(&nextnode);
 				result = dns_dbiterator_next(dbiter);
 				continue;
 			}
@@ -1863,11 +1863,11 @@ nsecify(void) {
 				remove_sigs(nextnode, false, 0);
 				remove_records(nextnode, dns_rdatatype_nsec,
 					       false);
-				dns_db_detachnode(gdb, &nextnode);
+				dns_db_detachnode(&nextnode);
 				result = dns_dbiterator_next(dbiter);
 				continue;
 			}
-			dns_db_detachnode(gdb, &nextnode);
+			dns_db_detachnode(&nextnode);
 			break;
 		}
 		if (result == ISC_R_NOMORE) {
@@ -1881,7 +1881,7 @@ nsecify(void) {
 		result = dns_nsec_build(gdb, gversion, node, nextname,
 					zone_soa_min_ttl);
 		check_result(result, "dns_nsec_build()");
-		dns_db_detachnode(gdb, &node);
+		dns_db_detachnode(&node);
 	}
 
 	dns_dbiterator_destroy(&dbiter);
@@ -1939,7 +1939,7 @@ addnsec3param(const unsigned char *salt, size_t salt_len,
 		result = ISC_R_SUCCESS;
 	}
 	check_result(result, "addnsec3param: dns_db_addrdataset()");
-	dns_db_detachnode(gdb, &node);
+	dns_db_detachnode(&node);
 }
 
 static void
@@ -1989,7 +1989,7 @@ addnsec3(dns_name_t *name, dns_dbnode_t *node, const unsigned char *salt,
 		result = ISC_R_SUCCESS;
 	}
 	check_result(result, "addnsec3: dns_db_addrdataset()");
-	dns_db_detachnode(gdb, &nsec3node);
+	dns_db_detachnode(&nsec3node);
 }
 
 /*%
@@ -2186,7 +2186,7 @@ cleanup_zone(void) {
 			dns_rdataset_disassociate(&rdataset);
 		}
 		dns_rdatasetiter_destroy(&rdsiter);
-		dns_db_detachnode(gdb, &node);
+		dns_db_detachnode(&node);
 	}
 
 	result = dns_diff_applysilently(&del, gdb, gversion);
@@ -2245,7 +2245,7 @@ nsec3ify(unsigned int hashalg, dns_iterations_t iterations,
 			} else {
 				check_result(result, "dns_dbiterator_next()");
 			}
-			dns_db_detachnode(gdb, &node);
+			dns_db_detachnode(&node);
 			continue;
 		}
 
@@ -2267,7 +2267,7 @@ nsec3ify(unsigned int hashalg, dns_iterations_t iterations,
 			check_dns_dbiterator_current(result);
 			active = active_node(nextnode);
 			if (!active) {
-				dns_db_detachnode(gdb, &nextnode);
+				dns_db_detachnode(&nextnode);
 				result = dns_dbiterator_next(dbiter);
 				continue;
 			}
@@ -2276,7 +2276,7 @@ nsec3ify(unsigned int hashalg, dns_iterations_t iterations,
 			     dns_name_issubdomain(nextname, zonecut)))
 			{
 				remove_sigs(nextnode, false, 0);
-				dns_db_detachnode(gdb, &nextnode);
+				dns_db_detachnode(&nextnode);
 				result = dns_dbiterator_next(dbiter);
 				continue;
 			}
@@ -2291,14 +2291,14 @@ nsec3ify(unsigned int hashalg, dns_iterations_t iterations,
 				if (OPTOUT(nsec3flags) &&
 				    !secure(nextname, nextnode))
 				{
-					dns_db_detachnode(gdb, &nextnode);
+					dns_db_detachnode(&nextnode);
 					result = dns_dbiterator_next(dbiter);
 					continue;
 				}
 			} else if (has_dname(gdb, gversion, nextnode)) {
 				zonecut = savezonecut(&fzonecut, nextname);
 			}
-			dns_db_detachnode(gdb, &nextnode);
+			dns_db_detachnode(&nextnode);
 			break;
 		}
 		if (result == ISC_R_NOMORE) {
@@ -2311,7 +2311,7 @@ nsec3ify(unsigned int hashalg, dns_iterations_t iterations,
 		dns_name_downcase(name, name);
 		hashlist_add_dns_name(hashlist, name, hashalg, iterations, salt,
 				      salt_len, false);
-		dns_db_detachnode(gdb, &node);
+		dns_db_detachnode(&node);
 		/*
 		 * Add hashes for empty nodes.  Use closest encloser logic.
 		 * The closest encloser either has data or is a empty
@@ -2367,7 +2367,7 @@ nsec3ify(unsigned int hashalg, dns_iterations_t iterations,
 		check_dns_dbiterator_current(result);
 		nsec3clean(name, node, hashalg, iterations, salt, salt_len,
 			   hashlist);
-		dns_db_detachnode(gdb, &node);
+		dns_db_detachnode(&node);
 	}
 	dns_dbiterator_destroy(&dbiter);
 
@@ -2393,7 +2393,7 @@ nsec3ify(unsigned int hashalg, dns_iterations_t iterations,
 			} else {
 				check_result(result, "dns_dbiterator_next()");
 			}
-			dns_db_detachnode(gdb, &node);
+			dns_db_detachnode(&node);
 			continue;
 		}
 
@@ -2409,7 +2409,7 @@ nsec3ify(unsigned int hashalg, dns_iterations_t iterations,
 			check_dns_dbiterator_current(result);
 			active = active_node(nextnode);
 			if (!active) {
-				dns_db_detachnode(gdb, &nextnode);
+				dns_db_detachnode(&nextnode);
 				result = dns_dbiterator_next(dbiter);
 				continue;
 			}
@@ -2417,7 +2417,7 @@ nsec3ify(unsigned int hashalg, dns_iterations_t iterations,
 			    (zonecut != NULL &&
 			     dns_name_issubdomain(nextname, zonecut)))
 			{
-				dns_db_detachnode(gdb, &nextnode);
+				dns_db_detachnode(&nextnode);
 				result = dns_dbiterator_next(dbiter);
 				continue;
 			}
@@ -2428,14 +2428,14 @@ nsec3ify(unsigned int hashalg, dns_iterations_t iterations,
 				if (OPTOUT(nsec3flags) &&
 				    !secure(nextname, nextnode))
 				{
-					dns_db_detachnode(gdb, &nextnode);
+					dns_db_detachnode(&nextnode);
 					result = dns_dbiterator_next(dbiter);
 					continue;
 				}
 			} else if (has_dname(gdb, gversion, nextnode)) {
 				zonecut = savezonecut(&fzonecut, nextname);
 			}
-			dns_db_detachnode(gdb, &nextnode);
+			dns_db_detachnode(&nextnode);
 			break;
 		}
 		if (result == ISC_R_NOMORE) {
@@ -2451,7 +2451,7 @@ nsec3ify(unsigned int hashalg, dns_iterations_t iterations,
 		dns_dbiterator_pause(dbiter);
 		addnsec3(name, node, salt, salt_len, iterations, hashlist,
 			 zone_soa_min_ttl);
-		dns_db_detachnode(gdb, &node);
+		dns_db_detachnode(&node);
 		/*
 		 * Add NSEC3's for empty nodes.  Use closest encloser logic.
 		 */
@@ -2573,7 +2573,7 @@ cleanup:
 	if (dns_rdataset_isassociated(&soasigs)) {
 		dns_rdataset_disassociate(&soasigs);
 	}
-	dns_db_detachnode(gdb, &node);
+	dns_db_detachnode(&node);
 	dns_db_closeversion(gdb, &currentversion, false);
 }
 
@@ -2792,7 +2792,7 @@ findkeys:
 		      isc_result_totext(result));
 	}
 
-	dns_db_detachnode(gdb, &node);
+	dns_db_detachnode(&node);
 	dns_db_closeversion(gdb, &ver, true);
 
 	dns_diff_clear(&diff);
@@ -2856,7 +2856,7 @@ warnifallksk(dns_db_t *db) {
 		dns_rdata_freestruct(&dnskey);
 	}
 	dns_rdataset_disassociate(&rdataset);
-	dns_db_detachnode(db, &node);
+	dns_db_detachnode(&node);
 	dns_db_closeversion(db, &currentversion, false);
 	if (!have_non_ksk && !ignore_kskflag) {
 		if (disable_zone_check) {
@@ -2968,7 +2968,7 @@ cleanup:
 		dns_rdataset_disassociate(&rdataset);
 	}
 	if (node != NULL) {
-		dns_db_detachnode(gdb, &node);
+		dns_db_detachnode(&node);
 	}
 	dns_db_closeversion(gdb, &ver, false);
 }

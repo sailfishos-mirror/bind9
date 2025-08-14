@@ -1735,17 +1735,17 @@ dumptostream(dns_dumpctx_t *dctx) {
 		result = dns_db_allrdatasets(dctx->db, node, dctx->version,
 					     options, dctx->now, &rdsiter);
 		if (result != ISC_R_SUCCESS) {
-			dns_db_detachnode(dctx->db, &node);
+			dns_db_detachnode(&node);
 			goto cleanup;
 		}
 		result = (dctx->dumpsets)(dctx->mctx, name, rdsiter,
 					  &dctx->tctx, &buffer, dctx->f);
 		dns_rdatasetiter_destroy(&rdsiter);
 		if (result != ISC_R_SUCCESS) {
-			dns_db_detachnode(dctx->db, &node);
+			dns_db_detachnode(&node);
 			goto cleanup;
 		}
-		dns_db_detachnode(dctx->db, &node);
+		dns_db_detachnode(&node);
 	}
 
 	if (result == ISC_R_NOMORE) {
