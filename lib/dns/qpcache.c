@@ -305,10 +305,6 @@ qpcnode_attachnode(dns_dbnode_t *source, dns_dbnode_t **targetp DNS__DB_FLARG);
 static void
 qpcnode_detachnode(dns_dbnode_t **nodep DNS__DB_FLARG);
 static void
-qpcnode_locknode(dns_dbnode_t *node, isc_rwlocktype_t type);
-static void
-qpcnode_unlocknode(dns_dbnode_t *node, isc_rwlocktype_t type);
-static void
 qpcnode_deletedata(dns_dbnode_t *node, void *data);
 static void
 qpcnode_expiredata(dns_dbnode_t *node, void *data);
@@ -316,8 +312,6 @@ qpcnode_expiredata(dns_dbnode_t *node, void *data);
 static dns_dbnode_methods_t qpcnode_methods = (dns_dbnode_methods_t){
 	.attachnode = qpcnode_attachnode,
 	.detachnode = qpcnode_detachnode,
-	.locknode = qpcnode_locknode,
-	.unlocknode = qpcnode_unlocknode,
 	.deletedata = qpcnode_deletedata,
 	.expiredata = qpcnode_expiredata,
 };
@@ -3262,22 +3256,6 @@ nodecount(dns_db_t *db, dns_dbtree_t tree) {
 	TREE_UNLOCK(&qpdb->tree_lock, &tlocktype);
 
 	return mu.leaves;
-}
-
-static void
-qpcnode_locknode(dns_dbnode_t *node, isc_rwlocktype_t type) {
-	qpcnode_t *qpnode = (qpcnode_t *)node;
-	qpcache_t *qpdb = qpnode->qpdb;
-
-	RWLOCK(&qpdb->buckets[qpnode->locknum].lock, type);
-}
-
-static void
-qpcnode_unlocknode(dns_dbnode_t *node, isc_rwlocktype_t type) {
-	qpcnode_t *qpnode = (qpcnode_t *)node;
-	qpcache_t *qpdb = qpnode->qpdb;
-
-	RWUNLOCK(&qpdb->buckets[qpnode->locknum].lock, type);
 }
 
 isc_result_t

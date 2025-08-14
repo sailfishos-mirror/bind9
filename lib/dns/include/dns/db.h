@@ -80,9 +80,6 @@ typedef struct dns_dbnode_methods {
 			   dns_dbnode_t **targetp DNS__DB_FLARG);
 	void (*detachnode)(dns_dbnode_t **targetp DNS__DB_FLARG);
 
-	void (*locknode)(dns_dbnode_t *node, isc_rwlocktype_t t);
-	void (*unlocknode)(dns_dbnode_t *node, isc_rwlocktype_t t);
-
 	void (*deletedata)(dns_dbnode_t *node, void *data);
 	void (*expiredata)(dns_dbnode_t *node, void *data);
 } dns_dbnode_methods_t;
@@ -1716,15 +1713,6 @@ dns_db_setgluecachestats(dns_db_t *db, isc_stats_t *stats);
  * Returns:
  * \li	when available, a pointer to a statistics object created by
  *	dns_rdatasetstats_create(); otherwise NULL.
- */
-
-void
-dns_db_locknode(dns_dbnode_t *node, isc_rwlocktype_t type);
-void
-dns_db_unlocknode(dns_dbnode_t *node, isc_rwlocktype_t type);
-/*%<
- * Lock/unlock a single node within a database so that data stored
- * there can be manipulated directly.
  */
 
 isc_result_t

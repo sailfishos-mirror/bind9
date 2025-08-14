@@ -1044,22 +1044,6 @@ dns_db_addglue(dns_db_t *db, dns_dbversion_t *version, dns_rdataset_t *rdataset,
 }
 
 void
-dns_db_locknode(dns_dbnode_t *node, isc_rwlocktype_t type) {
-	REQUIRE(node != NULL && node->methods != NULL);
-	if (node->methods->locknode != NULL) {
-		(node->methods->locknode)(node, type);
-	}
-}
-
-void
-dns_db_unlocknode(dns_dbnode_t *node, isc_rwlocktype_t type) {
-	REQUIRE(node != NULL && node->methods != NULL);
-	if (node->methods->unlocknode != NULL) {
-		(node->methods->unlocknode)(node, type);
-	}
-}
-
-void
 dns_db_expiredata(dns_dbnode_t *node, void *data) {
 	REQUIRE(node != NULL && node->methods != NULL);
 	if (node->methods->expiredata != NULL) {

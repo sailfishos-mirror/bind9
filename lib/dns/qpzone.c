@@ -3887,20 +3887,6 @@ getoriginnode(dns_db_t *db, dns_dbnode_t **nodep DNS__DB_FLARG) {
 }
 
 static void
-locknode(dns_dbnode_t *dbnode, isc_rwlocktype_t type) {
-	qpznode_t *node = (qpznode_t *)dbnode;
-
-	RWLOCK(qpzone_get_lock(node), type);
-}
-
-static void
-unlocknode(dns_dbnode_t *dbnode, isc_rwlocktype_t type) {
-	qpznode_t *node = (qpznode_t *)dbnode;
-
-	RWUNLOCK(qpzone_get_lock(node), type);
-}
-
-static void
 deletedata(dns_dbnode_t *node ISC_ATTR_UNUSED, void *data) {
 	dns_slabheader_t *header = data;
 
@@ -5292,8 +5278,6 @@ static dns_dbmethods_t qpdb_zonemethods = {
 static dns_dbnode_methods_t qpznode_methods = (dns_dbnode_methods_t){
 	.attachnode = qpzone_attachnode,
 	.detachnode = qpzone_detachnode,
-	.locknode = locknode,
-	.unlocknode = unlocknode,
 	.deletedata = deletedata,
 };
 
