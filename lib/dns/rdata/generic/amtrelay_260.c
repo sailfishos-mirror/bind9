@@ -311,8 +311,7 @@ tostruct_amtrelay(ARGS_TOSTRUCT) {
 	REQUIRE(amtrelay != NULL);
 	REQUIRE(rdata->length >= 2);
 
-	amtrelay->common.rdclass = rdata->rdclass;
-	amtrelay->common.rdtype = rdata->type;
+	DNS_RDATACOMMON_INIT(amtrelay, rdata->type, rdata->rdclass);
 
 	dns_name_init(&amtrelay->gateway);
 	amtrelay->data = NULL;

@@ -364,8 +364,7 @@ tostruct_opt(ARGS_TOSTRUCT) {
 	REQUIRE(rdata->type == dns_rdatatype_opt);
 	REQUIRE(opt != NULL);
 
-	opt->common.rdclass = rdata->rdclass;
-	opt->common.rdtype = rdata->type;
+	DNS_RDATACOMMON_INIT(opt, rdata->type, rdata->rdclass);
 
 	dns_rdata_toregion(rdata, &r);
 	opt->length = r.length;

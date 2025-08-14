@@ -206,8 +206,7 @@ tostruct_rt(ARGS_TOSTRUCT) {
 	REQUIRE(rt != NULL);
 	REQUIRE(rdata->length != 0);
 
-	rt->common.rdclass = rdata->rdclass;
-	rt->common.rdtype = rdata->type;
+	DNS_RDATACOMMON_INIT(rt, rdata->type, rdata->rdclass);
 
 	dns_name_init(&name);
 	dns_rdata_toregion(rdata, &region);

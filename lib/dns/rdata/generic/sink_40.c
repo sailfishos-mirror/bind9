@@ -183,8 +183,7 @@ tostruct_sink(ARGS_TOSTRUCT) {
 	REQUIRE(sink != NULL);
 	REQUIRE(rdata->length >= 3);
 
-	sink->common.rdclass = rdata->rdclass;
-	sink->common.rdtype = rdata->type;
+	DNS_RDATACOMMON_INIT(sink, rdata->type, rdata->rdclass);
 
 	dns_rdata_toregion(rdata, &sr);
 

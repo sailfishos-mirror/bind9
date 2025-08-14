@@ -144,8 +144,7 @@ tostruct_cname(ARGS_TOSTRUCT) {
 	REQUIRE(cname != NULL);
 	REQUIRE(rdata->length != 0);
 
-	cname->common.rdclass = rdata->rdclass;
-	cname->common.rdtype = rdata->type;
+	DNS_RDATACOMMON_INIT(cname, rdata->type, rdata->rdclass);
 
 	dns_name_init(&name);
 	dns_rdata_toregion(rdata, &region);

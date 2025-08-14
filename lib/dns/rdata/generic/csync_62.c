@@ -168,8 +168,7 @@ tostruct_csync(ARGS_TOSTRUCT) {
 	REQUIRE(csync != NULL);
 	REQUIRE(rdata->length != 0);
 
-	csync->common.rdclass = rdata->rdclass;
-	csync->common.rdtype = rdata->type;
+	DNS_RDATACOMMON_INIT(csync, rdata->type, rdata->rdclass);
 
 	dns_rdata_toregion(rdata, &region);
 

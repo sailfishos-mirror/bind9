@@ -144,8 +144,7 @@ tostruct_in_dhcid(ARGS_TOSTRUCT) {
 	REQUIRE(dhcid != NULL);
 	REQUIRE(rdata->length != 0);
 
-	dhcid->common.rdclass = rdata->rdclass;
-	dhcid->common.rdtype = rdata->type;
+	DNS_RDATACOMMON_INIT(dhcid, rdata->type, rdata->rdclass);
 
 	dns_rdata_toregion(rdata, &region);
 

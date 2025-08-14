@@ -85,8 +85,7 @@ tostruct_dlv(ARGS_TOSTRUCT) {
 	REQUIRE(rdata->type == dns_rdatatype_dlv);
 	REQUIRE(dlv != NULL);
 
-	dlv->common.rdclass = rdata->rdclass;
-	dlv->common.rdtype = rdata->type;
+	DNS_RDATACOMMON_INIT(dlv, rdata->type, rdata->rdclass);
 
 	return generic_tostruct_ds(CALL_TOSTRUCT);
 }

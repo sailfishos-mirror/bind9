@@ -151,8 +151,7 @@ tostruct_in_nsap_ptr(ARGS_TOSTRUCT) {
 	REQUIRE(nsap_ptr != NULL);
 	REQUIRE(rdata->length != 0);
 
-	nsap_ptr->common.rdclass = rdata->rdclass;
-	nsap_ptr->common.rdtype = rdata->type;
+	DNS_RDATACOMMON_INIT(nsap_ptr, rdata->type, rdata->rdclass);
 
 	dns_name_init(&name);
 	dns_rdata_toregion(rdata, &region);

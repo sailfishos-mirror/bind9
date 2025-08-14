@@ -423,8 +423,7 @@ tostruct_tkey(ARGS_TOSTRUCT) {
 	REQUIRE(tkey != NULL);
 	REQUIRE(rdata->length != 0);
 
-	tkey->common.rdclass = rdata->rdclass;
-	tkey->common.rdtype = rdata->type;
+	DNS_RDATACOMMON_INIT(tkey, rdata->type, rdata->rdclass);
 
 	dns_rdata_toregion(rdata, &sr);
 

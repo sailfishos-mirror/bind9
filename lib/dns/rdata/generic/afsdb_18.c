@@ -207,8 +207,7 @@ tostruct_afsdb(ARGS_TOSTRUCT) {
 	REQUIRE(afsdb != NULL);
 	REQUIRE(rdata->length != 0);
 
-	afsdb->common.rdclass = rdata->rdclass;
-	afsdb->common.rdtype = rdata->type;
+	DNS_RDATACOMMON_INIT(afsdb, rdata->type, rdata->rdclass);
 
 	dns_name_init(&afsdb->server);
 

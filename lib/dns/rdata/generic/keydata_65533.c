@@ -330,8 +330,7 @@ tostruct_keydata(ARGS_TOSTRUCT) {
 	REQUIRE(rdata->type == dns_rdatatype_keydata);
 	REQUIRE(keydata != NULL);
 
-	keydata->common.rdclass = rdata->rdclass;
-	keydata->common.rdtype = rdata->type;
+	DNS_RDATACOMMON_INIT(keydata, rdata->type, rdata->rdclass);
 
 	dns_rdata_toregion(rdata, &sr);
 

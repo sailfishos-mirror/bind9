@@ -76,8 +76,7 @@ tostruct_spf(ARGS_TOSTRUCT) {
 	REQUIRE(rdata != NULL);
 	REQUIRE(rdata->type == dns_rdatatype_spf);
 
-	spf->common.rdclass = rdata->rdclass;
-	spf->common.rdtype = rdata->type;
+	DNS_RDATACOMMON_INIT(spf, rdata->type, rdata->rdclass);
 
 	return generic_tostruct_txt(CALL_TOSTRUCT);
 }

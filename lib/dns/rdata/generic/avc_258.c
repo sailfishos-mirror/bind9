@@ -75,8 +75,7 @@ tostruct_avc(ARGS_TOSTRUCT) {
 	REQUIRE(rdata->type == dns_rdatatype_avc);
 	REQUIRE(avc != NULL);
 
-	avc->common.rdclass = rdata->rdclass;
-	avc->common.rdtype = rdata->type;
+	DNS_RDATACOMMON_INIT(avc, rdata->type, rdata->rdclass);
 
 	return generic_tostruct_txt(CALL_TOSTRUCT);
 }

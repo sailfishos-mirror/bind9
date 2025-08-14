@@ -116,8 +116,7 @@ tostruct_hinfo(ARGS_TOSTRUCT) {
 	REQUIRE(hinfo != NULL);
 	REQUIRE(rdata->length != 0);
 
-	hinfo->common.rdclass = rdata->rdclass;
-	hinfo->common.rdtype = rdata->type;
+	DNS_RDATACOMMON_INIT(hinfo, rdata->type, rdata->rdclass);
 
 	dns_rdata_toregion(rdata, &region);
 	hinfo->cpu_len = uint8_fromregion(&region);

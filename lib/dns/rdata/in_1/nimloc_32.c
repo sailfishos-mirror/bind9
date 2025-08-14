@@ -133,8 +133,7 @@ tostruct_in_nimloc(ARGS_TOSTRUCT) {
 	REQUIRE(nimloc != NULL);
 	REQUIRE(rdata->length != 0);
 
-	nimloc->common.rdclass = rdata->rdclass;
-	nimloc->common.rdtype = rdata->type;
+	DNS_RDATACOMMON_INIT(nimloc, rdata->type, rdata->rdclass);
 
 	dns_rdata_toregion(rdata, &r);
 	nimloc->nimloc_len = r.length;

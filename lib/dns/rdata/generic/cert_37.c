@@ -191,8 +191,7 @@ tostruct_cert(ARGS_TOSTRUCT) {
 	REQUIRE(cert != NULL);
 	REQUIRE(rdata->length != 0);
 
-	cert->common.rdclass = rdata->rdclass;
-	cert->common.rdtype = rdata->type;
+	DNS_RDATACOMMON_INIT(cert, rdata->type, rdata->rdclass);
 
 	dns_rdata_toregion(rdata, &region);
 

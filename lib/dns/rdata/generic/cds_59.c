@@ -89,8 +89,7 @@ tostruct_cds(ARGS_TOSTRUCT) {
 	/*
 	 * Checked by generic_tostruct_ds().
 	 */
-	cds->common.rdclass = rdata->rdclass;
-	cds->common.rdtype = rdata->type;
+	DNS_RDATACOMMON_INIT(cds, rdata->type, rdata->rdclass);
 
 	return generic_tostruct_ds(CALL_TOSTRUCT);
 }
