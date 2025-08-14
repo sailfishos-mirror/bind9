@@ -100,9 +100,7 @@ tostruct_null(ARGS_TOSTRUCT) {
 	REQUIRE(rdata->type == dns_rdatatype_null);
 	REQUIRE(null != NULL);
 
-	null->common.rdclass = rdata->rdclass;
-	null->common.rdtype = rdata->type;
-	ISC_LINK_INIT(&null->common, link);
+	DNS_RDATACOMMON_INIT(null, rdata->type, rdata->rdclass);
 
 	dns_rdata_toregion(rdata, &r);
 	null->length = r.length;

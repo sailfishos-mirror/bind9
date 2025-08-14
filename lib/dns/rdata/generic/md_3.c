@@ -146,9 +146,7 @@ tostruct_md(ARGS_TOSTRUCT) {
 	REQUIRE(md != NULL);
 	REQUIRE(rdata->length != 0);
 
-	md->common.rdclass = rdata->rdclass;
-	md->common.rdtype = rdata->type;
-	ISC_LINK_INIT(&md->common, link);
+	DNS_RDATACOMMON_INIT(md, rdata->type, rdata->rdclass);
 
 	dns_name_init(&name, NULL);
 	dns_rdata_toregion(rdata, &r);

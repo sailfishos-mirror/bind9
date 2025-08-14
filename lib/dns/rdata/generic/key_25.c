@@ -415,9 +415,7 @@ tostruct_key(ARGS_TOSTRUCT) {
 	REQUIRE(rdata != NULL);
 	REQUIRE(rdata->type == dns_rdatatype_key);
 
-	key->common.rdclass = rdata->rdclass;
-	key->common.rdtype = rdata->type;
-	ISC_LINK_INIT(&key->common, link);
+	DNS_RDATACOMMON_INIT(key, rdata->type, rdata->rdclass);
 
 	return generic_tostruct_key(CALL_TOSTRUCT);
 }

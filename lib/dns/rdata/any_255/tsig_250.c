@@ -454,9 +454,7 @@ tostruct_any_tsig(ARGS_TOSTRUCT) {
 	REQUIRE(rdata->length != 0);
 
 	tsig = (dns_rdata_any_tsig_t *)target;
-	tsig->common.rdclass = rdata->rdclass;
-	tsig->common.rdtype = rdata->type;
-	ISC_LINK_INIT(&tsig->common, link);
+	DNS_RDATACOMMON_INIT(tsig, rdata->type, rdata->rdclass);
 
 	dns_rdata_toregion(rdata, &sr);
 

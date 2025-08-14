@@ -204,9 +204,7 @@ tostruct_sshfp(ARGS_TOSTRUCT) {
 	REQUIRE(sshfp != NULL);
 	REQUIRE(rdata->length != 0);
 
-	sshfp->common.rdclass = rdata->rdclass;
-	sshfp->common.rdtype = rdata->type;
-	ISC_LINK_INIT(&sshfp->common, link);
+	DNS_RDATACOMMON_INIT(sshfp, rdata->type, rdata->rdclass);
 
 	dns_rdata_toregion(rdata, &region);
 
