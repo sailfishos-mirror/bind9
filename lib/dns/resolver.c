@@ -5435,8 +5435,8 @@ validated(void *arg) {
 		FCTXTRACE("validation failed");
 		inc_stats(res, dns_resstatscounter_valfail);
 		fctx->valfail++;
-		fctx->vresult = val->result;
-		if (fctx->vresult != DNS_R_BROKENCHAIN) {
+		result = fctx->vresult = val->result;
+		if (result != DNS_R_BROKENCHAIN) {
 			if (val->rdataset != NULL) {
 				delete_rrset(fctx, val->name, val->type,
 					     val->sigrdataset != NULL);
