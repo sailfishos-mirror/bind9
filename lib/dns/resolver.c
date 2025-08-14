@@ -6680,7 +6680,8 @@ mark_related(dns_name_t *name, dns_rdataset_t *rdataset, bool external,
  * locally served zone.
  */
 static inline bool
-name_external(const dns_name_t *name, dns_rdatatype_t type, fetchctx_t *fctx) {
+name_external(const dns_name_t *name, dns_rdatatype_t type, respctx_t *rctx) {
+	fetchctx_t *fctx = rctx->fctx;
 	isc_result_t result;
 	dns_forwarders_t *forwarders = NULL;
 	dns_name_t *apex = NULL;
@@ -6690,7 +6691,7 @@ name_external(const dns_name_t *name, dns_rdatatype_t type, fetchctx_t *fctx) {
 	dns_namereln_t rel;
 
 	apex = (ISDUALSTACK(fctx->addrinfo) || !ISFORWARDER(fctx->addrinfo))
-		       ? fctx->domain
+		       ? rctx->ns_name != NULL ? rctx->ns_name : fctx->domain
 		       : fctx->fwdname;
 
 	/*
@@ -6794,7 +6795,7 @@ check_section(void *arg, const dns_name_t *addname, dns_rdatatype_t type,
 	result = dns_message_findname(rctx->query->rmessage, section, addname,
 				      dns_rdatatype_any, 0, &name, NULL);
 	if (result == ISC_R_SUCCESS) {
-		external = name_external(name, type, fctx);
+		external = name_external(name, type, rctx);
 		if (type == dns_rdatatype_a) {
 			for (rdataset = ISC_LIST_HEAD(name->list);
 			     rdataset != NULL;
@@ -8447,7 +8448,7 @@ rctx_answer_scan(respctx_t *rctx) {
 			/*
 			 * Don't accept DNAME from parent namespace.
 			 */
-			if (name_external(name, dns_rdatatype_dname, fctx)) {
+			if (name_external(name, dns_rdatatype_dname, rctx)) {
 				continue;
 			}
 
@@ -8771,7 +8772,7 @@ rctx_authority_positive(respctx_t *rctx) {
 		dns_message_currentname(rctx->query->rmessage,
 					DNS_SECTION_AUTHORITY, &name);
 
-		if (!name_external(name, dns_rdatatype_ns, fctx) &&
+		if (!name_external(name, dns_rdatatype_ns, rctx) &&
 		    dns_name_issubdomain(fctx->name, name))
 		{
 			dns_rdataset_t *rdataset = NULL;
