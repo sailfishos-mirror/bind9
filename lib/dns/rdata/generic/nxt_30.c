@@ -244,9 +244,7 @@ tostruct_nxt(ARGS_TOSTRUCT) {
 	REQUIRE(nxt != NULL);
 	REQUIRE(rdata->length != 0);
 
-	nxt->common.rdclass = rdata->rdclass;
-	nxt->common.rdtype = rdata->type;
-	ISC_LINK_INIT(&nxt->common, link);
+	DNS_RDATACOMMON_INIT(nxt, rdata->type, rdata->rdclass);
 
 	dns_name_init(&name, NULL);
 	dns_rdata_toregion(rdata, &region);

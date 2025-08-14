@@ -85,9 +85,7 @@ tostruct_rkey(ARGS_TOSTRUCT) {
 	REQUIRE(rdata != NULL);
 	REQUIRE(rdata->type == dns_rdatatype_rkey);
 
-	rkey->common.rdclass = rdata->rdclass;
-	rkey->common.rdtype = rdata->type;
-	ISC_LINK_INIT(&rkey->common, link);
+	DNS_RDATACOMMON_INIT(rkey, rdata->type, rdata->rdclass);
 
 	return generic_tostruct_key(CALL_TOSTRUCT);
 }

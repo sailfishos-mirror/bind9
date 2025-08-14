@@ -257,9 +257,7 @@ tostruct_zonemd(ARGS_TOSTRUCT) {
 	REQUIRE(zonemd != NULL);
 	REQUIRE(rdata->length != 0);
 
-	zonemd->common.rdclass = rdata->rdclass;
-	zonemd->common.rdtype = rdata->type;
-	ISC_LINK_INIT(&zonemd->common, link);
+	DNS_RDATACOMMON_INIT(zonemd, rdata->type, rdata->rdclass);
 
 	dns_rdata_toregion(rdata, &region);
 

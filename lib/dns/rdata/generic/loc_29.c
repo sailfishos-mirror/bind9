@@ -753,9 +753,7 @@ tostruct_loc(ARGS_TOSTRUCT) {
 		return ISC_R_NOTIMPLEMENTED;
 	}
 
-	loc->common.rdclass = rdata->rdclass;
-	loc->common.rdtype = rdata->type;
-	ISC_LINK_INIT(&loc->common, link);
+	DNS_RDATACOMMON_INIT(loc, rdata->type, rdata->rdclass);
 
 	loc->v.v0.version = version;
 	isc_region_consume(&r, 1);

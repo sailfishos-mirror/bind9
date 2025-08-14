@@ -212,9 +212,7 @@ tostruct_txt(ARGS_TOSTRUCT) {
 	REQUIRE(rdata->type == dns_rdatatype_txt);
 	REQUIRE(txt != NULL);
 
-	txt->common.rdclass = rdata->rdclass;
-	txt->common.rdtype = rdata->type;
-	ISC_LINK_INIT(&txt->common, link);
+	DNS_RDATACOMMON_INIT(txt, rdata->type, rdata->rdclass);
 
 	return generic_tostruct_txt(CALL_TOSTRUCT);
 }
