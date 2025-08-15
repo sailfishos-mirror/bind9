@@ -5144,18 +5144,12 @@ qpzone_deleterdataset(dns_db_t *db, dns_dbnode_t *dbnode,
 
 static isc_result_t
 nodefullname(dns_dbnode_t *node, dns_name_t *name) {
-	qpznode_t *qpnode = (qpznode_t *)node;
-	isc_rwlocktype_t nlocktype = isc_rwlocktype_none;
-	isc_rwlock_t *nlock = NULL;
-
 	REQUIRE(node != NULL);
 	REQUIRE(name != NULL);
 
-	nlock = qpzone_get_lock(qpnode);
+	qpznode_t *qpnode = (qpznode_t *)node;
 
-	NODE_RDLOCK(nlock, &nlocktype);
 	dns_name_copy(&qpnode->name, name);
-	NODE_UNLOCK(nlock, &nlocktype);
 
 	return ISC_R_SUCCESS;
 }
