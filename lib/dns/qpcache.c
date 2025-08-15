@@ -59,6 +59,7 @@
 
 #include "db_p.h"
 #include "qpcache_p.h"
+#include "rdataslab_p.h"
 
 #ifndef DNS_QPCACHE_LOG_STATS_LEVEL
 #define DNS_QPCACHE_LOG_STATS_LEVEL 3
@@ -70,37 +71,6 @@
 		if (result != ISC_R_SUCCESS) \
 			goto failure;        \
 	} while (0)
-
-#define EXISTS(header)                                 \
-	((atomic_load_acquire(&(header)->attributes) & \
-	  DNS_SLABHEADERATTR_NONEXISTENT) == 0)
-#define NXDOMAIN(header)                               \
-	((atomic_load_acquire(&(header)->attributes) & \
-	  DNS_SLABHEADERATTR_NXDOMAIN) != 0)
-#define STALE(header)                                  \
-	((atomic_load_acquire(&(header)->attributes) & \
-	  DNS_SLABHEADERATTR_STALE) != 0)
-#define STALE_WINDOW(header)                           \
-	((atomic_load_acquire(&(header)->attributes) & \
-	  DNS_SLABHEADERATTR_STALE_WINDOW) != 0)
-#define OPTOUT(header)                                 \
-	((atomic_load_acquire(&(header)->attributes) & \
-	  DNS_SLABHEADERATTR_OPTOUT) != 0)
-#define NEGATIVE(header)                               \
-	((atomic_load_acquire(&(header)->attributes) & \
-	  DNS_SLABHEADERATTR_NEGATIVE) != 0)
-#define PREFETCH(header)                               \
-	((atomic_load_acquire(&(header)->attributes) & \
-	  DNS_SLABHEADERATTR_PREFETCH) != 0)
-#define ZEROTTL(header)                                \
-	((atomic_load_acquire(&(header)->attributes) & \
-	  DNS_SLABHEADERATTR_ZEROTTL) != 0)
-#define ANCIENT(header)                                \
-	((atomic_load_acquire(&(header)->attributes) & \
-	  DNS_SLABHEADERATTR_ANCIENT) != 0)
-#define STATCOUNT(header)                              \
-	((atomic_load_acquire(&(header)->attributes) & \
-	  DNS_SLABHEADERATTR_STATCOUNT) != 0)
 
 #define STALE_TTL(header, qpdb) \
 	(NXDOMAIN(header) ? 0 : qpdb->common.serve_stale_ttl)

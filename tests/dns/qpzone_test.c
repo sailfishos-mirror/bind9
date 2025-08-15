@@ -34,6 +34,8 @@
 #include <dns/rdatastruct.h>
 #define KEEP_BEFORE
 
+#include "rdataslab_p.h"
+
 /* Include the main file */
 
 #pragma GCC diagnostic push
@@ -44,10 +46,6 @@
 
 #undef CHECK
 #include <tests/dns.h>
-
-#define CASESET(header)                                \
-	((atomic_load_acquire(&(header)->attributes) & \
-	  DNS_SLABHEADERATTR_CASESET) != 0)
 
 const char *ownercase_vectors[12][2] = {
 	{
