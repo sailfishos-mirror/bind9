@@ -1561,7 +1561,7 @@ load_text(dns_loadctx_t *lctx) {
 		 * [<class>] [<TTL>] <type> <RDATA>
 		 */
 
-		type = 0;
+		type = dns_rdatatype_none;
 		rdclass = 0;
 
 		GETTOKEN(lctx->lex, 0, &token, initialws);
@@ -1918,7 +1918,7 @@ load_text(dns_loadctx_t *lctx) {
 		if (dns_rdatatype_issig(type)) {
 			covers = dns_rdata_covers(&rdata[rdcount]);
 		} else {
-			covers = 0;
+			covers = dns_rdatatype_none;
 		}
 
 		if (!lctx->ttl_known && !lctx->default_ttl_known) {

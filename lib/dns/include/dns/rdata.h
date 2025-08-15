@@ -151,10 +151,10 @@ enum {
 
 #define DNS_RDATA_CHECKINITIALIZED
 #ifdef DNS_RDATA_CHECKINITIALIZED
-#define DNS_RDATA_INITIALIZED(rdata)                                           \
-	((rdata)->data == NULL && (rdata)->length == 0 &&                      \
-	 (rdata)->rdclass == 0 && (rdata)->type == 0 && (rdata)->flags == 0 && \
-	 !ISC_LINK_LINKED((rdata), link))
+#define DNS_RDATA_INITIALIZED(rdata)                                     \
+	((rdata)->data == NULL && (rdata)->length == 0 &&                \
+	 (rdata)->rdclass == 0 && (rdata)->type == dns_rdatatype_none && \
+	 (rdata)->flags == 0 && !ISC_LINK_LINKED((rdata), link))
 #else /* ifdef DNS_RDATA_CHECKINITIALIZED */
 #ifdef ISC_LIST_CHECKINIT
 #define DNS_RDATA_INITIALIZED(rdata) (!ISC_LINK_LINKED((rdata), link))
@@ -734,6 +734,14 @@ dns_rdatatype_ismulti(dns_rdatatype_t type) {
 static inline bool
 dns_rdatatype_issig(dns_rdatatype_t type) {
 	return type == dns_rdatatype_rrsig || type == dns_rdatatype_sig;
+}
+
+/*%
+ * Return true iff the rdata type is a insecurity proof: either NSEC or NSEC3.
+ */
+static inline bool
+dns_rdatatype_isnsec(dns_rdatatype_t type) {
+	return type == dns_rdatatype_nsec || type == dns_rdatatype_nsec3;
 }
 
 /*%

@@ -1147,7 +1147,7 @@ temp_check(isc_mem_t *mctx, dns_diff_t *temp, dns_db_t *db,
 				dns_diff_clear(&trash);
 				return DNS_R_NXRRSET;
 			} else {
-				covers = 0;
+				covers = dns_rdatatype_none;
 			}
 
 			/*
@@ -2019,14 +2019,15 @@ remove_orphaned_ds(dns_db_t *db, dns_dbversion_t *newver, dns_diff_t *diff) {
 			continue;
 		}
 		CHECK(rrset_exists(db, newver, &tuple->name, dns_rdatatype_ns,
-				   0, &ns_exists));
+				   dns_rdatatype_none, &ns_exists));
 		if (ns_exists &&
 		    !dns_name_equal(&tuple->name, dns_db_origin(db)))
 		{
 			continue;
 		}
 		CHECK(delete_if(true_p, db, newver, &tuple->name,
-				dns_rdatatype_ds, 0, NULL, &temp_diff));
+				dns_rdatatype_ds, dns_rdatatype_none, NULL,
+				&temp_diff));
 	}
 	result = ISC_R_SUCCESS;
 
@@ -2875,8 +2876,8 @@ update_action(void *arg) {
 				}
 			} else {
 				CHECK(rrset_exists(db, ver, name,
-						   dns_rdatatype_cname, 0,
-						   &flag));
+						   dns_rdatatype_cname,
+						   dns_rdatatype_none, &flag));
 				if (flag && !dns_rdatatype_atcname(rdata.type))
 				{
 					update_log(client, zone,
@@ -2889,8 +2890,8 @@ update_action(void *arg) {
 			if (rdata.type == dns_rdatatype_soa) {
 				bool ok;
 				CHECK(rrset_exists(db, ver, name,
-						   dns_rdatatype_soa, 0,
-						   &flag));
+						   dns_rdatatype_soa,
+						   dns_rdatatype_none, &flag));
 				if (!flag) {
 					update_log(client, zone,
 						   LOGLEVEL_PROTOCOL,
@@ -3080,12 +3081,14 @@ update_action(void *arg) {
 				if (dns_name_equal(name, zonename)) {
 					CHECK(delete_if(type_not_soa_nor_ns_p,
 							db, ver, name,
-							dns_rdatatype_any, 0,
+							dns_rdatatype_any,
+							dns_rdatatype_none,
 							&rdata, &diff));
 				} else {
 					CHECK(delete_if(type_not_dnssec, db,
 							ver, name,
-							dns_rdatatype_any, 0,
+							dns_rdatatype_any,
+							dns_rdatatype_none,
 							&rdata, &diff));
 				}
 			} else if (dns_name_equal(name, zonename) &&
@@ -3132,9 +3135,9 @@ update_action(void *arg) {
 				}
 				if (rdata.type == dns_rdatatype_ns) {
 					int count;
-					CHECK(rr_count(db, ver, name,
-						       dns_rdatatype_ns, 0,
-						       &count));
+					CHECK(rr_count(
+						db, ver, name, dns_rdatatype_ns,
+						dns_rdatatype_none, &count));
 					if (count == 1) {
 						update_log(client, zone,
 							   LOGLEVEL_PROTOCOL,
@@ -3241,11 +3244,11 @@ update_action(void *arg) {
 
 		CHECK(remove_orphaned_ds(db, ver, &diff));
 
-		CHECK(rrset_exists(db, ver, zonename, dns_rdatatype_dnskey, 0,
-				   &has_dnskey));
+		CHECK(rrset_exists(db, ver, zonename, dns_rdatatype_dnskey,
+				   dns_rdatatype_none, &has_dnskey));
 
 		CHECK(rrset_exists(db, oldver, zonename, dns_rdatatype_dnskey,
-				   0, &had_dnskey));
+				   dns_rdatatype_none, &had_dnskey));
 
 		CHECK(rollback_private(db, privatetype, ver, &diff));
 

@@ -240,8 +240,7 @@ printsection(dns_message_t *msg, dns_section_t sectionid,
 			}
 			if (list_almost_all &&
 			    (rdataset->type == dns_rdatatype_rrsig ||
-			     rdataset->type == dns_rdatatype_nsec ||
-			     rdataset->type == dns_rdatatype_nsec3))
+			     dns_rdatatype_isnsec(rdataset->type)))
 			{
 				continue;
 			}

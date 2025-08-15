@@ -307,6 +307,7 @@ if developer_mode
     config.set('ISC_MUTEX_ERROR_CHECK', 1)
     config.set('ISC_SOCKET_DETAILS', 1)
     config.set('ISC_STATS_CHECKUNDERFLOW', 1)
+    config.set('DNS_TYPEPAIR_CHECK', 1)
 endif
 
 foreach fn : [

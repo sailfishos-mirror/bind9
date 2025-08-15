@@ -154,8 +154,7 @@ dns_ncache_add(dns_message_t *message, dns_db_t *cache, dns_dbnode_t *node,
 					type = rdataset->covers;
 				}
 				if (type == dns_rdatatype_soa ||
-				    type == dns_rdatatype_nsec ||
-				    type == dns_rdatatype_nsec3)
+				    dns_rdatatype_isnsec(type))
 				{
 					if (ttl > rdataset->ttl) {
 						ttl = rdataset->ttl;
@@ -205,7 +204,7 @@ dns_ncache_add(dns_message_t *message, dns_db_t *cache, dns_dbnode_t *node,
 					rdata[next].length = r.length;
 					rdata[next].rdclass =
 						ncrdatalist.rdclass;
-					rdata[next].type = 0;
+					rdata[next].type = dns_rdatatype_none;
 					rdata[next].flags = 0;
 					ISC_LIST_APPEND(ncrdatalist.rdata,
 							&rdata[next], link);
@@ -276,7 +275,7 @@ dns_ncache_towire(dns_rdataset_t *rdataset, dns_compress_t *cctx,
 	 */
 
 	REQUIRE(rdataset != NULL);
-	REQUIRE(rdataset->type == 0);
+	REQUIRE(rdataset->type == dns_rdatatype_none);
 	REQUIRE(rdataset->attributes.negative);
 
 	savedbuffer = *target;
@@ -492,7 +491,7 @@ dns_ncache_getrdataset(dns_rdataset_t *ncacherdataset, dns_name_t *name,
 
 	REQUIRE(ncacherdataset != NULL);
 	REQUIRE(DNS_RDATASET_VALID(ncacherdataset));
-	REQUIRE(ncacherdataset->type == 0);
+	REQUIRE(ncacherdataset->type == dns_rdatatype_none);
 	REQUIRE(ncacherdataset->attributes.negative);
 	REQUIRE(name != NULL);
 	REQUIRE(!dns_rdataset_isassociated(rdataset));
@@ -532,7 +531,7 @@ dns_ncache_getrdataset(dns_rdataset_t *ncacherdataset, dns_name_t *name,
 		rdataset->methods = &rdataset_methods;
 		rdataset->rdclass = ncacherdataset->rdclass;
 		rdataset->type = type;
-		rdataset->covers = 0;
+		rdataset->covers = dns_rdatatype_none;
 		rdataset->ttl = ncacherdataset->ttl;
 		rdataset->trust = trust;
 		rdataset->ncache.raw = remaining.base;
@@ -558,7 +557,7 @@ dns_ncache_getsigrdataset(dns_rdataset_t *ncacherdataset, dns_name_t *name,
 	unsigned int count;
 
 	REQUIRE(ncacherdataset != NULL);
-	REQUIRE(ncacherdataset->type == 0);
+	REQUIRE(ncacherdataset->type == dns_rdatatype_none);
 	REQUIRE(ncacherdataset->attributes.negative);
 	REQUIRE(name != NULL);
 	REQUIRE(!dns_rdataset_isassociated(rdataset));
@@ -643,7 +642,7 @@ dns_ncache_current(dns_rdataset_t *ncacherdataset, dns_name_t *found,
 	unsigned char *raw;
 
 	REQUIRE(ncacherdataset != NULL);
-	REQUIRE(ncacherdataset->type == 0);
+	REQUIRE(ncacherdataset->type == dns_rdatatype_none);
 	REQUIRE(ncacherdataset->attributes.negative);
 	REQUIRE(found != NULL);
 	REQUIRE(!dns_rdataset_isassociated(rdataset));
@@ -665,7 +664,6 @@ dns_ncache_current(dns_rdataset_t *ncacherdataset, dns_name_t *found,
 	INSIST(trust <= dns_trust_ultimate);
 	isc_buffer_remainingregion(&source, &remaining);
 
-	covers = 0;
 	if (type == dns_rdatatype_rrsig) {
 		/*
 		 * Extract covers from RRSIG.
@@ -682,6 +680,8 @@ dns_ncache_current(dns_rdataset_t *ncacherdataset, dns_name_t *found,
 				     &sigregion);
 		(void)dns_rdata_tostruct(&rdata, &rrsig, NULL);
 		covers = rrsig.covered;
+	} else {
+		covers = dns_rdatatype_none;
 	}
 
 	rdataset->methods = &rdataset_methods;

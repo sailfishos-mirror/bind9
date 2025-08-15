@@ -5683,9 +5683,7 @@ findnoqname(fetchctx_t *fctx, dns_message_t *message, dns_name_t *name,
 			bool setclosest = false;
 			bool setnearest = false;
 
-			if (nrdataset->type != dns_rdatatype_nsec &&
-			    nrdataset->type != dns_rdatatype_nsec3)
-			{
+			if (!dns_rdatatype_isnsec(nrdataset->type)) {
 				continue;
 			}
 

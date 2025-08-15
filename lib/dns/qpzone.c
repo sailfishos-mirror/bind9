@@ -445,7 +445,7 @@ resign_sooner(void *v1, void *v2) {
 	return h1->resign < h2->resign ||
 	       (h1->resign == h2->resign && h1->resign_lsb < h2->resign_lsb) ||
 	       (h1->resign == h2->resign && h1->resign_lsb == h2->resign_lsb &&
-		h2->type == DNS_SIGTYPE(dns_rdatatype_soa));
+		h2->typepair == DNS_SIGTYPEPAIR(dns_rdatatype_soa));
 }
 
 /*%
@@ -1059,8 +1059,8 @@ bindrdataset(qpzonedb_t *qpdb, qpznode_t *node, dns_slabheader_t *header,
 
 	rdataset->methods = &dns_rdataslab_rdatasetmethods;
 	rdataset->rdclass = qpdb->common.rdclass;
-	rdataset->type = DNS_TYPEPAIR_TYPE(header->type);
-	rdataset->covers = DNS_TYPEPAIR_COVERS(header->type);
+	rdataset->type = DNS_TYPEPAIR_TYPE(header->typepair);
+	rdataset->covers = DNS_TYPEPAIR_COVERS(header->typepair);
 	rdataset->ttl = header->ttl;
 	rdataset->trust = header->trust;
 
@@ -1133,7 +1133,7 @@ setnsec3parameters(dns_db_t *db, qpz_version_t *version) {
 		} while (header != NULL);
 
 		if (header != NULL &&
-		    (header->type == dns_rdatatype_nsec3param))
+		    (header->typepair == dns_rdatatype_nsec3param))
 		{
 			/*
 			 * Find an NSEC3PARAM with a supported algorithm.
@@ -1623,13 +1623,17 @@ qpzone_findrdataset(dns_db_t *db, dns_dbnode_t *dbnode,
 	uint32_t serial;
 	qpz_version_t *version = (qpz_version_t *)dbversion;
 	bool close_version = false;
-	dns_typepair_t matchtype, sigmatchtype;
+	dns_typepair_t typepair, sigpair;
 	isc_rwlocktype_t nlocktype = isc_rwlocktype_none;
 	isc_rwlock_t *nlock = NULL;
 
 	REQUIRE(VALID_QPZONE(qpdb));
 	REQUIRE(type != dns_rdatatype_any);
 	INSIST(version == NULL || version->qpdb == qpdb);
+
+	if (type == dns_rdatatype_none && covers == dns_rdatatype_none) {
+		return ISC_R_NOTFOUND;
+	}
 
 	if (version == NULL) {
 		currentversion(db, (dns_dbversion_t **)&version);
@@ -1640,11 +1644,11 @@ qpzone_findrdataset(dns_db_t *db, dns_dbnode_t *dbnode,
 	nlock = qpzone_get_lock(node);
 	NODE_RDLOCK(nlock, &nlocktype);
 
-	matchtype = DNS_TYPEPAIR_VALUE(type, covers);
-	if (covers == 0) {
-		sigmatchtype = DNS_SIGTYPE(type);
+	typepair = DNS_TYPEPAIR_VALUE(type, covers);
+	if (covers == dns_rdatatype_none) {
+		sigpair = DNS_SIGTYPEPAIR(type);
 	} else {
-		sigmatchtype = 0;
+		sigpair = dns_typepair_none;
 	}
 
 	for (header = node->data; header != NULL; header = header_next) {
@@ -1664,12 +1668,12 @@ qpzone_findrdataset(dns_db_t *db, dns_dbnode_t *dbnode,
 			 * We have an active, extant rdataset.  If it's a
 			 * type we're looking for, remember it.
 			 */
-			if (header->type == matchtype) {
+			if (header->typepair == typepair) {
 				found = header;
 				if (foundsig != NULL) {
 					break;
 				}
-			} else if (header->type == sigmatchtype) {
+			} else if (header->typepair == sigpair) {
 				foundsig = header;
 				if (found != NULL) {
 					break;
@@ -1700,9 +1704,9 @@ qpzone_findrdataset(dns_db_t *db, dns_dbnode_t *dbnode,
 }
 
 static bool
-delegating_type(qpzonedb_t *qpdb, qpznode_t *node, dns_typepair_t type) {
-	return type == dns_rdatatype_dname ||
-	       (type == dns_rdatatype_ns &&
+delegating_type(qpzonedb_t *qpdb, qpznode_t *node, dns_typepair_t typepair) {
+	return typepair == dns_rdatatype_dname ||
+	       (typepair == dns_rdatatype_ns &&
 		(node != qpdb->origin || IS_STUB(qpdb)));
 }
 
@@ -1778,7 +1782,7 @@ cname_and_other(qpznode_t *node, uint32_t serial) {
 	for (header = node->data; header != NULL; header = header_next) {
 		header_next = header->next;
 
-		rdtype = DNS_TYPEPAIR_TYPE(header->type);
+		rdtype = DNS_TYPEPAIR_TYPE(header->typepair);
 		if (rdtype == dns_rdatatype_cname) {
 			do {
 				if (header->serial <= serial && !IGNORE(header))
@@ -1809,7 +1813,7 @@ cname_and_other(qpznode_t *node, uint32_t serial) {
 				header = header->down;
 			} while (header != NULL);
 			if (header != NULL) {
-				if (!prio_type(header->type)) {
+				if (!prio_type(header->typepair)) {
 					/*
 					 * CNAME is in the priority list, so if
 					 * we are done with priority types, we
@@ -1906,10 +1910,10 @@ add(qpzonedb_t *qpdb, qpznode_t *node, const dns_name_t *nodename,
 	     topheader = topheader->next)
 	{
 		++ntypes;
-		if (prio_type(topheader->type)) {
+		if (prio_type(topheader->typepair)) {
 			prioheader = topheader;
 		}
-		if (topheader->type == newheader->type) {
+		if (topheader->typepair == newheader->typepair) {
 			break;
 		}
 		topheader_prev = topheader;
@@ -1950,8 +1954,8 @@ add(qpzonedb_t *qpdb, qpznode_t *node, const dns_name_t *nodename,
 				result = dns_rdataslab_merge(
 					header, newheader, qpdb->common.mctx,
 					qpdb->common.rdclass,
-					(dns_rdatatype_t)header->type, flags,
-					qpdb->maxrrperset, &merged);
+					DNS_TYPEPAIR_TYPE(header->typepair),
+					flags, qpdb->maxrrperset, &merged);
 			}
 			if (result == ISC_R_SUCCESS) {
 				/*
@@ -1979,7 +1983,8 @@ add(qpzonedb_t *qpdb, qpznode_t *node, const dns_name_t *nodename,
 				if (result == DNS_R_TOOMANYRECORDS) {
 					dns__db_logtoomanyrecords(
 						(dns_db_t *)qpdb, nodename,
-						(dns_rdatatype_t)header->type,
+						DNS_TYPEPAIR_TYPE(
+							header->typepair),
 						"updating", qpdb->maxrrperset);
 				}
 				dns_slabheader_destroy(&newheader);
@@ -2085,7 +2090,7 @@ add(qpzonedb_t *qpdb, qpznode_t *node, const dns_name_t *nodename,
 
 			INSIST(newheader->down == NULL);
 
-			if (prio_type(newheader->type)) {
+			if (prio_type(newheader->typepair)) {
 				/* This is a priority type, prepend it */
 				newheader->next = node->data;
 				node->data = newheader;
@@ -2522,7 +2527,7 @@ again:
 				  ? (header->resign << 1) | header->resign_lsb
 				  : 0;
 		dns_name_copy(&HEADERNODE(header)->name, foundname);
-		*typepair = header->type;
+		*typepair = header->typepair;
 		result = ISC_R_SUCCESS;
 	}
 	UNLOCK(&qpdb->heap->lock);
@@ -2627,7 +2632,7 @@ matchparams(dns_slabheader_t *header, qpz_search_t *search) {
 	isc_region_t region;
 	isc_result_t result;
 
-	REQUIRE(header->type == dns_rdatatype_nsec3);
+	REQUIRE(header->typepair == dns_rdatatype_nsec3);
 
 	raw = (unsigned char *)header + sizeof(*header);
 	count = raw[0] * 256 + raw[1]; /* count */
@@ -2661,7 +2666,7 @@ qpzone_setup_delegation(qpz_search_t *search, dns_dbnode_t **nodep,
 			dns_name_t *foundname, dns_rdataset_t *rdataset,
 			dns_rdataset_t *sigrdataset DNS__DB_FLARG) {
 	dns_name_t *zcname = NULL;
-	dns_typepair_t type;
+	dns_typepair_t typepair;
 	qpznode_t *node = NULL;
 
 	REQUIRE(search != NULL);
@@ -2673,7 +2678,7 @@ qpzone_setup_delegation(qpz_search_t *search, dns_dbnode_t **nodep,
 	 */
 
 	node = search->zonecut;
-	type = search->zonecut_header->type;
+	typepair = search->zonecut_header->typepair;
 
 	/*
 	 * If we have to set foundname, we do it before anything else.
@@ -2709,7 +2714,7 @@ qpzone_setup_delegation(qpz_search_t *search, dns_dbnode_t **nodep,
 		NODE_UNLOCK(nlock, &nlocktype);
 	}
 
-	if (type == dns_rdatatype_dname) {
+	if (typepair == dns_rdatatype_dname) {
 		return DNS_R_DNAME;
 	}
 	return DNS_R_DELEGATION;
@@ -3103,17 +3108,13 @@ find_closest_nsec(qpz_search_t *search, dns_dbnode_t **nodep,
 	isc_result_t result;
 	dns_fixedname_t fname;
 	dns_name_t *name = dns_fixedname_initname(&fname);
-	dns_rdatatype_t type = dns_rdatatype_nsec;
-	dns_typepair_t sigtype = DNS_SIGTYPE(dns_rdatatype_nsec);
-	bool wraps = false;
+	dns_rdatatype_t matchtype = nsec3 ? dns_rdatatype_nsec3
+					  : dns_rdatatype_nsec;
+	dns_typepair_t typepair = DNS_TYPEPAIR(matchtype);
+	dns_typepair_t sigpair = DNS_SIGTYPEPAIR(matchtype);
+	bool wraps = nsec3;
 	bool first = true;
 	bool need_sig = secure;
-
-	if (nsec3) {
-		type = dns_rdatatype_nsec3;
-		sigtype = DNS_SIGTYPE(dns_rdatatype_nsec3);
-		wraps = true;
-	}
 
 	/*
 	 * Use the auxiliary tree only starting with the second node in the
@@ -3154,12 +3155,12 @@ again:
 				 * active rdataset at this node.
 				 */
 				empty_node = false;
-				if (header->type == type) {
+				if (header->typepair == typepair) {
 					found = header;
 					if (foundsig != NULL) {
 						break;
 					}
-				} else if (header->type == sigtype) {
+				} else if (header->typepair == sigpair) {
 					foundsig = header;
 					if (found != NULL) {
 						break;
@@ -3169,13 +3170,13 @@ again:
 		}
 		if (!empty_node) {
 			if (found != NULL && search->version->havensec3 &&
-			    found->type == dns_rdatatype_nsec3 &&
+			    found->typepair == dns_rdatatype_nsec3 &&
 			    !matchparams(found, search))
 			{
 				empty_node = true;
 				found = NULL;
 				foundsig = NULL;
-				result = previous_closest_nsec(type, search,
+				result = previous_closest_nsec(typepair, search,
 							       name, &prevnode,
 							       NULL, NULL);
 			} else if (found != NULL &&
@@ -3214,7 +3215,7 @@ again:
 				 */
 				empty_node = true;
 				result = previous_closest_nsec(
-					type, search, name, &prevnode,
+					typepair, search, name, &prevnode,
 					&nseciter, &first);
 			} else {
 				/*
@@ -3229,7 +3230,7 @@ again:
 			 * This node isn't active.  We've got to keep
 			 * looking.
 			 */
-			result = previous_closest_nsec(type, search, name,
+			result = previous_closest_nsec(typepair, search, name,
 						       &prevnode, &nseciter,
 						       &first);
 		}
@@ -3277,9 +3278,9 @@ qpzone_check_zonecut(qpznode_t *node, void *arg DNS__DB_FLARG) {
 	 */
 	for (header = node->data; header != NULL; header = header_next) {
 		header_next = header->next;
-		if (header->type == dns_rdatatype_ns ||
-		    header->type == dns_rdatatype_dname ||
-		    header->type == DNS_SIGTYPE(dns_rdatatype_dname))
+		if (header->typepair == dns_rdatatype_ns ||
+		    header->typepair == dns_rdatatype_dname ||
+		    header->typepair == DNS_SIGTYPEPAIR(dns_rdatatype_dname))
 		{
 			do {
 				if (header->serial <= search->serial &&
@@ -3294,10 +3295,10 @@ qpzone_check_zonecut(qpznode_t *node, void *arg DNS__DB_FLARG) {
 				}
 			} while (header != NULL);
 			if (header != NULL) {
-				if (header->type == dns_rdatatype_dname) {
+				if (header->typepair == dns_rdatatype_dname) {
 					dname_header = header;
-				} else if (header->type ==
-					   DNS_SIGTYPE(dns_rdatatype_dname))
+				} else if (header->typepair ==
+					   DNS_SIGTYPEPAIR(dns_rdatatype_dname))
 				{
 					sigdname_header = header;
 				} else if (node != search->qpdb->origin ||
@@ -3429,7 +3430,7 @@ qpzone_find(dns_db_t *db, const dns_name_t *name, dns_dbversion_t *version,
 	dns_slabheader_t *header = NULL, *header_next = NULL;
 	dns_slabheader_t *found = NULL, *nsecheader = NULL;
 	dns_slabheader_t *foundsig = NULL, *cnamesig = NULL, *nsecsig = NULL;
-	dns_typepair_t sigtype;
+	dns_typepair_t sigpair;
 	bool active;
 	isc_rwlock_t *nlock = NULL;
 	isc_rwlocktype_t nlocktype = isc_rwlocktype_none;
@@ -3602,7 +3603,7 @@ found:
 	 * We now go looking for rdata...
 	 */
 
-	sigtype = DNS_SIGTYPE(type);
+	sigpair = DNS_SIGTYPEPAIR(type);
 	empty_node = true;
 	for (header = node->data; header != NULL; header = header_next) {
 		header_next = header->next;
@@ -3630,7 +3631,9 @@ found:
 			/*
 			 * Do special zone cut handling, if requested.
 			 */
-			if (maybe_zonecut && header->type == dns_rdatatype_ns) {
+			if (maybe_zonecut &&
+			    header->typepair == dns_rdatatype_ns)
+			{
 				/*
 				 * We increment the reference count on node to
 				 * ensure that search->zonecut_header will
@@ -3671,7 +3674,7 @@ found:
 			 * If the NSEC3 record doesn't match the chain
 			 * we are using behave as if it isn't here.
 			 */
-			if (header->type == dns_rdatatype_nsec3 &&
+			if (header->typepair == dns_rdatatype_nsec3 &&
 			    !matchparams(header, &search))
 			{
 				NODE_UNLOCK(nlock, &nlocktype);
@@ -3681,14 +3684,16 @@ found:
 			 * If we found a type we were looking for,
 			 * remember it.
 			 */
-			if (header->type == type || type == dns_rdatatype_any ||
-			    (header->type == dns_rdatatype_cname && cname_ok))
+			if (header->typepair == type ||
+			    type == dns_rdatatype_any ||
+			    (header->typepair == dns_rdatatype_cname &&
+			     cname_ok))
 			{
 				/*
 				 * We've found the answer!
 				 */
 				found = header;
-				if (header->type == dns_rdatatype_cname &&
+				if (header->typepair == dns_rdatatype_cname &&
 				    cname_ok)
 				{
 					/*
@@ -3702,7 +3707,7 @@ found:
 					if (cnamesig != NULL) {
 						foundsig = cnamesig;
 					} else {
-						sigtype = DNS_SIGTYPE(
+						sigpair = DNS_SIGTYPEPAIR(
 							dns_rdatatype_cname);
 					}
 				}
@@ -3712,7 +3717,7 @@ found:
 				if (!maybe_zonecut && foundsig != NULL) {
 					break;
 				}
-			} else if (header->type == sigtype) {
+			} else if (header->typepair == sigpair) {
 				/*
 				 * We've found the RRSIG rdataset for our
 				 * target type.  Remember it.
@@ -3724,7 +3729,7 @@ found:
 				if (!maybe_zonecut && found != NULL) {
 					break;
 				}
-			} else if (header->type == dns_rdatatype_nsec &&
+			} else if (header->typepair == dns_rdatatype_nsec &&
 				   !search.version->havensec3)
 			{
 				/*
@@ -3733,8 +3738,9 @@ found:
 				 * we might need it later.
 				 */
 				nsecheader = header;
-			} else if (header->type ==
-					   DNS_SIGTYPE(dns_rdatatype_nsec) &&
+			} else if (header->typepair ==
+					   DNS_SIGTYPEPAIR(
+						   dns_rdatatype_nsec) &&
 				   !search.version->havensec3)
 			{
 				/*
@@ -3743,8 +3749,8 @@ found:
 				 */
 				nsecsig = header;
 			} else if (cname_ok &&
-				   header->type ==
-					   DNS_SIGTYPE(dns_rdatatype_cname))
+				   header->typepair ==
+					   DNS_SIGTYPEPAIR(dns_rdatatype_cname))
 			{
 				/*
 				 * If we get a CNAME match, we'll also need
@@ -3840,8 +3846,8 @@ found:
 	/*
 	 * We found what we were looking for, or we found a CNAME.
 	 */
-	if (type != found->type && type != dns_rdatatype_any &&
-	    found->type == dns_rdatatype_cname)
+	if (type != found->typepair && type != dns_rdatatype_any &&
+	    found->typepair == dns_rdatatype_cname)
 	{
 		/*
 		 * We weren't doing an ANY query and we found a CNAME instead
@@ -3862,8 +3868,7 @@ found:
 			 * cut or not.  It is needed for RFC3007
 			 * validated updates.
 			 */
-			if (type == dns_rdatatype_nsec ||
-			    type == dns_rdatatype_nsec3 ||
+			if (dns_rdatatype_isnsec(type) ||
 			    type == dns_rdatatype_key)
 			{
 				result = ISC_R_SUCCESS;
@@ -4975,7 +4980,7 @@ qpzone_subtractrdataset(dns_db_t *db, dns_dbnode_t *dbnode,
 	for (topheader = node->data; topheader != NULL;
 	     topheader = topheader->next)
 	{
-		if (topheader->type == newheader->type) {
+		if (topheader->typepair == newheader->typepair) {
 			break;
 		}
 		topheader_prev = topheader;
@@ -5003,7 +5008,7 @@ qpzone_subtractrdataset(dns_db_t *db, dns_dbnode_t *dbnode,
 			result = dns_rdataslab_subtract(
 				header, newheader, qpdb->common.mctx,
 				qpdb->common.rdclass,
-				(dns_rdatatype_t)header->type, flags,
+				DNS_TYPEPAIR_TYPE(header->typepair), flags,
 				&subresult);
 		}
 		if (result == ISC_R_SUCCESS) {
@@ -5040,7 +5045,7 @@ qpzone_subtractrdataset(dns_db_t *db, dns_dbnode_t *dbnode,
 			newheader = dns_slabheader_new((dns_db_t *)qpdb,
 						       (dns_dbnode_t *)node);
 			newheader->ttl = 0;
-			newheader->type = topheader->type;
+			newheader->typepair = topheader->typepair;
 			atomic_init(&newheader->attributes,
 				    DNS_SLABHEADERATTR_NONEXISTENT);
 			newheader->serial = version->serial;
@@ -5117,12 +5122,12 @@ qpzone_deleterdataset(dns_db_t *db, dns_dbnode_t *dbnode,
 	if (type == dns_rdatatype_any) {
 		return ISC_R_NOTIMPLEMENTED;
 	}
-	if (type == dns_rdatatype_rrsig && covers == 0) {
+	if (type == dns_rdatatype_rrsig && covers == dns_rdatatype_none) {
 		return ISC_R_NOTIMPLEMENTED;
 	}
 
 	newheader = dns_slabheader_new(db, (dns_dbnode_t *)node);
-	newheader->type = DNS_TYPEPAIR_VALUE(type, covers);
+	newheader->typepair = DNS_TYPEPAIR_VALUE(type, covers);
 	newheader->ttl = 0;
 	atomic_init(&newheader->attributes, DNS_SLABHEADERATTR_NONEXISTENT);
 	newheader->serial = version->serial;

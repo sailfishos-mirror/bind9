@@ -448,7 +448,7 @@ add_soa(dns_db_t *db, dns_dbversion_t *version, const dns_name_t *name,
 	CHECK(dns_soa_buildrdata(origin, contact, dns_db_class(db), 0, 28800,
 				 7200, 604800, 86400, buf, &rdata));
 	rdatalist.type = rdata.type;
-	rdatalist.covers = 0;
+	rdatalist.covers = dns_rdatatype_none;
 	rdatalist.rdclass = rdata.rdclass;
 	rdatalist.ttl = 86400;
 	ISC_LIST_APPEND(rdatalist.rdata, &rdata, link);
@@ -486,7 +486,7 @@ add_ns(dns_db_t *db, dns_dbversion_t *version, const dns_name_t *name,
 	CHECK(dns_rdata_fromstruct(&rdata, dns_db_class(db), dns_rdatatype_ns,
 				   &ns, &b));
 	rdatalist.type = rdata.type;
-	rdatalist.covers = 0;
+	rdatalist.covers = dns_rdatatype_none;
 	rdatalist.rdclass = rdata.rdclass;
 	rdatalist.ttl = 86400;
 	ISC_LIST_APPEND(rdatalist.rdata, &rdata, link);
@@ -522,7 +522,7 @@ add_a(dns_db_t *db, dns_dbversion_t *version, const dns_name_t *name,
 	CHECK(dns_rdata_fromstruct(&rdata, dns_db_class(db), dns_rdatatype_a,
 				   &a, &b));
 	rdatalist.type = rdata.type;
-	rdatalist.covers = 0;
+	rdatalist.covers = dns_rdatatype_none;
 	rdatalist.rdclass = rdata.rdclass;
 	rdatalist.ttl = 86400;
 	ISC_LIST_APPEND(rdatalist.rdata, &rdata, link);

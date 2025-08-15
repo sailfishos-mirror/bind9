@@ -182,9 +182,7 @@ dns_rdatalist_addnoqname(dns_rdataset_t *rdataset, dns_name_t *name) {
 		if (rdset->rdclass != rdataset->rdclass) {
 			continue;
 		}
-		if (rdset->type == dns_rdatatype_nsec ||
-		    rdset->type == dns_rdatatype_nsec3)
-		{
+		if (dns_rdatatype_isnsec(rdset->type)) {
 			neg = rdset;
 		}
 	}
@@ -241,9 +239,7 @@ dns_rdatalist_getnoqname(dns_rdataset_t *rdataset, dns_name_t *name,
 		if (rdset->rdclass != rdclass) {
 			continue;
 		}
-		if (rdset->type == dns_rdatatype_nsec ||
-		    rdset->type == dns_rdatatype_nsec3)
-		{
+		if (dns_rdatatype_isnsec(rdset->type)) {
 			tneg = rdset;
 		}
 	}
@@ -280,9 +276,7 @@ dns_rdatalist_addclosest(dns_rdataset_t *rdataset, dns_name_t *name) {
 		if (rdset->rdclass != rdataset->rdclass) {
 			continue;
 		}
-		if (rdset->type == dns_rdatatype_nsec ||
-		    rdset->type == dns_rdatatype_nsec3)
-		{
+		if (dns_rdatatype_isnsec(rdset->type)) {
 			neg = rdset;
 		}
 	}
@@ -338,9 +332,7 @@ dns_rdatalist_getclosest(dns_rdataset_t *rdataset, dns_name_t *name,
 		if (rdset->rdclass != rdclass) {
 			continue;
 		}
-		if (rdset->type == dns_rdatatype_nsec ||
-		    rdset->type == dns_rdatatype_nsec3)
-		{
+		if (dns_rdatatype_isnsec(rdset->type)) {
 			tneg = rdset;
 		}
 	}

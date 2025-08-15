@@ -584,7 +584,7 @@ additionaldata_naptr(ARGS_ADDLDATA) {
 	/*
 	 * Flags.
 	 */
-	atype = 0;
+	atype = dns_rdatatype_none;
 	flagslen = sr.base[0];
 	cp = (char *)&sr.base[1];
 	for (i = 0; i < flagslen; i++, cp++) {

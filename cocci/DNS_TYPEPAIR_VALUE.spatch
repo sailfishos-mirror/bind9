@@ -4,4 +4,4 @@ expression T;
 @@
 
 - DNS_TYPEPAIR_VALUE(RRSIG, T)
-+ DNS_SIGTYPE(T)
++ DNS_SIGTYPEPAIR(T)
