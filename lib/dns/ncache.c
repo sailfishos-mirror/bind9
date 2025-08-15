@@ -17,6 +17,7 @@
 #include <stdbool.h>
 
 #include <isc/buffer.h>
+#include <isc/result.h>
 #include <isc/util.h>
 
 #include <dns/db.h>
@@ -108,6 +109,7 @@ dns_ncache_add(dns_message_t *message, dns_db_t *cache, dns_dbnode_t *node,
 	dns_rdatalist_t ncrdatalist;
 	unsigned char data[65536];
 	unsigned int next = 0;
+	isc_result_t result;
 
 	/*
 	 * Convert the authority data from 'message' into a negative cache
@@ -140,7 +142,7 @@ dns_ncache_add(dns_message_t *message, dns_db_t *cache, dns_dbnode_t *node,
 	isc_buffer_init(&buffer, data, sizeof(data));
 
 	MSG_SECTION_FOREACH (message, DNS_SECTION_AUTHORITY, name) {
-		isc_result_t result = ISC_R_SUCCESS;
+		result = ISC_R_SUCCESS;
 
 		if (name->attributes.ncache) {
 			ISC_LIST_FOREACH (name->list, rdataset, link) {
@@ -247,8 +249,13 @@ dns_ncache_add(dns_message_t *message, dns_db_t *cache, dns_dbnode_t *node,
 		ncrdataset.attributes.optout = true;
 	}
 
-	return dns_db_addrdataset(cache, node, NULL, now, &ncrdataset, 0,
-				  addedrdataset);
+	result = dns_db_addrdataset(cache, node, NULL, now, &ncrdataset, 0,
+				    addedrdataset);
+	if (result != ISC_R_SUCCESS && result != DNS_R_UNCHANGED) {
+		return result;
+	}
+
+	return ISC_R_SUCCESS;
 }
 
 isc_result_t

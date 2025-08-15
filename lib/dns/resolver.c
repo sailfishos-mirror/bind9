@@ -5222,7 +5222,7 @@ static isc_result_t
 cache_rrset(fetchctx_t *fctx, isc_stdtime_t now, dns_name_t *name,
 	    dns_rdataset_t *rdataset, dns_rdataset_t *sigrdataset,
 	    dns_dbnode_t **nodep, dns_rdataset_t *added,
-	    dns_rdataset_t *addedsig) {
+	    dns_rdataset_t *addedsig, bool need_validation) {
 	isc_result_t result = ISC_R_SUCCESS;
 	unsigned int options = 0;
 	dns_dbnode_t *node = NULL;
@@ -5265,14 +5265,31 @@ cache_rrset(fetchctx_t *fctx, isc_stdtime_t now, dns_name_t *name,
 		result = dns_db_addrdataset(fctx->cache, node, NULL, now,
 					    rdataset, options, added);
 	}
-	if ((result == ISC_R_SUCCESS || result == DNS_R_UNCHANGED) &&
-	    sigrdataset != NULL)
-	{
-		result = dns_db_addrdataset(fctx->cache, node, NULL, now,
-					    sigrdataset, options, addedsig);
-		if (result == DNS_R_UNCHANGED) {
+
+	if (result == DNS_R_UNCHANGED) {
+		/*
+		 * The cache wasn't updated because something was
+		 * already there. If the data was the same as what
+		 * we were trying to add, then sigrdataset might
+		 * still be useful.
+		 */
+		if (!need_validation && added != NULL &&
+		    !dns_rdataset_equals(rdataset, added))
+		{
+			/* Skip adding the sigrdataset */
+		} else {
+			/* Carry on caching the sigrdataset */
 			result = ISC_R_SUCCESS;
 		}
+	}
+
+	if (result == ISC_R_SUCCESS && sigrdataset != NULL) {
+		result = dns_db_addrdataset(fctx->cache, node, NULL, now,
+					    sigrdataset, options, addedsig);
+	}
+
+	if (result == DNS_R_UNCHANGED) {
+		result = ISC_R_SUCCESS;
 	}
 
 	/*
@@ -5368,10 +5385,9 @@ fctx_cacheauthority(fetchctx_t *fctx, dns_message_t *message,
 			}
 
 			result = cache_rrset(fctx, now, name, rdataset,
-					     sigrdataset, NULL, NULL, NULL);
-			if (result != ISC_R_SUCCESS &&
-			    result != DNS_R_UNCHANGED)
-			{
+					     sigrdataset, NULL, NULL, NULL,
+					     false);
+			if (result != ISC_R_SUCCESS) {
 				continue;
 			}
 		}
@@ -5439,7 +5455,7 @@ validated(void *arg) {
 			 * Cache the data as pending for later validation.
 			 */
 			cache_rrset(fctx, now, val->name, val->rdataset,
-				    val->sigrdataset, NULL, NULL, NULL);
+				    val->sigrdataset, NULL, NULL, NULL, false);
 		}
 
 		add_bad(fctx, message, addrinfo, result, badns_validation);
@@ -5521,7 +5537,8 @@ validated(void *arg) {
 	 * The data was already cached as pending. Re-cache it as secure.
 	 */
 	result = cache_rrset(fctx, now, val->name, val->rdataset,
-			     val->sigrdataset, &node, ardataset, asigrdataset);
+			     val->sigrdataset, &node, ardataset, asigrdataset,
+			     true);
 	if (result != ISC_R_SUCCESS) {
 		done = true;
 		goto cleanup;
@@ -5550,7 +5567,8 @@ answer_response:
 	    gettrust(val->sigrdataset) == dns_trust_secure)
 	{
 		cache_rrset(fctx, now, dns_fixedname_name(&val->wild),
-			    val->rdataset, val->sigrdataset, NULL, NULL, NULL);
+			    val->rdataset, val->sigrdataset, NULL, NULL, NULL,
+			    true);
 	}
 
 	/*
@@ -5868,33 +5886,11 @@ rctx_cache_secure(respctx_t *rctx, dns_message_t *message, dns_name_t *name,
 		 * (if any) in two steps, so we can do an extra check
 		 * in-between.
 		 */
-		result = cache_rrset(fctx, rctx->now, name, rdataset, NULL,
-				     &node, ardataset, NULL);
-		if (result != DNS_R_UNCHANGED && result != ISC_R_SUCCESS) {
-			return result;
-		}
 
-		if (sigrdataset == NULL) {
-			return ISC_R_SUCCESS;
-		}
-
-		if (result == DNS_R_UNCHANGED && !need_validation &&
-		    ardataset != NULL &&
-		    !dns_rdataset_equals(rdataset, ardataset))
-		{
-			/*
-			 * The cache wasn't updated because something was
-			 * already there. If the data was the same as what
-			 * we were trying to add, then sigrdataset might
-			 * still be useful, and we should carry on caching
-			 * it. Otherwise, move on.
-			 */
-			return ISC_R_SUCCESS;
-		}
-
-		result = cache_rrset(fctx, rctx->now, name, sigrdataset, NULL,
-				     &node, asigset, NULL);
-		if (result != DNS_R_UNCHANGED && result != ISC_R_SUCCESS) {
+		result = cache_rrset(fctx, rctx->now, name, rdataset,
+				     sigrdataset, &node, ardataset, asigset,
+				     need_validation);
+		if (result != ISC_R_SUCCESS) {
 			return result;
 		}
 	}
@@ -5937,10 +5933,7 @@ rctx_cache_insecure(respctx_t *rctx, dns_message_t *message, dns_name_t *name,
 	 * Cache the rdataset.
 	 */
 	result = cache_rrset(fctx, rctx->now, name, rdataset, NULL, &node,
-			     added, NULL);
-	if (result == DNS_R_UNCHANGED) {
-		result = ISC_R_SUCCESS;
-	}
+			     added, NULL, NULL);
 
 	return result;
 }
@@ -6158,9 +6151,6 @@ negcache(dns_message_t *message, fetchctx_t *fctx, const dns_name_t *name,
 
 	result = dns_ncache_add(message, cache, node, covers, now, minttl,
 				maxttl, optout, secure, added);
-	if (result == DNS_R_UNCHANGED) {
-		result = ISC_R_SUCCESS;
-	}
 
 	if (added == &rdataset && dns_rdataset_isassociated(added)) {
 		dns_rdataset_disassociate(added);
