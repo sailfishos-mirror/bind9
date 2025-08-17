@@ -57,3 +57,16 @@
 #define ZEROTTL(header)                                \
 	((atomic_load_acquire(&(header)->attributes) & \
 	  DNS_SLABHEADERATTR_ZEROTTL) != 0)
+
+#define peek_uint16(buffer) ({ ((uint16_t)*(buffer) << 8) | *((buffer) + 1); })
+#define get_uint16(buffer)                            \
+	({                                            \
+		uint16_t __ret = peek_uint16(buffer); \
+		buffer += sizeof(uint16_t);           \
+		__ret;                                \
+	})
+#define put_uint16(buffer, val)                  \
+	({                                       \
+		*buffer++ = (val & 0xff00) >> 8; \
+		*buffer++ = (val & 0x00ff);      \
+	})

@@ -1111,12 +1111,11 @@ setnsec3parameters(dns_db_t *db, qpz_version_t *version) {
 		 * Find an NSEC3PARAM with a supported algorithm.
 		 */
 		raw = dns_slabheader_raw(found);
-		count = raw[0] * 256 + raw[1]; /* count */
-		raw += DNS_RDATASET_LENGTH;
+		count = get_uint16(raw);
 		while (count-- > 0U) {
 			dns_rdata_t rdata = DNS_RDATA_INIT;
-			length = raw[0] * 256 + raw[1];
-			raw += DNS_RDATASET_LENGTH;
+
+			length = get_uint16(raw);
 			region.base = raw;
 			region.length = length;
 			raw += length;
@@ -2617,14 +2616,12 @@ matchparams(dns_slabheader_t *header, qpz_search_t *search) {
 	REQUIRE(header->typepair == DNS_TYPEPAIR(dns_rdatatype_nsec3));
 
 	raw = (unsigned char *)header + sizeof(*header);
-	count = raw[0] * 256 + raw[1]; /* count */
-	raw += DNS_RDATASET_LENGTH;
+	count = get_uint16(raw);
 
 	while (count-- > 0) {
 		dns_rdata_t rdata = DNS_RDATA_INIT;
 
-		rdlen = raw[0] * 256 + raw[1];
-		raw += DNS_RDATASET_LENGTH;
+		rdlen = get_uint16(raw);
 		region.base = raw;
 		region.length = rdlen;
 		dns_rdata_fromregion(&rdata, search->qpdb->common.rdclass,
