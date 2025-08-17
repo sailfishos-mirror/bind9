@@ -3317,13 +3317,6 @@ iterator_active(qpcache_t *qpdb, qpc_rditer_t *iterator,
 	dns_ttl_t stale_ttl = header->expire + STALE_TTL(header, qpdb);
 
 	/*
-	 * Is this a "this rdataset doesn't exist" record?
-	 */
-	if (!EXISTS(header)) {
-		return false;
-	}
-
-	/*
 	 * If this header is still active then return it.
 	 */
 	if (ACTIVE(header, iterator->common.now)) {
@@ -3352,8 +3345,9 @@ rdatasetiter_first(dns_rdatasetiter_t *it DNS__DB_FLARG) {
 	NODE_RDLOCK(nlock, &nlocktype);
 
 	for (top = qpnode->data; top != NULL; top = top->next) {
-		if ((EXPIREDOK(iterator) && EXISTS(top->header)) ||
-		    iterator_active(qpdb, iterator, top->header))
+		if (EXISTS(top->header) &&
+		    (EXPIREDOK(iterator) ||
+		     iterator_active(qpdb, iterator, top->header)))
 		{
 			break;
 		}
@@ -3387,8 +3381,9 @@ rdatasetiter_next(dns_rdatasetiter_t *it DNS__DB_FLARG) {
 	NODE_RDLOCK(nlock, &nlocktype);
 
 	for (top = top->next; top != NULL; top = top->next) {
-		if ((EXPIREDOK(iterator) && EXISTS(top->header)) ||
-		    iterator_active(qpdb, iterator, top->header))
+		if (EXISTS(top->header) &&
+		    (EXPIREDOK(iterator) ||
+		     iterator_active(qpdb, iterator, top->header)))
 		{
 			break;
 		}
