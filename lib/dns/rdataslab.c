@@ -800,11 +800,6 @@ dns_rdataslab_equalx(dns_slabheader_t *slab1, dns_slabheader_t *slab2,
 	return true;
 }
 
-void *
-dns_slabheader_raw(dns_slabheader_t *header) {
-	return header + 1;
-}
-
 void
 dns_slabheader_setownercase(dns_slabheader_t *header, const dns_name_t *name) {
 	REQUIRE(!CASESET(header));

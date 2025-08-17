@@ -143,6 +143,12 @@ struct dns_slabheader {
 	 * rendering that character upper case.
 	 */
 	unsigned char upper[32];
+
+	/*%
+	 * Flexible member indicates the address of the raw data
+	 * following this header.
+	 */
+	unsigned char raw[];
 };
 
 enum {
@@ -276,12 +282,6 @@ dns_rdataslab_equalx(dns_slabheader_t *header1, dns_slabheader_t *header2,
  *
  * Returns:
  *\li	true if the slabs are equal, #false otherwise.
- */
-
-void *
-dns_slabheader_raw(dns_slabheader_t *header);
-/*%
- * Returns the address of the raw memory following a dns_slabheader.
  */
 
 void

@@ -1042,7 +1042,7 @@ bindrdataset(qpzonedb_t *qpdb, qpznode_t *node, dns_slabheader_t *header,
 
 	rdataset->slab.db = (dns_db_t *)qpdb;
 	rdataset->slab.node = (dns_dbnode_t *)node;
-	rdataset->slab.raw = dns_slabheader_raw(header);
+	rdataset->slab.raw = header->raw;
 	rdataset->slab.iter_pos = NULL;
 	rdataset->slab.iter_count = 0;
 
@@ -1110,7 +1110,7 @@ setnsec3parameters(dns_db_t *db, qpz_version_t *version) {
 		/*
 		 * Find an NSEC3PARAM with a supported algorithm.
 		 */
-		raw = dns_slabheader_raw(found);
+		raw = found->raw;
 		count = get_uint16(raw);
 		while (count-- > 0U) {
 			dns_rdata_t rdata = DNS_RDATA_INIT;

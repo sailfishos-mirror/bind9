@@ -1072,7 +1072,7 @@ bindrdataset(qpcache_t *qpdb, qpcnode_t *node, dns_slabheader_t *header,
 
 	rdataset->slab.db = (dns_db_t *)qpdb;
 	rdataset->slab.node = (dns_dbnode_t *)node;
-	rdataset->slab.raw = dns_slabheader_raw(header);
+	rdataset->slab.raw = header->raw;
 	rdataset->slab.iter_pos = NULL;
 	rdataset->slab.iter_count = 0;
 
@@ -2913,8 +2913,8 @@ addnoqname(isc_mem_t *mctx, dns_slabheader_t *newheader, uint32_t maxrrperset,
 
 	noqname = isc_mem_get(mctx, sizeof(*noqname));
 	*noqname = (dns_slabheader_proof_t){
-		.neg = dns_slabheader_raw((dns_slabheader_t *)r1.base),
-		.negsig = dns_slabheader_raw((dns_slabheader_t *)r2.base),
+		.neg = ((dns_slabheader_t *)r1.base)->raw,
+		.negsig = ((dns_slabheader_t *)r2.base)->raw,
 		.type = neg.type,
 		.name = DNS_NAME_INITEMPTY,
 	};
@@ -2952,8 +2952,8 @@ addclosest(isc_mem_t *mctx, dns_slabheader_t *newheader, uint32_t maxrrperset,
 
 	closest = isc_mem_get(mctx, sizeof(*closest));
 	*closest = (dns_slabheader_proof_t){
-		.neg = dns_slabheader_raw((dns_slabheader_t *)r1.base),
-		.negsig = dns_slabheader_raw((dns_slabheader_t *)r2.base),
+		.neg = ((dns_slabheader_t *)r1.base)->raw,
+		.negsig = ((dns_slabheader_t *)r2.base)->raw,
 		.name = DNS_NAME_INITEMPTY,
 		.type = neg.type,
 	};
