@@ -13,6 +13,8 @@
 
 #pragma once
 
+#include <isc/endian.h>
+
 #include <dns/rdataslab.h>
 
 #define ANCIENT(header)                                \
@@ -57,3 +59,16 @@
 #define ZEROTTL(header)                                \
 	((atomic_load_acquire(&(header)->attributes) & \
 	  DNS_SLABHEADERATTR_ZEROTTL) != 0)
+
+#define peek_uint16(buffer) ISC_U8TO16_BE(buffer)
+#define get_uint16(buffer)                            \
+	({                                            \
+		uint16_t __ret = peek_uint16(buffer); \
+		buffer += sizeof(uint16_t);           \
+		__ret;                                \
+	})
+#define put_uint16(buffer, val)               \
+	{                                     \
+		ISC_U16TO8_BE(buffer, val);   \
+		(buffer) += sizeof(uint16_t); \
+	}

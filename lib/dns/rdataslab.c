@@ -34,46 +34,20 @@
 #include "rdataslab_p.h"
 
 /*
- * The rdataslab structure allows iteration to occur in both load order
- * and DNSSEC order.  The structure is as follows:
+ * The memory structure of an rdataslab is as follows:
  *
  *	header		(dns_slabheader_t)
  *	record count	(2 bytes)
- *	offset table	(4 x record count bytes in load order)
  *	data records
  *		data length	(2 bytes)
  *		order		(2 bytes)
- *		meta data	(1 byte for RRSIG's)
+ *		meta data	(1 byte for RRSIG, 0 for all other types)
  *		data		(data length bytes)
  *
- * A "raw" rdataslab is the same but without the header.
+ * A "bare" rdataslab is everything after "header".
  *
- * DNSSEC order traversal is performed by walking the data records.
- *
- * The order is stored with record to allow for efficient reconstruction
- * of the offset table following a merge or subtraction.
- *
- * The iterator methods in rbtdb support both load order and DNSSEC order
- * iteration.
- *
- * WARNING:
- *	rbtdb.c directly interacts with the slab's raw structures.  If the
- *	structure changes then rbtdb.c also needs to be updated to reflect
- *	the changes.  See the areas tagged with "RDATASLAB".
+ * When a slab is created, data records are sorted into DNSSEC order.
  */
-
-#define peek_uint16(buffer) ({ ((uint16_t)*(buffer) << 8) | *((buffer) + 1); })
-#define get_uint16(buffer)                            \
-	({                                            \
-		uint16_t __ret = peek_uint16(buffer); \
-		buffer += sizeof(uint16_t);           \
-		__ret;                                \
-	})
-#define put_uint16(buffer, val)                  \
-	({                                       \
-		*buffer++ = (val & 0xff00) >> 8; \
-		*buffer++ = (val & 0x00ff);      \
-	})
 
 static void
 rdataset_disassociate(dns_rdataset_t *rdataset DNS__DB_FLARG);
@@ -240,8 +214,8 @@ makeslab(dns_rdataset_t *rdataset, isc_mem_t *mctx, isc_region_t *region,
 	 * If an rdata is not a duplicate, accumulate the storage size
 	 * required for the rdata.  We do not store the class, type, etc,
 	 * just the rdata, so our overhead is 2 bytes for the number of
-	 * records, and 8 for each rdata, (length(2), offset(4) and order(2))
-	 * and then the rdata itself.
+	 * records, and 2 bytes for the length of each rdata, plus the
+	 * rdata itself.
 	 */
 	for (i = 1; i < nalloc; i++) {
 		if (compare_rdata(&rdata[i - 1], &rdata[i]) == 0) {
@@ -359,7 +333,6 @@ dns_rdataslab_fromrdataset(dns_rdataset_t *rdataset, isc_mem_t *mctx,
 			.typepair = typepair,
 			.trust = rdataset->trust,
 			.ttl = rdataset->ttl,
-			.link = ISC_LINK_INITIALIZER,
 		};
 	}
 
@@ -397,8 +370,8 @@ dns_rdataslab_count(dns_slabheader_t *header) {
 
 /*
  * Make the dns_rdata_t 'rdata' refer to the slab item
- * beginning at '*current', which is part of a slab of type
- * 'type' and class 'rdclass', and advance '*current' to
+ * beginning at '*current' (which is part of a slab of type
+ * 'type' and class 'rdclass') and advance '*current' to
  * point to the next item in the slab.
  */
 static void
@@ -827,11 +800,6 @@ dns_rdataslab_equalx(dns_slabheader_t *slab1, dns_slabheader_t *slab2,
 	return true;
 }
 
-void *
-dns_slabheader_raw(dns_slabheader_t *header) {
-	return header + 1;
-}
-
 void
 dns_slabheader_setownercase(dns_slabheader_t *header, const dns_name_t *name) {
 	REQUIRE(!CASESET(header));
@@ -871,11 +839,9 @@ dns_slabheader_copycase(dns_slabheader_t *dest, dns_slabheader_t *src) {
 
 void
 dns_slabheader_reset(dns_slabheader_t *h, dns_dbnode_t *node) {
-	ISC_LINK_INIT(h, link);
 	h->heap_index = 0;
 	h->heap = NULL;
 	h->node = node;
-	h->visited = false;
 
 	atomic_init(&h->attributes, 0);
 	atomic_init(&h->last_refresh_fail_ts, 0);
@@ -886,14 +852,13 @@ dns_slabheader_reset(dns_slabheader_t *h, dns_dbnode_t *node) {
 }
 
 dns_slabheader_t *
-dns_slabheader_new(dns_db_t *db, dns_dbnode_t *node) {
+dns_slabheader_new(isc_mem_t *mctx, dns_dbnode_t *node) {
 	dns_slabheader_t *h = NULL;
 
-	h = isc_mem_get(db->mctx, sizeof(*h));
+	h = isc_mem_get(mctx, sizeof(*h));
 	*h = (dns_slabheader_t){
-		.link = ISC_LINK_INITIALIZER,
+		.node = node,
 	};
-	dns_slabheader_reset(h, node);
 	return h;
 }
 
@@ -943,22 +908,7 @@ dns_slabheader_freeproof(isc_mem_t *mctx, dns_slabheader_proof_t **proofp) {
 	isc_mem_put(mctx, proof, sizeof(*proof));
 }
 
-dns_slabheader_t *
-dns_slabheader_top(dns_slabheader_t *header) {
-	/*
-	 * Find the start of the header chain for the next type
-	 * by walking back up the list.
-	 */
-	while (header->up != NULL && header->up->typepair == header->typepair) {
-		header = header->up;
-	}
-
-	return header;
-}
-
 /* Fixed RRSet helper macros */
-
-#define DNS_RDATASET_LENGTH 2;
 
 static void
 rdataset_disassociate(dns_rdataset_t *rdataset DNS__DB_FLARG) {
@@ -984,7 +934,7 @@ rdataset_first(dns_rdataset_t *rdataset) {
 	 *
 	 * 'raw' points to the first record.
 	 */
-	rdataset->slab.iter_pos = raw + DNS_RDATASET_LENGTH;
+	rdataset->slab.iter_pos = raw + sizeof(uint16_t);
 	rdataset->slab.iter_count = count - 1;
 
 	return ISC_R_SUCCESS;
@@ -1005,7 +955,7 @@ rdataset_next(dns_rdataset_t *rdataset) {
 	unsigned char *raw = rdataset->slab.iter_pos;
 	uint16_t length = peek_uint16(raw);
 	raw += length;
-	rdataset->slab.iter_pos = raw + DNS_RDATASET_LENGTH;
+	rdataset->slab.iter_pos = raw + sizeof(uint16_t);
 
 	return ISC_R_SUCCESS;
 }
@@ -1024,9 +974,7 @@ rdataset_current(dns_rdataset_t *rdataset, dns_rdata_t *rdata) {
 	 * Find the start of the record if not already in iter_pos
 	 * then skip the length and order fields.
 	 */
-	length = peek_uint16(raw);
-
-	raw += DNS_RDATASET_LENGTH;
+	length = get_uint16(raw);
 
 	if (rdataset->type == dns_rdatatype_rrsig) {
 		if (*raw & DNS_RDATASLAB_OFFLINE) {
@@ -1075,7 +1023,12 @@ rdataset_getnoqname(dns_rdataset_t *rdataset, dns_name_t *name,
 	const dns_slabheader_proof_t *noqname = rdataset->slab.noqname;
 
 	/*
-	 * The _KEEPCASE attribute is set to prevent setownercase and
+	 * Normally, rdataset->slab.raw points to the data immediately
+	 * following a dns_slabheader in memory. Here, though, it will
+	 * point to a bare rdataslab, a pointer to which is stored in
+	 * the dns_slabheader's `noqname` field.
+	 *
+	 * The 'keepcase' attribute is set to prevent setownercase and
 	 * getownercase methods from affecting the case of NSEC/NSEC3
 	 * owner names.
 	 */
@@ -1128,9 +1081,14 @@ rdataset_getclosest(dns_rdataset_t *rdataset, dns_name_t *name,
 	const dns_slabheader_proof_t *closest = rdataset->slab.closest;
 
 	/*
-	 * As mentioned above, rdataset->slab.raw usually refers the data
-	 * following an dns_slabheader, but in this case it points to a bare
-	 * rdataslab belonging to the dns_slabheader's `closest` field.
+	 * Normally, rdataset->slab.raw points to the data immediately
+	 * following a dns_slabheader in memory. Here, though, it will
+	 * point to a bare rdataslab, a pointer to which is stored in
+	 * the dns_slabheader's `closest` field.
+	 *
+	 * The 'keepcase' attribute is set to prevent setownercase and
+	 * getownercase methods from affecting the case of NSEC/NSEC3
+	 * owner names.
 	 */
 	dns__db_attachnode(node, &(dns_dbnode_t *){ NULL } DNS__DB_FLARG_PASS);
 	*nsec = (dns_rdataset_t){
@@ -1259,4 +1217,23 @@ rdataset_equals(const dns_rdataset_t *rdataset1,
 
 	return dns_rdataslab_equalx(header1, header2, rdataset1->rdclass,
 				    rdataset2->type);
+}
+
+dns_slabtop_t *
+dns_slabtop_new(isc_mem_t *mctx, dns_typepair_t typepair) {
+	dns_slabtop_t *top = isc_mem_get(mctx, sizeof(*top));
+	*top = (dns_slabtop_t){
+		.typepair = typepair,
+		.link = ISC_LINK_INITIALIZER,
+	};
+
+	return top;
+}
+
+void
+dns_slabtop_destroy(isc_mem_t *mctx, dns_slabtop_t **topp) {
+	REQUIRE(topp != NULL && *topp != NULL);
+	dns_slabtop_t *top = *topp;
+	*topp = NULL;
+	isc_mem_put(mctx, top, sizeof(*top));
 }

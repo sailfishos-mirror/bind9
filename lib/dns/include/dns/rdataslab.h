@@ -64,6 +64,18 @@ struct dns_slabheader_proof {
 	dns_rdatatype_t type;
 };
 
+typedef struct dns_slabtop dns_slabtop_t;
+struct dns_slabtop {
+	dns_slabtop_t	 *next;
+	dns_slabheader_t *header;
+	dns_typepair_t	  typepair;
+
+	/*% Used for SIEVE-LRU (cache) and changed_list (zone) */
+	ISC_LINK(struct dns_slabtop) link;
+	/*% Used for SIEVE-LRU */
+	bool visited;
+};
+
 struct dns_slabheader {
 	_Atomic(uint16_t) attributes;
 
@@ -101,10 +113,8 @@ struct dns_slabheader {
 	 * both head and tail pointers, and is doubly linked.
 	 */
 
-	union {
-		struct dns_slabheader *next;
-		struct dns_slabheader *up;
-	};
+	dns_slabtop_t *top;
+
 	/*%<
 	 * If this is the top header for an rdataset, 'next' points
 	 * to the top header for the next rdataset (i.e., the next type).
@@ -127,17 +137,18 @@ struct dns_slabheader {
 
 	dns_gluelist_t *gluelist;
 
-	/*% Used for SIEVE-LRU (cache) and changed_list (zone) */
-	ISC_LINK(struct dns_slabheader) link;
-	/*% Used for SIEVE-LRU */
-	bool visited;
-
 	/*%
 	 * Case vector.  If the bit is set then the corresponding
 	 * character in the owner name needs to be AND'd with 0x20,
 	 * rendering that character upper case.
 	 */
 	unsigned char upper[32];
+
+	/*%
+	 * Flexible member indicates the address of the raw data
+	 * following this header.
+	 */
+	unsigned char raw[];
 };
 
 enum {
@@ -273,12 +284,6 @@ dns_rdataslab_equalx(dns_slabheader_t *header1, dns_slabheader_t *header2,
  *\li	true if the slabs are equal, #false otherwise.
  */
 
-void *
-dns_slabheader_raw(dns_slabheader_t *header);
-/*%
- * Returns the address of the raw memory following a dns_slabheader.
- */
-
 void
 dns_slabheader_setownercase(dns_slabheader_t *header, const dns_name_t *name);
 /*%<
@@ -295,14 +300,14 @@ void
 dns_slabheader_reset(dns_slabheader_t *h, dns_dbnode_t *node);
 /*%<
  * Reset an rdataslab header 'h' so it can be used to store data in
- * database 'db' and node 'node'.
+ * database node 'node'.
  */
 
 dns_slabheader_t *
-dns_slabheader_new(dns_db_t *db, dns_dbnode_t *node);
+dns_slabheader_new(isc_mem_t *mctx, dns_dbnode_t *node);
 /*%<
  * Allocate memory for an rdataslab header and initialize it for use
- * in database 'db'/node 'node'.
+ * in database node 'node'.
  */
 
 void
@@ -317,8 +322,15 @@ dns_slabheader_freeproof(isc_mem_t *mctx, dns_slabheader_proof_t **proof);
  * Free all memory associated with a nonexistence proof.
  */
 
-dns_slabheader_t *
-dns_slabheader_top(dns_slabheader_t *header);
+dns_slabtop_t *
+dns_slabtop_new(isc_mem_t *mctx, dns_typepair_t typepair);
 /*%<
- * Return the top header for the type or the negtype
+ * Allocate memory for an rdataslab top and initialize it for use
+ * with 'typepair' type and covers pair.
+ */
+
+void
+dns_slabtop_destroy(isc_mem_t *mctx, dns_slabtop_t **topp);
+/*%<
+ * Free all memory associated with '*slabtopp'.
  */
