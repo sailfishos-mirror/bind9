@@ -1120,7 +1120,6 @@ scan-build:
     CC: "${CLANG}"
     CFLAGS: "${CFLAGS_COMMON}"
     EXTRA_CONFIGURE: "-Didn=enabled"
-    SCANBUILD: "${CI_PROJECT_DIR}/scan-build.sh"
   before_script:
     - *list_installed_package_versions
   script:
