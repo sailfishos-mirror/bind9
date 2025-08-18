@@ -55,6 +55,7 @@
 #include <dns/rdatatype.h>
 #include <dns/stats.h>
 #include <dns/time.h>
+#include <dns/types.h>
 #include <dns/view.h>
 
 #include "db_p.h"
@@ -841,9 +842,8 @@ static void
 mark(dns_slabheader_t *header, uint_least16_t flag) {
 	uint_least16_t attributes = atomic_load_acquire(&header->attributes);
 	uint_least16_t newattributes = 0;
-	dns_stats_t *stats = NULL;
-
 	qpcache_t *qpdb = HEADERNODE(header)->qpdb;
+
 	/*
 	 * If we are already ancient there is nothing to do.
 	 */
@@ -859,11 +859,10 @@ mark(dns_slabheader_t *header, uint_least16_t flag) {
 	 * Decrement and increment the stats counter for the appropriate
 	 * RRtype.
 	 */
-	stats = dns_db_getrrsetstats(&qpdb->common);
-	if (stats != NULL) {
-		update_rrsetstats(stats, header->typepair, attributes, false);
-		update_rrsetstats(stats, header->typepair, newattributes, true);
-	}
+	update_rrsetstats(qpdb->rrsetstats, header->typepair, attributes,
+			  false);
+	update_rrsetstats(qpdb->rrsetstats, header->typepair, newattributes,
+			  true);
 }
 
 static void
@@ -2280,9 +2279,8 @@ qpcache__destroy(qpcache_t *qpdb) {
 		isc_heap_destroy(&qpdb->buckets[i].heap);
 	}
 
-	if (qpdb->rrsetstats != NULL) {
-		dns_stats_detach(&qpdb->rrsetstats);
-	}
+	dns_stats_detach(&qpdb->rrsetstats);
+
 	if (qpdb->cachestats != NULL) {
 		isc_stats_detach(&qpdb->cachestats);
 	}
@@ -2654,7 +2652,6 @@ add(qpcache_t *qpdb, qpcnode_t *qpnode,
 					 * The NXDOMAIN/NODATA(QTYPE=ANY)
 					 * is more trusted.
 					 */
-					dns_slabheader_destroy(&newheader);
 					if (addedrdataset != NULL) {
 						bindrdataset(
 							qpdb, qpnode, topheader,
@@ -2703,7 +2700,6 @@ find_header:
 		 * Deleting an already non-existent rdataset has no effect.
 		 */
 		if (!EXISTS(header) && !EXISTS(newheader)) {
-			dns_slabheader_destroy(&newheader);
 			return DNS_R_UNCHANGED;
 		}
 
@@ -2717,7 +2713,6 @@ find_header:
 		if (trust < header->trust &&
 		    (ACTIVE(header, now) || !EXISTS(header)))
 		{
-			dns_slabheader_destroy(&newheader);
 			if (addedrdataset != NULL) {
 				bindrdataset(qpdb, qpnode, header, now,
 					     nlocktype, tlocktype,
@@ -2764,13 +2759,12 @@ find_header:
 				header->closest = newheader->closest;
 				newheader->closest = NULL;
 			}
-			dns_slabheader_destroy(&newheader);
 			if (addedrdataset != NULL) {
 				bindrdataset(qpdb, qpnode, header, now,
 					     nlocktype, tlocktype,
 					     addedrdataset DNS__DB_FLARG_PASS);
 			}
-			return ISC_R_SUCCESS;
+			return DNS_R_UNCHANGED;
 		}
 
 		/*
@@ -2819,13 +2813,12 @@ find_header:
 				header->closest = newheader->closest;
 				newheader->closest = NULL;
 			}
-			dns_slabheader_destroy(&newheader);
 			if (addedrdataset != NULL) {
 				bindrdataset(qpdb, qpnode, header, now,
 					     nlocktype, tlocktype,
 					     addedrdataset DNS__DB_FLARG_PASS);
 			}
-			return ISC_R_SUCCESS;
+			return DNS_R_UNCHANGED;
 		}
 
 		qpcache_miss(qpdb, newheader, &nlocktype,
@@ -2848,7 +2841,6 @@ find_header:
 		 * The type already doesn't exist; no point trying
 		 * to delete it.
 		 */
-		dns_slabheader_destroy(&newheader);
 		return DNS_R_UNCHANGED;
 	} else {
 		/* No rdatasets of the given type exist at the node. */
@@ -3051,7 +3043,6 @@ qpcache_addrdataset(dns_db_t *db, dns_dbnode_t *node, dns_dbversion_t *version,
 		result = addnoqname(qpnode->mctx, newheader, qpdb->maxrrperset,
 				    rdataset);
 		if (result != ISC_R_SUCCESS) {
-			dns_slabheader_destroy(&newheader);
 			return result;
 		}
 	}
@@ -3059,7 +3050,6 @@ qpcache_addrdataset(dns_db_t *db, dns_dbnode_t *node, dns_dbversion_t *version,
 		result = addclosest(qpnode->mctx, newheader, qpdb->maxrrperset,
 				    rdataset);
 		if (result != ISC_R_SUCCESS) {
-			dns_slabheader_destroy(&newheader);
 			return result;
 		}
 	}
@@ -3096,13 +3086,6 @@ qpcache_addrdataset(dns_db_t *db, dns_dbnode_t *node, dns_dbversion_t *version,
 
 	NODE_WRLOCK(nlock, &nlocktype);
 
-	if (qpdb->rrsetstats != NULL) {
-		DNS_SLABHEADER_SETATTR(newheader, DNS_SLABHEADERATTR_STATCOUNT);
-		update_rrsetstats(qpdb->rrsetstats, newheader->typepair,
-				  atomic_load_acquire(&newheader->attributes),
-				  true);
-	}
-
 	expire_ttl_headers(qpdb, qpnode->locknum, &nlocktype, &tlocktype,
 			   now DNS__DB_FLARG_PASS);
 
@@ -3125,8 +3108,16 @@ qpcache_addrdataset(dns_db_t *db, dns_dbnode_t *node, dns_dbversion_t *version,
 	result = add(qpdb, qpnode, name, newheader, options, addedrdataset, now,
 		     nlocktype, tlocktype DNS__DB_FLARG_PASS);
 
-	if (result == ISC_R_SUCCESS && delegating) {
-		qpnode->delegating = 1;
+	if (result == ISC_R_SUCCESS) {
+		DNS_SLABHEADER_SETATTR(newheader, DNS_SLABHEADERATTR_STATCOUNT);
+		update_rrsetstats(qpdb->rrsetstats, newheader->typepair,
+				  newheader->attributes, true);
+
+		if (delegating) {
+			qpnode->delegating = 1;
+		}
+	} else {
+		dns_slabheader_destroy(&newheader);
 	}
 
 	NODE_UNLOCK(nlock, &nlocktype);
@@ -3181,6 +3172,9 @@ qpcache_deleterdataset(dns_db_t *db, dns_dbnode_t *node,
 	NODE_WRLOCK(nlock, &nlocktype);
 	result = add(qpdb, qpnode, NULL, newheader, DNS_DBADD_FORCE, NULL, 0,
 		     nlocktype, isc_rwlocktype_none DNS__DB_FLARG_PASS);
+	if (result != ISC_R_SUCCESS) {
+		dns_slabheader_destroy(&newheader);
+	}
 	NODE_UNLOCK(nlock, &nlocktype);
 
 	return result;
