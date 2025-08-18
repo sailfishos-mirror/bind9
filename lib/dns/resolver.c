@@ -5286,6 +5286,9 @@ cache_rrset(fetchctx_t *fctx, isc_stdtime_t now, dns_name_t *name,
 	if (result == ISC_R_SUCCESS && sigrdataset != NULL) {
 		result = dns_db_addrdataset(fctx->cache, node, NULL, now,
 					    sigrdataset, options, addedsig);
+		if (result != ISC_R_SUCCESS && result != DNS_R_UNCHANGED) {
+			dns__rdataset_disassociate(added);
+		}
 	}
 
 	if (result == DNS_R_UNCHANGED) {
