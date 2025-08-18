@@ -27,6 +27,7 @@
 #endif
 
 #include <isc/atomic.h>
+#include <isc/bit.h>
 #include <isc/buffer.h>
 #include <isc/log.h>
 #include <isc/magic.h>
@@ -493,11 +494,11 @@ cells_immutable(dns_qp_t *qp, dns_qpref_t ref) {
 static dns_qpcell_t
 next_capacity(uint32_t prev_capacity, uint32_t size) {
 	/*
-	 * Unfortunately builtin_clz is undefined for 0. We work around this
-	 * issue by flooring the request size at 2.
+	 * Request size was floored at 2 because builtin_clz used to be 0.
+	 * We keep this behavior because ISC_LEADING_ZEROS(0) = 32.
 	 */
-	size = ISC_MAX3(size, prev_capacity, 2u);
-	uint32_t log2 = 32u - __builtin_clz(size - 1u);
+	size = ISC_MAX3(size, prev_capacity, 2U);
+	uint32_t log2 = 32U - ISC_LEADING_ZEROS(size - 1U);
 
 	return 1U << ISC_CLAMP(log2, QP_CHUNK_LOG_MIN, QP_CHUNK_LOG_MAX);
 }

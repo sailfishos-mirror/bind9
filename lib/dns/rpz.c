@@ -19,6 +19,7 @@
 #include <stdlib.h>
 
 #include <isc/async.h>
+#include <isc/bit.h>
 #include <isc/buffer.h>
 #include <isc/log.h>
 #include <isc/loop.h>
@@ -1074,45 +1075,6 @@ name2data(dns_rpz_zone_t *rpz, dns_rpz_type_t rpz_type,
 	(void)dns_name_concatenate(&tmp_name, dns_rootname, trig_name);
 }
 
-#ifndef HAVE_BUILTIN_CLZ
-/**
- * \brief Count Leading Zeros: Find the location of the left-most set
- * bit.
- */
-static unsigned int
-clz(dns_rpz_cidr_word_t w) {
-	unsigned int bit;
-
-	bit = DNS_RPZ_CIDR_WORD_BITS - 1;
-
-	if ((w & 0xffff0000) != 0) {
-		w >>= 16;
-		bit -= 16;
-	}
-
-	if ((w & 0xff00) != 0) {
-		w >>= 8;
-		bit -= 8;
-	}
-
-	if ((w & 0xf0) != 0) {
-		w >>= 4;
-		bit -= 4;
-	}
-
-	if ((w & 0xc) != 0) {
-		w >>= 2;
-		bit -= 2;
-	}
-
-	if ((w & 2) != 0) {
-		--bit;
-	}
-
-	return bit;
-}
-#endif /* ifndef HAVE_BUILTIN_CLZ */
-
 /*
  * Find the first differing bit in two keys (IP addresses).
  */
@@ -1132,11 +1094,7 @@ diff_keys(const dns_rpz_cidr_key_t *key1, dns_rpz_prefix_t prefix1,
 	for (i = 0; bit < maxbit; i++, bit += DNS_RPZ_CIDR_WORD_BITS) {
 		delta = key1->w[i] ^ key2->w[i];
 		if (delta != 0) {
-#ifdef HAVE_BUILTIN_CLZ
-			bit += __builtin_clz(delta);
-#else  /* ifdef HAVE_BUILTIN_CLZ */
-			bit += clz(delta);
-#endif /* ifdef HAVE_BUILTIN_CLZ */
+			bit += ISC_LEADING_ZEROS(delta);
 			break;
 		}
 	}

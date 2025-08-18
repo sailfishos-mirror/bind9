@@ -312,7 +312,6 @@ endif
 
 foreach fn : [
     '__builtin_add_overflow',
-    '__builtin_clz',
     '__builtin_mul_overflow',
     '__builtin_sub_overflow',
     '__builtin_unreachable',
@@ -321,6 +320,45 @@ foreach fn : [
         config.set('HAVE_@0@'.format(fn.substring(2).to_upper()), 1)
     endif
 endforeach
+
+# meson_version (>=1.3.0) : required in cc.has_function
+if cc.has_function('__builtin_clzg')
+    config.set('HAVE_BUILTIN_CLZG', true)
+elif not (
+    cc.has_function('__builtin_clz')
+    and cc.has_function('__builtin_clzl')
+    and cc.has_function('__builtin_clzll')
+)
+    error(
+        '__builtin_clzg or __builtin_clz* functions are required, please fix your toolchain',
+    )
+endif
+
+# meson_version (>=1.3.0) : required in cc.has_function
+if cc.has_function('__builtin_ctzg')
+    config.set('HAVE_BUILTIN_CTZG', true)
+elif not (
+    cc.has_function('__builtin_ctz')
+    and cc.has_function('__builtin_ctzl')
+    and cc.has_function('__builtin_ctzll')
+)
+    error(
+        '__builtin_ctzg or __builtin_ctz* functions are required, please fix your toolchain',
+    )
+endif
+
+# meson_version (>=1.3.0) : required in cc.has_function
+if cc.has_function('__builtin_popcountg')
+    config.set('HAVE_BUILTIN_POPCOUNTG', true)
+elif not (
+    cc.has_function('__builtin_popcount')
+    and cc.has_function('__builtin_popcountl')
+    and cc.has_function('__builtin_popcountll')
+)
+    error(
+        '__builtin_popcountg or __builtin_popcount* functions are required, please fix your toolchain',
+    )
+endif
 
 foreach attr : ['malloc', 'returns_nonnull']
     if cc.has_function_attribute(attr)

@@ -64,4 +64,15 @@ list=$(git grep -l memory_order_.* lib bin ':(exclude)lib/isc/include/isc/atomic
   echo "$list"
 }
 
+#
+# Check for the usage of built-in bit operarators
+#
+list=$(git grep -l -e '__builtin_ctz' --or -e '__builtin_popcount' --or -e '__builtin_clz' lib bin ':(exclude)lib/isc/include/isc/bit\.h' \
+  | grep -e '\.c$' -e '\.h$')
+[ -n "$list" ] && {
+  status=1
+  echo 'Prefer the helpers in <isc/bit.h> over builtin bit utilities:'
+  echo "$list"
+}
+
 exit $status
