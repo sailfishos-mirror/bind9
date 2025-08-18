@@ -23,7 +23,7 @@
 	       (base == dns_rdatatype_none && covers != dns_rdatatype_none) || \
 	       (base != dns_rdatatype_none && covers == dns_rdatatype_none))
 #else
-#define DNS__TYPEPAIR_CHECK(base, covers)
+#define DNS__TYPEPAIR_CHECK(base, covers) (void)(base), (void)(covers)
 #endif
 
 #define DNS_TYPEPAIR_TYPE(type)                                              \
