@@ -205,6 +205,7 @@ struct dns_rpz_popt {
 	bool		nsip_wait_recurse;
 	bool		nsdname_wait_recurse;
 	bool		servfail_until_ready;
+	bool		slow_mode; /* Used for system tests with '-T rpzslow' */
 	unsigned int	min_ns_labels;
 	dns_rpz_num_t	num_zones;
 };

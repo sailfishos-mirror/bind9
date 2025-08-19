@@ -32,6 +32,7 @@
 #include <isc/rwlock.h>
 #include <isc/string.h>
 #include <isc/util.h>
+#include <isc/uv.h>
 #include <isc/work.h>
 
 #include <dns/db.h>
@@ -1705,6 +1706,7 @@ update_nodes(dns_rpz_zone_t *rpz, isc_ht_t *newnodes) {
 	dns_name_t *name = NULL;
 	dns_fixedname_t fixname;
 	char domain[DNS_NAME_FORMATSIZE];
+	bool slow_mode;
 
 	dns_name_format(&rpz->origin, domain, DNS_NAME_FORMATSIZE);
 
@@ -1727,6 +1729,10 @@ update_nodes(dns_rpz_zone_t *rpz, isc_ht_t *newnodes) {
 			      isc_result_totext(result));
 		goto cleanup;
 	}
+
+	LOCK(&rpz->rpzs->maint_lock);
+	slow_mode = rpz->rpzs->p.slow_mode;
+	UNLOCK(&rpz->rpzs->maint_lock);
 
 	while (result == ISC_R_SUCCESS) {
 		char namebuf[DNS_NAME_FORMATSIZE];
@@ -1828,6 +1834,10 @@ update_nodes(dns_rpz_zone_t *rpz, isc_ht_t *newnodes) {
 
 	next:
 		result = dns_dbiterator_next(updbit);
+
+		if (slow_mode) {
+			uv_sleep(100);
+		}
 	}
 	INSIST(result != ISC_R_SUCCESS);
 	if (result == ISC_R_NOMORE) {
