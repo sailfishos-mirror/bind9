@@ -237,19 +237,21 @@ class KeyProperties:
 
         self.timing["PublishCDS"] = self.timing["Published"] + ipubc
 
-        if self.metadata["Lifetime"] != 0:
+        if "Lifetime" in self.metadata and self.metadata["Lifetime"] != 0:
             self.timing["DeleteCDS"] = (
                 self.timing["PublishCDS"] + self.metadata["Lifetime"]
             )
 
     def Iret(self, config):
-        if self.metadata["Lifetime"] == 0:
+        if "Lifetime" not in self.metadata or self.metadata["Lifetime"] == 0:
             return
 
         iret = Iret(config, zsk=self.key.is_zsk(), ksk=self.key.is_ksk())
         self.timing["Removed"] = self.timing["Retired"] + iret
 
-    def set_expected_keytimes(self, config, offset=None, pregenerated=False):
+    def set_expected_keytimes(
+        self, config, offset=None, pregenerated=False, migrate=False
+    ):
         if self.key is None:
             raise ValueError("KeyProperties must be attached to a Key")
 
@@ -260,18 +262,24 @@ class KeyProperties:
             offset = self.properties["offset"]
 
         self.timing["Generated"] = self.key.get_timing("Created")
-
-        self.timing["Published"] = self.timing["Generated"]
+        self.timing["Published"] = self.key.get_timing("Created")
         if pregenerated:
             self.timing["Published"] = self.key.get_timing("Publish")
-        self.timing["Published"] = self.timing["Published"] + offset
-        self.Ipub(config)
+
+        if migrate:
+            self.timing["Published"] = self.key.get_timing("Publish")
+            if self.key.is_ksk():
+                self.timing["PublishCDS"] = self.key.get_timing("SyncPublish")
+            self.timing["Active"] = self.key.get_timing("Activate")
+        else:
+            self.timing["Published"] = self.timing["Published"] + offset
+            self.Ipub(config)
+            self.IpubC(config)
 
         # Set Retired timing metadata if key has lifetime.
-        if self.metadata["Lifetime"] != 0:
+        if "Lifetime" in self.metadata and self.metadata["Lifetime"] != 0:
             self.timing["Retired"] = self.timing["Active"] + self.metadata["Lifetime"]
 
-        self.IpubC(config)
         self.Iret(config)
 
         # Key state change times must exist, but since we cannot reliably tell
@@ -1485,8 +1493,9 @@ def policy_to_properties(ttl, keys: List[str]) -> List[KeyProperties]:
         keyprop.properties["dnskey_ttl"] = ttl
         keyprop.metadata["Algorithm"] = line[2]
         keyprop.metadata["Length"] = line[3]
-        keyprop.metadata["Lifetime"] = 0
-        if line[1] != "unlimited":
+        if line[1] == "unlimited":
+            keyprop.metadata["Lifetime"] = 0
+        elif line[1] != "-":
             keyprop.metadata["Lifetime"] = int(line[1])
 
         for i in range(4, len(line)):
