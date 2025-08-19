@@ -174,7 +174,7 @@ requests_cancel(void *arg) {
 	dns_request_t *request = NULL, *next = NULL;
 	uint32_t tid = isc_tid();
 
-	ISC_LIST_FOREACH_SAFE (requestmgr->requests[tid], request, link, next) {
+	ISC_LIST_FOREACH_SAFE(requestmgr->requests[tid], request, link, next) {
 		req_log(ISC_LOG_DEBUG(3), "%s(%" PRIu32 ": request %p",
 			__func__, tid, request);
 		if (DNS_REQUEST_COMPLETE(request)) {
