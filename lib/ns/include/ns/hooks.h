@@ -59,10 +59,11 @@
  * contains a function pointer to a hook action and a pointer to data which is
  * to be passed to the action function when it is called.
  *
- * Each view has its own separate hook table, populated by loading plugin
- * modules specified in the "plugin" statements in named.conf.  There is also a
- * special, global hook table (ns__hook_table) that is only used by libns unit
- * tests and whose existence can be safely ignored by plugin modules.
+ * Each view and zone has its own separate hook table, populated by loading
+ * plugin modules specified in the "plugin" statements in named.conf. (See
+ * `ZONE-SPECIFIC PLUGINS` section below.) There is also a special, global
+ * hook table (ns__hook_table) that is only used by libns unit tests and
+ * whose existence can be safely ignored by plugin modules.
  *
  * Hook actions are functions which:
  *
@@ -366,6 +367,14 @@
  *   looked up.  `NS_QUERY_DONE_BEGIN` could be called if an
  *   authoritative zone has been used, but in some flows (for
  *   instance, bad cookie handling), it would be skipped.
+ *
+ * The `plugin_register` function (defined by each plugin and called
+ * when the plugin is loaded) has a `ns_hooksource_t source` parameter.
+ * It indicates whether the plugin has been loaded at the zone level
+ * (`NS_HOOKSOURCE_ZONE`) or at the view level (`NS_HOOKSOURCE_VIEW`).
+ * While this can be ignored if it doesn't matter where the plugin is
+ * loaded, it can also be checked to enforce that the plugin is loaded
+ * only at the zone or view level.
  */
 
 /*!
@@ -476,9 +485,16 @@ typedef struct ns_hook_resume {
  * Wrapper struct holding hook/plugins owning data structures used and owned by
  * zones and views having registered plugins.
  */
+typedef enum {
+	NS_HOOKSOURCE_UNDEFINED,
+	NS_HOOKSOURCE_VIEW,
+	NS_HOOKSOURCE_ZONE
+} ns_hooksource_t;
+
 typedef struct ns_hook_data {
 	ns_hooktable_t *hooktable;
 	ns_plugins_t   *plugins;
+	ns_hooksource_t source;
 } ns_hook_data_t;
 
 /*
@@ -497,7 +513,8 @@ typedef struct ns_hook_data {
 typedef isc_result_t
 ns_plugin_register_t(const char *parameters, const void *cfg, const char *file,
 		     unsigned long line, isc_mem_t *mctx, void *actx,
-		     ns_hooktable_t *hooktable, void **instp);
+		     ns_hooktable_t *hooktable, ns_hooksource_t source,
+		     void **instp);
 /*%<
  * Called when registering a new plugin.
  *

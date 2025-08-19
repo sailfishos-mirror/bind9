@@ -2125,7 +2125,7 @@ named_zone_loadplugins(dns_zone_t *zone, const cfg_obj_t *config,
 	}
 
 	if (tpluginlist != NULL || zpluginlist != NULL) {
-		ns_hook_data_t hookdata = {};
+		ns_hook_data_t hookdata = { .source = NS_HOOKSOURCE_ZONE };
 		isc_mem_t *zmctx = dns_zone_getmctx(zone);
 
 		ns_hooktable_create(zmctx, &hookdata.hooktable);

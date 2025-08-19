@@ -239,8 +239,10 @@ ns_plugin_register(const char *modpath, const char *parameters, const void *cfg,
 	isc_log_write(NS_LOGCATEGORY_GENERAL, NS_LOGMODULE_HOOKS, ISC_LOG_INFO,
 		      "registering plugin '%s'", modpath);
 
+	INSIST(hookdata->source != NS_HOOKSOURCE_UNDEFINED);
 	CHECK(plugin->register_func(parameters, cfg, cfg_file, cfg_line, mctx,
-				    actx, hookdata->hooktable, &plugin->inst));
+				    actx, hookdata->hooktable, hookdata->source,
+				    &plugin->inst));
 
 	ISC_LIST_APPEND(*hookdata->plugins, plugin, link);
 
