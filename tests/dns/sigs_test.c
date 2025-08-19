@@ -234,7 +234,7 @@ updatesigs_test(const updatesigs_test_params_t *test, dns_zone_t *zone,
 	}
 
 	tuples_found = 0;
-	ISC_LIST_FOREACH (zone_diff.tuples, found, link) {
+	ISC_LIST_FOREACH(zone_diff.tuples, found, link) {
 		tuples_found++;
 	}
 
@@ -245,7 +245,7 @@ updatesigs_test(const updatesigs_test_params_t *test, dns_zone_t *zone,
 	 */
 	expected = test->zonediff;
 	index = 1;
-	ISC_LIST_FOREACH (zone_diff.tuples, found, link) {
+	ISC_LIST_FOREACH(zone_diff.tuples, found, link) {
 		compare_tuples(expected, found, index);
 		expected++;
 		index++;

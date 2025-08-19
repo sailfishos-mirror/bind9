@@ -76,7 +76,7 @@ cfg_aclconfctx_detach(cfg_aclconfctx_t **actxp) {
 
 	if (isc_refcount_decrement(&actx->references) == 1) {
 		isc_refcount_destroy(&actx->references);
-		ISC_LIST_FOREACH (actx->named_acl_cache, dacl, nextincache) {
+		ISC_LIST_FOREACH(actx->named_acl_cache, dacl, nextincache) {
 			ISC_LIST_UNLINK(actx->named_acl_cache, dacl,
 					nextincache);
 			dns_acl_detach(&dacl);
@@ -97,7 +97,7 @@ get_acl_def(const cfg_obj_t *cctx, const char *name, const cfg_obj_t **ret) {
 	if (result != ISC_R_SUCCESS) {
 		return result;
 	}
-	CFG_LIST_FOREACH (acls, elt) {
+	CFG_LIST_FOREACH(acls, elt) {
 		const cfg_obj_t *acl = cfg_listelt_value(elt);
 		const char *aclname =
 			cfg_obj_asstring(cfg_tuple_get(acl, "name"));
@@ -121,7 +121,7 @@ convert_named_acl(const cfg_obj_t *nameobj, const cfg_obj_t *cctx,
 	const char *aclname = cfg_obj_asstring(nameobj);
 
 	/* Look for an already-converted version. */
-	ISC_LIST_FOREACH (ctx->named_acl_cache, dacl, nextincache) {
+	ISC_LIST_FOREACH(ctx->named_acl_cache, dacl, nextincache) {
 		if (strcasecmp(aclname, dacl->name) == 0) {
 			if (ISC_MAGIC_VALID(dacl, LOOP_MAGIC)) {
 				cfg_obj_log(nameobj, ISC_LOG_ERROR,
@@ -202,7 +202,7 @@ count_acl_elements(const cfg_obj_t *caml, const cfg_obj_t *cctx,
 
 	SET_IF_NOT_NULL(has_negative, false);
 
-	CFG_LIST_FOREACH (caml, elt) {
+	CFG_LIST_FOREACH(caml, elt) {
 		const cfg_obj_t *ce = cfg_listelt_value(elt);
 
 		/* might be a negated element, in which case get the value. */
@@ -730,7 +730,7 @@ cfg_acl_fromconfig(const cfg_obj_t *acl_data, const cfg_obj_t *cctx,
 	}
 
 	de = dacl->elements;
-	CFG_LIST_FOREACH (caml, elt) {
+	CFG_LIST_FOREACH(caml, elt) {
 		const cfg_obj_t *ce = cfg_listelt_value(elt);
 		bool neg = false;
 

@@ -103,7 +103,7 @@ static void
 destroy_keynode(dns_keynode_t *knode) {
 	isc_rwlock_destroy(&knode->rwlock);
 	if (knode->dslist != NULL) {
-		ISC_LIST_FOREACH (knode->dslist->rdata, rdata, link) {
+		ISC_LIST_FOREACH(knode->dslist->rdata, rdata, link) {
 			ISC_LIST_UNLINK(knode->dslist->rdata, rdata, link);
 			isc_mem_put(knode->mctx, rdata->data,
 				    DNS_DS_BUFFERSIZE);
@@ -200,7 +200,7 @@ add_ds(dns_keynode_t *knode, dns_rdata_ds_t *ds, isc_mem_t *mctx) {
 		knode->dsset.trust = dns_trust_ultimate;
 	}
 
-	ISC_LIST_FOREACH (knode->dslist->rdata, rdata, link) {
+	ISC_LIST_FOREACH(knode->dslist->rdata, rdata, link) {
 		if (dns_rdata_compare(rdata, dsrdata) == 0) {
 			exists = true;
 			break;
@@ -243,7 +243,7 @@ delete_ds(dns_qp_t *qp, dns_keytable_t *keytable, dns_keynode_t *knode,
 		return result;
 	}
 
-	ISC_LIST_FOREACH (knode->dslist->rdata, rdata, link) {
+	ISC_LIST_FOREACH(knode->dslist->rdata, rdata, link) {
 		if (dns_rdata_compare(rdata, &dsrdata) == 0) {
 			found = true;
 			break;
@@ -264,7 +264,7 @@ delete_ds(dns_qp_t *qp, dns_keytable_t *keytable, dns_keynode_t *knode,
 	 */
 	newnode = new_keynode(&knode->name, NULL, keytable, knode->managed,
 			      knode->initial);
-	ISC_LIST_FOREACH (knode->dslist->rdata, rdata, link) {
+	ISC_LIST_FOREACH(knode->dslist->rdata, rdata, link) {
 		if (dns_rdata_compare(rdata, &dsrdata) != 0) {
 			dns_rdata_ds_t ds0;
 			result = dns_rdata_tostruct(rdata, &ds0, NULL);
@@ -611,7 +611,7 @@ keynode_dslist_totext(dns_keynode_t *keynode, isc_buffer_t **text) {
 
 	dns_name_format(&keynode->name, namebuf, sizeof(namebuf));
 
-	DNS_RDATASET_FOREACH (&dsset) {
+	DNS_RDATASET_FOREACH(&dsset) {
 		char algbuf[DNS_SECALG_FORMATSIZE];
 		dns_rdata_t rdata = DNS_RDATA_INIT;
 		dns_rdata_ds_t ds;

@@ -449,7 +449,7 @@ msginit(dns_message_t *m) {
 
 static void
 msgresetname(dns_message_t *msg, dns_name_t *name) {
-	ISC_LIST_FOREACH (name->list, rds, link) {
+	ISC_LIST_FOREACH(name->list, rds, link) {
 		ISC_LIST_UNLINK(name->list, rds, link);
 		dns__message_putassociatedrdataset(msg, &rds);
 	}
@@ -459,7 +459,7 @@ static void
 msgresetnames(dns_message_t *msg, unsigned int first_section) {
 	/* Clean up name lists. */
 	for (size_t i = first_section; i < DNS_SECTION_MAX; i++) {
-		ISC_LIST_FOREACH (msg->sections[i], name, link) {
+		ISC_LIST_FOREACH(msg->sections[i], name, link) {
 			ISC_LIST_UNLINK(msg->sections[i], name, link);
 			msgresetname(msg, name);
 			dns_message_puttempname(msg, &name);
@@ -537,10 +537,10 @@ msgreset(dns_message_t *msg, bool everything) {
 	 * The memory isn't lost since these are part of message blocks we
 	 * have allocated.
 	 */
-	ISC_LIST_FOREACH (msg->freerdata, rdata, link) {
+	ISC_LIST_FOREACH(msg->freerdata, rdata, link) {
 		ISC_LIST_UNLINK(msg->freerdata, rdata, link);
 	}
-	ISC_LIST_FOREACH (msg->freerdatalist, rdatalist, link) {
+	ISC_LIST_FOREACH(msg->freerdatalist, rdatalist, link) {
 		ISC_LIST_UNLINK(msg->freerdatalist, rdatalist, link);
 	}
 
@@ -757,7 +757,7 @@ name_match(void *node, const void *key) {
 static isc_result_t
 findname(dns_name_t **foundname, const dns_name_t *target,
 	 dns_namelist_t *section) {
-	ISC_LIST_FOREACH_REV (*section, name, link) {
+	ISC_LIST_FOREACH_REV(*section, name, link) {
 		if (dns_name_equal(name, target)) {
 			if (foundname != NULL) {
 				*foundname = name;
@@ -796,7 +796,7 @@ dns_message_findtype(dns_name_t *name, dns_rdatatype_t type,
 	REQUIRE(name != NULL);
 	REQUIRE(rdatasetp == NULL || *rdatasetp == NULL);
 
-	ISC_LIST_FOREACH_REV (name->list, rds, link) {
+	ISC_LIST_FOREACH_REV(name->list, rds, link) {
 		if (rds->type == type && rds->covers == covers) {
 			SET_IF_NOT_NULL(rdatasetp, rds);
 			return ISC_R_SUCCESS;
@@ -910,7 +910,7 @@ getrdata(isc_buffer_t *source, dns_message_t *msg, dns_decompress_t dctx,
 
 static void
 cleanup_name_hashmaps(dns_namelist_t *section) {
-	ISC_LIST_FOREACH (*section, name, link) {
+	ISC_LIST_FOREACH(*section, name, link) {
 		if (name->hashmap != NULL) {
 			isc_hashmap_destroy(&name->hashmap);
 		}
@@ -1973,8 +1973,8 @@ dns_message_rendersection(dns_message_t *msg, dns_section_t sectionid,
 			return ISC_R_SUCCESS;
 		}
 
-		ISC_LIST_FOREACH (*section, n, link) {
-			ISC_LIST_FOREACH (n->list, rds, link) {
+		ISC_LIST_FOREACH(*section, n, link) {
+			ISC_LIST_FOREACH(n->list, rds, link) {
 				if (rds->attributes.rendered) {
 					continue;
 				}
@@ -2276,8 +2276,8 @@ dns_message_renderreset(dns_message_t *msg) {
 	for (size_t i = 0; i < DNS_SECTION_MAX; i++) {
 		msg->cursors[i] = NULL;
 		msg->counts[i] = 0;
-		MSG_SECTION_FOREACH (msg, i, name) {
-			ISC_LIST_FOREACH (name->list, rds, link) {
+		MSG_SECTION_FOREACH(msg, i, name) {
+			ISC_LIST_FOREACH(name->list, rds, link) {
 				rds->attributes.rendered = false;
 			}
 		}
@@ -3275,8 +3275,8 @@ dns_message_sectiontotext(dns_message_t *msg, dns_section_t section,
 	bool has_yaml = (sflags & DNS_STYLEFLAG_YAML) != 0;
 	msg->indent.count += has_yaml;
 
-	MSG_SECTION_FOREACH (msg, section, name) {
-		ISC_LIST_FOREACH (name->list, rds, link) {
+	MSG_SECTION_FOREACH(msg, section, name) {
+		ISC_LIST_FOREACH(name->list, rds, link) {
 			if (section == DNS_SECTION_ANSWER &&
 			    rds->type == dns_rdatatype_soa)
 			{
@@ -4971,7 +4971,7 @@ dns_message_clonebuffer(dns_message_t *msg) {
 static isc_result_t
 rdataset_soa_min(dns_rdataset_t *rds, dns_ttl_t *ttlp) {
 	/* loop over the rdatas */
-	DNS_RDATASET_FOREACH (rds) {
+	DNS_RDATASET_FOREACH(rds) {
 		dns_name_t tmp;
 		isc_region_t r = { 0 };
 		dns_rdata_t rdata = DNS_RDATA_INIT;
@@ -5021,8 +5021,8 @@ message_authority_soa_min(dns_message_t *msg, dns_ttl_t *ttlp) {
 		return ISC_R_NOTFOUND;
 	}
 
-	MSG_SECTION_FOREACH (msg, DNS_SECTION_AUTHORITY, name) {
-		ISC_LIST_FOREACH (name->list, rds, link) {
+	MSG_SECTION_FOREACH(msg, DNS_SECTION_AUTHORITY, name) {
+		ISC_LIST_FOREACH(name->list, rds, link) {
 			if (!rds->attributes.rendered) {
 				continue;
 			}

@@ -316,7 +316,7 @@ static isc_result_t
 foreach_node_rr_action(void *data, dns_rdataset_t *rdataset) {
 	isc_result_t result;
 	foreach_node_rr_ctx_t *ctx = data;
-	DNS_RDATASET_FOREACH (rdataset) {
+	DNS_RDATASET_FOREACH(rdataset) {
 		rr_t rr = { 0, DNS_RDATA_INIT };
 
 		dns_rdataset_current(rdataset, &rr.rdata);
@@ -357,7 +357,7 @@ foreach_rrset(dns_db_t *db, dns_dbversion_t *ver, dns_name_t *name,
 		goto cleanup_node;
 	}
 
-	DNS_RDATASETITER_FOREACH (iter) {
+	DNS_RDATASETITER_FOREACH(iter) {
 		dns_rdataset_t rdataset = DNS_RDATASET_INIT;
 
 		dns_rdatasetiter_current(iter, &rdataset);
@@ -442,7 +442,7 @@ foreach_rr(dns_db_t *db, dns_dbversion_t *ver, dns_name_t *name,
 		goto cleanup_node;
 	}
 
-	DNS_RDATASET_FOREACH (&rdataset) {
+	DNS_RDATASET_FOREACH(&rdataset) {
 		rr_t rr = { 0, DNS_RDATA_INIT };
 		dns_rdataset_current(&rdataset, &rr.rdata);
 		rr.ttl = rdataset.ttl;
@@ -794,7 +794,7 @@ uniqify_name_list(dns_diff_t *list) {
 	CHECK(dns_diff_sort(list, name_order));
 
 	dns_name_t *curr_name = NULL;
-	ISC_LIST_FOREACH (list->tuples, p, link) {
+	ISC_LIST_FOREACH(list->tuples, p, link) {
 		if (curr_name == NULL || !dns_name_equal(curr_name, &p->name)) {
 			curr_name = &(p->name);
 		} else {
@@ -1045,7 +1045,7 @@ find_zone_keys(dns_zone_t *zone, isc_mem_t *mctx, unsigned int maxkeys,
 	}
 
 	/* Add new 'dnskeys' to 'keys' */
-	ISC_LIST_FOREACH (keylist, k, link) {
+	ISC_LIST_FOREACH(keylist, k, link) {
 		if (count >= maxkeys) {
 			ISC_LIST_UNLINK(keylist, k, link);
 			dns_dnsseckey_destroy(mctx, &k);
@@ -1296,7 +1296,7 @@ del_keysigs(dns_db_t *db, dns_dbversion_t *ver, dns_name_t *name,
 		goto failure;
 	}
 
-	DNS_RDATASET_FOREACH (&rdataset) {
+	DNS_RDATASET_FOREACH(&rdataset) {
 		dns_rdata_t rdata = DNS_RDATA_INIT;
 		dns_rdataset_current(&rdataset, &rdata);
 		result = dns_rdata_tostruct(&rdata, &rrsig, NULL);
@@ -1367,7 +1367,7 @@ add_exposed_sigs(dns_update_log_t *log, dns_zone_t *zone, dns_db_t *db,
 		goto cleanup_node;
 	}
 
-	DNS_RDATASETITER_FOREACH (iter) {
+	DNS_RDATASETITER_FOREACH(iter) {
 		dns_rdataset_t rdataset = DNS_RDATASET_INIT;
 		dns_rdatatype_t type;
 		bool flag;
@@ -1673,7 +1673,7 @@ next_state:
 		state->state = remove_orphaned;
 
 		/* Remove orphaned NSECs and RRSIG NSECs. */
-		ISC_LIST_FOREACH (state->diffnames.tuples, t, link) {
+		ISC_LIST_FOREACH(state->diffnames.tuples, t, link) {
 			CHECK(non_nsec_rrset_exists(db, newver, &t->name,
 						    &flag));
 			if (!flag) {
@@ -1705,7 +1705,7 @@ next_state:
 		 * When a name is created or deleted, its predecessor needs to
 		 * have its NSEC updated.
 		 */
-		ISC_LIST_FOREACH (state->diffnames.tuples, t, link) {
+		ISC_LIST_FOREACH(state->diffnames.tuples, t, link) {
 			bool existed, exists;
 			dns_fixedname_t fixedname;
 			dns_name_t *prevname;
@@ -1744,7 +1744,7 @@ next_state:
 		 * (obscured by adding an NS or DNAME, or unobscured by
 		 * removing one).
 		 */
-		ISC_LIST_FOREACH (state->diffnames.tuples, t, link) {
+		ISC_LIST_FOREACH(state->diffnames.tuples, t, link) {
 			bool ns_existed, dname_existed;
 			bool ns_exists, dname_exists;
 
@@ -1796,7 +1796,7 @@ next_state:
 		 * contents to indicate that their respective owner names
 		 * should be part of the NSEC chain.
 		 */
-		ISC_LIST_FOREACH (state->affected.tuples, t, link) {
+		ISC_LIST_FOREACH(state->affected.tuples, t, link) {
 			bool exists;
 			dns_name_t *name = &t->name;
 
@@ -1857,7 +1857,7 @@ next_state:
 		 * Now we know which names are part of the NSEC chain.
 		 * Make them all point at their correct targets.
 		 */
-		ISC_LIST_FOREACH (state->affected.tuples, t, link) {
+		ISC_LIST_FOREACH(state->affected.tuples, t, link) {
 			CHECK(rrset_exists(db, newver, &t->name,
 					   dns_rdatatype_nsec, 0, &flag));
 			if (flag) {
@@ -1891,7 +1891,7 @@ next_state:
 		 * have to regenerate the RRSIG NSECs for NSECs that were
 		 * replaced with identical ones.
 		 */
-		ISC_LIST_FOREACH (state->nsec_diff.tuples, t, link) {
+		ISC_LIST_FOREACH(state->nsec_diff.tuples, t, link) {
 			ISC_LIST_UNLINK(state->nsec_diff.tuples, t, link);
 			dns_diff_appendminimal(&state->nsec_mindiff, &t);
 		}
@@ -1903,7 +1903,7 @@ next_state:
 	case sign_nsec:
 		state->state = sign_nsec;
 		/* Update RRSIG NSECs. */
-		ISC_LIST_FOREACH (state->nsec_mindiff.tuples, t, link) {
+		ISC_LIST_FOREACH(state->nsec_mindiff.tuples, t, link) {
 			if (t->op == DNS_DIFFOP_DEL) {
 				CHECK(delete_if(true_p, db, newver, &t->name,
 						dns_rdatatype_rrsig,
@@ -1933,11 +1933,11 @@ next_state:
 		state->state = update_nsec3;
 
 		/* Record our changes for the journal. */
-		ISC_LIST_FOREACH (state->sig_diff.tuples, t, link) {
+		ISC_LIST_FOREACH(state->sig_diff.tuples, t, link) {
 			ISC_LIST_UNLINK(state->sig_diff.tuples, t, link);
 			dns_diff_appendminimal(diff, &t);
 		}
-		ISC_LIST_FOREACH (state->nsec_mindiff.tuples, t, link) {
+		ISC_LIST_FOREACH(state->nsec_mindiff.tuples, t, link) {
 			ISC_LIST_UNLINK(state->nsec_mindiff.tuples, t, link);
 			dns_diff_appendminimal(diff, &t);
 		}
@@ -2025,7 +2025,7 @@ next_state:
 		FALLTHROUGH;
 	case process_nsec3:
 		state->state = process_nsec3;
-		ISC_LIST_FOREACH (state->affected.tuples, t, link) {
+		ISC_LIST_FOREACH(state->affected.tuples, t, link) {
 			dns_name_t *name = &t->name;
 
 			unsecure = false; /* Silence compiler warning. */
@@ -2065,7 +2065,7 @@ next_state:
 		 * have to regenerate the RRSIG NSEC3s for NSEC3s that were
 		 * replaced with identical ones.
 		 */
-		ISC_LIST_FOREACH (state->nsec_diff.tuples, t, link) {
+		ISC_LIST_FOREACH(state->nsec_diff.tuples, t, link) {
 			ISC_LIST_UNLINK(state->nsec_diff.tuples, t, link);
 			dns_diff_appendminimal(&state->nsec_mindiff, &t);
 		}
@@ -2077,7 +2077,7 @@ next_state:
 	case sign_nsec3:
 		state->state = sign_nsec3;
 		/* Update RRSIG NSEC3s. */
-		ISC_LIST_FOREACH (state->nsec_mindiff.tuples, t, link) {
+		ISC_LIST_FOREACH(state->nsec_mindiff.tuples, t, link) {
 			if (t->op == DNS_DIFFOP_DEL) {
 				CHECK(delete_if(true_p, db, newver, &t->name,
 						dns_rdatatype_rrsig,
@@ -2104,11 +2104,11 @@ next_state:
 				    state->work.tuples, link);
 
 		/* Record our changes for the journal. */
-		ISC_LIST_FOREACH (state->sig_diff.tuples, t, link) {
+		ISC_LIST_FOREACH(state->sig_diff.tuples, t, link) {
 			ISC_LIST_UNLINK(state->sig_diff.tuples, t, link);
 			dns_diff_appendminimal(diff, &t);
 		}
-		ISC_LIST_FOREACH (state->nsec_mindiff.tuples, t, link) {
+		ISC_LIST_FOREACH(state->nsec_mindiff.tuples, t, link) {
 			ISC_LIST_UNLINK(state->nsec_mindiff.tuples, t, link);
 			dns_diff_appendminimal(diff, &t);
 		}

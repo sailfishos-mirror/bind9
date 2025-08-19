@@ -606,7 +606,7 @@ kasp_from_conf(cfg_obj_t *config, isc_mem_t *mctx, const char *name,
 	ISC_LIST_INIT(kslist);
 
 	(void)cfg_map_get(config, "key-store", &keystores);
-	CFG_LIST_FOREACH (keystores, element) {
+	CFG_LIST_FOREACH(keystores, element) {
 		cfg_obj_t *kconfig = cfg_listelt_value(element);
 		result = cfg_keystore_fromconfig(kconfig, mctx, &kslist, NULL);
 		if (result != ISC_R_SUCCESS) {
@@ -625,7 +625,7 @@ kasp_from_conf(cfg_obj_t *config, isc_mem_t *mctx, const char *name,
 	dns_keystore_detach(&keystore);
 
 	(void)cfg_map_get(config, "dnssec-policy", &kasps);
-	CFG_LIST_FOREACH (kasps, element) {
+	CFG_LIST_FOREACH(kasps, element) {
 		dns_kasp_t *kasp = NULL;
 
 		cfg_obj_t *kconfig = cfg_listelt_value(element);
@@ -652,7 +652,7 @@ kasp_from_conf(cfg_obj_t *config, isc_mem_t *mctx, const char *name,
 	/*
 	 * Cleanup kasp list.
 	 */
-	ISC_LIST_FOREACH (kasplist, kasp, link) {
+	ISC_LIST_FOREACH(kasplist, kasp, link) {
 		ISC_LIST_UNLINK(kasplist, kasp, link);
 		dns_kasp_detach(&kasp);
 	}
@@ -660,7 +660,7 @@ kasp_from_conf(cfg_obj_t *config, isc_mem_t *mctx, const char *name,
 	/*
 	 * Cleanup keystore list.
 	 */
-	ISC_LIST_FOREACH (kslist, ks, link) {
+	ISC_LIST_FOREACH(kslist, ks, link) {
 		ISC_LIST_UNLINK(kslist, ks, link);
 		dns_keystore_detach(&ks);
 	}

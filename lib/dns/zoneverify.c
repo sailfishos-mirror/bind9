@@ -316,7 +316,7 @@ check_no_rrsig(const vctx_t *vctx, const dns_rdataset_t *rdataset,
 				     isc_result_totext(result));
 		return result;
 	}
-	DNS_RDATASETITER_FOREACH (rdsiter) {
+	DNS_RDATASETITER_FOREACH(rdsiter) {
 		dns_rdatasetiter_current(rdsiter, &sigrdataset);
 		if (sigrdataset.type == dns_rdatatype_rrsig &&
 		    sigrdataset.covers == rdataset->type)
@@ -432,7 +432,7 @@ find_nsec3_match(const dns_rdata_nsec3param_t *nsec3param,
 	/*
 	 * Find matching NSEC3 record.
 	 */
-	DNS_RDATASET_FOREACH (rdataset) {
+	DNS_RDATASET_FOREACH(rdataset) {
 		dns_rdata_t rdata = DNS_RDATA_INIT;
 		dns_rdataset_current(rdataset, &rdata);
 		dns_rdata_tostruct(&rdata, nsec3_match, NULL);
@@ -530,7 +530,7 @@ innsec3params(const dns_rdata_nsec3_t *nsec3, dns_rdataset_t *nsec3paramset) {
 	dns_rdata_nsec3param_t nsec3param;
 	isc_result_t result;
 
-	DNS_RDATASET_FOREACH (nsec3paramset) {
+	DNS_RDATASET_FOREACH(nsec3paramset) {
 		dns_rdata_t rdata = DNS_RDATA_INIT;
 
 		dns_rdataset_current(nsec3paramset, &rdata);
@@ -580,7 +580,7 @@ record_found(const vctx_t *vctx, const dns_name_t *name, dns_dbnode_t *node,
 		goto cleanup;
 	}
 
-	DNS_RDATASET_FOREACH (&rdataset) {
+	DNS_RDATASET_FOREACH(&rdataset) {
 		dns_rdata_t rdata = DNS_RDATA_INIT;
 		dns_rdataset_current(&rdataset, &rdata);
 		result = dns_rdata_tostruct(&rdata, &nsec3, NULL);
@@ -776,7 +776,7 @@ verifynsec3s(const vctx_t *vctx, const dns_name_t *name,
 	     isc_result_t *vresult) {
 	isc_result_t result = ISC_R_NOMORE;
 
-	DNS_RDATASET_FOREACH (nsec3paramset) {
+	DNS_RDATASET_FOREACH(nsec3paramset) {
 		dns_rdata_t rdata = DNS_RDATA_INIT;
 
 		dns_rdataset_current(nsec3paramset, &rdata);
@@ -811,7 +811,7 @@ verifyset(vctx_t *vctx, dns_rdataset_t *rdataset, const dns_name_t *name,
 				     isc_result_totext(result));
 		return result;
 	}
-	DNS_RDATASETITER_FOREACH (rdsiter) {
+	DNS_RDATASETITER_FOREACH(rdsiter) {
 		dns_rdatasetiter_current(rdsiter, &sigrdataset);
 		if (sigrdataset.type == dns_rdatatype_rrsig &&
 		    sigrdataset.covers == rdataset->type)
@@ -836,7 +836,7 @@ verifyset(vctx_t *vctx, dns_rdataset_t *rdataset, const dns_name_t *name,
 		goto done;
 	}
 
-	DNS_RDATASET_FOREACH (&sigrdataset) {
+	DNS_RDATASET_FOREACH(&sigrdataset) {
 		dns_rdata_t rdata = DNS_RDATA_INIT;
 		dns_rdata_rrsig_t sig;
 		dst_algorithm_t algorithm;
@@ -916,7 +916,7 @@ verifynode(vctx_t *vctx, const dns_name_t *name, dns_dbnode_t *node,
 		return result;
 	}
 
-	DNS_RDATASETITER_FOREACH (rdsiter) {
+	DNS_RDATASETITER_FOREACH(rdsiter) {
 		dns_rdataset_t rdataset = DNS_RDATASET_INIT;
 		dns_rdatasetiter_current(rdsiter, &rdataset);
 
@@ -1501,7 +1501,7 @@ check_dnskey_sigs(vctx_t *vctx, const dns_rdata_dnskey_t *dnskey,
 	 */
 	dns_rdataset_init(&dsset);
 	if (dns_keynode_dsset(keynode, &dsset)) {
-		DNS_RDATASET_FOREACH (&dsset) {
+		DNS_RDATASET_FOREACH(&dsset) {
 			dns_rdata_t dsrdata = DNS_RDATA_INIT;
 			dns_rdata_t newdsrdata = DNS_RDATA_INIT;
 			unsigned char buf[DNS_DS_BUFFERSIZE];
@@ -1559,7 +1559,7 @@ check_dnskey(vctx_t *vctx) {
 	isc_result_t result;
 	bool is_ksk;
 
-	DNS_RDATASET_FOREACH (&vctx->keyset) {
+	DNS_RDATASET_FOREACH(&vctx->keyset) {
 		dns_rdata_t rdata = DNS_RDATA_INIT;
 		dns_rdataset_current(&vctx->keyset, &rdata);
 		result = dns_rdata_tostruct(&rdata, &dnskey, NULL);
@@ -1696,7 +1696,7 @@ verify_nodes(vctx_t *vctx, isc_result_t *vresult) {
 	count = dns_rdataset_count(&vctx->keyset);
 	dstkeys = isc_mem_cget(vctx->mctx, count, sizeof(*dstkeys));
 
-	DNS_RDATASET_FOREACH (&vctx->keyset) {
+	DNS_RDATASET_FOREACH(&vctx->keyset) {
 		dns_rdata_t rdata = DNS_RDATA_INIT;
 		dns_rdataset_current(&vctx->keyset, &rdata);
 		dstkeys[nkeys] = NULL;
@@ -1852,7 +1852,7 @@ verify_nodes(vctx_t *vctx, isc_result_t *vresult) {
 		return result;
 	}
 
-	DNS_DBITERATOR_FOREACH (dbiter) {
+	DNS_DBITERATOR_FOREACH(dbiter) {
 		result = dns_dbiterator_current(dbiter, &node, name);
 		if (result != ISC_R_SUCCESS && result != DNS_R_NEWORIGIN) {
 			zoneverify_log_error(vctx,

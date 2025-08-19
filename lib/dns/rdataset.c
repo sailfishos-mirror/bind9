@@ -487,7 +487,7 @@ dns_rdataset_additionaldata(dns_rdataset_t *rdataset,
 		return DNS_R_TOOMANYRECORDS;
 	}
 
-	DNS_RDATASET_FOREACH (rdataset) {
+	DNS_RDATASET_FOREACH(rdataset) {
 		isc_result_t result;
 		dns_rdata_t rdata = DNS_RDATA_INIT;
 		dns_rdataset_current(rdataset, &rdata);

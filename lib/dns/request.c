@@ -171,7 +171,7 @@ requests_cancel(void *arg) {
 	dns_requestmgr_t *requestmgr = arg;
 	isc_tid_t tid = isc_tid();
 
-	ISC_LIST_FOREACH (requestmgr->requests[tid], request, link) {
+	ISC_LIST_FOREACH(requestmgr->requests[tid], request, link) {
 		req_log(ISC_LOG_DEBUG(3), "%s(%" PRItid ": request %p",
 			__func__, tid, request);
 		if (DNS_REQUEST_COMPLETE(request)) {

@@ -436,9 +436,9 @@ repopulate_buffer:
 
 		dns_name_init(&empty_name);
 
-		MSG_SECTION_FOREACH (response, DNS_SECTION_ANSWER, name) {
-			ISC_LIST_FOREACH (name->list, rdataset, link) {
-				DNS_RDATASET_FOREACH (rdataset) {
+		MSG_SECTION_FOREACH(response, DNS_SECTION_ANSWER, name) {
+			ISC_LIST_FOREACH(name->list, rdataset, link) {
+				DNS_RDATASET_FOREACH(rdataset) {
 					dns_rdata_t rdata = DNS_RDATA_INIT;
 					dns_rdataset_current(rdataset, &rdata);
 					result = dns_rdata_tofmttext(
@@ -2154,7 +2154,7 @@ main(int argc, char *argv[]) {
 
 	isc_loopmgr_run();
 
-	ISC_LIST_FOREACH (queries, query, link) {
+	ISC_LIST_FOREACH(queries, query, link) {
 		if (query->ednsopts != NULL) {
 			for (i = 0; i < EDNSOPTS; i++) {
 				if (query->ednsopts[i].value != NULL) {

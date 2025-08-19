@@ -209,7 +209,7 @@ dumpnode(dns_name_t *name, dns_dbnode_t *node) {
 
 	isc_buffer_allocate(isc_g_mctx, &buffer, bufsize);
 
-	DNS_RDATASETITER_FOREACH (iter) {
+	DNS_RDATASETITER_FOREACH(iter) {
 		dns_rdataset_t rds = DNS_RDATASET_INIT;
 		dns_rdatasetiter_current(iter, &rds);
 
@@ -347,7 +347,7 @@ keythatsigned_unlocked(dns_rdata_rrsig_t *rrsig) {
 	dst_algorithm_t algorithm = dst_algorithm_fromdata(
 		rrsig->algorithm, rrsig->signature, rrsig->siglen);
 
-	ISC_LIST_FOREACH (keylist, key, link) {
+	ISC_LIST_FOREACH(keylist, key, link) {
 		if (rrsig->keyid == dst_key_id(key->key) &&
 		    algorithm == dst_key_alg(key->key) &&
 		    dns_name_equal(&rrsig->signer, dst_key_name(key->key)))
@@ -519,7 +519,7 @@ signset(dns_diff_t *del, dns_diff_t *add, dns_dbnode_t *node, dns_name_t *name,
 	}
 
 	if (!nosigs) {
-		DNS_RDATASET_FOREACH (&sigset) {
+		DNS_RDATASET_FOREACH(&sigset) {
 			dns_rdata_t sigrdata = DNS_RDATA_INIT;
 			dns_dnsseckey_t *key = NULL;
 			bool expired, refresh, future, offline;
@@ -681,7 +681,7 @@ signset(dns_diff_t *del, dns_diff_t *add, dns_dbnode_t *node, dns_name_t *name,
 		dns_rdataset_disassociate(&sigset);
 	}
 
-	ISC_LIST_FOREACH (keylist, key, link) {
+	ISC_LIST_FOREACH(keylist, key, link) {
 		if (REVOKE(key->key) && set->type != dns_rdatatype_dnskey) {
 			continue;
 		}
@@ -701,7 +701,7 @@ signset(dns_diff_t *del, dns_diff_t *add, dns_dbnode_t *node, dns_name_t *name,
 		{
 			bool have_ksk = isksk(key);
 
-			ISC_LIST_FOREACH (keylist, curr, link) {
+			ISC_LIST_FOREACH(keylist, curr, link) {
 				if (dst_key_alg(key->key) !=
 				    dst_key_alg(curr->key))
 				{
@@ -739,7 +739,7 @@ signset(dns_diff_t *del, dns_diff_t *add, dns_dbnode_t *node, dns_name_t *name,
 				 * - Have key ID equal to the predecessor id.
 				 * - Have a successor that matches 'key' id.
 				 */
-				ISC_LIST_FOREACH (keylist, curr, link) {
+				ISC_LIST_FOREACH(keylist, curr, link) {
 					uint32_t suc;
 
 					if (dst_key_alg(key->key) !=
@@ -1067,7 +1067,7 @@ loadds(dns_name_t *name, uint32_t ttl, dns_rdataset_t *dsset) {
 	check_result(result, "dns_db_newversion");
 	dns_diff_init(isc_g_mctx, &diff);
 
-	DNS_RDATASET_FOREACH (&keyset) {
+	DNS_RDATASET_FOREACH(&keyset) {
 		dns_rdata_t key = DNS_RDATA_INIT;
 		dns_rdata_t ds = DNS_RDATA_INIT;
 		dns_rdataset_current(&keyset, &key);
@@ -1187,7 +1187,7 @@ signname(dns_dbnode_t *node, bool apex, dns_name_t *name) {
 	rdsiter = NULL;
 	result = dns_db_allrdatasets(gdb, node, gversion, 0, 0, &rdsiter);
 	check_result(result, "dns_db_allrdatasets()");
-	DNS_RDATASETITER_FOREACH (rdsiter) {
+	DNS_RDATASETITER_FOREACH(rdsiter) {
 		dns_rdatasetiter_current(rdsiter, &rdataset);
 
 		/* If this is a RRSIG set, skip it. */
@@ -1258,7 +1258,7 @@ active_node(dns_dbnode_t *node) {
 
 	result = dns_db_allrdatasets(gdb, node, gversion, 0, 0, &rdsiter);
 	check_result(result, "dns_db_allrdatasets()");
-	DNS_RDATASETITER_FOREACH (rdsiter) {
+	DNS_RDATASETITER_FOREACH(rdsiter) {
 		dns_rdatasetiter_current(rdsiter, &rdataset);
 		dns_rdatatype_t t = rdataset.type;
 		dns_rdataset_disassociate(&rdataset);
@@ -1273,7 +1273,7 @@ active_node(dns_dbnode_t *node) {
 		/*%
 		 * The node is empty of everything but NSEC / RRSIG records.
 		 */
-		DNS_RDATASETITER_FOREACH (rdsiter) {
+		DNS_RDATASETITER_FOREACH(rdsiter) {
 			dns_rdatasetiter_current(rdsiter, &rdataset);
 			result = dns_db_deleterdataset(gdb, node, gversion,
 						       rdataset.type,
@@ -1288,7 +1288,7 @@ active_node(dns_dbnode_t *node) {
 		result = dns_db_allrdatasets(gdb, node, gversion, 0, 0,
 					     &rdsiter2);
 		check_result(result, "dns_db_allrdatasets()");
-		DNS_RDATASETITER_FOREACH (rdsiter) {
+		DNS_RDATASETITER_FOREACH(rdsiter) {
 			dns_rdatasetiter_current(rdsiter, &rdataset);
 			type = rdataset.type;
 			covers = rdataset.covers;
@@ -1311,7 +1311,7 @@ active_node(dns_dbnode_t *node) {
 				continue;
 			}
 			found = false;
-			DNS_RDATASETITER_FOREACH (rdsiter2) {
+			DNS_RDATASETITER_FOREACH(rdsiter2) {
 				dns_rdatasetiter_current(rdsiter2, &rdataset);
 				if (rdataset.type == covers) {
 					found = true;
@@ -1687,7 +1687,7 @@ remove_records(dns_dbnode_t *node, dns_rdatatype_t which, bool checknsec) {
 	 */
 	result = dns_db_allrdatasets(gdb, node, gversion, 0, 0, &rdsiter);
 	check_result(result, "dns_db_allrdatasets()");
-	DNS_RDATASETITER_FOREACH (rdsiter) {
+	DNS_RDATASETITER_FOREACH(rdsiter) {
 		dns_rdataset_t rdataset = DNS_RDATASET_INIT;
 		dns_rdatasetiter_current(rdsiter, &rdataset);
 		type = rdataset.type;
@@ -1727,7 +1727,7 @@ remove_sigs(dns_dbnode_t *node, bool delegation, dns_rdatatype_t which) {
 
 	result = dns_db_allrdatasets(gdb, node, gversion, 0, 0, &rdsiter);
 	check_result(result, "dns_db_allrdatasets()");
-	DNS_RDATASETITER_FOREACH (rdsiter) {
+	DNS_RDATASETITER_FOREACH(rdsiter) {
 		dns_rdataset_t rdataset = DNS_RDATASET_INIT;
 		dns_rdatasetiter_current(rdsiter, &rdataset);
 		type = rdataset.type;
@@ -1779,14 +1779,14 @@ nsecify(void) {
 	 */
 	result = dns_db_createiterator(gdb, DNS_DB_NSEC3ONLY, &dbiter);
 	check_result(result, "dns_db_createiterator()");
-	DNS_DBITERATOR_FOREACH (dbiter) {
+	DNS_DBITERATOR_FOREACH(dbiter) {
 		dns_rdataset_t rdataset = DNS_RDATASET_INIT;
 		result = dns_dbiterator_current(dbiter, &node, name);
 		check_dns_dbiterator_current(result);
 		result = dns_db_allrdatasets(gdb, node, gversion, 0, 0,
 					     &rdsiter);
 		check_result(result, "dns_db_allrdatasets()");
-		DNS_RDATASETITER_FOREACH (rdsiter) {
+		DNS_RDATASETITER_FOREACH(rdsiter) {
 			dns_rdatasetiter_current(rdsiter, &rdataset);
 			type = rdataset.type;
 			covers = rdataset.covers;
@@ -2053,7 +2053,7 @@ nsec3clean(dns_name_t *name, dns_dbnode_t *node, unsigned int hashalg,
 	 * Delete any NSEC3 records which are not part of the current
 	 * NSEC3 chain.
 	 */
-	DNS_RDATASET_FOREACH (&rdataset) {
+	DNS_RDATASET_FOREACH(&rdataset) {
 		dns_rdata_t rdata = DNS_RDATA_INIT;
 		dns_rdata_t delrdata = DNS_RDATA_INIT;
 
@@ -2112,14 +2112,14 @@ rrset_cleanup(dns_name_t *name, dns_rdataset_t *rdataset, dns_diff_t *add,
 	dns_rdatatype_format(rdataset->type, typestr, sizeof(typestr));
 
 	dns_rdataset_init(&tmprdataset);
-	DNS_RDATASET_FOREACH (rdataset) {
+	DNS_RDATASET_FOREACH(rdataset) {
 		dns_rdata_t rdata1 = DNS_RDATA_INIT;
 		unsigned int count2 = 0;
 
 		count1++;
 		dns_rdataset_current(rdataset, &rdata1);
 		dns_rdataset_clone(rdataset, &tmprdataset);
-		DNS_RDATASET_FOREACH (&tmprdataset) {
+		DNS_RDATASET_FOREACH(&tmprdataset) {
 			dns_rdata_t rdata2 = DNS_RDATA_INIT;
 			dns_difftuple_t *tuple = NULL;
 			count2++;
@@ -2170,14 +2170,14 @@ cleanup_zone(void) {
 	result = dns_db_createiterator(gdb, 0, &dbiter);
 	check_result(result, "dns_db_createiterator()");
 
-	DNS_DBITERATOR_FOREACH (dbiter) {
+	DNS_DBITERATOR_FOREACH(dbiter) {
 		dns_rdataset_t rdataset = DNS_RDATASET_INIT;
 		result = dns_dbiterator_current(dbiter, &node, name);
 		check_dns_dbiterator_current(result);
 		result = dns_db_allrdatasets(gdb, node, gversion, 0, 0,
 					     &rdsiter);
 		check_result(result, "dns_db_allrdatasets()");
-		DNS_RDATASETITER_FOREACH (rdsiter) {
+		DNS_RDATASETITER_FOREACH(rdsiter) {
 			dns_rdatasetiter_current(rdsiter, &rdataset);
 			rrset_cleanup(name, &rdataset, &add, &del);
 			dns_rdataset_disassociate(&rdataset);
@@ -2359,7 +2359,7 @@ nsec3ify(unsigned int hashalg, dns_iterations_t iterations,
 	result = dns_db_createiterator(gdb, DNS_DB_NSEC3ONLY, &dbiter);
 	check_result(result, "dns_db_createiterator()");
 
-	DNS_DBITERATOR_FOREACH (dbiter) {
+	DNS_DBITERATOR_FOREACH(dbiter) {
 		result = dns_dbiterator_current(dbiter, &node, name);
 		check_dns_dbiterator_current(result);
 		nsec3clean(name, node, hashalg, iterations, salt, salt_len,
@@ -2602,7 +2602,7 @@ loadexplicitkeys(char *keyfiles[], int n, bool setksk) {
 		}
 
 		/* Skip any duplicates */
-		ISC_LIST_FOREACH (keylist, k, link) {
+		ISC_LIST_FOREACH(keylist, k, link) {
 			if (dst_key_id(k->key) == dst_key_id(newkey) &&
 			    dst_key_alg(k->key) == dst_key_alg(newkey))
 			{
@@ -2646,7 +2646,7 @@ report(const char *format, ...) {
 
 static void
 clear_keylist(dns_dnsseckeylist_t *list) {
-	ISC_LIST_FOREACH (*list, key, link) {
+	ISC_LIST_FOREACH(*list, key, link) {
 		ISC_LIST_UNLINK(*list, key, link);
 		dns_dnsseckey_destroy(isc_g_mctx, &key);
 	}
@@ -2683,7 +2683,7 @@ add_digest(char *str, size_t dlen, dns_kasp_digestlist_t *digests,
 	}
 
 	/* Suppress duplicates */
-	ISC_LIST_FOREACH (*digests, d, link) {
+	ISC_LIST_FOREACH(*digests, d, link) {
 		if (d->digest == alg) {
 			return;
 		}
@@ -2804,7 +2804,7 @@ findkeys:
 	clear_keylist(&rmkeys);
 	clear_keylist(&matchkeys);
 
-	ISC_LIST_FOREACH (digests, d, link) {
+	ISC_LIST_FOREACH(digests, d, link) {
 		ISC_LIST_UNLINK(digests, d, link);
 		isc_mem_put(isc_g_mctx, d, sizeof(*d));
 	}
@@ -2840,7 +2840,7 @@ warnifallksk(dns_db_t *db) {
 	result = dns_rdataset_first(&rdataset);
 	check_result(result, "dns_rdataset_first");
 
-	DNS_RDATASET_FOREACH (&rdataset) {
+	DNS_RDATASET_FOREACH(&rdataset) {
 		dns_rdata_t rdata = DNS_RDATA_INIT;
 		dns_rdataset_current(&rdataset, &rdata);
 
@@ -3014,7 +3014,7 @@ writeset(const char *prefix, dns_rdatatype_t type) {
 
 	name = gorigin;
 
-	ISC_LIST_FOREACH (keylist, key, link) {
+	ISC_LIST_FOREACH(keylist, key, link) {
 		if (REVOKE(key->key)) {
 			continue;
 		}
@@ -3026,7 +3026,7 @@ writeset(const char *prefix, dns_rdatatype_t type) {
 			have_non_ksk = true;
 		}
 
-		ISC_LIST_FOREACH (keylist, curr, link) {
+		ISC_LIST_FOREACH(keylist, curr, link) {
 			if (dst_key_alg(key->key) != dst_key_alg(curr->key)) {
 				continue;
 			}
@@ -3800,7 +3800,7 @@ main(int argc, char *argv[]) {
 	}
 
 	/* Now enumerate the key list */
-	ISC_LIST_FOREACH (keylist, key, link) {
+	ISC_LIST_FOREACH(keylist, key, link) {
 		key->index = keycount++;
 	}
 
@@ -3986,7 +3986,7 @@ main(int argc, char *argv[]) {
 
 	hashlist_free(&hashlist);
 
-	ISC_LIST_FOREACH (keylist, key, link) {
+	ISC_LIST_FOREACH(keylist, key, link) {
 		ISC_LIST_UNLINK(keylist, key, link);
 		dns_dnsseckey_destroy(isc_g_mctx, &key);
 	}

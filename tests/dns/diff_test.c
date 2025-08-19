@@ -50,7 +50,7 @@ static size_t
 count_elements(dns_diff_t *diff) {
 	size_t count = 0;
 
-	ISC_LIST_FOREACH (diff->tuples, ot, link) {
+	ISC_LIST_FOREACH(diff->tuples, ot, link) {
 		++count;
 	}
 

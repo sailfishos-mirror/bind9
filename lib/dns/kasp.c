@@ -69,13 +69,13 @@ static void
 destroy(dns_kasp_t *kasp) {
 	REQUIRE(!ISC_LINK_LINKED(kasp, link));
 
-	ISC_LIST_FOREACH (kasp->keys, key, link) {
+	ISC_LIST_FOREACH(kasp->keys, key, link) {
 		ISC_LIST_UNLINK(kasp->keys, key, link);
 		dns_kasp_key_destroy(key);
 	}
 	INSIST(ISC_LIST_EMPTY(kasp->keys));
 
-	ISC_LIST_FOREACH (kasp->digests, digest, link) {
+	ISC_LIST_FOREACH(kasp->digests, digest, link) {
 		ISC_LIST_UNLINK(kasp->digests, digest, link);
 		isc_mem_put(kasp->mctx, digest, sizeof(*digest));
 	}
@@ -348,7 +348,7 @@ dns_kasplist_find(dns_kasplist_t *list, const char *name, dns_kasp_t **kaspp) {
 		return ISC_R_NOTFOUND;
 	}
 
-	ISC_LIST_FOREACH (*list, kasp, link) {
+	ISC_LIST_FOREACH(*list, kasp, link) {
 		if (strcmp(kasp->name, name) == 0) {
 			dns_kasp_attach(kasp, kaspp);
 			return ISC_R_SUCCESS;
@@ -654,7 +654,7 @@ dns_kasp_adddigest(dns_kasp_t *kasp, dns_dsdigest_t alg) {
 	}
 
 	/* Suppress duplicates */
-	ISC_LIST_FOREACH (kasp->digests, d, link) {
+	ISC_LIST_FOREACH(kasp->digests, d, link) {
 		if (d->digest == alg) {
 			return;
 		}

@@ -122,7 +122,7 @@ dns_nsec_buildrdata(dns_db_t *db, dns_dbversion_t *version, dns_dbnode_t *node,
 	if (result != ISC_R_SUCCESS) {
 		return result;
 	}
-	DNS_RDATASETITER_FOREACH (rdsiter) {
+	DNS_RDATASETITER_FOREACH(rdsiter) {
 		dns_rdataset_t rdataset = DNS_RDATASET_INIT;
 		dns_rdatasetiter_current(rdsiter, &rdataset);
 		if (!dns_rdatatype_isnsec(rdataset.type) &&
@@ -262,7 +262,7 @@ dns_nsec_nseconly(dns_db_t *db, dns_dbversion_t *version, dns_diff_t *diff,
 		return result;
 	}
 	bool matched = false;
-	DNS_RDATASET_FOREACH (&rdataset) {
+	DNS_RDATASET_FOREACH(&rdataset) {
 		dns_rdata_t rdata = DNS_RDATA_INIT;
 
 		dns_rdataset_current(&rdataset, &rdata);
@@ -275,7 +275,7 @@ dns_nsec_nseconly(dns_db_t *db, dns_dbversion_t *version, dns_diff_t *diff,
 		{
 			bool deleted = false;
 			if (diff != NULL) {
-				ISC_LIST_FOREACH (diff->tuples, tuple, link) {
+				ISC_LIST_FOREACH(diff->tuples, tuple, link) {
 					if (tuple->rdata.type !=
 						    dns_rdatatype_dnskey ||
 					    tuple->op != DNS_DIFFOP_DEL)
@@ -488,7 +488,7 @@ dns_nsec_requiredtypespresent(dns_rdataset_t *nsecset) {
 
 	dns_rdataset_clone(nsecset, &rdataset);
 
-	DNS_RDATASET_FOREACH (&rdataset) {
+	DNS_RDATASET_FOREACH(&rdataset) {
 		dns_rdata_t rdata = DNS_RDATA_INIT;
 		dns_rdataset_current(&rdataset, &rdata);
 		if (!dns_nsec_typepresent(&rdata, dns_rdatatype_nsec) ||

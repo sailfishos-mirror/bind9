@@ -485,7 +485,7 @@ static isc_result_t
 do_diff(dns_diff_t *updates, dns_db_t *db, dns_dbversion_t *ver,
 	dns_diff_t *diff) {
 	isc_result_t result;
-	ISC_LIST_FOREACH (updates->tuples, t, link) {
+	ISC_LIST_FOREACH(updates->tuples, t, link) {
 		ISC_LIST_UNLINK(updates->tuples, t, link);
 		CHECK(do_one_tuple(&t, db, ver, diff));
 	}
@@ -553,7 +553,7 @@ static isc_result_t
 foreach_node_rr_action(void *data, dns_rdataset_t *rdataset) {
 	isc_result_t result;
 	foreach_node_rr_ctx_t *ctx = data;
-	DNS_RDATASET_FOREACH (rdataset) {
+	DNS_RDATASET_FOREACH(rdataset) {
 		rr_t rr = { 0, DNS_RDATA_INIT };
 
 		dns_rdataset_current(rdataset, &rr.rdata);
@@ -608,7 +608,7 @@ foreach_rrset(dns_db_t *db, dns_dbversion_t *ver, dns_name_t *name,
 		goto cleanup_node;
 	}
 
-	DNS_RDATASETITER_FOREACH (iter) {
+	DNS_RDATASETITER_FOREACH(iter) {
 		dns_rdataset_t rdataset = DNS_RDATASET_INIT;
 		dns_rdatasetiter_current(iter, &rdataset);
 
@@ -714,7 +714,7 @@ foreach_rr(dns_db_t *db, dns_dbversion_t *ver, dns_name_t *name,
 		dns_rdataset_getownercase(&rdataset, ctx->oldname);
 	}
 
-	DNS_RDATASET_FOREACH (&rdataset) {
+	DNS_RDATASET_FOREACH(&rdataset) {
 		rr_t rr = { 0, DNS_RDATA_INIT };
 		dns_rdataset_current(&rdataset, &rr.rdata);
 		rr.ttl = rdataset.ttl;
@@ -933,7 +933,7 @@ ssu_checkrule(void *data, dns_rdataset_t *rrset) {
 		dns_rdataset_init(&rdataset);
 		dns_rdataset_clone(rrset, &rdataset);
 
-		DNS_RDATASET_FOREACH (&rdataset) {
+		DNS_RDATASET_FOREACH(&rdataset) {
 			dns_rdata_t rdata = DNS_RDATA_INIT;
 			dns_rdataset_current(&rdataset, &rdata);
 			if (rrset->type == dns_rdatatype_ptr) {
@@ -1167,7 +1167,7 @@ temp_check(isc_mem_t *mctx, dns_diff_t *temp, dns_db_t *db,
 			dns_diff_init(mctx, &d_rrs);
 			dns_diff_init(mctx, &u_rrs);
 
-			DNS_RDATASET_FOREACH (&rdataset) {
+			DNS_RDATASET_FOREACH(&rdataset) {
 				dns_rdata_t rdata = DNS_RDATA_INIT;
 				dns_rdataset_current(&rdataset, &rdata);
 				temp_append(&d_rrs, name, &rdata);
@@ -1657,7 +1657,7 @@ send_update(ns_client_t *client, dns_zone_t *zone) {
 	}
 
 	update = 0;
-	MSG_SECTION_FOREACH (request, DNS_SECTION_UPDATE, name) {
+	MSG_SECTION_FOREACH(request, DNS_SECTION_UPDATE, name) {
 		dns_rdata_t rdata = DNS_RDATA_INIT;
 		dns_ttl_t ttl;
 		dns_rdataclass_t update_class;
@@ -2010,7 +2010,7 @@ remove_orphaned_ds(dns_db_t *db, dns_dbversion_t *newver, dns_diff_t *diff) {
 
 	dns_diff_init(diff->mctx, &temp_diff);
 
-	ISC_LIST_FOREACH (diff->tuples, tuple, link) {
+	ISC_LIST_FOREACH(diff->tuples, tuple, link) {
 		if (!((tuple->op == DNS_DIFFOP_DEL &&
 		       tuple->rdata.type == dns_rdatatype_ns) ||
 		      (tuple->op == DNS_DIFFOP_ADD &&
@@ -2032,7 +2032,7 @@ remove_orphaned_ds(dns_db_t *db, dns_dbversion_t *newver, dns_diff_t *diff) {
 	result = ISC_R_SUCCESS;
 
 failure:
-	ISC_LIST_FOREACH (temp_diff.tuples, tuple, link) {
+	ISC_LIST_FOREACH(temp_diff.tuples, tuple, link) {
 		ISC_LIST_UNLINK(temp_diff.tuples, tuple, link);
 		dns_diff_appendminimal(diff, &tuple);
 	}
@@ -2064,7 +2064,7 @@ check_mx(ns_client_t *client, dns_zone_t *zone, dns_db_t *db,
 	dns_rdata_init(&rdata);
 	options = dns_zone_getoptions(zone);
 
-	ISC_LIST_FOREACH (diff->tuples, t, link) {
+	ISC_LIST_FOREACH(diff->tuples, t, link) {
 		if (t->op != DNS_DIFFOP_ADD ||
 		    t->rdata.type != dns_rdatatype_mx)
 		{
@@ -2177,7 +2177,7 @@ rr_exists(dns_db_t *db, dns_dbversion_t *ver, dns_name_t *name,
 	}
 
 	bool matched = false;
-	DNS_RDATASET_FOREACH (&rdataset) {
+	DNS_RDATASET_FOREACH(&rdataset) {
 		dns_rdata_t myrdata = DNS_RDATA_INIT;
 		dns_rdataset_current(&rdataset, &myrdata);
 		if (dns_rdata_casecompare(&myrdata, rdata) == 0) {
@@ -2219,7 +2219,7 @@ get_iterations(dns_db_t *db, dns_dbversion_t *ver, dns_rdatatype_t privatetype,
 		goto failure;
 	}
 
-	DNS_RDATASET_FOREACH (&rdataset) {
+	DNS_RDATASET_FOREACH(&rdataset) {
 		dns_rdata_t rdata = DNS_RDATA_INIT;
 		dns_rdataset_current(&rdataset, &rdata);
 		CHECK(dns_rdata_tostruct(&rdata, &nsec3param, NULL));
@@ -2247,7 +2247,7 @@ try_private:
 		goto failure;
 	}
 
-	DNS_RDATASET_FOREACH (&rdataset) {
+	DNS_RDATASET_FOREACH(&rdataset) {
 		unsigned char buf[DNS_NSEC3PARAM_BUFFERSIZE];
 		dns_rdata_t private = DNS_RDATA_INIT;
 		dns_rdata_t rdata = DNS_RDATA_INIT;
@@ -2339,7 +2339,7 @@ add_nsec3param_records(ns_client_t *client, dns_zone_t *zone, dns_db_t *db,
 	/*
 	 * Extract NSEC3PARAM tuples from list.
 	 */
-	ISC_LIST_FOREACH (diff->tuples, tuple, link) {
+	ISC_LIST_FOREACH(diff->tuples, tuple, link) {
 		if (tuple->rdata.type != dns_rdatatype_nsec3param ||
 		    !dns_name_equal(name, &tuple->name))
 		{
@@ -2414,7 +2414,7 @@ add_nsec3param_records(ns_client_t *client, dns_zone_t *zone, dns_db_t *db,
 	 * in managing and should not be touched so revert such changes
 	 * taking into account any TTL change of the NSEC3PARAM RRset.
 	 */
-	ISC_LIST_FOREACH (temp_diff.tuples, tuple, link) {
+	ISC_LIST_FOREACH(temp_diff.tuples, tuple, link) {
 		if ((tuple->rdata.data[1] & ~DNS_NSEC3FLAG_OPTOUT) != 0) {
 			/*
 			 * If we haven't had any adds then the tuple->ttl must
@@ -2605,7 +2605,7 @@ rollback_private(dns_db_t *db, dns_rdatatype_t privatetype,
 	/*
 	 * Extract the changes to be rolled back.
 	 */
-	ISC_LIST_FOREACH (diff->tuples, tuple, link) {
+	ISC_LIST_FOREACH(diff->tuples, tuple, link) {
 		if (tuple->rdata.type != privatetype ||
 		    !dns_name_equal(name, &tuple->name))
 		{
@@ -2629,7 +2629,7 @@ rollback_private(dns_db_t *db, dns_rdatatype_t privatetype,
 	/*
 	 * Rollback the changes.
 	 */
-	ISC_LIST_FOREACH (temp_diff.tuples, tuple, link) {
+	ISC_LIST_FOREACH(temp_diff.tuples, tuple, link) {
 		op = (tuple->op == DNS_DIFFOP_DEL) ? DNS_DIFFOP_ADD
 						   : DNS_DIFFOP_DEL;
 		dns_difftuple_create(mctx, op, name, tuple->ttl, &tuple->rdata,
@@ -2711,7 +2711,7 @@ update_action(void *arg) {
 	 * Check prerequisites.
 	 */
 
-	MSG_SECTION_FOREACH (request, DNS_SECTION_PREREQUISITE, name) {
+	MSG_SECTION_FOREACH(request, DNS_SECTION_PREREQUISITE, name) {
 		dns_rdata_t rdata = DNS_RDATA_INIT;
 		dns_ttl_t ttl;
 		dns_rdataclass_t update_class;
@@ -2823,7 +2823,7 @@ update_action(void *arg) {
 	INSIST(ssutable == NULL || maxbytype != NULL);
 
 	update = 0;
-	MSG_SECTION_FOREACH (request, DNS_SECTION_UPDATE, name) {
+	MSG_SECTION_FOREACH(request, DNS_SECTION_UPDATE, name) {
 		dns_rdata_t rdata = DNS_RDATA_INIT;
 		dns_ttl_t ttl;
 		dns_rdataclass_t update_class;

@@ -1207,7 +1207,7 @@ dns_journal_writediff(dns_journal_t *j, dns_diff_t *diff) {
 	 * Pass 1: determine the buffer size needed, and
 	 * keep track of SOA serial numbers.
 	 */
-	ISC_LIST_FOREACH (diff->tuples, t, link) {
+	ISC_LIST_FOREACH(diff->tuples, t, link) {
 		if (t->rdata.type == dns_rdatatype_soa) {
 			if (j->x.n_soa < 2) {
 				j->x.pos[j->x.n_soa].serial =
@@ -1237,7 +1237,7 @@ dns_journal_writediff(dns_journal_t *j, dns_diff_t *diff) {
 	/*
 	 * Pass 2.  Write RRs to buffer.
 	 */
-	ISC_LIST_FOREACH (diff->tuples, t, link) {
+	ISC_LIST_FOREACH(diff->tuples, t, link) {
 		/*
 		 * Write the RR header.
 		 */
@@ -2140,11 +2140,11 @@ get_name_diff(dns_db_t *db, dns_dbversion_t *ver, isc_stdtime_t now,
 		goto cleanup_node;
 	}
 
-	DNS_RDATASETITER_FOREACH (rdsiter) {
+	DNS_RDATASETITER_FOREACH(rdsiter) {
 		dns_rdataset_t rdataset = DNS_RDATASET_INIT;
 		dns_rdatasetiter_current(rdsiter, &rdataset);
 
-		DNS_RDATASET_FOREACH (&rdataset) {
+		DNS_RDATASET_FOREACH(&rdataset) {
 			dns_rdata_t rdata = DNS_RDATA_INIT;
 			dns_rdataset_current(&rdataset, &rdata);
 			dns_difftuple_create(diff->mctx, op, name, rdataset.ttl,

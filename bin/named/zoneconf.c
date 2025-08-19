@@ -223,7 +223,7 @@ configure_zone_ssutable(const cfg_obj_t *zconfig, const cfg_obj_t *tconfig,
 
 	dns_ssutable_create(mctx, &table);
 
-	CFG_LIST_FOREACH (updatepolicy, element) {
+	CFG_LIST_FOREACH(updatepolicy, element) {
 		const cfg_obj_t *stmt = cfg_listelt_value(element);
 		const cfg_obj_t *mode = cfg_tuple_get(stmt, "mode");
 		const cfg_obj_t *identity = cfg_tuple_get(stmt, "identity");
@@ -306,7 +306,7 @@ configure_zone_ssutable(const cfg_obj_t *zconfig, const cfg_obj_t *tconfig,
 		}
 
 		i = 0;
-		CFG_LIST_FOREACH (typelist, element2) {
+		CFG_LIST_FOREACH(typelist, element2) {
 			const cfg_obj_t *typeobj;
 			const char *bracket;
 			isc_textregion_t r;
@@ -417,7 +417,7 @@ configure_staticstub_serveraddrs(const cfg_obj_t *zconfig, dns_zone_t *zone,
 	dns_rdata_t *rdata = NULL;
 	isc_result_t result = ISC_R_SUCCESS;
 
-	CFG_LIST_FOREACH (zconfig, element) {
+	CFG_LIST_FOREACH(zconfig, element) {
 		const isc_sockaddr_t *sa;
 		isc_netaddr_t na;
 		const cfg_obj_t *address = cfg_listelt_value(element);
@@ -499,7 +499,7 @@ configure_staticstub_servernames(const cfg_obj_t *zconfig, dns_zone_t *zone,
 	isc_region_t sregion, region;
 	isc_result_t result = ISC_R_SUCCESS;
 
-	CFG_LIST_FOREACH (zconfig, element) {
+	CFG_LIST_FOREACH(zconfig, element) {
 		const cfg_obj_t *obj = NULL;
 		const char *str = NULL;
 		dns_fixedname_t fixed_name;
@@ -670,7 +670,7 @@ cleanup:
 		dns_db_detach(&db);
 	}
 	for (i = 0; rdatalists[i] != NULL; i++) {
-		ISC_LIST_FOREACH (rdatalists[i]->rdata, rdata, link) {
+		ISC_LIST_FOREACH(rdatalists[i]->rdata, rdata, link) {
 			ISC_LIST_UNLINK(rdatalists[i]->rdata, rdata, link);
 			dns_rdata_toregion(rdata, &region);
 			isc_mem_put(mctx, rdata,
@@ -797,7 +797,7 @@ isself(dns_view_t *myview, dns_tsigkey_t *mykey, const isc_sockaddr_t *srcaddr,
 	isc_netaddr_fromsockaddr(&netdst, dstaddr);
 	env = ns_interfacemgr_getaclenv(named_g_server->interfacemgr);
 
-	ISC_LIST_FOREACH (named_g_server->viewlist, view, link) {
+	ISC_LIST_FOREACH(named_g_server->viewlist, view, link) {
 		const dns_name_t *tsig = NULL;
 
 		if (view->matchrecursiveonly) {
@@ -2087,7 +2087,7 @@ named_zone_templateopts(const cfg_obj_t *config, const cfg_obj_t *zoptions) {
 	(void)cfg_map_get(zoptions, "template", &obj);
 	if (obj != NULL && templates != NULL) {
 		const char *tmplname = cfg_obj_asstring(obj);
-		CFG_LIST_FOREACH (templates, e) {
+		CFG_LIST_FOREACH(templates, e) {
 			const cfg_obj_t *t = cfg_tuple_get(cfg_listelt_value(e),
 							   "name");
 			if (strcasecmp(cfg_obj_asstring(t), tmplname) == 0) {

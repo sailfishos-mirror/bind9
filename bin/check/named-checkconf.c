@@ -123,7 +123,7 @@ get_checknames(const cfg_obj_t **maps, const cfg_obj_t **obj) {
 			*obj = checknames;
 			return true;
 		}
-		CFG_LIST_FOREACH (checknames, element) {
+		CFG_LIST_FOREACH(checknames, element) {
 			value = cfg_listelt_value(element);
 			type = cfg_tuple_get(value, "type");
 			if ((strcasecmp(cfg_obj_asstring(type), "primary") !=
@@ -482,7 +482,7 @@ configure_view(const char *vclass, const char *view, const cfg_obj_t *config,
 		(void)cfg_map_get(config, "zone", &zonelist);
 	}
 
-	CFG_LIST_FOREACH (zonelist, element) {
+	CFG_LIST_FOREACH(zonelist, element) {
 		const cfg_obj_t *zconfig = cfg_listelt_value(element);
 		tresult = configure_zone(vclass, view, zconfig, vconfig, config,
 					 list);
@@ -518,7 +518,7 @@ load_zones_fromconfig(const cfg_obj_t *config, bool list_zones) {
 	views = NULL;
 
 	(void)cfg_map_get(config, "view", &views);
-	CFG_LIST_FOREACH (views, element) {
+	CFG_LIST_FOREACH(views, element) {
 		const cfg_obj_t *classobj;
 		dns_rdataclass_t viewclass;
 		const char *vname;

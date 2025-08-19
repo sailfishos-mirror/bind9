@@ -130,7 +130,7 @@ need_rescan(ns_interfacemgr_t *mgr, struct MSGHDR *rtm, size_t len) {
 				 * router advertisements?)
 				 */
 				LOCK(&mgr->lock);
-				ISC_LIST_FOREACH (mgr->interfaces, ifp, link) {
+				ISC_LIST_FOREACH(mgr->interfaces, ifp, link) {
 					isc_netaddr_t tmp = { 0 };
 					isc_netaddr_fromsockaddr(&tmp,
 								 &ifp->addr);
@@ -781,7 +781,7 @@ interface_destroy(ns_interface_t **interfacep) {
 static ns_interface_t *
 find_matching_interface(ns_interfacemgr_t *mgr, isc_sockaddr_t *addr) {
 	LOCK(&mgr->lock);
-	ISC_LIST_FOREACH (mgr->interfaces, ifp, link) {
+	ISC_LIST_FOREACH(mgr->interfaces, ifp, link) {
 		if (isc_sockaddr_equal(&ifp->addr, addr)) {
 			UNLOCK(&mgr->lock);
 			return ifp;
@@ -810,7 +810,7 @@ purge_old_interfaces(ns_interfacemgr_t *mgr) {
 	ISC_LIST_INIT(interfaces);
 
 	LOCK(&mgr->lock);
-	ISC_LIST_FOREACH (mgr->interfaces, ifp, link) {
+	ISC_LIST_FOREACH(mgr->interfaces, ifp, link) {
 		INSIST(NS_INTERFACE_VALID(ifp));
 		if (ifp->generation != mgr->generation) {
 			ISC_LIST_UNLINK(ifp->mgr->interfaces, ifp, link);
@@ -819,7 +819,7 @@ purge_old_interfaces(ns_interfacemgr_t *mgr) {
 	}
 	UNLOCK(&mgr->lock);
 
-	ISC_LIST_FOREACH (interfaces, ifp, link) {
+	ISC_LIST_FOREACH(interfaces, ifp, link) {
 		if (LISTENING(ifp)) {
 			log_interface_shutdown(ifp);
 			ns_interface_shutdown(ifp);
@@ -891,7 +891,7 @@ setup_listenon(ns_interfacemgr_t *mgr, isc_interface_t *interface,
 	isc_sockaddr_fromnetaddr(addr, &interface->address, port);
 
 	LOCK(&mgr->lock);
-	ISC_LIST_FOREACH (mgr->listenon, old, link) {
+	ISC_LIST_FOREACH(mgr->listenon, old, link) {
 		if (isc_sockaddr_equal(addr, old)) {
 			/* We found an existing address */
 			isc_mem_put(mgr->mctx, addr, sizeof(*addr));
@@ -912,7 +912,7 @@ clearlistenon(ns_interfacemgr_t *mgr) {
 	ISC_LIST_MOVE(listenon, mgr->listenon);
 	UNLOCK(&mgr->lock);
 
-	ISC_LIST_FOREACH (listenon, old, link) {
+	ISC_LIST_FOREACH(listenon, old, link) {
 		ISC_LIST_UNLINK(listenon, old, link);
 		isc_mem_put(mgr->mctx, old, sizeof(*old));
 	}
@@ -1154,7 +1154,7 @@ do_scan(ns_interfacemgr_t *mgr, bool verbose, bool config) {
 	listenon:
 		ll = (family == AF_INET) ? mgr->listenon4 : mgr->listenon6;
 		dolistenon = true;
-		ISC_LIST_FOREACH (ll->elts, le, link) {
+		ISC_LIST_FOREACH(ll->elts, le, link) {
 			int match;
 			bool addr_in_use = false;
 			isc_sockaddr_t listen_sockaddr;
@@ -1330,7 +1330,7 @@ ns_interfacemgr_listeningon(ns_interfacemgr_t *mgr,
 		return true;
 	}
 	LOCK(&mgr->lock);
-	ISC_LIST_FOREACH (mgr->listenon, old, link) {
+	ISC_LIST_FOREACH(mgr->listenon, old, link) {
 		if (isc_sockaddr_equal(old, addr)) {
 			result = true;
 			break;

@@ -372,7 +372,7 @@ clearnode(dns_db_t *db, dns_dbnode_t *node) {
 		return result;
 	}
 
-	DNS_RDATASETITER_FOREACH (iter) {
+	DNS_RDATASETITER_FOREACH(iter) {
 		dns_rdataset_t rdataset = DNS_RDATASET_INIT;
 
 		dns_rdatasetiter_current(iter, &rdataset);

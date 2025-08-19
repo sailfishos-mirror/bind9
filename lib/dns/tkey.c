@@ -154,9 +154,9 @@ add_rdata_to_list(dns_message_t *msg, dns_name_t *name, dns_rdata_t *rdata,
 
 static void
 free_namelist(dns_message_t *msg, dns_namelist_t *namelist) {
-	ISC_LIST_FOREACH (*namelist, name, link) {
+	ISC_LIST_FOREACH(*namelist, name, link) {
 		ISC_LIST_UNLINK(*namelist, name, link);
-		ISC_LIST_FOREACH (name->list, set, link) {
+		ISC_LIST_FOREACH(name->list, set, link) {
 			ISC_LIST_UNLINK(name->list, set, link);
 			if (dns_rdataset_isassociated(set)) {
 				dns_rdataset_disassociate(set);
@@ -503,7 +503,7 @@ dns_tkey_processquery(dns_message_t *msg, dns_tkeyctx_t *tctx,
 	RETERR(dns_message_reply(msg, true));
 	add_rdata_to_list(msg, keyname, &rdata, 0, &namelist);
 
-	ISC_LIST_FOREACH (namelist, name, link) {
+	ISC_LIST_FOREACH(namelist, name, link) {
 		ISC_LIST_UNLINK(namelist, name, link);
 		dns_message_addname(msg, name, DNS_SECTION_ANSWER);
 	}
@@ -611,7 +611,7 @@ find_tkey(dns_message_t *msg, dns_name_t **name, dns_rdata_t *rdata,
 	  int section) {
 	isc_result_t result;
 
-	MSG_SECTION_FOREACH (msg, section, cur) {
+	MSG_SECTION_FOREACH(msg, section, cur) {
 		dns_rdataset_t *tkeyset = NULL;
 		result = dns_message_findtype(cur, dns_rdatatype_tkey, 0,
 					      &tkeyset);

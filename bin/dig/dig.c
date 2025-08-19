@@ -605,9 +605,9 @@ short_answer(dns_message_t *msg, dns_messagetextflag_t flags, isc_buffer_t *buf,
 	UNUSED(flags);
 
 	dns_name_init(&empty_name);
-	MSG_SECTION_FOREACH (msg, DNS_SECTION_ANSWER, name) {
-		ISC_LIST_FOREACH (name->list, rdataset, link) {
-			DNS_RDATASET_FOREACH (rdataset) {
+	MSG_SECTION_FOREACH(msg, DNS_SECTION_ANSWER, name) {
+		ISC_LIST_FOREACH(name->list, rdataset, link) {
+			DNS_RDATASET_FOREACH(rdataset) {
 				dns_rdata_t rdata = DNS_RDATA_INIT;
 				dns_rdataset_current(rdataset, &rdata);
 
@@ -629,7 +629,7 @@ isdotlocal(dns_message_t *msg) {
 	static unsigned char local_ndata[] = { "\005local" };
 	static dns_name_t local = DNS_NAME_INITABSOLUTE(local_ndata);
 
-	MSG_SECTION_FOREACH (msg, DNS_SECTION_QUESTION, name) {
+	MSG_SECTION_FOREACH(msg, DNS_SECTION_QUESTION, name) {
 		if (dns_name_issubdomain(name, &local)) {
 			return true;
 		}

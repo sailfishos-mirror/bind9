@@ -1049,7 +1049,7 @@ dns_dnssec_signs(dns_rdata_t *rdata, const dns_name_t *name,
 	RUNTIME_CHECK(result == ISC_R_SUCCESS);
 
 	keytag = dst_key_id(dstkey);
-	DNS_RDATASET_FOREACH (sigrdataset) {
+	DNS_RDATASET_FOREACH(sigrdataset) {
 		dns_rdata_t sigrdata = DNS_RDATA_INIT;
 		dns_rdataset_current(sigrdataset, &sigrdata);
 		result = dns_rdata_tostruct(&sigrdata, &sig, NULL);
@@ -1084,7 +1084,7 @@ dns_dnssec_haszonekey(dns_rdataset_t *keyset) {
 		return false;
 	}
 
-	DNS_RDATASET_FOREACH (keyset) {
+	DNS_RDATASET_FOREACH(keyset) {
 		dns_rdata_t rdata = DNS_RDATA_INIT;
 		dns_rdata_dnskey_t key;
 
@@ -1361,8 +1361,8 @@ dns_dnssec_findmatchingkeys(const dns_name_t *origin, dns_kasp_t *kasp,
 		RETERR(findmatchingkeys(keydir, namebuf, len, mctx, now,
 					&list));
 	} else if (keystores != NULL) {
-		ISC_LIST_FOREACH (*keystores, keystore, link) {
-			ISC_LIST_FOREACH (dns_kasp_keys(kasp), kkey, link) {
+		ISC_LIST_FOREACH(*keystores, keystore, link) {
+			ISC_LIST_FOREACH(dns_kasp_keys(kasp), kkey, link) {
 				if (dns_kasp_key_keystore(kkey) == keystore) {
 					const char *directory =
 						dns_keystore_directory(keystore,
@@ -1384,7 +1384,7 @@ dns_dnssec_findmatchingkeys(const dns_name_t *origin, dns_kasp_t *kasp,
 	}
 
 failure:
-	ISC_LIST_FOREACH (list, key, link) {
+	ISC_LIST_FOREACH(list, key, link) {
 		ISC_LIST_UNLINK(list, key, link);
 		INSIST(key->key != NULL);
 		dst_key_free(&key->key);
@@ -1406,7 +1406,7 @@ addkey(dns_dnsseckeylist_t *keylist, dst_key_t **newkey, bool savekeys,
 	dns_dnsseckey_t *key = NULL;
 
 	/* Skip duplicates */
-	ISC_LIST_FOREACH (*keylist, k, link) {
+	ISC_LIST_FOREACH(*keylist, k, link) {
 		if (dst_key_id(k->key) == dst_key_id(*newkey) &&
 		    dst_key_alg(k->key) == dst_key_alg(*newkey) &&
 		    dns_name_equal(dst_key_name(k->key), dst_key_name(*newkey)))
@@ -1465,13 +1465,13 @@ mark_active_keys(dns_dnsseckeylist_t *keylist, dns_rdataset_t *rrsigs) {
 
 	dns_rdataset_init(&sigs);
 	dns_rdataset_clone(rrsigs, &sigs);
-	ISC_LIST_FOREACH (*keylist, key, link) {
+	ISC_LIST_FOREACH(*keylist, key, link) {
 		uint16_t keyid, sigid;
 		dst_algorithm_t keyalg, sigalg;
 		keyid = dst_key_id(key->key);
 		keyalg = dst_key_alg(key->key);
 
-		DNS_RDATASET_FOREACH (&sigs) {
+		DNS_RDATASET_FOREACH(&sigs) {
 			dns_rdata_rrsig_t sig;
 
 			dns_rdata_reset(&rdata);
@@ -1507,7 +1507,7 @@ keyfromfile(dns_kasp_t *kasp, const char *keydir, dst_key_t *key, int type,
 					  dst_key_alg(key), type, directory,
 					  mctx, savekey);
 	} else {
-		ISC_LIST_FOREACH (dns_kasp_keys(kasp), kkey, link) {
+		ISC_LIST_FOREACH(dns_kasp_keys(kasp), kkey, link) {
 			dns_keystore_t *ks = dns_kasp_key_keystore(kkey);
 			directory = dns_keystore_directory(ks, keydir);
 			result = dst_key_fromfile(dst_key_name(key),
@@ -1541,7 +1541,7 @@ dns_dnssec_keylistfromrdataset(const dns_name_t *origin, dns_kasp_t *kasp,
 	dns_rdataset_init(&keys);
 
 	dns_rdataset_clone(keyset, &keys);
-	DNS_RDATASET_FOREACH (&keys) {
+	DNS_RDATASET_FOREACH(&keys) {
 		dns_rdata_t rdata = DNS_RDATA_INIT;
 		dst_algorithm_t algorithm;
 		dns_rdata_dnskey_t keystruct;
@@ -1817,7 +1817,7 @@ exists(dns_rdataset_t *rdataset, dns_rdata_t *rdata) {
 	dns_rdataset_t trdataset = DNS_RDATASET_INIT;
 	dns_rdataset_clone(rdataset, &trdataset);
 
-	DNS_RDATASET_FOREACH (&trdataset) {
+	DNS_RDATASET_FOREACH(&trdataset) {
 		dns_rdata_t current = DNS_RDATA_INIT;
 
 		dns_rdataset_current(&trdataset, &current);
@@ -1918,7 +1918,7 @@ dns_dnssec_syncupdate(dns_dnsseckeylist_t *keys, dns_dnsseckeylist_t *rmkeys,
 		cdnskeyttl = cdnskey->ttl;
 	}
 
-	ISC_LIST_FOREACH (*keys, key, link) {
+	ISC_LIST_FOREACH(*keys, key, link) {
 		dns_rdata_t cdnskeyrdata = DNS_RDATA_INIT;
 		dns_name_t *origin = dst_key_name(key->key);
 
@@ -1930,7 +1930,7 @@ dns_dnssec_syncupdate(dns_dnsseckeylist_t *keys, dns_dnsseckeylist_t *rmkeys,
 			char keystr[DST_KEY_FORMATSIZE];
 			dst_key_format(key->key, keystr, sizeof(keystr));
 
-			ISC_LIST_FOREACH (*digests, alg, link) {
+			ISC_LIST_FOREACH(*digests, alg, link) {
 				RETERR(add_cds(key, &cdnskeyrdata,
 					       (const char *)keystr, cds,
 					       alg->digest, cdsttl, diff,
@@ -1992,7 +1992,7 @@ dns_dnssec_syncupdate(dns_dnsseckeylist_t *keys, dns_dnsseckeylist_t *rmkeys,
 	/*
 	 * Unconditionally remove CDS/DNSKEY records for removed keys.
 	 */
-	ISC_LIST_FOREACH (*rmkeys, key, link) {
+	ISC_LIST_FOREACH(*rmkeys, key, link) {
 		dns_rdata_t cdnskeyrdata = DNS_RDATA_INIT;
 		dns_name_t *origin = dst_key_name(key->key);
 
@@ -2128,7 +2128,7 @@ dns_dnssec_updatekeys(dns_dnsseckeylist_t *keys, dns_dnsseckeylist_t *newkeys,
 	 * Also, if there are keys published in the zone already,
 	 * use their TTL for all subsequent published keys.
 	 */
-	ISC_LIST_FOREACH (*keys, key, link) {
+	ISC_LIST_FOREACH(*keys, key, link) {
 		if (key->source == dns_keysource_user &&
 		    (key->hint_publish || key->force_publish))
 		{
@@ -2148,7 +2148,7 @@ dns_dnssec_updatekeys(dns_dnsseckeylist_t *keys, dns_dnsseckeylist_t *newkeys,
 	if (!found_ttl && !ISC_LIST_EMPTY(*newkeys)) {
 		dns_ttl_t shortest = 0;
 
-		ISC_LIST_FOREACH (*newkeys, key, link) {
+		ISC_LIST_FOREACH(*newkeys, key, link) {
 			dns_ttl_t thisttl = dst_key_getttl(key->key);
 			if (thisttl != 0 &&
 			    (shortest == 0 || thisttl < shortest))
@@ -2166,13 +2166,13 @@ dns_dnssec_updatekeys(dns_dnsseckeylist_t *keys, dns_dnsseckeylist_t *newkeys,
 	 * Second, scan the list of newly found keys looking for matches
 	 * with known keys, and update accordingly.
 	 */
-	ISC_LIST_FOREACH (*newkeys, key1, link) {
+	ISC_LIST_FOREACH(*newkeys, key1, link) {
 		bool key_revoked = false;
 		char keystr1[DST_KEY_FORMATSIZE];
 		char keystr2[DST_KEY_FORMATSIZE];
 		dns_dnsseckey_t *key2 = NULL;
 
-		ISC_LIST_FOREACH (*keys, k2, link) {
+		ISC_LIST_FOREACH(*keys, k2, link) {
 			int f1 = dst_key_flags(key1->key);
 			int f2 = dst_key_flags(k2->key);
 			int nr1 = f1 & ~DNS_KEYFLAG_REVOKE;
@@ -2323,7 +2323,7 @@ dns_dnssec_updatekeys(dns_dnsseckeylist_t *keys, dns_dnsseckeylist_t *newkeys,
 	}
 
 	/* Free any leftover keys in newkeys */
-	ISC_LIST_FOREACH (*newkeys, key1, link) {
+	ISC_LIST_FOREACH(*newkeys, key1, link) {
 		ISC_LIST_UNLINK(*newkeys, key1, link);
 		dns_dnsseckey_destroy(mctx, &key1);
 	}
@@ -2347,7 +2347,7 @@ dns_dnssec_matchdskey(dns_name_t *name, dns_rdata_t *dsrdata,
 	result = dns_rdata_tostruct(dsrdata, &ds, NULL);
 	RUNTIME_CHECK(result == ISC_R_SUCCESS);
 
-	DNS_RDATASET_FOREACH (keyset) {
+	DNS_RDATASET_FOREACH(keyset) {
 		dns_rdata_t newdsrdata = DNS_RDATA_INIT;
 
 		dns_rdata_reset(keyrdata);

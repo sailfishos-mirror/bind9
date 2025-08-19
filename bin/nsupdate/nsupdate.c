@@ -860,7 +860,7 @@ setup_system(void *arg ISC_ATTR_UNUSED) {
 		 * the servers array.
 		 */
 		ns_total = 0;
-		ISC_LIST_FOREACH (*nslist, sa, link) {
+		ISC_LIST_FOREACH(*nslist, sa, link) {
 			switch (sa->type.sa.sa_family) {
 			case AF_INET:
 				if (have_ipv4) {
@@ -882,7 +882,7 @@ setup_system(void *arg ISC_ATTR_UNUSED) {
 				       sizeof(isc_sockaddr_t));
 
 		i = 0;
-		ISC_LIST_FOREACH (*nslist, sa, link) {
+		ISC_LIST_FOREACH(*nslist, sa, link) {
 			switch (sa->type.sa.sa_family) {
 			case AF_INET:
 				if (have_ipv4) {
@@ -2188,7 +2188,7 @@ setzone(dns_name_t *zonename) {
 		name = ISC_LIST_HEAD(secs[DNS_SECTION_ZONE]);
 		ISC_LIST_UNLINK(secs[DNS_SECTION_ZONE], name, link);
 
-		ISC_LIST_FOREACH (name->list, rdataset, link) {
+		ISC_LIST_FOREACH(name->list, rdataset, link) {
 			ISC_LIST_UNLINK(name->list, rdataset, link);
 			dns_rdataset_disassociate(rdataset);
 			dns_message_puttemprdataset(updatemsg, &rdataset);
@@ -2824,7 +2824,7 @@ lookforsoa:
 		goto lookforsoa;
 	}
 
-	ISC_LIST_FOREACH (rcvmsg->sections[section], n, link) {
+	ISC_LIST_FOREACH(rcvmsg->sections[section], n, link) {
 		soaset = NULL;
 		result = dns_message_findtype(n, dns_rdatatype_soa, 0, &soaset);
 		if (result == ISC_R_SUCCESS) {

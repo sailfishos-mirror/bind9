@@ -108,7 +108,7 @@ in_rootns(dns_rdataset_t *rootns, dns_name_t *name) {
 		return ISC_R_NOTFOUND;
 	}
 
-	DNS_RDATASET_FOREACH (rootns) {
+	DNS_RDATASET_FOREACH(rootns) {
 		dns_rdata_t rdata = DNS_RDATA_INIT;
 		dns_rdataset_current(rootns, &rdata);
 		result = dns_rdata_tostruct(&rdata, &ns, NULL);
@@ -125,7 +125,7 @@ in_rootns(dns_rdataset_t *rootns, dns_name_t *name) {
 static isc_result_t
 check_node(dns_rdataset_t *rootns, dns_name_t *name,
 	   dns_rdatasetiter_t *rdsiter) {
-	DNS_RDATASETITER_FOREACH (rdsiter) {
+	DNS_RDATASETITER_FOREACH(rdsiter) {
 		dns_rdataset_t rdataset = DNS_RDATASET_INIT;
 		dns_rdatasetiter_current(rdsiter, &rdataset);
 		dns_rdatatype_t type = rdataset.type;
@@ -168,7 +168,7 @@ check_hints(dns_db_t *db) {
 	if (result != ISC_R_SUCCESS) {
 		goto cleanup;
 	}
-	DNS_DBITERATOR_FOREACH (dbiter) {
+	DNS_DBITERATOR_FOREACH(dbiter) {
 		result = dns_dbiterator_current(dbiter, &node, name);
 		if (result != ISC_R_SUCCESS) {
 			goto cleanup;
@@ -314,7 +314,7 @@ report(dns_view_t *view, dns_name_t *name, bool missing, dns_rdata_t *rdata) {
 
 static bool
 inrrset(dns_rdataset_t *rrset, dns_rdata_t *rdata) {
-	DNS_RDATASET_FOREACH (rrset) {
+	DNS_RDATASET_FOREACH(rrset) {
 		dns_rdata_t current = DNS_RDATA_INIT;
 		dns_rdataset_current(rrset, &current);
 		if (dns_rdata_compare(rdata, &current) == 0) {
@@ -362,7 +362,7 @@ check_address_records(dns_view_t *view, dns_db_t *hints, dns_db_t *db,
 	if (hresult == ISC_R_SUCCESS &&
 	    (rresult == ISC_R_SUCCESS || rresult == DNS_R_GLUE))
 	{
-		DNS_RDATASET_FOREACH (&rootrrset) {
+		DNS_RDATASET_FOREACH(&rootrrset) {
 			dns_rdata_t rdata = DNS_RDATA_INIT;
 			dns_rdataset_current(&rootrrset, &rdata);
 			if (!inrrset(&hintrrset, &rdata) &&
@@ -371,7 +371,7 @@ check_address_records(dns_view_t *view, dns_db_t *hints, dns_db_t *db,
 				report(view, name, true, &rdata);
 			}
 		}
-		DNS_RDATASET_FOREACH (&hintrrset) {
+		DNS_RDATASET_FOREACH(&hintrrset) {
 			dns_rdata_t rdata = DNS_RDATA_INIT;
 			dns_rdataset_current(&hintrrset, &rdata);
 			if (!inrrset(&rootrrset, &rdata) &&
@@ -384,7 +384,7 @@ check_address_records(dns_view_t *view, dns_db_t *hints, dns_db_t *db,
 	if (hresult == ISC_R_NOTFOUND &&
 	    (rresult == ISC_R_SUCCESS || rresult == DNS_R_GLUE))
 	{
-		DNS_RDATASET_FOREACH (&rootrrset) {
+		DNS_RDATASET_FOREACH(&rootrrset) {
 			dns_rdata_t rdata = DNS_RDATA_INIT;
 			dns_rdataset_current(&rootrrset, &rdata);
 			report(view, name, true, &rdata);
@@ -408,7 +408,7 @@ check_address_records(dns_view_t *view, dns_db_t *hints, dns_db_t *db,
 	if (hresult == ISC_R_SUCCESS &&
 	    (rresult == ISC_R_SUCCESS || rresult == DNS_R_GLUE))
 	{
-		DNS_RDATASET_FOREACH (&rootrrset) {
+		DNS_RDATASET_FOREACH(&rootrrset) {
 			dns_rdata_t rdata = DNS_RDATA_INIT;
 			dns_rdataset_current(&rootrrset, &rdata);
 			if (!inrrset(&hintrrset, &rdata) &&
@@ -417,7 +417,7 @@ check_address_records(dns_view_t *view, dns_db_t *hints, dns_db_t *db,
 				report(view, name, true, &rdata);
 			}
 		}
-		DNS_RDATASET_FOREACH (&hintrrset) {
+		DNS_RDATASET_FOREACH(&hintrrset) {
 			dns_rdata_t rdata = DNS_RDATA_INIT;
 			dns_rdataset_current(&hintrrset, &rdata);
 			if (!inrrset(&rootrrset, &rdata) &&
@@ -430,7 +430,7 @@ check_address_records(dns_view_t *view, dns_db_t *hints, dns_db_t *db,
 	if (hresult == ISC_R_NOTFOUND &&
 	    (rresult == ISC_R_SUCCESS || rresult == DNS_R_GLUE))
 	{
-		DNS_RDATASET_FOREACH (&rootrrset) {
+		DNS_RDATASET_FOREACH(&rootrrset) {
 			dns_rdata_t rdata = DNS_RDATA_INIT;
 			dns_rdataset_current(&rootrrset, &rdata);
 			report(view, name, true, &rdata);
@@ -494,7 +494,7 @@ dns_root_checkhints(dns_view_t *view, dns_db_t *hints, dns_db_t *db) {
 	/*
 	 * Look for missing root NS names.
 	 */
-	DNS_RDATASET_FOREACH (&rootns) {
+	DNS_RDATASET_FOREACH(&rootns) {
 		dns_rdata_t rdata = DNS_RDATA_INIT;
 		dns_rdataset_current(&rootns, &rdata);
 		result = dns_rdata_tostruct(&rdata, &ns, NULL);
@@ -517,7 +517,7 @@ dns_root_checkhints(dns_view_t *view, dns_db_t *hints, dns_db_t *db) {
 	/*
 	 * Look for extra root NS names.
 	 */
-	DNS_RDATASET_FOREACH (&hintns) {
+	DNS_RDATASET_FOREACH(&hintns) {
 		dns_rdata_t rdata = DNS_RDATA_INIT;
 		dns_rdataset_current(&hintns, &rdata);
 		result = dns_rdata_tostruct(&rdata, &ns, NULL);

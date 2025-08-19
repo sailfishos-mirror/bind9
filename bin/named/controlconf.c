@@ -170,7 +170,7 @@ free_controlkey(controlkey_t *key, isc_mem_t *mctx) {
 
 static void
 free_controlkeylist(controlkeylist_t *keylist, isc_mem_t *mctx) {
-	ISC_LIST_FOREACH (*keylist, key, link) {
+	ISC_LIST_FOREACH(*keylist, key, link) {
 		ISC_LIST_UNLINK(*keylist, key, link);
 		free_controlkey(key, mctx);
 	}
@@ -207,7 +207,7 @@ shutdown_listener(controllistener_t *listener) {
 	}
 	listener->shuttingdown = true;
 
-	ISC_LIST_FOREACH (listener->connections, conn, link) {
+	ISC_LIST_FOREACH(listener->connections, conn, link) {
 		conn_shutdown(conn);
 	}
 
@@ -432,7 +432,7 @@ control_recvmessage(isc_nmhandle_t *handle ISC_ATTR_UNUSED, isc_result_t result,
 		goto cleanup;
 	}
 
-	ISC_LIST_FOREACH (listener->keys, key, link) {
+	ISC_LIST_FOREACH(listener->keys, key, link) {
 		isccc_region_t ccregion;
 
 		isccc_ccmsg_toregion(&conn->ccmsg, &ccregion);
@@ -647,7 +647,7 @@ control_newconn(isc_nmhandle_t *handle, isc_result_t result, void *arg) {
 
 static void
 controls_shutdown(named_controls_t *controls) {
-	ISC_LIST_FOREACH (controls->listeners, listener, link) {
+	ISC_LIST_FOREACH(controls->listeners, listener, link) {
 		/*
 		 * As listeners shut down, they will call their callbacks.
 		 */
@@ -679,7 +679,7 @@ cfgkeylist_find(const cfg_obj_t *keylist, const char *keyname,
 	const char *str = NULL;
 	const cfg_obj_t *obj = NULL;
 
-	CFG_LIST_FOREACH (keylist, element) {
+	CFG_LIST_FOREACH(keylist, element) {
 		obj = cfg_listelt_value(element);
 		str = cfg_obj_asstring(cfg_map_getname(obj));
 		if (strcasecmp(str, keyname) == 0) {
@@ -699,7 +699,7 @@ controlkeylist_fromcfg(const cfg_obj_t *keylist, isc_mem_t *mctx,
 	const cfg_obj_t *obj = NULL;
 	controlkey_t *key = NULL;
 
-	CFG_LIST_FOREACH (keylist, element) {
+	CFG_LIST_FOREACH(keylist, element) {
 		obj = cfg_listelt_value(element);
 		str = cfg_obj_asstring(obj);
 		newstr = isc_mem_strdup(mctx, str);
@@ -724,7 +724,7 @@ register_keys(const cfg_obj_t *control, const cfg_obj_t *keylist,
 	/*
 	 * Find the keys corresponding to the keyids used by this listener.
 	 */
-	ISC_LIST_FOREACH (*keyids, keyid, link) {
+	ISC_LIST_FOREACH(*keyids, keyid, link) {
 		result = cfgkeylist_find(keylist, keyid->keyname, &keydef);
 		if (result != ISC_R_SUCCESS) {
 			cfg_obj_log(control, ISC_LOG_WARNING,
@@ -911,7 +911,7 @@ update_listener(named_controls_t *cp, controllistener_t **listenerp,
 	controlkeylist_t keys;
 	isc_result_t result = ISC_R_SUCCESS;
 
-	ISC_LIST_FOREACH (cp->listeners, l, link) {
+	ISC_LIST_FOREACH(cp->listeners, l, link) {
 		if (isc_sockaddr_equal(addr, &l->address)) {
 			listener = l;
 			break;
@@ -1156,7 +1156,7 @@ named_controls_configure(named_controls_t *cp, const cfg_obj_t *config,
 	 * address-in-use error.
 	 */
 	if (controlslist != NULL) {
-		CFG_LIST_FOREACH (controlslist, element) {
+		CFG_LIST_FOREACH(controlslist, element) {
 			const cfg_obj_t *controls = NULL;
 			const cfg_obj_t *inetcontrols = NULL;
 			const cfg_obj_t *unixcontrols = NULL;
@@ -1176,7 +1176,7 @@ named_controls_configure(named_controls_t *cp, const cfg_obj_t *config,
 				continue;
 			}
 
-			CFG_LIST_FOREACH (inetcontrols, element2) {
+			CFG_LIST_FOREACH(inetcontrols, element2) {
 				const cfg_obj_t *control = NULL;
 				const cfg_obj_t *obj = NULL;
 				isc_sockaddr_t addr;

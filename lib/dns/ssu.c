@@ -82,7 +82,7 @@ destroy(dns_ssutable_t *table) {
 	REQUIRE(VALID_SSUTABLE(table));
 
 	mctx = table->mctx;
-	ISC_LIST_FOREACH (table->rules, rule, link) {
+	ISC_LIST_FOREACH(table->rules, rule, link) {
 		if (rule->identity != NULL) {
 			dns_name_free(rule->identity, mctx);
 			isc_mem_put(mctx, rule->identity,
@@ -373,7 +373,7 @@ dns_ssutable_checkrules(dns_ssutable_t *table, const dns_name_t *signer,
 		return false;
 	}
 
-	ISC_LIST_FOREACH (table->rules, rule, link) {
+	ISC_LIST_FOREACH(table->rules, rule, link) {
 		if (logit) {
 			isc_log_write(DNS_LOGCATEGORY_UPDATE_POLICY,
 				      DNS_LOGMODULE_SSU, ISC_LOG_DEBUG(99),

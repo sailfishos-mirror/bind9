@@ -654,7 +654,7 @@ configure_view_nametable(const cfg_obj_t *vconfig, const cfg_obj_t *config,
 	}
 
 	name = dns_fixedname_initname(&fixed);
-	CFG_LIST_FOREACH (obj, element) {
+	CFG_LIST_FOREACH(obj, element) {
 		nameobj = cfg_listelt_value(element);
 		str = cfg_obj_asstring(nameobj);
 		isc_buffer_constinit(&b, str, strlen(str));
@@ -1041,10 +1041,10 @@ load_view_keys(const cfg_obj_t *keys, dns_view_t *view, bool managed,
 
 	CHECK(dns_view_getsecroots(view, &secroots));
 
-	CFG_LIST_FOREACH (keys, elt) {
+	CFG_LIST_FOREACH(keys, elt) {
 		keylist = cfg_listelt_value(elt);
 
-		CFG_LIST_FOREACH (keylist, elt2) {
+		CFG_LIST_FOREACH(keylist, elt2) {
 			CHECK(process_key(cfg_listelt_value(elt2), secroots,
 					  keyname, view, managed));
 		}
@@ -1645,7 +1645,7 @@ disable_algorithms(const cfg_obj_t *disabled, dns_resolver_t *resolver) {
 	CHECK(dns_name_fromtext(name, &b, dns_rootname, 0));
 
 	algorithms = cfg_tuple_get(disabled, "algorithms");
-	CFG_LIST_FOREACH (algorithms, element) {
+	CFG_LIST_FOREACH(algorithms, element) {
 		isc_textregion_t r;
 		dst_algorithm_t alg;
 
@@ -1679,7 +1679,7 @@ disable_ds_digests(const cfg_obj_t *disabled, dns_resolver_t *resolver) {
 	CHECK(dns_name_fromtext(name, &b, dns_rootname, 0));
 
 	digests = cfg_tuple_get(disabled, "digests");
-	CFG_LIST_FOREACH (digests, element) {
+	CFG_LIST_FOREACH(digests, element) {
 		isc_textregion_t r;
 		dns_dsdigest_t digest;
 
@@ -1710,7 +1710,7 @@ on_disable_list(const cfg_obj_t *disablelist, dns_name_t *zonename) {
 
 	name = dns_fixedname_initname(&fixed);
 
-	CFG_LIST_FOREACH (disablelist, element) {
+	CFG_LIST_FOREACH(disablelist, element) {
 		value = cfg_listelt_value(element);
 		str = cfg_obj_asstring(value);
 		isc_buffer_constinit(&b, str, strlen(str));
@@ -1773,7 +1773,7 @@ setquerystats(dns_zone_t *zone, isc_mem_t *mctx, dns_zonestat_level_t level) {
 static named_cache_t *
 cachelist_find(named_cachelist_t *cachelist, const char *cachename,
 	       dns_rdataclass_t rdclass) {
-	ISC_LIST_FOREACH (*cachelist, nsc, link) {
+	ISC_LIST_FOREACH(*cachelist, nsc, link) {
 		if (nsc->rdclass == rdclass &&
 		    strcmp(dns_cache_getname(nsc->cache), cachename) == 0)
 		{
@@ -2265,7 +2265,7 @@ configure_rpz(dns_view_t *view, dns_view_t *pview, const cfg_obj_t *rpz_obj,
 	}
 
 	int i = 0;
-	CFG_LIST_FOREACH (zonelist, zone_element) {
+	CFG_LIST_FOREACH(zonelist, zone_element) {
 		INSIST(!*old_rpz_okp || old != NULL);
 		if (*old_rpz_okp && i < old->p.num_zones) {
 			old_zone = old->zones[i];
@@ -2898,7 +2898,7 @@ configure_catz(dns_view_t *view, dns_view_t *pview, const cfg_obj_t *config,
 						 &ns_catz_zonemodmethods);
 	}
 
-	CFG_LIST_FOREACH (zones, zone_element) {
+	CFG_LIST_FOREACH(zones, zone_element) {
 		CHECK(configure_catz_zone(view, pview, config, zone_element));
 	}
 
@@ -3184,7 +3184,7 @@ create_empty_zone(dns_zone_t *pzone, dns_name_t *name, dns_view_t *view,
 	 * Look for forward "zones" beneath this empty zone and if so
 	 * create a custom db for the empty zone.
 	 */
-	CFG_LIST_FOREACH (zonelist, element) {
+	CFG_LIST_FOREACH(zonelist, element) {
 		const cfg_obj_t *zconfig = cfg_listelt_value(element);
 		const cfg_obj_t *zoptions = cfg_tuple_get(zconfig, "options");
 		const cfg_obj_t *toptions = NULL;
@@ -3434,7 +3434,7 @@ configure_dnstap(const cfg_obj_t **maps, dns_view_t *view) {
 		return ISC_R_SUCCESS;
 	}
 
-	CFG_LIST_FOREACH (dlist, element) {
+	CFG_LIST_FOREACH(dlist, element) {
 		const char *str = NULL;
 		dns_dtmsgtype_t dt = 0;
 
@@ -3893,7 +3893,7 @@ configure_view(dns_view_t *view, dns_viewlist_t *viewlist, cfg_obj_t *config,
 	/*
 	 * Load zone configuration
 	 */
-	CFG_LIST_FOREACH (zonelist, element) {
+	CFG_LIST_FOREACH(zonelist, element) {
 		const cfg_obj_t *zconfig = cfg_listelt_value(element);
 		CHECK(configure_zone(config, zconfig, vconfig, view, viewlist,
 				     kasplist, keystores, actx, false,
@@ -3944,7 +3944,7 @@ configure_view(dns_view_t *view, dns_viewlist_t *viewlist, cfg_obj_t *config,
 		(void)cfg_map_get(config, "dlz", &dlzlist);
 	}
 
-	CFG_LIST_FOREACH (dlzlist, element) {
+	CFG_LIST_FOREACH(dlzlist, element) {
 		dlz = cfg_listelt_value(element);
 
 		obj = NULL;
@@ -4114,7 +4114,7 @@ configure_view(dns_view_t *view, dns_viewlist_t *viewlist, cfg_obj_t *config,
 			contact = NULL;
 		}
 
-		CFG_LIST_FOREACH (obj, element) {
+		CFG_LIST_FOREACH(obj, element) {
 			const cfg_obj_t *map = cfg_listelt_value(element);
 			dns_dns64_t *dns64 = NULL;
 			unsigned int dns64options = 0;
@@ -4636,7 +4636,7 @@ configure_view(dns_view_t *view, dns_viewlist_t *viewlist, cfg_obj_t *config,
 	disabled = NULL;
 	(void)named_config_get(maps, "disable-algorithms", &disabled);
 	if (disabled != NULL) {
-		CFG_LIST_FOREACH (disabled, element) {
+		CFG_LIST_FOREACH(disabled, element) {
 			CHECK(disable_algorithms(cfg_listelt_value(element),
 						 view->resolver));
 		}
@@ -4648,7 +4648,7 @@ configure_view(dns_view_t *view, dns_viewlist_t *viewlist, cfg_obj_t *config,
 	disabled = NULL;
 	(void)named_config_get(maps, "disable-ds-digests", &disabled);
 	if (disabled != NULL) {
-		CFG_LIST_FOREACH (disabled, element) {
+		CFG_LIST_FOREACH(disabled, element) {
 			CHECK(disable_ds_digests(cfg_listelt_value(element),
 						 view->resolver));
 		}
@@ -4775,7 +4775,7 @@ configure_view(dns_view_t *view, dns_viewlist_t *viewlist, cfg_obj_t *config,
 
 		(void)named_config_get(cfgmaps, "server", &peers);
 		dns_peerlist_new(mctx, &newpeers);
-		CFG_LIST_FOREACH (peers, element) {
+		CFG_LIST_FOREACH(peers, element) {
 			const cfg_obj_t *cpeer = cfg_listelt_value(element);
 			dns_peer_t *peer;
 
@@ -4795,7 +4795,7 @@ configure_view(dns_view_t *view, dns_viewlist_t *viewlist, cfg_obj_t *config,
 
 		(void)named_config_get(maps, "rrset-order", &rrsetorder);
 		dns_order_create(mctx, &order);
-		CFG_LIST_FOREACH (rrsetorder, element) {
+		CFG_LIST_FOREACH(rrsetorder, element) {
 			const cfg_obj_t *ent = cfg_listelt_value(element);
 
 			CHECK(configure_order(order, ent));
@@ -5354,7 +5354,7 @@ configure_view(dns_view_t *view, dns_viewlist_t *viewlist, cfg_obj_t *config,
 		(void)cfg_map_get(config, "dyndb", &dyndb_list);
 	}
 
-	CFG_LIST_FOREACH (dyndb_list, element) {
+	CFG_LIST_FOREACH(dyndb_list, element) {
 		const cfg_obj_t *dyndb = cfg_listelt_value(element);
 
 		if (dctx == NULL) {
@@ -5682,7 +5682,7 @@ configure_view(dns_view_t *view, dns_viewlist_t *viewlist, cfg_obj_t *config,
 		result = dns_view_getntatable(view, &ntatable);
 	}
 	if (result == ISC_R_SUCCESS) {
-		CFG_LIST_FOREACH (obj, element) {
+		CFG_LIST_FOREACH(obj, element) {
 			dns_fixedname_t fntaname;
 			dns_name_t *ntaname;
 
@@ -5776,7 +5776,7 @@ cleanup:
 		}
 
 		if (zone_element_latest != NULL) {
-			CFG_LIST_FOREACH (zonelist, element) {
+			CFG_LIST_FOREACH(zonelist, element) {
 				const cfg_obj_t *zconfig =
 					cfg_listelt_value(element);
 				configure_zone_setviewcommit(result, zconfig,
@@ -5881,7 +5881,7 @@ configure_alternates(const cfg_obj_t *config, dns_view_t *view,
 		addresses = cfg_tuple_get(alternates, "addresses");
 	}
 
-	CFG_LIST_FOREACH (addresses, element) {
+	CFG_LIST_FOREACH(addresses, element) {
 		const cfg_obj_t *alternate = cfg_listelt_value(element);
 		isc_sockaddr_t sa;
 
@@ -6016,7 +6016,7 @@ configure_forward(const cfg_obj_t *config, dns_view_t *view,
 		faddresses = cfg_tuple_get(forwarders, "addresses");
 	}
 
-	CFG_LIST_FOREACH (faddresses, element) {
+	CFG_LIST_FOREACH(faddresses, element) {
 		const cfg_obj_t *forwarder = cfg_listelt_value(element);
 		const char *cur_tls = NULL;
 
@@ -6086,7 +6086,7 @@ configure_forward(const cfg_obj_t *config, dns_view_t *view,
 
 cleanup:
 
-	ISC_LIST_FOREACH (fwdlist, fwd, link) {
+	ISC_LIST_FOREACH(fwdlist, fwd, link) {
 		ISC_LIST_UNLINK(fwdlist, fwd, link);
 		if (fwd->tlsname != NULL) {
 			dns_name_free(fwd->tlsname, view->mctx);
@@ -6824,7 +6824,7 @@ get_tat_qname(dns_name_t *target, dns_name_t *keyname, dns_keynode_t *keynode) {
 	if (dns_keynode_dsset(keynode, &dsset)) {
 		isc_result_t result;
 
-		DNS_RDATASET_FOREACH (&dsset) {
+		DNS_RDATASET_FOREACH(&dsset) {
 			dns_rdata_t rdata = DNS_RDATA_INIT;
 			dns_rdata_ds_t ds;
 
@@ -6999,7 +6999,7 @@ tat_timer_tick(void *arg) {
 	struct dotat_arg dotat_arg = { 0 };
 	dns_keytable_t *secroots = NULL;
 
-	ISC_LIST_FOREACH (server->viewlist, view, link) {
+	ISC_LIST_FOREACH(server->viewlist, view, link) {
 		if (!view->trust_anchor_telemetry || !view->enablevalidation) {
 			continue;
 		}
@@ -7475,7 +7475,7 @@ configure_newzones(dns_view_t *view, cfg_obj_t *config, cfg_obj_t *vconfig,
 	zonelist = NULL;
 	cfg_map_get(nzctx->nzf_config, "zone", &zonelist);
 
-	CFG_LIST_FOREACH (zonelist, element) {
+	CFG_LIST_FOREACH(zonelist, element) {
 		const cfg_obj_t *zconfig = cfg_listelt_value(element);
 		CHECK(configure_zone(config, zconfig, vconfig, view,
 				     &named_g_server->viewlist,
@@ -7487,7 +7487,7 @@ configure_newzones(dns_view_t *view, cfg_obj_t *config, cfg_obj_t *vconfig,
 	result = ISC_R_SUCCESS;
 
 cleanup:
-	CFG_LIST_FOREACH (zonelist, element) {
+	CFG_LIST_FOREACH(zonelist, element) {
 		const cfg_obj_t *zconfig = cfg_listelt_value(element);
 		configure_zone_setviewcommit(result, zconfig, view);
 	}
@@ -8496,7 +8496,7 @@ apply_configuration(cfg_parser_t *configparser, cfg_obj_t *config,
 	 */
 	keystores = NULL;
 	(void)cfg_map_get(config, "key-store", &keystores);
-	CFG_LIST_FOREACH (keystores, element) {
+	CFG_LIST_FOREACH(keystores, element) {
 		cfg_obj_t *kconfig = cfg_listelt_value(element);
 
 		result = cfg_keystore_fromconfig(kconfig, isc_g_mctx,
@@ -8511,7 +8511,7 @@ apply_configuration(cfg_parser_t *configparser, cfg_obj_t *config,
 	 */
 	kasps = NULL;
 	(void)cfg_map_get(named_g_defaultconfig, "dnssec-policy", &kasps);
-	CFG_LIST_FOREACH (kasps, element) {
+	CFG_LIST_FOREACH(kasps, element) {
 		cfg_obj_t *kconfig = cfg_listelt_value(element);
 		dns_kasp_t *kasp = NULL;
 
@@ -8539,7 +8539,7 @@ apply_configuration(cfg_parser_t *configparser, cfg_obj_t *config,
 	 */
 	kasps = NULL;
 	(void)cfg_map_get(config, "dnssec-policy", &kasps);
-	CFG_LIST_FOREACH (kasps, element) {
+	CFG_LIST_FOREACH(kasps, element) {
 		cfg_obj_t *kconfig = cfg_listelt_value(element);
 		dns_kasp_t *kasp = NULL;
 
@@ -8575,7 +8575,7 @@ apply_configuration(cfg_parser_t *configparser, cfg_obj_t *config,
 	/*
 	 * Create the views.
 	 */
-	CFG_LIST_FOREACH (views, element) {
+	CFG_LIST_FOREACH(views, element) {
 		cfg_obj_t *vconfig = cfg_listelt_value(element);
 		dns_view_t *view = NULL;
 
@@ -8621,7 +8621,7 @@ apply_configuration(cfg_parser_t *configparser, cfg_obj_t *config,
 	 * views that have zones were already created at parsing
 	 * time, but views with no zones must be created here.
 	 */
-	CFG_LIST_FOREACH (views, element) {
+	CFG_LIST_FOREACH(views, element) {
 		cfg_obj_t *vconfig = cfg_listelt_value(element);
 		dns_view_t *view = NULL;
 
@@ -8673,7 +8673,7 @@ apply_configuration(cfg_parser_t *configparser, cfg_obj_t *config,
 	builtin_views = NULL;
 	RUNTIME_CHECK(cfg_map_get(named_g_defaultconfig, "view",
 				  &builtin_views) == ISC_R_SUCCESS);
-	CFG_LIST_FOREACH (builtin_views, element) {
+	CFG_LIST_FOREACH(builtin_views, element) {
 		cfg_obj_t *vconfig = cfg_listelt_value(element);
 		dns_view_t *view = NULL;
 
@@ -8702,7 +8702,7 @@ apply_configuration(cfg_parser_t *configparser, cfg_obj_t *config,
 	 * Commit any dns_zone_setview() calls on all zones in the new
 	 * view.
 	 */
-	ISC_LIST_FOREACH (viewlist, view, link) {
+	ISC_LIST_FOREACH(viewlist, view, link) {
 		dns_view_setviewcommit(view);
 	}
 
@@ -8712,7 +8712,7 @@ apply_configuration(cfg_parser_t *configparser, cfg_obj_t *config,
 	viewlist = tmpviewlist;
 
 	/* Make the view list available to each of the views */
-	ISC_LIST_FOREACH (server->viewlist, view, link) {
+	ISC_LIST_FOREACH(server->viewlist, view, link) {
 		view->viewlist = &server->viewlist;
 	}
 
@@ -8748,7 +8748,7 @@ apply_configuration(cfg_parser_t *configparser, cfg_obj_t *config,
 	 * after relinquishing privileges them.
 	 */
 	if (first_time) {
-		ISC_LIST_FOREACH (server->viewlist, view, link) {
+		ISC_LIST_FOREACH(server->viewlist, view, link) {
 			nzd_env_close(view);
 		}
 	}
@@ -8779,7 +8779,7 @@ apply_configuration(cfg_parser_t *configparser, cfg_obj_t *config,
 	 * Reopen NZD databases.
 	 */
 	if (first_time) {
-		ISC_LIST_FOREACH (server->viewlist, view, link) {
+		ISC_LIST_FOREACH(server->viewlist, view, link) {
 			nzd_env_reopen(view);
 		}
 	}
@@ -8886,7 +8886,7 @@ apply_configuration(cfg_parser_t *configparser, cfg_obj_t *config,
 						  &categories);
 			}
 			if (categories != NULL) {
-				CFG_LIST_FOREACH (categories, element) {
+				CFG_LIST_FOREACH(categories, element) {
 					const cfg_obj_t *catobj;
 					const char *str;
 
@@ -9016,7 +9016,7 @@ apply_configuration(cfg_parser_t *configparser, cfg_obj_t *config,
 		unsigned int usedlength;
 		unsigned int expectedlength;
 
-		CFG_LIST_FOREACH (obj, element) {
+		CFG_LIST_FOREACH(obj, element) {
 			obj = cfg_listelt_value(element);
 			str = cfg_obj_asstring(obj);
 
@@ -9133,7 +9133,7 @@ apply_configuration(cfg_parser_t *configparser, cfg_obj_t *config,
 	 * were swapped above or not.
 	 */
 cleanup_altsecrets:
-	ISC_LIST_FOREACH (altsecrets, as, link) {
+	ISC_LIST_FOREACH(altsecrets, as, link) {
 		ISC_LIST_UNLINK(altsecrets, as, link);
 		isc_mem_put(server->sctx->mctx, as, sizeof(*as));
 	}
@@ -9144,7 +9144,7 @@ cleanup_logc:
 	}
 
 cleanup_cachelist:
-	ISC_LIST_FOREACH (cachelist, nsc, link) {
+	ISC_LIST_FOREACH(cachelist, nsc, link) {
 		ISC_LIST_UNLINK(cachelist, nsc, link);
 		dns_cache_detach(&nsc->cache);
 		isc_mem_put(server->mctx, nsc, sizeof(*nsc));
@@ -9153,7 +9153,7 @@ cleanup_cachelist:
 	ISC_LIST_APPENDLIST(viewlist, builtin_viewlist, link);
 
 cleanup_viewlist:
-	ISC_LIST_FOREACH (viewlist, view, link) {
+	ISC_LIST_FOREACH(viewlist, view, link) {
 		ISC_LIST_UNLINK(viewlist, view, link);
 		if (result == ISC_R_SUCCESS && strcmp(view->name, "_bind") != 0)
 		{
@@ -9164,13 +9164,13 @@ cleanup_viewlist:
 	}
 
 cleanup_kasplist:
-	ISC_LIST_FOREACH (kasplist, kasp, link) {
+	ISC_LIST_FOREACH(kasplist, kasp, link) {
 		ISC_LIST_UNLINK(kasplist, kasp, link);
 		dns_kasp_detach(&kasp);
 	}
 
 cleanup_keystorelist:
-	ISC_LIST_FOREACH (keystorelist, keystore, link) {
+	ISC_LIST_FOREACH(keystorelist, keystore, link) {
 		ISC_LIST_UNLINK(keystorelist, keystore, link);
 		dns_keystore_detach(&keystore);
 	}
@@ -9266,7 +9266,7 @@ view_loaded(void *arg) {
 				      "all zones loaded");
 		}
 
-		ISC_LIST_FOREACH (server->viewlist, view, link) {
+		ISC_LIST_FOREACH(server->viewlist, view, link) {
 			if (view->managed_keys != NULL) {
 				result = dns_zone_synckeyzone(
 					view->managed_keys);
@@ -9324,7 +9324,7 @@ load_zones(named_server_t *server, bool reconfig) {
 	/*
 	 * Schedule zones to be loaded from disk.
 	 */
-	ISC_LIST_FOREACH (server->viewlist, view, link) {
+	ISC_LIST_FOREACH(server->viewlist, view, link) {
 		if (view->managed_keys != NULL) {
 			result = dns_zone_load(view->managed_keys, false);
 			if (result != ISC_R_SUCCESS &&
@@ -9471,17 +9471,17 @@ shutdown_server(void *arg) {
 
 	(void)named_server_saventa(server);
 
-	ISC_LIST_FOREACH (server->kasplist, kasp, link) {
+	ISC_LIST_FOREACH(server->kasplist, kasp, link) {
 		ISC_LIST_UNLINK(server->kasplist, kasp, link);
 		dns_kasp_detach(&kasp);
 	}
 
-	ISC_LIST_FOREACH (server->keystorelist, keystore, link) {
+	ISC_LIST_FOREACH(server->keystorelist, keystore, link) {
 		ISC_LIST_UNLINK(server->keystorelist, keystore, link);
 		dns_keystore_detach(&keystore);
 	}
 
-	ISC_LIST_FOREACH (server->viewlist, view, link) {
+	ISC_LIST_FOREACH(server->viewlist, view, link) {
 		view_next = ISC_LIST_NEXT(view, link);
 		ISC_LIST_UNLINK(server->viewlist, view, link);
 		dns_view_flushonshutdown(view, flush);
@@ -9493,7 +9493,7 @@ shutdown_server(void *arg) {
 	 */
 	dns_dyndb_cleanup();
 
-	ISC_LIST_FOREACH (server->cachelist, nsc, link) {
+	ISC_LIST_FOREACH(server->cachelist, nsc, link) {
 		ISC_LIST_UNLINK(server->cachelist, nsc, link);
 		dns_cache_detach(&nsc->cache);
 		isc_mem_put(server->mctx, nsc, sizeof(*nsc));
@@ -9530,7 +9530,7 @@ get_matching_view_sync(isc_netaddr_t *srcaddr, isc_netaddr_t *destaddr,
 	INSIST(message->tsigkey != NULL || message->tsig != NULL ||
 	       message->sig0 == NULL);
 
-	ISC_LIST_FOREACH (named_g_server->viewlist, view, link) {
+	ISC_LIST_FOREACH(named_g_server->viewlist, view, link) {
 		if (message->rdclass == view->rdclass ||
 		    message->rdclass == dns_rdataclass_any)
 		{
@@ -10590,7 +10590,7 @@ listenlist_fromconfig(const cfg_obj_t *listenlist, const cfg_obj_t *config,
 		return result;
 	}
 
-	CFG_LIST_FOREACH (listenlist, element) {
+	CFG_LIST_FOREACH(listenlist, element) {
 		ns_listenelt_t *delt = NULL;
 		const cfg_obj_t *listener = cfg_listelt_value(element);
 		result = listenelt_fromconfig(listener, config, actx, mctx,
@@ -10621,7 +10621,7 @@ find_maplist(const cfg_obj_t *config, const char *listname, const char *name) {
 		return NULL;
 	}
 
-	CFG_LIST_FOREACH (maplist, elt) {
+	CFG_LIST_FOREACH(maplist, elt) {
 		const cfg_obj_t *map = cfg_listelt_value(elt);
 		if (strcasecmp(cfg_obj_asstring(cfg_map_getname(map)), name) ==
 		    0)
@@ -10710,7 +10710,7 @@ listenelt_fromconfig(const cfg_obj_t *listener, const cfg_obj_t *config,
 			    ISC_R_SUCCESS)
 			{
 				INSIST(tls_proto_list != NULL);
-				CFG_LIST_FOREACH (tls_proto_list, proto) {
+				CFG_LIST_FOREACH(tls_proto_list, proto) {
 					const cfg_obj_t *tls_proto_obj =
 						cfg_listelt_value(proto);
 					const char *tls_sver =
@@ -10945,7 +10945,7 @@ listenelt_http(const cfg_obj_t *http, const uint16_t family, bool tls,
 	endpoints = isc_mem_allocate(mctx, sizeof(endpoints[0]) * len);
 
 	if (http != NULL && eplist != NULL) {
-		CFG_LIST_FOREACH (eplist, elt) {
+		CFG_LIST_FOREACH(eplist, elt) {
 			const cfg_obj_t *ep = cfg_listelt_value(elt);
 			const char *path = cfg_obj_asstring(ep);
 			endpoints[i++] = isc_mem_strdup(mctx, path);
@@ -11019,7 +11019,7 @@ add_view_tolist(struct dumpcontext *dctx, dns_view_t *view) {
 	/*
 	 * Prevent duplicate views.
 	 */
-	ISC_LIST_FOREACH (dctx->viewlist, vle, link) {
+	ISC_LIST_FOREACH(dctx->viewlist, vle, link) {
 		if (vle->view == view) {
 			return ISC_R_SUCCESS;
 		}
@@ -11040,9 +11040,9 @@ add_view_tolist(struct dumpcontext *dctx, dns_view_t *view) {
 
 static void
 dumpcontext_destroy(struct dumpcontext *dctx) {
-	ISC_LIST_FOREACH (dctx->viewlist, vle, link) {
+	ISC_LIST_FOREACH(dctx->viewlist, vle, link) {
 		ISC_LIST_UNLINK(dctx->viewlist, vle, link);
-		ISC_LIST_FOREACH (vle->zonelist, zle, link) {
+		ISC_LIST_FOREACH(vle->zonelist, zle, link) {
 			ISC_LIST_UNLINK(vle->zonelist, zle, link);
 			dns_zone_detach(&zle->zone);
 			isc_mem_put(dctx->mctx, zle, sizeof *zle);
@@ -11287,7 +11287,7 @@ named_server_dumpdb(named_server_t *server, isc_lex_t *lex,
 
 nextview:
 	found = false;
-	ISC_LIST_FOREACH (server->viewlist, view, link) {
+	ISC_LIST_FOREACH(server->viewlist, view, link) {
 		if (ptr != NULL && strcmp(view->name, ptr) != 0) {
 			continue;
 		}
@@ -11360,7 +11360,7 @@ named_server_dumpsecroots(named_server_t *server, isc_lex_t *lex,
 	used = isc_buffer_usedlength(*text);
 
 	do {
-		ISC_LIST_FOREACH (server->viewlist, view, link) {
+		ISC_LIST_FOREACH(server->viewlist, view, link) {
 			if (ptr != NULL && strcmp(view->name, ptr) != 0) {
 				continue;
 			}
@@ -11444,7 +11444,7 @@ named_server_dumprecursing(named_server_t *server) {
 	fprintf(fp, ";\n; Recursing Queries\n;\n");
 	ns_interfacemgr_dumprecursing(fp, server->interfacemgr);
 
-	ISC_LIST_FOREACH (server->viewlist, view, link) {
+	ISC_LIST_FOREACH(server->viewlist, view, link) {
 		fprintf(fp, ";\n; Active fetch domains [view: %s]\n;\n",
 			view->name);
 		dns_resolver_dumpfetches(view->resolver, isc_statsformat_file,
@@ -11542,7 +11542,7 @@ named_server_validation(named_server_t *server, isc_lex_t *lex,
 	ptr = next_token(lex, text);
 
 	isc_loopmgr_pause();
-	ISC_LIST_FOREACH (server->viewlist, view, link) {
+	ISC_LIST_FOREACH(server->viewlist, view, link) {
 		if ((ptr != NULL && strcasecmp(ptr, view->name) != 0) ||
 		    strcasecmp("_bind", view->name) == 0)
 		{
@@ -11614,13 +11614,13 @@ named_server_flushcache(named_server_t *server, isc_lex_t *lex) {
 		 * much more lightweight because only a few (most typically just
 		 * one) views will match.
 		 */
-		ISC_LIST_FOREACH (server->viewlist, view, link) {
+		ISC_LIST_FOREACH(server->viewlist, view, link) {
 			if (strcasecmp(ptr, view->name) != 0) {
 				continue;
 			}
 
 			found = true;
-			ISC_LIST_FOREACH (server->cachelist, nsc, link) {
+			ISC_LIST_FOREACH(server->cachelist, nsc, link) {
 				if (nsc->cache == view->cache) {
 					nsc->needflush = true;
 					break;
@@ -11632,7 +11632,7 @@ named_server_flushcache(named_server_t *server, isc_lex_t *lex) {
 	}
 
 	/* Perform flush */
-	ISC_LIST_FOREACH (server->cachelist, nsc, link) {
+	ISC_LIST_FOREACH(server->cachelist, nsc, link) {
 		if (ptr != NULL && !nsc->needflush) {
 			continue;
 		}
@@ -11657,12 +11657,12 @@ named_server_flushcache(named_server_t *server, isc_lex_t *lex) {
 	 * A worst case is that we have n views and n/2 caches, each shared by
 	 * two views.  Then this will be a O(n^2/4) operation.
 	 */
-	ISC_LIST_FOREACH (server->viewlist, view, link) {
+	ISC_LIST_FOREACH(server->viewlist, view, link) {
 		if (!dns_view_iscacheshared(view)) {
 			continue;
 		}
 
-		ISC_LIST_FOREACH (server->cachelist, nsc, link) {
+		ISC_LIST_FOREACH(server->cachelist, nsc, link) {
 			if (!nsc->needflush || nsc->cache != view->cache) {
 				continue;
 			}
@@ -11680,7 +11680,7 @@ named_server_flushcache(named_server_t *server, isc_lex_t *lex) {
 	}
 
 	/* Cleanup the cache list. */
-	ISC_LIST_FOREACH (server->cachelist, nsc, link) {
+	ISC_LIST_FOREACH(server->cachelist, nsc, link) {
 		nsc->needflush = false;
 	}
 
@@ -11750,7 +11750,7 @@ named_server_flushnode(named_server_t *server, isc_lex_t *lex, bool tree) {
 	isc_loopmgr_pause();
 	flushed = true;
 	found = false;
-	ISC_LIST_FOREACH (server->viewlist, view, link) {
+	ISC_LIST_FOREACH(server->viewlist, view, link) {
 		if (viewname != NULL && strcasecmp(viewname, view->name) != 0) {
 			continue;
 		}
@@ -12094,7 +12094,7 @@ named_server_sync(named_server_t *server, isc_lex_t *lex, isc_buffer_t **text) {
 	if (zone == NULL) {
 		isc_loopmgr_pause();
 		tresult = ISC_R_SUCCESS;
-		ISC_LIST_FOREACH (server->viewlist, view, link) {
+		ISC_LIST_FOREACH(server->viewlist, view, link) {
 			result = dns_view_apply(view, false, NULL, synczone,
 						&cleanup);
 			if (result != ISC_R_SUCCESS && tresult == ISC_R_SUCCESS)
@@ -12160,7 +12160,7 @@ named_server_freeze(named_server_t *server, bool freeze, isc_lex_t *lex,
 	if (mayberaw == NULL) {
 		isc_loopmgr_pause();
 		tresult = ISC_R_SUCCESS;
-		ISC_LIST_FOREACH (server->viewlist, view, link) {
+		ISC_LIST_FOREACH(server->viewlist, view, link) {
 			result = dns_view_freezezones(view, freeze);
 			if (result != ISC_R_SUCCESS && tresult == ISC_R_SUCCESS)
 			{
@@ -12374,7 +12374,7 @@ nzf_writeconf(const cfg_obj_t *config, dns_view_t *view) {
 
 	CHECK(add_comment(fp, view->name)); /* force a comment */
 
-	ISC_LIST_FOREACH (*list, elt, link) {
+	ISC_LIST_FOREACH(*list, elt, link) {
 		const cfg_obj_t *zconfig = cfg_listelt_value(elt);
 
 		CHECK(isc_stdio_write("zone ", 5, 1, fp, NULL));
@@ -12805,7 +12805,7 @@ load_nzf(dns_view_t *view, ns_cfgctx_t *nzcfg) {
 
 	isc_buffer_allocate(view->mctx, &text, 256);
 
-	CFG_LIST_FOREACH (zonelist, element) {
+	CFG_LIST_FOREACH(zonelist, element) {
 		const cfg_obj_t *zconfig = cfg_listelt_value(element);
 		const cfg_obj_t *zoptions;
 		char zname[DNS_NAME_FORMATSIZE];
@@ -13047,7 +13047,7 @@ delete_zoneconf(dns_view_t *view, cfg_parser_t *pctx, const cfg_obj_t *config,
 	}
 
 	cfg_list_t *list = UNCONST(&zl->value.list);
-	ISC_LIST_FOREACH (*list, elt, link) {
+	ISC_LIST_FOREACH(*list, elt, link) {
 		dns_fixedname_t myfixed;
 		dns_name_t *myname = dns_fixedname_initname(&myfixed);
 		const cfg_obj_t *zconf = cfg_listelt_value(elt);
@@ -13927,7 +13927,7 @@ find_name_in_list_from_map(const cfg_obj_t *config,
 	}
 
 	cfg_map_get(config, map_key_for_list, &list);
-	CFG_LIST_FOREACH (list, element) {
+	CFG_LIST_FOREACH(list, element) {
 		const char *vname = NULL;
 
 		obj = cfg_listelt_value(element);
@@ -14283,7 +14283,7 @@ named_server_signing(named_server_t *server, isc_lex_t *lex,
 			goto cleanup;
 		}
 
-		DNS_RDATASET_FOREACH (&privset) {
+		DNS_RDATASET_FOREACH(&privset) {
 			dns_rdata_t priv = DNS_RDATA_INIT;
 			/*
 			 * In theory, the output buffer could hold a full RDATA
@@ -14647,7 +14647,7 @@ cleanup:
 		dns_db_detach(&db);
 	}
 
-	ISC_LIST_FOREACH (keys, key, link) {
+	ISC_LIST_FOREACH(keys, key, link) {
 		ISC_LIST_UNLINK(keys, key, link);
 		dns_dnsseckey_destroy(dns_zone_getmctx(zone), &key);
 	}
@@ -15060,7 +15060,7 @@ named_server_nta(named_server_t *server, isc_lex_t *lex, bool readonly,
 	if (dump) {
 		size_t last = 0;
 
-		ISC_LIST_FOREACH (server->viewlist, view, link) {
+		ISC_LIST_FOREACH(server->viewlist, view, link) {
 			if (ntatable != NULL) {
 				dns_ntatable_detach(&ntatable);
 			}
@@ -15125,7 +15125,7 @@ named_server_nta(named_server_t *server, isc_lex_t *lex, bool readonly,
 	now = isc_stdtime_now();
 
 	isc_loopmgr_pause();
-	ISC_LIST_FOREACH (server->viewlist, view, link) {
+	ISC_LIST_FOREACH(server->viewlist, view, link) {
 		if (viewname != NULL && strcmp(view->name, viewname) != 0) {
 			continue;
 		}
@@ -15251,7 +15251,7 @@ cleanup:
 
 isc_result_t
 named_server_saventa(named_server_t *server) {
-	ISC_LIST_FOREACH (server->viewlist, view, link) {
+	ISC_LIST_FOREACH(server->viewlist, view, link) {
 		isc_result_t result = dns_view_saventa(view);
 
 		if (result != ISC_R_SUCCESS) {
@@ -15268,7 +15268,7 @@ named_server_saventa(named_server_t *server) {
 
 isc_result_t
 named_server_loadnta(named_server_t *server) {
-	ISC_LIST_FOREACH (server->viewlist, view, link) {
+	ISC_LIST_FOREACH(server->viewlist, view, link) {
 		isc_result_t result = dns_view_loadnta(view);
 
 		if ((result != ISC_R_SUCCESS) &&
@@ -15399,7 +15399,7 @@ mkey_dumpzone(dns_view_t *view, isc_buffer_t **text) {
 			CHECK(putstr(text, buf));
 		}
 
-		DNS_RDATASET_FOREACH (kdset) {
+		DNS_RDATASET_FOREACH(kdset) {
 			char alg[DNS_SECALG_FORMATSIZE];
 			char tbuf[ISC_FORMATHTTPTIMESTAMP_SIZE];
 			dns_rdata_t rdata = DNS_RDATA_INIT;
@@ -15561,7 +15561,7 @@ named_server_mkeys(named_server_t *server, isc_lex_t *lex,
 		viewtxt = next_token(lex, text);
 	}
 
-	ISC_LIST_FOREACH (server->viewlist, view, link) {
+	ISC_LIST_FOREACH(server->viewlist, view, link) {
 		if (viewtxt != NULL && (rdclass != view->rdclass ||
 					strcmp(view->name, viewtxt) != 0))
 		{
@@ -15862,7 +15862,7 @@ named_server_servestale(named_server_t *server, isc_lex_t *lex,
 
 	isc_loopmgr_pause();
 
-	ISC_LIST_FOREACH (server->viewlist, view, link) {
+	ISC_LIST_FOREACH(server->viewlist, view, link) {
 		dns_ttl_t stale_ttl = 0;
 		uint32_t stale_refresh = 0;
 		dns_db_t *db = NULL;
@@ -15974,7 +15974,7 @@ named_server_fetchlimit(named_server_t *server, isc_lex_t *lex,
 
 	/* Look for the view name. */
 	viewname = next_token(lex, text);
-	ISC_LIST_FOREACH (server->viewlist, view, link) {
+	ISC_LIST_FOREACH(server->viewlist, view, link) {
 		char tbuf[100];
 		unsigned int used;
 		uint32_t val;

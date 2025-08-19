@@ -307,7 +307,7 @@ trynsec3:
 	dns_fixedname_init(&fixed);
 	dns_name_downcase(name, dns_fixedname_name(&fixed));
 	name = dns_fixedname_name(&fixed);
-	DNS_RDATASET_FOREACH (rdataset) {
+	DNS_RDATASET_FOREACH(rdataset) {
 		dns_ncache_current(rdataset, &nsec3name, &set);
 		if (set.type != dns_rdatatype_nsec3) {
 			dns_rdataset_disassociate(&set);
@@ -321,7 +321,7 @@ trynsec3:
 			dns_rdataset_disassociate(&set);
 			continue;
 		}
-		DNS_RDATASET_FOREACH (&set) {
+		DNS_RDATASET_FOREACH(&set) {
 			dns_rdata_t rdata = DNS_RDATA_INIT;
 			dns_rdataset_current(&set, &rdata);
 			(void)dns_rdata_tostruct(&rdata, &nsec3, NULL);
@@ -1316,7 +1316,7 @@ selfsigned_dnskey(dns_validator_t *val) {
 		return DNS_R_NOKEYMATCH;
 	}
 
-	DNS_RDATASET_FOREACH (rdataset) {
+	DNS_RDATASET_FOREACH(rdataset) {
 		dns_rdata_t keyrdata = DNS_RDATA_INIT;
 		dns_rdata_dnskey_t key;
 		dns_rdata_rrsig_t sig;
@@ -1327,7 +1327,7 @@ selfsigned_dnskey(dns_validator_t *val) {
 		RUNTIME_CHECK(result == ISC_R_SUCCESS);
 		keytag = compute_keytag(&keyrdata);
 
-		DNS_RDATASET_FOREACH (sigrdataset) {
+		DNS_RDATASET_FOREACH(sigrdataset) {
 			dns_rdata_t sigrdata = DNS_RDATA_INIT;
 			dst_key_t *dstkey = NULL;
 
@@ -1878,7 +1878,7 @@ check_signer(dns_validator_t *val, dns_rdata_t *keyrdata, uint16_t keyid,
 
 	dns_rdataset_clone(val->sigrdataset, &rdataset);
 
-	DNS_RDATASET_FOREACH (&rdataset) {
+	DNS_RDATASET_FOREACH(&rdataset) {
 		dns_rdata_t rdata = DNS_RDATA_INIT;
 
 		dns_rdataset_current(&rdataset, &rdata);
@@ -2291,7 +2291,7 @@ validate_dnskey(void *arg) {
 	 * DNS_DSDIGEST_SHA256 or DNS_DSDIGEST_SHA384 is present.
 	 */
 	val->digest_sha1 = true;
-	DNS_RDATASET_FOREACH (val->dsset) {
+	DNS_RDATASET_FOREACH(val->dsset) {
 		dns_rdata_t dsrdata = DNS_RDATA_INIT;
 		dns_rdataset_current(val->dsset, &dsrdata);
 		result = dns_rdata_tostruct(&dsrdata, &ds, NULL);
@@ -3026,7 +3026,7 @@ check_ds_algs(dns_validator_t *val, dns_name_t *name,
 	uint16_t key_tag = 0;
 	uint8_t algorithm = 0;
 
-	DNS_RDATASET_FOREACH (dsrdataset) {
+	DNS_RDATASET_FOREACH(dsrdataset) {
 		isc_result_t result;
 		dns_rdata_t dsrdata = DNS_RDATA_INIT;
 		dns_rdata_t keyrdata = DNS_RDATA_INIT;
