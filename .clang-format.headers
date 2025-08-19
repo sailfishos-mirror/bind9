@@ -55,6 +55,7 @@ IncludeCategories:
   - Regex:           '".*"'
     Priority:        9
 IndentExternBlock: NoIndent
+InsertBraces: true
 KeepEmptyLinesAtTheStartOfBlocks: false
 MaxEmptyLinesToKeep: 1
 PenaltyBreakAssignment: 30
