@@ -1314,9 +1314,9 @@ keymgr_transition_time(dns_dnsseckey_t *key, int type,
 		       dst_key_state_t next_state, dns_kasp_t *kasp,
 		       isc_stdtime_t now, isc_stdtime_t *when) {
 	isc_result_t ret;
-	isc_stdtime_t lastchange, dstime, nexttime = now;
+	isc_stdtime_t lastchange, dstime, sigtime, nexttime = now;
 	dns_ttl_t ttlsig = dns_kasp_zonemaxttl(kasp, true);
-	uint32_t dsstate;
+	uint32_t dsstate, sigstate, signdelay = 0;
 
 	/*
 	 * No need to wait if we move things into an uncertain state.
@@ -1370,6 +1370,17 @@ keymgr_transition_time(dns_dnsseckey_t *key, int type,
 		switch (next_state) {
 		case OMNIPRESENT:
 		case HIDDEN:
+			/* Was there a full sign? */
+			sigstate = (next_state == HIDDEN) ? DST_TIME_SIGDELETE
+							  : DST_TIME_SIGPUBLISH;
+			ret = dst_key_gettime(key->key, sigstate, &sigtime);
+			if (ret == ISC_R_SUCCESS && sigtime <= now) {
+				signdelay = 0;
+			} else {
+				sigtime = lastchange;
+				signdelay = dns_kasp_signdelay(kasp);
+			}
+
 			/*
 			 * RFC 7583: The retire interval (Iret) is the amount
 			 * of time that must elapse after a DNSKEY or
@@ -1387,7 +1398,7 @@ keymgr_transition_time(dns_dnsseckey_t *key, int type,
 			 *
 			 *     Dsgn + zone-propagation-delay + max-zone-ttl.
 			 */
-			nexttime = lastchange + ttlsig +
+			nexttime = sigtime + ttlsig +
 				   dns_kasp_zonepropagationdelay(kasp);
 			/*
 			 * Only add the sign delay Dsgn and retire-safety if
@@ -1401,7 +1412,7 @@ keymgr_transition_time(dns_dnsseckey_t *key, int type,
 						     DST_NUM_SUCCESSOR, &tag);
 			}
 			if (ret == ISC_R_SUCCESS) {
-				nexttime += dns_kasp_signdelay(kasp) +
+				nexttime += signdelay +
 					    dns_kasp_retiresafety(kasp);
 			}
 			break;
@@ -2137,6 +2148,34 @@ dst_key_doublematch(dns_dnsseckey_t *key, dns_kasp_t *kasp) {
 	return matches > 1;
 }
 
+static void
+keymgr_zrrsig(dns_dnsseckeylist_t *keyring, isc_stdtime_t now) {
+	for (dns_dnsseckey_t *dkey = ISC_LIST_HEAD(*keyring); dkey != NULL;
+	     dkey = ISC_LIST_NEXT(dkey, link))
+	{
+		isc_result_t ret;
+		bool zsk = false;
+
+		ret = dst_key_getbool(dkey->key, DST_BOOL_ZSK, &zsk);
+		if (ret == ISC_R_SUCCESS && zsk) {
+			dst_key_state_t state;
+			isc_result_t result = dst_key_getstate(
+				dkey->key, DST_KEY_ZRRSIG, &state);
+			if (result == ISC_R_SUCCESS) {
+				if (state == RUMOURED) {
+					dst_key_settime(dkey->key,
+							DST_TIME_SIGPUBLISH,
+							now);
+				} else if (state == UNRETENTIVE) {
+					dst_key_settime(dkey->key,
+							DST_TIME_SIGDELETE,
+							now);
+				}
+			}
+		}
+	}
+}
+
 /*
  * Examine 'keys' and match 'kasp' policy.
  *
@@ -2357,6 +2396,11 @@ dns_keymgr_run(const dns_name_t *origin, dns_rdataclass_t rdclass,
 	 */
 	if (dns_kasp_keylist_empty(kasp)) {
 		opts |= DNS_KEYMGRATTR_S2I;
+	}
+
+	/* In case of a full sign, store ZRRSIGPublish/ZRRSIGDelete. */
+	if ((opts & DNS_KEYMGRATTR_FULLSIGN) != 0) {
+		keymgr_zrrsig(keyring, now);
 	}
 
 	/* Read to update key states. */

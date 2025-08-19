@@ -22553,6 +22553,9 @@ zone_rekey(dns_zone_t *zone) {
 	 * fully signed now.
 	 */
 	fullsign = DNS_ZONEKEY_OPTION(zone, DNS_ZONEKEY_FULLSIGN);
+	if (fullsign) {
+		options |= DNS_KEYMGRATTR_FULLSIGN;
+	}
 
 	/*
 	 * True when called from "rndc dnssec -step". Indicates the zone
