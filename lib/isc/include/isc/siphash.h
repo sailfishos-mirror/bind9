@@ -30,6 +30,7 @@
 #pragma once
 
 #include <isc/ascii.h>
+#include <isc/bit.h>
 #include <isc/endian.h>
 #include <isc/types.h>
 #include <isc/util.h>
@@ -43,14 +44,12 @@
 #define cROUNDS 2
 #define dROUNDS 4
 
-#define ROTATE64(x, b) (uint64_t)(((x) << (b)) | ((x) >> (64 - (b))))
-
-#define HALF_ROUND64(a, b, c, d, s, t) \
-	a += b;                        \
-	c += d;                        \
-	b = ROTATE64(b, s) ^ a;        \
-	d = ROTATE64(d, t) ^ c;        \
-	a = ROTATE64(a, 32);
+#define HALF_ROUND64(a, b, c, d, s, t)   \
+	a += b;                          \
+	c += d;                          \
+	b = isc_rotate_left64(b, s) ^ a; \
+	d = isc_rotate_left64(d, t) ^ c; \
+	a = isc_rotate_left64(a, 32);
 
 #define FULL_ROUND64(v0, v1, v2, v3)          \
 	HALF_ROUND64(v0, v1, v2, v3, 13, 16); \
@@ -58,14 +57,12 @@
 
 #define SIPROUND FULL_ROUND64
 
-#define ROTATE32(x, b) (uint32_t)(((x) << (b)) | ((x) >> (32 - (b))))
-
-#define HALF_ROUND32(a, b, c, d, s, t) \
-	a += b;                        \
-	c += d;                        \
-	b = ROTATE32(b, s) ^ a;        \
-	d = ROTATE32(d, t) ^ c;        \
-	a = ROTATE32(a, 16);
+#define HALF_ROUND32(a, b, c, d, s, t)   \
+	a += b;                          \
+	c += d;                          \
+	b = isc_rotate_left32(b, s) ^ a; \
+	d = isc_rotate_left32(d, t) ^ c; \
+	a = isc_rotate_left32(a, 16);
 
 #define FULL_ROUND32(v0, v1, v2, v3)        \
 	HALF_ROUND32(v0, v1, v2, v3, 5, 8); \

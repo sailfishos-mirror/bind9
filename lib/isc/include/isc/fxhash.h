@@ -29,17 +29,14 @@
 #include <stdint.h>
 #include <string.h>
 
+#include <isc/bit.h>
+
 /* The constant K from Rust's fxhash */
 #define K 0x9e3779b97f4a7c15ull
 
 static inline size_t
-rotate_left(size_t x, unsigned int n) {
-	return (x << n) | (x >> (sizeof(size_t) * 8 - n));
-}
-
-static inline size_t
 fx_add_to_hash(size_t hash, size_t i) {
-	return rotate_left(hash, 5) ^ i * K;
+	return isc_rotate_leftsize(hash, 5) ^ i * K;
 }
 
 /*
