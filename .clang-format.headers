@@ -55,6 +55,7 @@ IncludeCategories:
   - Regex:           '".*"'
     Priority:        9
 IndentExternBlock: NoIndent
+InsertBraces: true
 KeepEmptyLinesAtTheStartOfBlocks: false
 MaxEmptyLinesToKeep: 1
 PenaltyBreakAssignment: 30
@@ -66,3 +67,4 @@ Standard: Cpp11
 ContinuationIndentWidth: 8
 RemoveParentheses: ReturnStatement
 RemoveSemicolon: true
+SpaceBeforeParens: ControlStatementsExceptControlMacros
