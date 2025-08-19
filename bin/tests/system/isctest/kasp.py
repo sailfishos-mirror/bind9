@@ -72,11 +72,12 @@ def IpubC(config, rollover=True):
     return config["zone-propagation-delay"] + max(ttl1, ttl2)
 
 
-def Iret(config, zsk=True, ksk=False, rollover=True):
+def Iret(config, zsk=True, ksk=False, rollover=True, smooth=True):
     sign_delay = timedelta(0)
     safety_interval = timedelta(0)
     if rollover:
-        sign_delay = config["signatures-validity"] - config["signatures-refresh"]
+        if smooth:
+            sign_delay = config["signatures-validity"] - config["signatures-refresh"]
         safety_interval = config["retire-safety"]
 
     iretKSK = timedelta(0)
@@ -246,7 +247,9 @@ class KeyProperties:
         if "Lifetime" not in self.metadata or self.metadata["Lifetime"] == 0:
             return
 
-        iret = Iret(config, zsk=self.key.is_zsk(), ksk=self.key.is_ksk())
+        sigdel = self.key.get_timing("SigRemoved", must_exist=False)
+        smooth = sigdel is None
+        iret = Iret(config, zsk=self.key.is_zsk(), ksk=self.key.is_ksk(), smooth=smooth)
         self.timing["Removed"] = self.timing["Retired"] + iret
 
     def set_expected_keytimes(
