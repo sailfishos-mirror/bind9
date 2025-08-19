@@ -87,8 +87,9 @@ sched_affinity_ncpus(void) {
 		int i, n = 0;
 
 		for (i = 0; i < CPU_SETSIZE; ++i) {
-			if (CPU_ISSET(i, &cpus))
+			if (CPU_ISSET(i, &cpus)) {
 				++n;
+			}
 		}
 		return n;
 #endif
@@ -115,8 +116,9 @@ cpuset_affinity_ncpus(void) {
 	if (result != -1) {
 		int i, n = 0;
 		for (i = 0; i < CPU_SETSIZE; ++i) {
-			if (CPU_ISSET(i, &cpus))
+			if (CPU_ISSET(i, &cpus)) {
 				++n;
+			}
 		}
 		return n;
 	}
