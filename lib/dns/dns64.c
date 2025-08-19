@@ -270,7 +270,7 @@ dns_dns64_aaaaok(const dns_dns64_t *dns64, const isc_netaddr_t *reqaddr,
 
 		i = 0;
 		ok = 0;
-		DNS_RDATASET_FOREACH (rdataset) {
+		DNS_RDATASET_FOREACH(rdataset) {
 			dns_rdata_t rdata = DNS_RDATA_INIT;
 			if (aaaaok == NULL || !aaaaok[i]) {
 				dns_rdataset_current(rdataset, &rdata);
@@ -413,7 +413,7 @@ dns_dns64_findprefix(dns_rdataset_t *rdataset, isc_netprefix_t *prefix,
 	dns_rdataset_clone(rdataset, &outer);
 	dns_rdataset_clone(rdataset, &inner);
 
-	DNS_RDATASET_FOREACH (&outer) {
+	DNS_RDATASET_FOREACH(&outer) {
 		dns_rdata_t rd1 = DNS_RDATA_INIT;
 		dns_rdataset_current(&outer, &rd1);
 		oplen = 0;
@@ -426,7 +426,7 @@ dns_dns64_findprefix(dns_rdataset_t *rdataset, isc_netprefix_t *prefix,
 
 		/* Look for the 192.0.0.171 match. */
 		bool matched = false;
-		DNS_RDATASET_FOREACH (&inner) {
+		DNS_RDATASET_FOREACH(&inner) {
 			dns_rdata_t rd2 = DNS_RDATA_INIT;
 
 			dns_rdataset_current(&inner, &rd2);
@@ -484,11 +484,11 @@ dns_dns64_apply(isc_mem_t *mctx, dns_dns64list_t dns64s, unsigned int count,
 	aaaalist->rdclass = dns_rdataclass_in;
 	aaaalist->type = dns_rdatatype_aaaa;
 
-	DNS_RDATASET_FOREACH (a) {
+	DNS_RDATASET_FOREACH(a) {
 		dns_rdata_t rdata = DNS_RDATA_INIT;
 		dns_rdataset_current(a, &rdata);
 
-		ISC_LIST_FOREACH (dns64s, dns64, link) {
+		ISC_LIST_FOREACH(dns64s, dns64, link) {
 			dns_rdata_t *dns64_rdata = NULL;
 			isc_region_t r;
 
@@ -522,7 +522,7 @@ dns_dns64_apply(isc_mem_t *mctx, dns_dns64list_t dns64s, unsigned int count,
 
 	/* No applicable dns64; free the resources */
 	isc_buffer_free(&buffer);
-	ISC_LIST_FOREACH (aaaalist->rdata, rdata, link) {
+	ISC_LIST_FOREACH(aaaalist->rdata, rdata, link) {
 		ISC_LIST_UNLINK(aaaalist->rdata, rdata, link);
 		dns_message_puttemprdata(message, &rdata);
 	}

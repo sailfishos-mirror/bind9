@@ -520,7 +520,7 @@ main(int argc, char **argv) {
 			      isc_result_totext(result));
 		}
 
-		DNS_RDATASET_FOREACH (&rdataset) {
+		DNS_RDATASET_FOREACH(&rdataset) {
 			dns_rdata_t rdata = DNS_RDATA_INIT;
 			dns_rdataset_current(&rdataset, &rdata);
 

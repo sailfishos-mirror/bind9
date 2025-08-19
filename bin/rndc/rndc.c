@@ -608,7 +608,7 @@ parse_config(isc_mem_t *mctx, const char *keyname, cfg_parser_t **pctxp,
 	if (!key_only) {
 		(void)cfg_map_get(config, "server", &servers);
 		if (servers != NULL) {
-			CFG_LIST_FOREACH (servers, elt) {
+			CFG_LIST_FOREACH(servers, elt) {
 				const char *name = NULL;
 				server = cfg_listelt_value(elt);
 				name = cfg_obj_asstring(
@@ -645,7 +645,7 @@ parse_config(isc_mem_t *mctx, const char *keyname, cfg_parser_t **pctxp,
 	} else {
 		DO("get config key list", cfg_map_get(config, "key", &keys));
 		bool match = false;
-		CFG_LIST_FOREACH (keys, elt) {
+		CFG_LIST_FOREACH(keys, elt) {
 			const char *name = NULL;
 
 			key = cfg_listelt_value(elt);
@@ -718,7 +718,7 @@ parse_config(isc_mem_t *mctx, const char *keyname, cfg_parser_t **pctxp,
 		result = ISC_R_NOTFOUND;
 	}
 	if (result == ISC_R_SUCCESS) {
-		CFG_LIST_FOREACH (addresses, element) {
+		CFG_LIST_FOREACH(addresses, element) {
 			isc_sockaddr_t sa;
 
 			address = cfg_listelt_value(element);

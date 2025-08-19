@@ -468,7 +468,7 @@ printdata(dns_rdataset_t *rdataset, dns_name_t *owner) {
 
 		isc_buffer_init(&target, t, len);
 		if (short_form) {
-			DNS_RDATASET_FOREACH (rdataset) {
+			DNS_RDATASET_FOREACH(rdataset) {
 				dns_rdata_t rdata = DNS_RDATA_INIT;
 
 				if (rdataset->attributes.negative) {
@@ -790,9 +790,9 @@ load_keys(const cfg_obj_t *keys, dns_client_t *client, dns_view_t *toview) {
 	const cfg_obj_t *key = NULL, *keylist = NULL;
 	isc_result_t result = ISC_R_SUCCESS;
 
-	CFG_LIST_FOREACH (keys, elt) {
+	CFG_LIST_FOREACH(keys, elt) {
 		keylist = cfg_listelt_value(elt);
-		CFG_LIST_FOREACH (keylist, elt2) {
+		CFG_LIST_FOREACH(keylist, elt2) {
 			key = cfg_listelt_value(elt2);
 			CHECK(key_fromconfig(key, client, toview));
 		}
@@ -940,7 +940,7 @@ addserver(dns_client_t *client) {
 	CHECK(dns_client_setservers(client, dns_rdataclass_in, name, &servers));
 
 cleanup:
-	ISC_LIST_FOREACH (servers, s, link) {
+	ISC_LIST_FOREACH(servers, s, link) {
 		ISC_LIST_UNLINK(servers, s, link);
 		isc_mem_put(isc_g_mctx, s, sizeof(*s));
 	}
@@ -968,7 +968,7 @@ findserver(dns_client_t *client) {
 
 	/* Get nameservers from resolv.conf */
 	nameservers = irs_resconf_getnameservers(resconf);
-	ISC_LIST_FOREACH (*nameservers, sa, link) {
+	ISC_LIST_FOREACH(*nameservers, sa, link) {
 		/* Set destination port */
 		if (sa->type.sa.sa_family == AF_INET && use_ipv4) {
 			sa->type.sin.sin_port = htons(destport);
@@ -1837,8 +1837,8 @@ resolve_cb(dns_client_t *client, const dns_name_t *query_name,
 		printf("records:\n");
 	}
 
-	ISC_LIST_FOREACH (*namelist, response_name, link) {
-		ISC_LIST_FOREACH (response_name->list, rdataset, link) {
+	ISC_LIST_FOREACH(*namelist, response_name, link) {
+		ISC_LIST_FOREACH(response_name->list, rdataset, link) {
 			printdata(rdataset, response_name);
 		}
 	}
@@ -1966,10 +1966,10 @@ recvresponse(void *arg) {
 		goto cleanup;
 	}
 
-	MSG_SECTION_FOREACH (response, DNS_SECTION_ANSWER, name) {
+	MSG_SECTION_FOREACH(response, DNS_SECTION_ANSWER, name) {
 		dns_rdatatype_t prevtype = dns_rdatatype_none;
 
-		ISC_LIST_FOREACH (name->list, rdataset, link) {
+		ISC_LIST_FOREACH(name->list, rdataset, link) {
 			dns_rdataset_t rds, sigs;
 			int options = 0;
 

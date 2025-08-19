@@ -210,7 +210,7 @@ freelist(dns_rdataset_t *rdataset) {
 
 	dns_rdatalist_fromrdataset(rdataset, &rdlist);
 
-	ISC_LIST_FOREACH (rdlist->rdata, rdata, link) {
+	ISC_LIST_FOREACH(rdlist->rdata, rdata, link) {
 		ISC_LIST_UNLINK(rdlist->rdata, rdata, link);
 		isc_mem_put(isc_g_mctx, rdata, sizeof(*rdata));
 	}
@@ -462,7 +462,7 @@ match_key_dsset(keyinfo_t *ki, dns_rdataset_t *dsset, strictness_t strictness) {
 	isc_result_t result;
 	unsigned char dsbuf[DNS_DS_BUFFERSIZE];
 
-	DNS_RDATASET_FOREACH (dsset) {
+	DNS_RDATASET_FOREACH(dsset) {
 		dns_rdata_ds_t ds;
 		dns_rdata_t dsrdata = DNS_RDATA_INIT;
 		dns_rdata_t newdsrdata = DNS_RDATA_INIT;
@@ -528,7 +528,7 @@ match_keyset_dsset(dns_rdataset_t *keyset, dns_rdataset_t *dsset,
 	keytable = isc_mem_cget(isc_g_mctx, nkey, sizeof(keytable[0]));
 	ki = keytable;
 
-	DNS_RDATASET_FOREACH (keyset) {
+	DNS_RDATASET_FOREACH(keyset) {
 		dns_rdata_dnskey_t dnskey;
 		dns_rdata_t *keyrdata = NULL;
 		isc_region_t r;
@@ -604,7 +604,7 @@ matching_sigs(keyinfo_t *keytbl, dns_rdataset_t *rdataset,
 
 	algo = isc_mem_cget(isc_g_mctx, nkey, sizeof(algo[0]));
 
-	DNS_RDATASET_FOREACH (sigset) {
+	DNS_RDATASET_FOREACH(sigset) {
 		dns_rdata_t sigrdata = DNS_RDATA_INIT;
 		dns_rdata_rrsig_t sig;
 
@@ -698,7 +698,7 @@ signed_strict(dns_rdataset_t *dsset, dns_secalg_t *algo) {
 	isc_result_t result;
 	bool all_ok = true;
 
-	DNS_RDATASET_FOREACH (dsset) {
+	DNS_RDATASET_FOREACH(dsset) {
 		dns_rdata_t dsrdata = DNS_RDATA_INIT;
 		dns_rdata_ds_t ds;
 		bool ds_ok;
@@ -778,7 +778,7 @@ append_new_ds_set(ds_maker_func_t *ds_from_rdata, isc_buffer_t *buf,
 		  dns_rdataset_t *crdset) {
 	isc_result_t result;
 
-	DNS_RDATASET_FOREACH (crdset) {
+	DNS_RDATASET_FOREACH(crdset) {
 		dns_rdata_t crdata = DNS_RDATA_INIT;
 		dns_rdata_t *ds = NULL;
 
@@ -878,7 +878,7 @@ consistent_digests(dns_rdataset_t *dsset) {
 
 	arrdata = isc_mem_cget(isc_g_mctx, n, sizeof(dns_rdata_t));
 
-	DNS_RDATASET_FOREACH (dsset) {
+	DNS_RDATASET_FOREACH(dsset) {
 		dns_rdata_init(&arrdata[i]);
 		dns_rdataset_current(dsset, &arrdata[i]);
 		i++;

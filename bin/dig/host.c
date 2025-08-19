@@ -221,12 +221,12 @@ printsection(dns_message_t *msg, dns_section_t sectionid,
 
 	dns_name_init(&empty_name);
 
-	MSG_SECTION_FOREACH (msg, sectionid, name) {
+	MSG_SECTION_FOREACH(msg, sectionid, name) {
 		isc_buffer_init(&target, tbuf, sizeof(tbuf));
 		first = true;
 		print_name = name;
 
-		ISC_LIST_FOREACH (name->list, rdataset, link) {
+		ISC_LIST_FOREACH(name->list, rdataset, link) {
 			if (query->lookup->rdtype == dns_rdatatype_axfr &&
 			    !((!list_addresses &&
 			       (list_type == dns_rdatatype_any ||
@@ -260,7 +260,7 @@ printsection(dns_message_t *msg, dns_section_t sectionid,
 				UNUSED(first); /* Shut up compiler. */
 #endif /* ifdef USEINITALWS */
 			} else {
-				DNS_RDATASET_FOREACH (rdataset) {
+				DNS_RDATASET_FOREACH(rdataset) {
 					dns_rdata_t rdata = DNS_RDATA_INIT;
 					struct rtype *t;
 					const char *rtt;

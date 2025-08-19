@@ -1519,7 +1519,7 @@ catz_process_primaries(dns_catz_zone_t *catz, dns_ipkeylist_t *ipkl,
 
 	dns_ipkeylist_resize(mctx, ipkl, rcount);
 
-	DNS_RDATASET_FOREACH (value) {
+	DNS_RDATASET_FOREACH(value) {
 		dns_rdata_t rdata = DNS_RDATA_INIT;
 		dns_rdataset_current(value, &rdata);
 		/*
@@ -2380,7 +2380,7 @@ dns__catz_update_cb(void *data) {
 		}
 
 		dns_rdataset_init(&rdataset);
-		DNS_RDATASETITER_FOREACH (rdsiter) {
+		DNS_RDATASETITER_FOREACH(rdsiter) {
 			dns_rdatasetiter_current(rdsiter, &rdataset);
 
 			/*

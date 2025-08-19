@@ -523,7 +523,7 @@ named_checknames_get(const cfg_obj_t **maps, const char *const names[],
 				*obj = checknames;
 				return ISC_R_SUCCESS;
 			}
-			CFG_LIST_FOREACH (checknames, element) {
+			CFG_LIST_FOREACH(checknames, element) {
 				value = cfg_listelt_value(element);
 				type = cfg_tuple_get(value, "type");
 
@@ -546,7 +546,7 @@ int
 named_config_listcount(const cfg_obj_t *list) {
 	int i = 0;
 
-	CFG_LIST_FOREACH (list, e) {
+	CFG_LIST_FOREACH(list, e) {
 		i++;
 	}
 
@@ -633,7 +633,7 @@ named_config_getremotesdef(const cfg_obj_t *cctx, const char *list,
 	if (result != ISC_R_SUCCESS) {
 		return result;
 	}
-	CFG_LIST_FOREACH (obj, elt) {
+	CFG_LIST_FOREACH(obj, elt) {
 		obj = cfg_listelt_value(elt);
 		if (strcasecmp(cfg_obj_asstring(cfg_tuple_get(obj, "name")),
 			       name) == 0)

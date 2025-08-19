@@ -578,7 +578,7 @@ import_rdataset(dns_adbname_t *adbname, dns_rdataset_t *rdataset,
 
 	REQUIRE(dns_rdatatype_isaddr(rdtype));
 
-	DNS_RDATASET_FOREACH (rdataset) {
+	DNS_RDATASET_FOREACH(rdataset) {
 		/* FIXME: Move to a separate function */
 		dns_adbnamehooklist_t *hookhead = NULL;
 		dns_adbentry_t *entry = NULL;
@@ -608,7 +608,7 @@ import_rdataset(dns_adbname_t *adbname, dns_rdataset_t *rdataset,
 		entry = get_attached_and_locked_entry(adb, now, &sockaddr);
 
 		bool found = false;
-		ISC_LIST_FOREACH (*hookhead, anh, name_link) {
+		ISC_LIST_FOREACH(*hookhead, anh, name_link) {
 			if (anh->entry == entry) {
 				found = true;
 			}
@@ -766,7 +766,7 @@ shutdown_entries(dns_adb_t *adb) {
  */
 static void
 clean_namehooks(dns_adb_t *adb, dns_adbnamehooklist_t *namehooks) {
-	ISC_LIST_FOREACH (*namehooks, namehook, name_link) {
+	ISC_LIST_FOREACH(*namehooks, namehook, name_link) {
 		INSIST(DNS_ADBNAMEHOOK_VALID(namehook));
 		INSIST(DNS_ADBENTRY_VALID(namehook->entry));
 
@@ -1363,7 +1363,7 @@ copy_namehook_lists(dns_adb_t *adb, dns_adbfind_t *find, dns_adbname_t *name) {
 	dns_adbentry_t *entry = NULL;
 
 	if ((find->options & DNS_ADBFIND_INET) != 0) {
-		ISC_LIST_FOREACH (name->v4, namehook, name_link) {
+		ISC_LIST_FOREACH(name->v4, namehook, name_link) {
 			dns_adbaddrinfo_t *addrinfo = NULL;
 			entry = namehook->entry;
 
@@ -1384,7 +1384,7 @@ copy_namehook_lists(dns_adb_t *adb, dns_adbfind_t *find, dns_adbname_t *name) {
 	}
 
 	if ((find->options & DNS_ADBFIND_INET6) != 0) {
-		ISC_LIST_FOREACH (name->v6, namehook, name_link) {
+		ISC_LIST_FOREACH(name->v6, namehook, name_link) {
 			dns_adbaddrinfo_t *addrinfo = NULL;
 			entry = namehook->entry;
 
@@ -2054,7 +2054,7 @@ dns_adb_destroyfind(dns_adbfind_t **findp) {
 	 * we also need to decrement the reference counter in the
 	 * associated adbentry every time we remove one from the list.
 	 */
-	ISC_LIST_FOREACH (find->list, ai, publink) {
+	ISC_LIST_FOREACH(find->list, ai, publink) {
 		ISC_LIST_UNLINK(find->list, ai, publink);
 		free_adbaddrinfo(adb, &ai);
 	}
@@ -2286,7 +2286,7 @@ dumpfind(dns_adbfind_t *find, FILE *f) {
 	if (!ISC_LIST_EMPTY(find->list)) {
 		fprintf(f, "\tAddresses:\n");
 	}
-	ISC_LIST_FOREACH (find->list, ai, publink) {
+	ISC_LIST_FOREACH(find->list, ai, publink) {
 		sa = &ai->sockaddr;
 		switch (sa->type.sa.sa_family) {
 		case AF_INET:
@@ -2318,7 +2318,7 @@ static void
 print_namehook_list(FILE *f, const char *legend, dns_adb_t *adb,
 		    dns_adbnamehooklist_t *list, bool debug,
 		    isc_stdtime_t now) {
-	ISC_LIST_FOREACH (*list, nh, name_link) {
+	ISC_LIST_FOREACH(*list, nh, name_link) {
 		if (debug) {
 			fprintf(f, ";\tHook(%s) %p\n", legend, nh);
 		}
@@ -2345,7 +2345,7 @@ print_fetch_list(FILE *f, dns_adbname_t *n) {
 
 static void
 print_find_list(FILE *f, dns_adbname_t *name) {
-	ISC_LIST_FOREACH (name->finds, find, plink) {
+	ISC_LIST_FOREACH(name->finds, find, plink) {
 		dumpfind(find, f);
 	}
 }

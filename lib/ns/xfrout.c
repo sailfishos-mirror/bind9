@@ -867,7 +867,7 @@ ns_xfr_start(ns_client_t *client, dns_rdatatype_t reqtype) {
 	 * Check the authority section.  Look for a SOA record with
 	 * the same name and class as the question.
 	 */
-	MSG_SECTION_FOREACH (request, DNS_SECTION_AUTHORITY, soa_name) {
+	MSG_SECTION_FOREACH(request, DNS_SECTION_AUTHORITY, soa_name) {
 		/*
 		 * Ignore data whose owner name is not the zone apex.
 		 */
@@ -875,7 +875,7 @@ ns_xfr_start(ns_client_t *client, dns_rdatatype_t reqtype) {
 			continue;
 		}
 
-		ISC_LIST_FOREACH (soa_name->list, soa_rdataset, link) {
+		ISC_LIST_FOREACH(soa_name->list, soa_rdataset, link) {
 			/*
 			 * Ignore non-SOA data.
 			 */

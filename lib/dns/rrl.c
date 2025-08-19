@@ -268,7 +268,7 @@ free_old_hash(dns_rrl_t *rrl) {
 	for (old_bin = &old_hash->bins[0];
 	     old_bin < &old_hash->bins[old_hash->length]; ++old_bin)
 	{
-		ISC_LIST_FOREACH (*old_bin, e, hlink) {
+		ISC_LIST_FOREACH(*old_bin, e, hlink) {
 			ISC_LINK_INIT(e, hlink);
 		}
 	}
@@ -520,7 +520,7 @@ get_entry(dns_rrl_t *rrl, const isc_sockaddr_t *client_addr, dns_zone_t *zone,
 	 */
 	new_bin = get_bin(rrl->hash, hval);
 	probes = 1;
-	ISC_LIST_FOREACH (*new_bin, e, hlink) {
+	ISC_LIST_FOREACH(*new_bin, e, hlink) {
 		if (key_cmp(&e->key, &key)) {
 			ref_entry(rrl, e, probes, now);
 			return e;
@@ -533,7 +533,7 @@ get_entry(dns_rrl_t *rrl, const isc_sockaddr_t *client_addr, dns_zone_t *zone,
 	 */
 	if (rrl->old_hash != NULL) {
 		old_bin = get_bin(rrl->old_hash, hval);
-		ISC_LIST_FOREACH (*old_bin, e, hlink) {
+		ISC_LIST_FOREACH(*old_bin, e, hlink) {
 			if (key_cmp(&e->key, &key)) {
 				ISC_LIST_UNLINK(*old_bin, e, hlink);
 				ISC_LIST_PREPEND(*new_bin, e, hlink);
@@ -563,7 +563,7 @@ get_entry(dns_rrl_t *rrl, const isc_sockaddr_t *client_addr, dns_zone_t *zone,
 	 * Steal the oldest entry if we cannot create more.
 	 */
 	dns_rrl_entry_t *entry = NULL;
-	ISC_LIST_FOREACH_REV (rrl->lru, e, lru) {
+	ISC_LIST_FOREACH_REV(rrl->lru, e, lru) {
 		entry = e;
 		if (!ISC_LINK_LINKED(e, hlink)) {
 			break;
@@ -1280,7 +1280,7 @@ dns_rrl_view_destroy(dns_view_t *view) {
 
 	isc_mutex_destroy(&rrl->lock);
 
-	ISC_LIST_FOREACH (rrl->blocks, b, link) {
+	ISC_LIST_FOREACH(rrl->blocks, b, link) {
 		ISC_LIST_UNLINK(rrl->blocks, b, link);
 		isc_mem_put(rrl->mctx, b,
 			    STRUCT_FLEX_SIZE(b, entries, b->count));

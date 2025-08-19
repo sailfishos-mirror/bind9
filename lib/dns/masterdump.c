@@ -514,7 +514,7 @@ ncache_summary(dns_rdataset_t *rdataset, bool omit_final_dot,
 
 	do {
 		dns_ncache_current(rdataset, &name, &rds);
-		DNS_RDATASET_FOREACH (&rds) {
+		DNS_RDATASET_FOREACH(&rds) {
 			if ((ctx->style.flags & DNS_STYLEFLAG_INDENT) != 0 ||
 			    (ctx->style.flags & DNS_STYLEFLAG_YAML) != 0)
 			{
@@ -605,7 +605,7 @@ rdataset_totext(dns_rdataset_t *rdataset, const dns_name_t *owner_name,
 		dns_rdataset_getownercase(rdataset, name);
 	}
 
-	DNS_RDATASET_FOREACH (rdataset) {
+	DNS_RDATASET_FOREACH(rdataset) {
 		column = 0;
 
 		/*
@@ -1252,7 +1252,7 @@ restart:
 	isc_buffer_copyregion(buffer, &r);
 	totallen += sizeof(dlen) + r.length;
 
-	DNS_RDATASET_FOREACH (rdataset) {
+	DNS_RDATASET_FOREACH(rdataset) {
 		dns_rdata_t rdata = DNS_RDATA_INIT;
 
 		dns_rdataset_current(rdataset, &rdata);
@@ -1317,7 +1317,7 @@ dump_rdatasets_raw(isc_mem_t *mctx, const dns_name_t *owner_name,
 	dns_name_t *name = dns_fixedname_initname(&fixed);
 
 	dns_name_copy(owner_name, name);
-	DNS_RDATASETITER_FOREACH (rdsiter) {
+	DNS_RDATASETITER_FOREACH(rdsiter) {
 		dns_rdataset_t rdataset = DNS_RDATASET_INIT;
 		dns_rdatasetiter_current(rdsiter, &rdataset);
 
@@ -1708,7 +1708,7 @@ dumptostream(dns_dumpctx_t *dctx) {
 
 	CHECK(writeheader(dctx));
 
-	DNS_DBITERATOR_FOREACH (dctx->dbiter) {
+	DNS_DBITERATOR_FOREACH(dctx->dbiter) {
 		dns_rdatasetiter_t *rdsiter = NULL;
 		dns_dbnode_t *node = NULL;
 

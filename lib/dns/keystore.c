@@ -262,7 +262,7 @@ dns_keystorelist_find(dns_keystorelist_t *list, const char *name,
 		return ISC_R_NOTFOUND;
 	}
 
-	ISC_LIST_FOREACH (*list, keystore, link) {
+	ISC_LIST_FOREACH(*list, keystore, link) {
 		if (strcmp(keystore->name, name) == 0) {
 			dns_keystore_attach(keystore, kspp);
 			return ISC_R_SUCCESS;

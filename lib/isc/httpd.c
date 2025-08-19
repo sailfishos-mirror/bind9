@@ -289,7 +289,7 @@ destroy_httpdmgr(isc_httpdmgr_t *httpdmgr) {
 	 * Clear out the list of all actions we know about.  Just free the
 	 * memory.
 	 */
-	ISC_LIST_FOREACH (httpdmgr->urls, url, link) {
+	ISC_LIST_FOREACH(httpdmgr->urls, url, link) {
 		isc_mem_free(httpdmgr->mctx, url->url);
 		ISC_LIST_UNLINK(httpdmgr->urls, url, link);
 		isc_mem_put(httpdmgr->mctx, url, sizeof(isc_httpdurl_t));
@@ -778,7 +778,7 @@ prepare_response(void *arg) {
 	}
 
 	LOCK(&mgr->lock);
-	ISC_LIST_FOREACH (mgr->urls, u, link) {
+	ISC_LIST_FOREACH(mgr->urls, u, link) {
 		if (strncmp(path, u->url, path_len) == 0) {
 			url = u;
 			break;
@@ -977,7 +977,7 @@ isc_httpdmgr_shutdown(isc_httpdmgr_t **httpdmgrp) {
 
 	LOCK(&httpdmgr->lock);
 
-	ISC_LIST_FOREACH (httpdmgr->running, httpd, link) {
+	ISC_LIST_FOREACH(httpdmgr->running, httpd, link) {
 		if (httpd->handle != NULL) {
 			httpd_request(httpd->handle, ISC_R_SUCCESS, NULL,
 				      httpd);

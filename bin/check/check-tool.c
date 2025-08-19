@@ -310,7 +310,7 @@ checkns(dns_zone_t *zone, const dns_name_t *name, const dns_name_t *owner,
 		goto checkaaaa;
 	}
 
-	DNS_RDATASET_FOREACH (a) {
+	DNS_RDATASET_FOREACH(a) {
 		dns_rdata_t rdata = DNS_RDATA_INIT;
 		dns_rdataset_current(a, &rdata);
 		match = false;
@@ -341,7 +341,7 @@ checkaaaa:
 	if (!dns_rdataset_isassociated(aaaa)) {
 		goto checkmissing;
 	}
-	DNS_RDATASET_FOREACH (aaaa) {
+	DNS_RDATASET_FOREACH(aaaa) {
 		dns_rdata_t rdata = DNS_RDATA_INIT;
 		dns_rdataset_current(aaaa, &rdata);
 		match = false;
@@ -394,7 +394,7 @@ checkmissing:
 			}
 			match = false;
 			if (dns_rdataset_isassociated(rdataset)) {
-				DNS_RDATASET_FOREACH (rdataset) {
+				DNS_RDATASET_FOREACH(rdataset) {
 					dns_rdata_t rdata = DNS_RDATA_INIT;
 					dns_rdataset_current(rdataset, &rdata);
 					if (memcmp(ptr, rdata.data,

@@ -362,7 +362,7 @@ cfg_nsec3param_fromconfig(const cfg_obj_t *config, dns_kasp_t *kasp) {
 		iter = cfg_obj_asuint32(obj);
 	}
 	dns_kasp_freeze(kasp);
-	ISC_LIST_FOREACH (dns_kasp_keys(kasp), kkey, link) {
+	ISC_LIST_FOREACH(dns_kasp_keys(kasp), kkey, link) {
 		unsigned int keysize = dns_kasp_key_size(kkey);
 		uint32_t keyalg = dns_kasp_key_algorithm(kkey);
 
@@ -611,7 +611,7 @@ cfg_kasp_fromconfig(const cfg_obj_t *config, dns_kasp_t *default_kasp,
 
 	(void)confget(maps, "cds-digest-types", &cds);
 	if (cds != NULL) {
-		CFG_LIST_FOREACH (cds, element) {
+		CFG_LIST_FOREACH(cds, element) {
 			result = add_digest(kasp, cfg_listelt_value(element));
 			if (result != ISC_R_SUCCESS) {
 				goto cleanup;
@@ -648,7 +648,7 @@ cfg_kasp_fromconfig(const cfg_obj_t *config, dns_kasp_t *default_kasp,
 		char role[DST_MAX_ALGS] = { 0 };
 		bool warn[DST_MAX_ALGS][2] = { { false } };
 
-		CFG_LIST_FOREACH (keys, element) {
+		CFG_LIST_FOREACH(keys, element) {
 			cfg_obj_t *kobj = cfg_listelt_value(element);
 			result = cfg_kaspkey_fromconfig(
 				kobj, kasp, check_algorithms, offline_ksk,
@@ -663,7 +663,7 @@ cfg_kasp_fromconfig(const cfg_obj_t *config, dns_kasp_t *default_kasp,
 			}
 		}
 		dns_kasp_freeze(kasp);
-		ISC_LIST_FOREACH (dns_kasp_keys(kasp), kkey, link) {
+		ISC_LIST_FOREACH(dns_kasp_keys(kasp), kkey, link) {
 			uint32_t keyalg = dns_kasp_key_algorithm(kkey);
 			INSIST(keyalg < ARRAY_SIZE(role));
 
@@ -719,7 +719,7 @@ cfg_kasp_fromconfig(const cfg_obj_t *config, dns_kasp_t *default_kasp,
 		 * inherit from the default policy (except for the built-in
 		 * "insecure" policy).
 		 */
-		ISC_LIST_FOREACH (dns_kasp_keys(default_kasp), key, link) {
+		ISC_LIST_FOREACH(dns_kasp_keys(default_kasp), key, link) {
 			dns_kasp_key_t *new_key = NULL;
 
 			/* Create a new key reference. */

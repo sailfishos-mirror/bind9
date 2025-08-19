@@ -67,7 +67,7 @@ copy_rdataset(dns_rdataset_t *rdataset, isc_buffer_t *buffer) {
 	INSIST(count <= 65535);
 	isc_buffer_putuint16(buffer, (uint16_t)count);
 
-	DNS_RDATASET_FOREACH (rdataset) {
+	DNS_RDATASET_FOREACH(rdataset) {
 		isc_result_t result;
 		dns_rdata_t rdata = DNS_RDATA_INIT;
 		dns_rdataset_current(rdataset, &rdata);
@@ -141,11 +141,11 @@ dns_ncache_add(dns_message_t *message, dns_db_t *cache, dns_dbnode_t *node,
 	trust = 0xffff;
 	isc_buffer_init(&buffer, data, sizeof(data));
 
-	MSG_SECTION_FOREACH (message, DNS_SECTION_AUTHORITY, name) {
+	MSG_SECTION_FOREACH(message, DNS_SECTION_AUTHORITY, name) {
 		result = ISC_R_SUCCESS;
 
 		if (name->attributes.ncache) {
-			ISC_LIST_FOREACH (name->list, rdataset, link) {
+			ISC_LIST_FOREACH(name->list, rdataset, link) {
 				if (!rdataset->attributes.ncache) {
 					continue;
 				}
@@ -281,7 +281,7 @@ dns_ncache_towire(dns_rdataset_t *rdataset, dns_compress_t *cctx,
 	savedbuffer = *target;
 	count = 0;
 
-	DNS_RDATASET_FOREACH (rdataset) {
+	DNS_RDATASET_FOREACH(rdataset) {
 		dns_rdata_t rdata = DNS_RDATA_INIT;
 		dns_rdataset_current(rdataset, &rdata);
 
@@ -499,7 +499,7 @@ dns_ncache_getrdataset(dns_rdataset_t *ncacherdataset, dns_name_t *name,
 
 	dns_rdataset_init(&rclone);
 	dns_rdataset_clone(ncacherdataset, &rclone);
-	DNS_RDATASET_FOREACH (&rclone) {
+	DNS_RDATASET_FOREACH(&rclone) {
 		dns_rdata_t rdata = DNS_RDATA_INIT;
 		dns_rdataset_current(&rclone, &rdata);
 
@@ -564,7 +564,7 @@ dns_ncache_getsigrdataset(dns_rdataset_t *ncacherdataset, dns_name_t *name,
 
 	dns_rdataset_init(&rclone);
 	dns_rdataset_clone(ncacherdataset, &rclone);
-	DNS_RDATASET_FOREACH (&rclone) {
+	DNS_RDATASET_FOREACH(&rclone) {
 		dns_rdata_t rdata = DNS_RDATA_INIT;
 		dns_rdataset_current(&rclone, &rdata);
 

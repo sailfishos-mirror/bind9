@@ -1175,7 +1175,7 @@ main(int argc, char **argv) {
 			ctx.ttl = dns_kasp_dnskeyttl(kasp);
 			ctx.setttl = true;
 
-			ISC_LIST_FOREACH (dns_kasp_keys(kasp), kaspkey, link) {
+			ISC_LIST_FOREACH(dns_kasp_keys(kasp), kaspkey, link) {
 				ctx.use_nsec3 = false;
 				ctx.alg = dns_kasp_key_algorithm(kaspkey);
 				ctx.size = dns_kasp_key_size(kaspkey);

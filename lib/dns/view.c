@@ -243,11 +243,11 @@ destroy(dns_view_t *view) {
 		dns_catz_zones_shutdown(view->catzs);
 		dns_catz_zones_detach(&view->catzs);
 	}
-	ISC_LIST_FOREACH (view->dlz_searched, dlzdb, link) {
+	ISC_LIST_FOREACH(view->dlz_searched, dlzdb, link) {
 		ISC_LIST_UNLINK(view->dlz_searched, dlzdb, link);
 		dns_dlzdestroy(&dlzdb);
 	}
-	ISC_LIST_FOREACH (view->dlz_unsearched, dlzdb, link) {
+	ISC_LIST_FOREACH(view->dlz_unsearched, dlzdb, link) {
 		ISC_LIST_UNLINK(view->dlz_unsearched, dlzdb, link);
 		dns_dlzdestroy(&dlzdb);
 	}
@@ -1240,7 +1240,7 @@ dns_viewlist_find(dns_viewlist_t *list, const char *name,
 		  dns_rdataclass_t rdclass, dns_view_t **viewp) {
 	REQUIRE(list != NULL);
 
-	ISC_LIST_FOREACH (*list, view, link) {
+	ISC_LIST_FOREACH(*list, view, link) {
 		if (strcmp(view->name, name) == 0 && view->rdclass == rdclass) {
 			dns_view_attach(view, viewp);
 			return ISC_R_SUCCESS;
@@ -1260,7 +1260,7 @@ dns_viewlist_findzone(dns_viewlist_t *list, const dns_name_t *name,
 	REQUIRE(list != NULL);
 	REQUIRE(zonep != NULL && *zonep == NULL);
 
-	ISC_LIST_FOREACH (*list, view, link) {
+	ISC_LIST_FOREACH(*list, view, link) {
 		dns_zt_t *zonetable = NULL;
 		if (!allclasses && view->rdclass != rdclass) {
 			continue;
@@ -1658,7 +1658,7 @@ dns_view_istrusted(dns_view_t *view, const dns_name_t *keyname,
 				goto finish;
 			}
 
-			DNS_RDATASET_FOREACH (&dsset) {
+			DNS_RDATASET_FOREACH(&dsset) {
 				dns_rdata_t this = DNS_RDATA_INIT;
 				dns_rdataset_current(&dsset, &this);
 				if (dns_rdata_compare(&rdata, &this) == 0) {
@@ -1884,7 +1884,7 @@ dns_view_searchdlz(dns_view_t *view, const dns_name_t *name,
 	/* count the number of labels in the name */
 	namelabels = dns_name_countlabels(name);
 
-	ISC_LIST_FOREACH (view->dlz_searched, dlzdb, link) {
+	ISC_LIST_FOREACH(view->dlz_searched, dlzdb, link) {
 		REQUIRE(DNS_DLZ_VALID(dlzdb));
 
 		/*

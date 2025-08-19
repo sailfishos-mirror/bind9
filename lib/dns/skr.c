@@ -166,7 +166,7 @@ dns_skrbundle_getsig(dns_skrbundle_t *bundle, dst_key_t *key,
 	REQUIRE(DNS_SKRBUNDLE_VALID(bundle));
 	REQUIRE(DNS_DIFF_VALID(&bundle->diff));
 
-	ISC_LIST_FOREACH (bundle->diff.tuples, tuple, link) {
+	ISC_LIST_FOREACH(bundle->diff.tuples, tuple, link) {
 		dns_rdata_rrsig_t rrsig;
 
 		if (tuple->op != DNS_DIFFOP_ADDRESIGN) {
@@ -391,7 +391,7 @@ dns_skrbundle_t *
 dns_skr_lookup(dns_skr_t *skr, isc_stdtime_t time, uint32_t sigval) {
 	REQUIRE(DNS_SKR_VALID(skr));
 
-	ISC_LIST_FOREACH (skr->bundles, b, link) {
+	ISC_LIST_FOREACH(skr->bundles, b, link) {
 		dns_skrbundle_t *next = ISC_LIST_NEXT(b, link);
 		isc_stdtime_t expired = (next != NULL)
 						? next->inception
@@ -429,7 +429,7 @@ void
 dns_skr_destroy(dns_skr_t *skr) {
 	REQUIRE(DNS_SKR_VALID(skr));
 
-	ISC_LIST_FOREACH (skr->bundles, b, link) {
+	ISC_LIST_FOREACH(skr->bundles, b, link) {
 		ISC_LIST_UNLINK(skr->bundles, b, link);
 		dns_diff_clear(&b->diff);
 		isc_mem_put(skr->mctx, b, sizeof(*b));

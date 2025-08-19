@@ -69,6 +69,7 @@ IncludeCategories:
   - Regex:           '.*'
     Priority:        0
 IndentExternBlock: NoIndent
+InsertBraces: true
 KeepEmptyLinesAtTheStartOfBlocks: false
 MaxEmptyLinesToKeep: 1
 PenaltyBreakAssignment: 30
@@ -81,3 +82,4 @@ ContinuationIndentWidth: 8
 ForEachMacros: [ 'cds_lfs_for_each', 'cds_lfs_for_each_safe', 'cds_list_for_each_entry_safe', 'ISC_LIST_FOREACH', 'ISC_LIST_FOREACH_SAFE', 'ISC_LIST_FOREACH_REV', 'ISC_LIST_FOREACH_REV_SAFE', 'MSG_SECTION_FOREACH', 'DNS_DBITERATOR_FOREACH', 'DNS_RDATASET_FOREACH', 'DNS_RDATASETITER_FOREACH', 'CFG_LIST_FOREACH' ]
 RemoveParentheses: ReturnStatement
 RemoveSemicolon: true
+SpaceBeforeParens: ControlStatementsExceptControlMacros

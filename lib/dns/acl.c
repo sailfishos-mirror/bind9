@@ -231,7 +231,7 @@ dns_acl_match_port_transport(const isc_netaddr_t *reqaddr,
 	REQUIRE(DNS_ACL_VALID(acl));
 
 	dns_acl_t *a = UNCONST(acl); /* for ISC_LIST_FOREACH */
-	ISC_LIST_FOREACH (a->ports_and_transports, next, link) {
+	ISC_LIST_FOREACH(a->ports_and_transports, next, link) {
 		bool match_port = true;
 		bool match_transport = true;
 		result = ISC_R_FAILURE;
@@ -456,7 +456,7 @@ dns_aclelement_match(const isc_netaddr_t *reqaddr, const dns_name_t *reqsigner,
 
 static void
 dns__acl_destroy_port_transports(dns_acl_t *acl) {
-	ISC_LIST_FOREACH (acl->ports_and_transports, port_proto, link) {
+	ISC_LIST_FOREACH(acl->ports_and_transports, port_proto, link) {
 		ISC_LIST_DEQUEUE(acl->ports_and_transports, port_proto, link);
 		isc_mem_put(acl->mctx, port_proto, sizeof(*port_proto));
 	}
@@ -768,7 +768,7 @@ dns_acl_merge_ports_transports(dns_acl_t *dest, dns_acl_t *source, bool pos) {
 	/*
 	 * Merge ports and transports
 	 */
-	ISC_LIST_FOREACH (source->ports_and_transports, next, link) {
+	ISC_LIST_FOREACH(source->ports_and_transports, next, link) {
 		const bool next_positive = !next->negative;
 		bool add_negative;
 

@@ -91,7 +91,7 @@ ISC_RUN_TEST_IMPL(diffx_add) {
 	assert_int_equal(result, ISC_R_SUCCESS);
 
 	assert_false(ISC_LIST_EMPTY(diff.tuples));
-	ISC_LIST_FOREACH (diff.tuples, tuple, link) {
+	ISC_LIST_FOREACH(diff.tuples, tuple, link) {
 		assert_int_equal(tuple->op, DNS_DIFFOP_ADD);
 		count++;
 	}
@@ -120,7 +120,7 @@ ISC_RUN_TEST_IMPL(diffx_remove) {
 	assert_int_equal(result, ISC_R_SUCCESS);
 
 	assert_false(ISC_LIST_EMPTY(diff.tuples));
-	ISC_LIST_FOREACH (diff.tuples, tuple, link) {
+	ISC_LIST_FOREACH(diff.tuples, tuple, link) {
 		assert_int_equal(tuple->op, DNS_DIFFOP_DEL);
 		count++;
 	}

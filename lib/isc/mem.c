@@ -284,7 +284,7 @@ delete_trace_entry(isc_mem_t *mctx, const void *ptr, size_t size FLARG) {
 #endif
 	idx = hash % DEBUG_TABLE_COUNT;
 
-	ISC_LIST_FOREACH (mctx->debuglist[idx], dl, link) {
+	ISC_LIST_FOREACH(mctx->debuglist[idx], dl, link) {
 		if (dl->ptr == ptr) {
 			ISC_LIST_UNLINK(mctx->debuglist[idx], dl, link);
 			sdallocx(dl, dl->dlsize, mctx->jemalloc_flags);
@@ -564,7 +564,7 @@ mem_destroy(isc_mem_t *ctx) {
 #if ISC_MEM_TRACKLINES
 	if (ctx->debuglist != NULL) {
 		for (size_t i = 0; i < DEBUG_TABLE_COUNT; i++) {
-			ISC_LIST_FOREACH (ctx->debuglist[i], dl, link) {
+			ISC_LIST_FOREACH(ctx->debuglist[i], dl, link) {
 				if (ctx->checkfree && dl->ptr != NULL) {
 					print_active(ctx, stderr);
 				}
@@ -658,7 +658,7 @@ print_active(isc_mem_t *mctx, FILE *out) {
 			     "allocations:\n");
 		found = false;
 		for (i = 0; i < DEBUG_TABLE_COUNT; i++) {
-			ISC_LIST_FOREACH (mctx->debuglist[i], dl, link) {
+			ISC_LIST_FOREACH(mctx->debuglist[i], dl, link) {
 				found = true;
 				if (dl->ptr != NULL) {
 					fprintf(out,
@@ -700,7 +700,7 @@ isc_mem_stats(isc_mem_t *ctx, FILE *out) {
 			"size", "allocated", "freecount", "freemax",
 			"fillcount", "gets", "L");
 	}
-	ISC_LIST_FOREACH (ctx->pools, pool, link) {
+	ISC_LIST_FOREACH(ctx->pools, pool, link) {
 		fprintf(out,
 			"%15s %10zu %10zu %10zu %10zu %10zu %10zu %10zu %s\n",
 			pool->name, pool->size, (size_t)0, pool->allocated,
@@ -1199,7 +1199,7 @@ isc_mempool_getfillcount(isc_mempool_t *restrict mpctx) {
 #if ISC_MEM_TRACKLINES
 static void
 print_contexts(FILE *file) {
-	ISC_LIST_FOREACH (contexts, ctx, link) {
+	ISC_LIST_FOREACH(contexts, ctx, link) {
 		fprintf(file, "context: %p (%s): %" PRIuFAST32 " references\n",
 			ctx, ctx->name[0] == 0 ? "<unknown>" : ctx->name,
 			isc_refcount_current(&ctx->references));
@@ -1318,7 +1318,7 @@ isc_mem_renderxml(void *writer0) {
 	TRY0(xmlTextWriterStartElement(writer, ISC_XMLCHAR "contexts"));
 
 	LOCK(&contextslock);
-	ISC_LIST_FOREACH (contexts, ctx, link) {
+	ISC_LIST_FOREACH(contexts, ctx, link) {
 		xmlrc = xml_renderctx(ctx, &inuse, writer);
 		if (xmlrc < 0) {
 			UNLOCK(&contextslock);
@@ -1417,7 +1417,7 @@ isc_mem_renderjson(void *memobj0) {
 	CHECKMEM(ctxarray);
 
 	LOCK(&contextslock);
-	ISC_LIST_FOREACH (contexts, ctx, link) {
+	ISC_LIST_FOREACH(contexts, ctx, link) {
 		result = json_renderctx(ctx, &inuse, ctxarray);
 		if (result != ISC_R_SUCCESS) {
 			UNLOCK(&contextslock);

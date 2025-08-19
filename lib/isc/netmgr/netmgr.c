@@ -481,7 +481,7 @@ nmsocket_cleanup(void *arg) {
 		isc__nmsocket_detach(&sock->outer);
 	}
 
-	ISC_LIST_FOREACH (sock->inactive_handles, handle, inactive_link) {
+	ISC_LIST_FOREACH(sock->inactive_handles, handle, inactive_link) {
 		ISC_LIST_DEQUEUE(sock->inactive_handles, handle, inactive_link);
 		nmhandle_free(sock, handle);
 	}
@@ -2971,7 +2971,7 @@ nmsocket_dump(isc_nmsocket_t *sock) {
 				 STDERR_FILENO);
 	fprintf(stderr, "\n");
 
-	ISC_LIST_FOREACH (sock->active_handles, handle, active_link) {
+	ISC_LIST_FOREACH(sock->active_handles, handle, active_link) {
 		static bool first = true;
 		if (first) {
 			fprintf(stderr, "Active handles:\n");
@@ -2987,7 +2987,7 @@ void
 isc__nm_dump_active(isc__networker_t *worker) {
 	bool first = true;
 
-	ISC_LIST_FOREACH (worker->active_sockets, sock, active_link) {
+	ISC_LIST_FOREACH(worker->active_sockets, sock, active_link) {
 		if (first) {
 			fprintf(stderr, "Outstanding sockets\n");
 			first = false;

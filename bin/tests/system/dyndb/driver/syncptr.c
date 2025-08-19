@@ -296,7 +296,7 @@ isc_result_t
 syncptrs(sample_instance_t *inst, dns_name_t *name, dns_rdataset_t *rdataset,
 	 dns_diffop_t op) {
 	isc_result_t result = ISC_R_SUCCESS;
-	DNS_RDATASET_FOREACH (rdataset) {
+	DNS_RDATASET_FOREACH(rdataset) {
 		dns_rdata_t rdata = DNS_RDATA_INIT;
 		dns_rdataset_current(rdataset, &rdata);
 		result = syncptr(inst, name, &rdata, rdataset->ttl, op);

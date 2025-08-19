@@ -1550,3 +1550,7 @@ ebb5bd9c0f079de8970b538fe48e5f5c60ea7ee9
 0258850f202b7a46b52f3e3a4968c3fc68fe9a45
 # Reformat sources with up-to-date clang-format-20
 422b9118e878d3106c84b2eac44371f7143f320b
+# Add and apply InsertBraces statement
+d051e1e8f8eea1400191e0fd20641394b7d438be
+# Use ControlStatementsExceptControlMacros for SpaceBeforeParens
+42496f3f4a8802c0ba8033a1bcabc8bebf5b0087

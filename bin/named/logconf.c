@@ -62,7 +62,7 @@ category_fromconf(const cfg_obj_t *ccat, isc_logconfig_t *logconfig) {
 	}
 
 	destinations = cfg_tuple_get(ccat, "destinations");
-	CFG_LIST_FOREACH (destinations, element) {
+	CFG_LIST_FOREACH(destinations, element) {
 		const cfg_obj_t *channel = cfg_listelt_value(element);
 		const char *channelname = cfg_obj_asstring(channel);
 
@@ -323,13 +323,13 @@ named_logconfig(isc_logconfig_t *logconfig, const cfg_obj_t *logstmt) {
 	}
 
 	(void)cfg_map_get(logstmt, "channel", &channels);
-	CFG_LIST_FOREACH (channels, element) {
+	CFG_LIST_FOREACH(channels, element) {
 		const cfg_obj_t *channel = cfg_listelt_value(element);
 		CHECK(channel_fromconf(channel, logconfig));
 	}
 
 	(void)cfg_map_get(logstmt, "category", &categories);
-	CFG_LIST_FOREACH (categories, element) {
+	CFG_LIST_FOREACH(categories, element) {
 		const cfg_obj_t *category = cfg_listelt_value(element);
 		CHECK(category_fromconf(category, logconfig));
 		if (!default_set) {

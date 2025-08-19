@@ -158,7 +158,7 @@ ISC_RUN_TEST_IMPL(duration) {
 
 		(void)cfg_map_get(c1, "dnssec-policy", &kasps);
 		assert_non_null(kasps);
-		CFG_LIST_FOREACH (kasps, element) {
+		CFG_LIST_FOREACH(kasps, element) {
 			const cfg_listelt_t *key_element;
 			const cfg_obj_t *lifetime = NULL;
 			const cfg_obj_t *keys = NULL;

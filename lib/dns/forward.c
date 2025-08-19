@@ -97,7 +97,7 @@ dns_fwdtable_addfwd(dns_fwdtable_t *fwdtable, const dns_name_t *name,
 
 	forwarders = new_forwarders(fwdtable->mctx, name, fwdpolicy);
 
-	ISC_LIST_FOREACH (*fwdrs, fwd, link) {
+	ISC_LIST_FOREACH(*fwdrs, fwd, link) {
 		dns_forwarder_t *nfwd = isc_mem_get(fwdtable->mctx,
 						    sizeof(*nfwd));
 		*nfwd = *fwd;
@@ -135,7 +135,7 @@ dns_fwdtable_add(dns_fwdtable_t *fwdtable, const dns_name_t *name,
 
 	forwarders = new_forwarders(fwdtable->mctx, name, fwdpolicy);
 
-	ISC_LIST_FOREACH (*addrs, sa, link) {
+	ISC_LIST_FOREACH(*addrs, sa, link) {
 		dns_forwarder_t *fwd = isc_mem_get(fwdtable->mctx,
 						   sizeof(*fwd));
 		*fwd = (dns_forwarder_t){ .addr = *sa,
@@ -196,7 +196,7 @@ dns_fwdtable_destroy(dns_fwdtable_t **fwdtablep) {
 
 static void
 destroy_forwarders(dns_forwarders_t *forwarders) {
-	ISC_LIST_FOREACH (forwarders->fwdrs, fwd, link) {
+	ISC_LIST_FOREACH(forwarders->fwdrs, fwd, link) {
 		ISC_LIST_UNLINK(forwarders->fwdrs, fwd, link);
 		if (fwd->tlsname != NULL) {
 			dns_name_free(fwd->tlsname, forwarders->mctx);

@@ -1915,7 +1915,7 @@ xfrin_recv_done(isc_result_t result, isc_region_t *region, void *arg) {
 		goto failure;
 	}
 
-	MSG_SECTION_FOREACH (msg, DNS_SECTION_QUESTION, name) {
+	MSG_SECTION_FOREACH(msg, DNS_SECTION_QUESTION, name) {
 		dns_rdataset_t *rds = NULL;
 
 		LIBDNS_XFRIN_RECV_QUESTION(xfr, xfr->info, msg);
@@ -1971,11 +1971,11 @@ xfrin_recv_done(isc_result_t result, isc_region_t *region, void *arg) {
 		goto failure;
 	}
 
-	MSG_SECTION_FOREACH (msg, DNS_SECTION_ANSWER, name) {
+	MSG_SECTION_FOREACH(msg, DNS_SECTION_ANSWER, name) {
 		LIBDNS_XFRIN_RECV_ANSWER(xfr, xfr->info, msg);
 
-		ISC_LIST_FOREACH (name->list, rds, link) {
-			DNS_RDATASET_FOREACH (rds) {
+		ISC_LIST_FOREACH(name->list, rds, link) {
+			DNS_RDATASET_FOREACH(rds) {
 				dns_rdata_t rdata = DNS_RDATA_INIT;
 				dns_rdataset_current(rds, &rdata);
 				CHECK(xfr_rr(xfr, name, rds->ttl, &rdata));

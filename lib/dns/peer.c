@@ -167,7 +167,7 @@ peerlist_delete(dns_peerlist_t **list) {
 
 	isc_refcount_destroy(&l->refs);
 
-	ISC_LIST_FOREACH (l->elements, server, next) {
+	ISC_LIST_FOREACH(l->elements, server, next) {
 		ISC_LIST_UNLINK(l->elements, server, next);
 		dns_peer_detach(&server);
 	}
@@ -182,7 +182,7 @@ dns_peerlist_addpeer(dns_peerlist_t *peers, dns_peer_t *peer) {
 	 * More specifics to front of list.
 	 */
 	dns_peer_attach(peer, &(dns_peer_t *){ NULL });
-	ISC_LIST_FOREACH (peers->elements, p, next) {
+	ISC_LIST_FOREACH(peers->elements, p, next) {
 		if (p->prefixlen < peer->prefixlen) {
 			ISC_LIST_INSERTBEFORE(peers->elements, p, peer, next);
 			return;
@@ -198,7 +198,7 @@ dns_peerlist_peerbyaddr(dns_peerlist_t *servers, const isc_netaddr_t *addr,
 	REQUIRE(retval != NULL);
 	REQUIRE(DNS_PEERLIST_VALID(servers));
 
-	ISC_LIST_FOREACH (servers->elements, server, next) {
+	ISC_LIST_FOREACH(servers->elements, server, next) {
 		if (isc_netaddr_eqprefix(addr, &server->address,
 					 server->prefixlen))
 		{

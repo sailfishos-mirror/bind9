@@ -130,7 +130,7 @@ dns_diff_init(isc_mem_t *mctx, dns_diff_t *diff) {
 void
 dns_diff_clear(dns_diff_t *diff) {
 	REQUIRE(DNS_DIFF_VALID(diff));
-	ISC_LIST_FOREACH (diff->tuples, t, link) {
+	ISC_LIST_FOREACH(diff->tuples, t, link) {
 		ISC_LIST_UNLINK(diff->tuples, t, link);
 		dns_difftuple_free(&t);
 	}
@@ -184,7 +184,7 @@ dns_diff_appendminimal(dns_diff_t *diff, dns_difftuple_t **tuplep) {
 	 * the one we are doing, there must be a programming
 	 * error.  We report it but try to continue anyway.
 	 */
-	ISC_LIST_FOREACH (diff->tuples, ot, link) {
+	ISC_LIST_FOREACH(diff->tuples, ot, link) {
 		if (dns_name_caseequal(&ot->name, &(*tuplep)->name) &&
 		    dns_rdata_compare(&ot->rdata, &(*tuplep)->rdata) == 0 &&
 		    ot->ttl == (*tuplep)->ttl)
@@ -618,7 +618,7 @@ dns_diff_sort(dns_diff_t *diff, dns_diff_compare_func *compare) {
 	dns_difftuple_t **v = NULL;
 	REQUIRE(DNS_DIFF_VALID(diff));
 
-	ISC_LIST_FOREACH (diff->tuples, p, link) {
+	ISC_LIST_FOREACH(diff->tuples, p, link) {
 		length++;
 	}
 	if (length == 0) {
@@ -674,7 +674,7 @@ dns_diff_print(dns_diff_t *diff, FILE *file) {
 
 	mem = isc_mem_get(diff->mctx, size);
 
-	ISC_LIST_FOREACH (diff->tuples, t, link) {
+	ISC_LIST_FOREACH(diff->tuples, t, link) {
 		isc_buffer_t buf;
 		isc_region_t r;
 

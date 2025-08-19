@@ -223,15 +223,15 @@ get_dnskeys(ksr_ctx_t *ksr, dns_dnsseckeylist_t *keys) {
 		      isc_result_totext(ret));
 	}
 	/* Sort on keytag. */
-	ISC_LIST_FOREACH (keys_read, dk, link) {
+	ISC_LIST_FOREACH(keys_read, dk, link) {
 		n++;
 	}
 	keys_sorted = isc_mem_cget(isc_g_mctx, n, sizeof(dns_dnsseckey_t *));
-	ISC_LIST_FOREACH (keys_read, dk, link) {
+	ISC_LIST_FOREACH(keys_read, dk, link) {
 		keys_sorted[i++] = dk;
 	}
 	qsort(keys_sorted, n, sizeof(dns_dnsseckey_t *), keyalgtag_cmp);
-	ISC_LIST_FOREACH (keys_read, key, link) {
+	ISC_LIST_FOREACH(keys_read, key, link) {
 		ISC_LIST_UNLINK(keys_read, key, link);
 	}
 	/* Save sorted list in 'keys' */
@@ -258,14 +258,14 @@ setcontext(ksr_ctx_t *ksr, dns_kasp_t *kasp) {
 
 static void
 cleanup(dns_dnsseckeylist_t *keys, dns_kasp_t *kasp) {
-	ISC_LIST_FOREACH (*keys, key, link) {
+	ISC_LIST_FOREACH(*keys, key, link) {
 		ISC_LIST_UNLINK(*keys, key, link);
 		dst_key_free(&key->key);
 		dns_dnsseckey_destroy(isc_g_mctx, &key);
 	}
 	dns_kasp_detach(&kasp);
 
-	ISC_LIST_FOREACH (cleanup_list, cbuf, link) {
+	ISC_LIST_FOREACH(cleanup_list, cbuf, link) {
 		ISC_LIST_UNLINK(cleanup_list, cbuf, link);
 		isc_buffer_free(&cbuf);
 	}
@@ -304,7 +304,7 @@ freerrset(dns_rdataset_t *rdataset) {
 
 	dns_rdatalist_fromrdataset(rdataset, &rdlist);
 
-	ISC_LIST_FOREACH (rdlist->rdata, rdata, link) {
+	ISC_LIST_FOREACH(rdlist->rdata, rdata, link) {
 		ISC_LIST_UNLINK(rdlist->rdata, rdata, link);
 		isc_mem_put(isc_g_mctx, rdata, sizeof(*rdata));
 	}
@@ -380,7 +380,7 @@ create_key(ksr_ctx_t *ksr, dns_kasp_t *kasp, dns_kasp_key_t *kaspkey,
 	isc_buffer_init(&buf, filename, sizeof(filename) - 1);
 
 	/* Check existing keys. */
-	ISC_LIST_FOREACH (*keys, dk, link) {
+	ISC_LIST_FOREACH(*keys, dk, link) {
 		isc_stdtime_t act = 0, inact = 0;
 
 		if (!dns_kasp_key_match(kaspkey, dk)) {
@@ -562,7 +562,7 @@ print_dnskeys(dns_kasp_key_t *kaspkey, dns_ttl_t ttl, dns_dnsseckeylist_t *keys,
 	rdatalist->rdclass = dns_rdataclass_in;
 	rdatalist->type = dns_rdatatype_dnskey;
 	rdatalist->ttl = ttl;
-	ISC_LIST_FOREACH (*keys, dk, link) {
+	ISC_LIST_FOREACH(*keys, dk, link) {
 		isc_stdtime_t pub = 0, del = 0;
 
 		(void)dst_key_gettime(dk->key, DST_TIME_PUBLISH, &pub);
@@ -667,7 +667,7 @@ sign_rrset(ksr_ctx_t *ksr, isc_stdtime_t inception, isc_stdtime_t expiration,
 	rrsiglist->rdclass = dns_rdataclass_in;
 	rrsiglist->type = dns_rdatatype_rrsig;
 	rrsiglist->ttl = rrset->ttl;
-	ISC_LIST_FOREACH (*keys, dk, link) {
+	ISC_LIST_FOREACH(*keys, dk, link) {
 		isc_buffer_t buf;
 		isc_buffer_t *newbuf = NULL;
 		dns_rdata_t rdata = DNS_RDATA_INIT;
@@ -753,7 +753,7 @@ get_keymaterial(ksr_ctx_t *ksr, dns_kasp_t *kasp, isc_stdtime_t inception,
 	cdslist->type = dns_rdatatype_cds;
 	cdslist->ttl = ksr->ttl;
 
-	ISC_LIST_FOREACH (*keys, dk, link) {
+	ISC_LIST_FOREACH(*keys, dk, link) {
 		bool published = true;
 		isc_buffer_t buf;
 		isc_buffer_t *newbuf;
@@ -842,7 +842,7 @@ get_keymaterial(ksr_ctx_t *ksr, dns_kasp_t *kasp, isc_stdtime_t inception,
 		isc_buffer_clear(newbuf);
 
 		/* CDS */
-		ISC_LIST_FOREACH (digests, alg, link) {
+		ISC_LIST_FOREACH(digests, alg, link) {
 			isc_buffer_t *newbuf2 = NULL;
 			dns_rdata_t *rdata2 = NULL;
 			dns_rdata_t cds = DNS_RDATA_INIT;
@@ -1049,7 +1049,7 @@ keygen(ksr_ctx_t *ksr) {
 	/* Set context */
 	setcontext(ksr, kasp);
 	/* Key generation */
-	ISC_LIST_FOREACH (dns_kasp_keys(kasp), kk, link) {
+	ISC_LIST_FOREACH(dns_kasp_keys(kasp), kk, link) {
 		if (dns_kasp_key_ksk(kk) && !ksr->ksk) {
 			/* only ZSKs allowed */
 			continue;
@@ -1116,7 +1116,7 @@ request(ksr_ctx_t *ksr) {
 			(int)r.length, r.base, timestr);
 
 		next = ksr->end + 1;
-		ISC_LIST_FOREACH (dns_kasp_keys(kasp), kk, link) {
+		ISC_LIST_FOREACH(dns_kasp_keys(kasp), kk, link) {
 			/*
 			 * Output the DNSKEY records for the current bundle
 			 * that starts at 'inception. The 'next' variable is

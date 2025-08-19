@@ -765,7 +765,7 @@ client_resfind(resctx_t *rctx, dns_fetchresponse_t *resp) {
 		 * Free temporary resources
 		 */
 		if (ansname != NULL) {
-			ISC_LIST_FOREACH (ansname->list, rdataset, link) {
+			ISC_LIST_FOREACH(ansname->list, rdataset, link) {
 				ISC_LIST_UNLINK(ansname->list, rdataset, link);
 				putrdataset(mctx, &rdataset);
 			}
@@ -814,7 +814,7 @@ client_resfind(resctx_t *rctx, dns_fetchresponse_t *resp) {
 	} while (want_restart);
 
 	if (send_event) {
-		ISC_LIST_FOREACH (rctx->namelist, n, link) {
+		ISC_LIST_FOREACH(rctx->namelist, n, link) {
 			ISC_LIST_UNLINK(rctx->namelist, n, link);
 			ISC_LIST_APPEND(rctx->rev->answerlist, n, link);
 		}
@@ -834,7 +834,7 @@ resolve_done(void *arg) {
 	resarg->result = rev->result;
 	resarg->vresult = rev->vresult;
 
-	ISC_LIST_FOREACH (rev->answerlist, name, link) {
+	ISC_LIST_FOREACH(rev->answerlist, name, link) {
 		ISC_LIST_UNLINK(rev->answerlist, name, link);
 		ISC_LIST_APPEND(*resarg->namelist, name, link);
 	}
@@ -993,10 +993,10 @@ dns_client_freeresanswer(dns_client_t *client, dns_namelist_t *namelist) {
 	REQUIRE(DNS_CLIENT_VALID(client));
 	REQUIRE(namelist != NULL);
 
-	ISC_LIST_FOREACH (*namelist, name, link) {
+	ISC_LIST_FOREACH(*namelist, name, link) {
 		ISC_LIST_UNLINK(*namelist, name, link);
 
-		ISC_LIST_FOREACH (name->list, rdataset, link) {
+		ISC_LIST_FOREACH(name->list, rdataset, link) {
 			ISC_LIST_UNLINK(name->list, rdataset, link);
 			putrdataset(client->mctx, &rdataset);
 		}

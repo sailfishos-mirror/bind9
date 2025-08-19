@@ -726,7 +726,7 @@ static void
 query_freefreeversions(ns_client_t *client, bool everything) {
 	unsigned int i = 0;
 
-	ISC_LIST_FOREACH (client->query.freeversions, dbversion, link) {
+	ISC_LIST_FOREACH(client->query.freeversions, dbversion, link) {
 		/*
 		 * If we're not freeing everything, we keep the first three
 		 * dbversions structures around.
@@ -775,7 +775,7 @@ query_reset(ns_client_t *client, bool everything) {
 	/*
 	 * Cleanup any active versions.
 	 */
-	ISC_LIST_FOREACH (client->query.activeversions, dbversion, link) {
+	ISC_LIST_FOREACH(client->query.activeversions, dbversion, link) {
 		dns_db_closeversion(dbversion->db, &dbversion->version, false);
 		dns_db_detach(&dbversion->db);
 		ISC_LIST_INITANDAPPEND(client->query.freeversions, dbversion,
@@ -816,7 +816,7 @@ query_reset(ns_client_t *client, bool everything) {
 
 	query_freefreeversions(client, everything);
 
-	ISC_LIST_FOREACH (client->query.namebufs, dbuf, link) {
+	ISC_LIST_FOREACH(client->query.namebufs, dbuf, link) {
 		if (ISC_LIST_NEXT(dbuf, link) != NULL || everything) {
 			ISC_LIST_UNLINK(client->query.namebufs, dbuf, link);
 			isc_buffer_free(&dbuf);
@@ -2466,7 +2466,7 @@ validate(ns_client_t *client, dns_db_t *db, dns_name_t *name,
 		return false;
 	}
 
-	DNS_RDATASET_FOREACH (sigrdataset) {
+	DNS_RDATASET_FOREACH(sigrdataset) {
 		dns_rdata_t rdata = DNS_RDATA_INIT;
 		dns_rdataset_current(sigrdataset, &rdata);
 		result = dns_rdata_tostruct(&rdata, &rrsig, NULL);
@@ -3298,7 +3298,7 @@ rpz_find_p(ns_client_t *client, dns_name_t *self_name, dns_rdatatype_t qtype,
 		if (qtype == dns_rdatatype_aaaa &&
 		    !ISC_LIST_EMPTY(client->inner.view->dns64))
 		{
-			DNS_RDATASETITER_FOREACH (rdsiter) {
+			DNS_RDATASETITER_FOREACH(rdsiter) {
 				dns_rdatasetiter_current(rdsiter, *rdatasetp);
 				if ((*rdatasetp)->type == dns_rdatatype_a) {
 					found_a = true;
@@ -3306,7 +3306,7 @@ rpz_find_p(ns_client_t *client, dns_name_t *self_name, dns_rdatatype_t qtype,
 				dns_rdataset_disassociate(*rdatasetp);
 			}
 		}
-		DNS_RDATASETITER_FOREACH (rdsiter) {
+		DNS_RDATASETITER_FOREACH(rdsiter) {
 			dns_rdatasetiter_current(rdsiter, *rdatasetp);
 			if ((*rdatasetp)->type == dns_rdatatype_cname ||
 			    (*rdatasetp)->type == qtype)
@@ -3641,7 +3641,7 @@ rpz_rewrite_ip_rrset(ns_client_t *client, dns_name_t *name,
 		/*
 		 * Check all of the IP addresses in the rdataset.
 		 */
-		DNS_RDATASET_FOREACH (*ip_rdatasetp) {
+		DNS_RDATASET_FOREACH(*ip_rdatasetp) {
 			dns_rdata_t rdata = DNS_RDATA_INIT;
 			dns_rdataset_current(*ip_rdatasetp, &rdata);
 			switch (rdata.type) {
@@ -4390,7 +4390,7 @@ rpz_ck_dnssec(ns_client_t *client, isc_result_t qresult,
 	}
 	found = dns_fixedname_initname(&fixed);
 	dns_rdataset_init(&trdataset);
-	DNS_RDATASET_FOREACH (rdataset) {
+	DNS_RDATASET_FOREACH(rdataset) {
 		dns_ncache_current(rdataset, found, &trdataset);
 		type = trdataset.type;
 		dns_rdataset_disassociate(&trdataset);
@@ -4734,7 +4734,7 @@ redirect(ns_client_t *client, dns_name_t *name, dns_rdataset_t *rdataset,
 			return ISC_R_NOTFOUND;
 		}
 		if (rdataset->attributes.negative) {
-			DNS_RDATASET_FOREACH (rdataset) {
+			DNS_RDATASET_FOREACH(rdataset) {
 				dns_ncache_current(rdataset, found, &trdataset);
 				type = trdataset.type;
 				dns_rdataset_disassociate(&trdataset);
@@ -4866,7 +4866,7 @@ redirect2(ns_client_t *client, dns_name_t *name, dns_rdataset_t *rdataset,
 			return ISC_R_NOTFOUND;
 		}
 		if (rdataset->attributes.negative) {
-			DNS_RDATASET_FOREACH (rdataset) {
+			DNS_RDATASET_FOREACH(rdataset) {
 				dns_ncache_current(rdataset, found, &trdataset);
 				type = trdataset.type;
 				dns_rdataset_disassociate(&trdataset);
@@ -6861,7 +6861,7 @@ query_checkrrl(query_ctx_t *qctx, isc_result_t result) {
 			dns_rdataset_t nc_rdataset = DNS_RDATASET_INIT;
 			dns_fixedname_t fixed;
 			dns_name_t *n = dns_fixedname_initname(&fixed);
-			DNS_RDATASET_FOREACH (qctx->rdataset) {
+			DNS_RDATASET_FOREACH(qctx->rdataset) {
 				dns_ncache_current(qctx->rdataset, n,
 						   &nc_rdataset);
 				if (nc_rdataset.type == dns_rdatatype_soa) {
@@ -7264,7 +7264,7 @@ has_ta(query_ctx_t *qctx) {
 
 	dns_rdataset_init(&dsset);
 	if (dns_keynode_dsset(keynode, &dsset)) {
-		DNS_RDATASET_FOREACH (&dsset) {
+		DNS_RDATASET_FOREACH(&dsset) {
 			dns_rdata_t rdata = DNS_RDATA_INIT;
 			dns_rdata_ds_t ds;
 
@@ -7628,7 +7628,7 @@ query_respond_any(query_ctx_t *qctx) {
 	ns_client_keepname(qctx->client, qctx->fname, qctx->dbuf);
 	qctx->tname = qctx->fname;
 
-	DNS_RDATASETITER_FOREACH (rdsiter) {
+	DNS_RDATASETITER_FOREACH(rdsiter) {
 		dns_rdatasetiter_current(rdsiter, qctx->rdataset);
 
 		/*
@@ -8246,7 +8246,7 @@ query_filter64(query_ctx_t *qctx) {
 	myrdatalist->ttl = qctx->rdataset->ttl;
 
 	i = 0;
-	DNS_RDATASET_FOREACH (qctx->rdataset) {
+	DNS_RDATASET_FOREACH(qctx->rdataset) {
 		dns_rdata_t rdata = DNS_RDATA_INIT;
 		dns_rdata_t *myrdata = NULL;
 		isc_region_t r;
@@ -8760,7 +8760,7 @@ query_addds(query_ctx_t *qctx) {
 	 * the first name in the AUTHORITY section when wildcard processing is
 	 * involved.
 	 */
-	MSG_SECTION_FOREACH (client->message, DNS_SECTION_AUTHORITY, rname) {
+	MSG_SECTION_FOREACH(client->message, DNS_SECTION_AUTHORITY, rname) {
 		result = dns_message_findtype(rname, dns_rdatatype_ns, 0, NULL);
 		if (result == ISC_R_SUCCESS) {
 			/*
@@ -9617,7 +9617,7 @@ query_synthnxdomainnodata(query_ctx_t *qctx, bool nodata, dns_name_t *nowild,
  */
 static isc_result_t
 checksignames(dns_name_t *signer, dns_rdataset_t *sigrdataset) {
-	DNS_RDATASET_FOREACH (sigrdataset) {
+	DNS_RDATASET_FOREACH(sigrdataset) {
 		isc_result_t result;
 		dns_rdata_t rdata = DNS_RDATA_INIT;
 		dns_rdata_rrsig_t rrsig;
@@ -11172,9 +11172,9 @@ query_glueanswer(query_ctx_t *qctx) {
 	}
 
 	msg = qctx->client->message;
-	MSG_SECTION_FOREACH (msg, section, name) {
+	MSG_SECTION_FOREACH(msg, section, name) {
 		if (dns_name_equal(name, qctx->client->query.qname)) {
-			ISC_LIST_FOREACH (name->list, rdataset, link) {
+			ISC_LIST_FOREACH(name->list, rdataset, link) {
 				if (rdataset->type == qctx->qtype) {
 					ISC_LIST_UNLINK(msg->sections[section],
 							name, link);

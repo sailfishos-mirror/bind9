@@ -40,7 +40,7 @@ add_initial_keys(const cfg_obj_t *list, dns_tsigkeyring_t *ring,
 	int secretalloc = 0;
 	isc_result_t ret;
 
-	CFG_LIST_FOREACH (list, element) {
+	CFG_LIST_FOREACH(list, element) {
 		const cfg_obj_t *algobj = NULL;
 		const cfg_obj_t *secretobj = NULL;
 		dns_fixedname_t fkey;

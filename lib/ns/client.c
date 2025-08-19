@@ -1400,7 +1400,7 @@ process_cookie(ns_client_t *client, isc_buffer_t *buf, size_t optlen) {
 		return;
 	}
 
-	ISC_LIST_FOREACH (client->manager->sctx->altsecrets, altsecret, link) {
+	ISC_LIST_FOREACH(client->manager->sctx->altsecrets, altsecret, link) {
 		isc_buffer_init(&db, dbuf, sizeof(dbuf));
 		compute_cookie(client, when, altsecret->secret, &db);
 		if (isc_safe_memequal(old, dbuf, COOKIE_SIZE)) {
@@ -2698,7 +2698,7 @@ ns_clientmgr_shutdown(ns_clientmgr_t *manager) {
 	MTRACE("destroy");
 
 	LOCK(&manager->reclock);
-	ISC_LIST_FOREACH (manager->recursing, client, inner.rlink) {
+	ISC_LIST_FOREACH(manager->recursing, client, inner.rlink) {
 		ns_query_cancel(client);
 	}
 	UNLOCK(&manager->reclock);
@@ -2927,7 +2927,7 @@ ns_client_dumprecursing(FILE *f, ns_clientmgr_t *manager) {
 	REQUIRE(VALID_MANAGER(manager));
 
 	LOCK(&manager->reclock);
-	ISC_LIST_FOREACH (manager->recursing, client, inner.rlink) {
+	ISC_LIST_FOREACH(manager->recursing, client, inner.rlink) {
 		INSIST(client->inner.state == NS_CLIENTSTATE_RECURSING);
 
 		ns_client_name(client, peerbuf, sizeof(peerbuf));
@@ -3160,7 +3160,7 @@ client_getdbversion(ns_client_t *client) {
 
 ns_dbversion_t *
 ns_client_findversion(ns_client_t *client, dns_db_t *db) {
-	ISC_LIST_FOREACH (client->query.activeversions, dbversion, link) {
+	ISC_LIST_FOREACH(client->query.activeversions, dbversion, link) {
 		if (dbversion->db == db) {
 			return dbversion;
 		}
