@@ -752,7 +752,9 @@ Exit:
 		if (decoder->_total_overhead >= 100 * 1024 &&
 		    decoder->_total_read - decoder->_total_overhead <
 			    decoder->_total_read / 4)
+		{
 			ret = -1;
+		}
 	}
 	return ret;
 }
