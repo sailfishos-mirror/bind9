@@ -2554,6 +2554,8 @@ configure_rpz(dns_view_t *view, dns_view_t *pview, const cfg_obj_t **maps,
 
 	zones->p.nsip_on = nsip_on;
 	zones->p.nsdname_on = nsdname_on;
+	zones->p.slow_mode = ns_server_getoption(named_g_server->sctx,
+						 NS_SERVER_RPZSLOW);
 
 	sub_obj = cfg_tuple_get(rpz_obj, "recursive-only");
 	if (!cfg_obj_isvoid(sub_obj) && !cfg_obj_asboolean(sub_obj)) {
