@@ -125,9 +125,11 @@ logmsg(const char *fmt, ...) {
 isc_result_t
 plugin_register(const char *parameters, const void *cfg, const char *cfg_file,
 		unsigned long cfg_line, isc_mem_t *mctx, void *actx,
-		ns_hooktable_t *hooktable, void **instp) {
+		ns_hooktable_t *hooktable, ns_hooksource_t source,
+		void **instp) {
 	async_instance_t *inst = NULL;
 
+	UNUSED(source);
 	UNUSED(parameters);
 	UNUSED(cfg);
 	UNUSED(actx);

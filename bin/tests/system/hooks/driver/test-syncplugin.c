@@ -67,6 +67,7 @@ syncplugin__hook(void *arg, void *cbdata, isc_result_t *resp) {
 
 static cfg_clausedef_t syncplugin__cfgclauses[] = {
 	{ "rcode", &cfg_type_astring, 0 },
+	{ "source", &cfg_type_astring, 0 },
 	{ "firstlbl", &cfg_type_qstring, CFG_CLAUSEFLAG_OPTIONAL }
 };
 
@@ -112,7 +113,8 @@ syncplugin__parse_rcode(const cfg_obj_t *syncplugincfg, uint8_t *rcode) {
 isc_result_t
 plugin_register(const char *parameters, const void *cfg, const char *cfgfile,
 		unsigned long cfgline, isc_mem_t *mctx, void *actx,
-		ns_hooktable_t *hooktable, void **instp) {
+		ns_hooktable_t *hooktable, ns_hooksource_t source,
+		void **instp) {
 	isc_result_t result;
 	cfg_parser_t *parser = NULL;
 	cfg_obj_t *syncplugincfg = NULL;
@@ -120,9 +122,11 @@ plugin_register(const char *parameters, const void *cfg, const char *cfgfile,
 	isc_buffer_t b;
 	ns_hook_t hook;
 	syncplugin_t *inst = NULL;
+	char *sourcestr = NULL;
 
 	UNUSED(cfg);
 	UNUSED(actx);
+	UNUSED(source);
 
 	inst = isc_mem_get(mctx, sizeof(*inst));
 	*inst = (syncplugin_t){ .mctx = mctx };
@@ -144,6 +148,25 @@ plugin_register(const char *parameters, const void *cfg, const char *cfgfile,
 
 		inst->firstlbl = isc_mem_allocate(mctx, len);
 		strncpy(inst->firstlbl, firstlbl, len);
+	}
+
+	obj = NULL;
+	CHECK(cfg_map_get(syncplugincfg, "source", &obj));
+	sourcestr = obj->value.string.base;
+
+	if (strcmp(sourcestr, "zone") == 0) {
+		if (source != NS_HOOKSOURCE_ZONE) {
+			result = ISC_R_FAILURE;
+			goto cleanup;
+		}
+	} else if (strcmp(sourcestr, "view") == 0) {
+		if (source != NS_HOOKSOURCE_VIEW) {
+			result = ISC_R_FAILURE;
+			goto cleanup;
+		}
+	} else {
+		result = ISC_R_FAILURE;
+		goto cleanup;
 	}
 
 	hook = (ns_hook_t){ .action = syncplugin__hook, .action_data = inst };

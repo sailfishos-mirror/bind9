@@ -35,8 +35,9 @@ controls {
 	inet 10.53.0.2 port @CONTROLPORT@ allow { any; } keys { rndc_key; };
 };
 
-plugin query "@TOP_BUILDDIR@/testlib-driver-syncplugin.so" {
+plugin query "@TOP_BUILDDIR@/testlib-driver-syncplugin" {
 	rcode noerror;
+	source view;
 };
 
 zone "example.com" {
@@ -47,31 +48,35 @@ zone "example.com" {
 zone "example2.com" {
 	type primary;
 	file "example.db";
-	plugin query "@TOP_BUILDDIR@/testlib-driver-syncplugin.so" {
+	plugin query "@TOP_BUILDDIR@/testlib-driver-syncplugin" {
 		rcode servfail;
+		source zone;
 	};
 };
 
 zone "example3.com" {
 	type primary;
 	file "example.db";
-	plugin query "@TOP_BUILDDIR@/testlib-driver-syncplugin.so" {
+	plugin query "@TOP_BUILDDIR@/testlib-driver-syncplugin" {
 		rcode notimp;
+		source zone;
 	};
 };
 
 template exampletmpl {
 	type primary;
 	file "$name.db";
-	plugin query "@TOP_BUILDDIR@/testlib-driver-syncplugin.so" {
+	plugin query "@TOP_BUILDDIR@/testlib-driver-syncplugin" {
 		rcode notauth;
 		firstlbl "skipfoo";
+		source zone;
 	};
 };
 
 zone "example4.com" {
 	template exampletmpl;
-	plugin query "@TOP_BUILDDIR@/testlib-driver-syncplugin.so" {
+	plugin query "@TOP_BUILDDIR@/testlib-driver-syncplugin" {
 		rcode notzone;
+		source zone;
 	};
 };

@@ -12,6 +12,10 @@
  */
 
 view foo {
-	plugin query "@TOP_BUILDDIR@/testlib-driver-syncplugin.so" { rcode servfail; };
+	plugin query "@TOP_BUILDDIR@/testlib-driver-syncplugin" {
+		rcode servfail;
+	};
 };
-plugin query "@TOP_BUILDDIR@/testlib-driver-syncplugin.so" { rcode servfail; };
+plugin query "@TOP_BUILDDIR@/testlib-driver-syncplugin" {
+	rcode servfail;
+};
