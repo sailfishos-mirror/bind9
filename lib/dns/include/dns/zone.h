@@ -2302,14 +2302,6 @@ dns_zone_getsignatures(dns_zone_t *zone);
  */
 
 isc_result_t
-dns_zone_signwithkey(dns_zone_t *zone, dns_secalg_t algorithm, uint16_t keyid,
-		     bool deleteit);
-/*%<
- * Initiate/resume signing of the entire zone with the zone DNSKEY(s)
- * that match the given algorithm and keyid.
- */
-
-isc_result_t
 dns_zone_addnsec3chain(dns_zone_t *zone, dns_rdata_nsec3param_t *nsec3param);
 /*%<
  * Incrementally add a NSEC3 chain that corresponds to 'nsec3param'.
