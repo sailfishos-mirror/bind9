@@ -970,10 +970,7 @@ qpznode_release(qpzonedb_t *qpdb, qpznode_t *node, uint32_t least_serial,
 	}
 
 	/* Handle easy and typical case first. */
-	if (!node->dirty &&
-	    (node->data != NULL || node == qpdb->origin ||
-	     node == qpdb->nsec_origin || node == qpdb->nsec3_origin))
-	{
+	if (!node->dirty && node->data != NULL) {
 		goto unref;
 	}
 
