@@ -181,7 +181,7 @@ static inline uint
 value_to_key(const isc_histo_t *hg, uint64_t value) {
 	/* ensure that denormal numbers are all in chunk zero */
 	uint64_t chunked = value | CHUNKSIZE(hg);
-	int clz = ISC_LEADING_ZEROS(chunked);
+	int clz = stdc_leading_zeros(chunked);
 	/* actually 1 less than the exponent except for denormals */
 	uint exponent = 63 - hg->sigbits - clz;
 	/* mantissa has leading bit set except for denormals */
