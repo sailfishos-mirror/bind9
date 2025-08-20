@@ -287,6 +287,15 @@ zone "keyfiles-missing.autosign" {
 };
 
 /*
+ * Zone that has missing key files, manual-mode.
+ */
+zone "keyfiles-missing.manual" {
+	type primary;
+	file "keyfiles-missing.manual.db";
+	dnssec-policy "manual";
+};
+
+/*
  * Zone that has missing private KSK.
  */
 zone "ksk-missing.autosign" {
