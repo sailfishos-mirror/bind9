@@ -24,3 +24,19 @@ dnssec-policy "autosign" {
 		zsk key-directory lifetime P1Y algorithm @DEFAULT_ALGORITHM@;
 	};
 };
+
+dnssec-policy "manual" {
+
+	signatures-refresh P1W;
+	signatures-validity P2W;
+	signatures-validity-dnskey P2W;
+
+	dnskey-ttl 300;
+
+	keys {
+		ksk key-directory lifetime P2Y algorithm @DEFAULT_ALGORITHM@;
+		zsk key-directory lifetime P2M algorithm @DEFAULT_ALGORITHM@;
+	};
+
+	manual-mode yes;
+};

@@ -118,6 +118,7 @@ lifetime = {
     "P1Y": int(timedelta(days=365).total_seconds()),
     "P30D": int(timedelta(days=30).total_seconds()),
     "P6M": int(timedelta(days=31 * 6).total_seconds()),
+    "P2M": int(timedelta(days=31 * 2).total_seconds()),
 }
 
 KASP_INHERIT_TSIG_SECRET = {
@@ -157,10 +158,18 @@ def fips_properties(alg, bits=None):
     ]
 
 
-def check_all(server, zone, policy, ksks, zsks, zsk_missing=False, tsig=None):
+def check_all(
+    server, zone, policy, ksks, zsks, manual_mode=False, zsk_missing=False, tsig=None
+):
     isctest.kasp.check_dnssecstatus(server, zone, ksks + zsks, policy=policy)
     isctest.kasp.check_apex(
-        server, zone, ksks, zsks, zsk_missing=zsk_missing, tsig=tsig
+        server,
+        zone,
+        ksks,
+        zsks,
+        manual_mode=manual_mode,
+        zsk_missing=zsk_missing,
+        tsig=tsig,
     )
     isctest.kasp.check_subdomain(server, zone, ksks, zsks, tsig=tsig)
 
@@ -1662,3 +1671,100 @@ def test_kasp_reload_restart(ns6):
 
     newttl = 400
     isctest.run.retry_with_timeout(check_soa_ttl, timeout=10)
+
+
+def test_kasp_manual_mode(ns3):
+
+    keydir = ns3.identifier
+    zone = "keyfiles-missing.manual"
+    policy = "manual"
+    ttl = int(autosign_config["dnskey-ttl"].total_seconds())
+    offset = -timedelta(days=30 * 6)
+    alg = os.environ["DEFAULT_ALGORITHM_NUMBER"]
+    size = os.environ["DEFAULT_BITS"]
+    keyprops = [
+        f"ksk {lifetime['P2Y']} {alg} {size} goal:omnipresent dnskey:omnipresent krrsig:omnipresent ds:omnipresent",
+        f"zsk {lifetime['P2M']} {alg} {size} goal:omnipresent dnskey:omnipresent zrrsig:omnipresent",
+    ]
+
+    isctest.kasp.wait_keymgr_done(ns3, zone)
+
+    isctest.log.info(f"check test case zone {zone} policy {policy}")
+
+    # First make sure the zone is signed.
+    isctest.kasp.check_dnssec_verify(ns3, zone)
+
+    # Key properties.
+    expected = isctest.kasp.policy_to_properties(ttl=ttl, keys=keyprops)
+
+    # Key files.
+    keys = isctest.kasp.keydir_to_keylist(zone, keydir)
+    ksks = [k for k in keys if k.is_ksk()]
+    zsks = [k for k in keys if not k.is_ksk()]
+    isctest.kasp.check_dnssec_verify(ns3, zone)
+    isctest.kasp.check_keys(zone, keys, expected)
+
+    for kp in expected:
+        kp.set_expected_keytimes(autosign_config, offset=offset)
+
+    isctest.kasp.check_keytimes(keys, expected)
+
+    check_all(ns3, zone, policy, ksks, zsks, manual_mode=True)
+
+    # Key rollover should have been be blocked.
+    tag = expected[1].key.tag
+    blockmsg = f"keymgr-manual-mode: block ZSK rollover for key {zone}/ECDSAP256SHA256/{tag} (policy {policy})"
+    ns3.log.expect(blockmsg)
+
+    # Remove files.
+    for key in ksks + zsks:
+        shutil.copyfile(key.privatefile, f"{key.privatefile}.backup")
+        shutil.copyfile(key.keyfile, f"{key.keyfile}.backup")
+        shutil.copyfile(key.statefile, f"{key.statefile}.backup")
+
+        os.remove(key.keyfile)
+        os.remove(key.privatefile)
+        os.remove(key.statefile)
+
+    # Force step.
+    with ns3.watch_log_from_here() as watcher:
+        ns3.rndc(f"dnssec -step {zone}", log=False)
+        watcher.wait_for_line(
+            f"zone {zone}/IN (signed): zone_rekey:zone_verifykeys failed: some key files are missing"
+        )
+
+    # Restore key files.
+    for key in ksks + zsks:
+        shutil.copyfile(f"{key.privatefile}.backup", key.privatefile)
+        shutil.copyfile(f"{key.keyfile}.backup", key.keyfile)
+        shutil.copyfile(f"{key.statefile}.backup", key.statefile)
+
+    # Load keys.
+    with ns3.watch_log_from_here() as watcher:
+        ns3.rndc(f"loadkeys {zone}", log=False)
+        watcher.wait_for_line(blockmsg)
+
+    # Check keys again, make sure no new keys are created.
+    isctest.kasp.check_keys(zone, keys, expected)
+    isctest.kasp.check_keytimes(keys, expected)
+    check_all(ns3, zone, policy, ksks, zsks, manual_mode=True)
+    isctest.kasp.check_dnssec_verify(ns3, zone)
+
+    # Force step.
+    with ns3.watch_log_from_here() as watcher:
+        ns3.rndc(f"dnssec -step {zone}", log=False)
+        watcher.wait_for_line(f"keymgr: {zone} done")
+
+    # Check keys again, make sure the rollover has started.
+    keyprops = [
+        f"ksk {lifetime['P2Y']} {alg} {size} goal:omnipresent dnskey:omnipresent krrsig:omnipresent ds:omnipresent",
+        f"zsk {lifetime['P2M']} {alg} {size} goal:hidden dnskey:omnipresent zrrsig:omnipresent",
+        f"zsk {lifetime['P2M']} {alg} {size} goal:omnipresent dnskey:rumoured zrrsig:hidden",
+    ]
+    expected = isctest.kasp.policy_to_properties(ttl=ttl, keys=keyprops)
+    keys = isctest.kasp.keydir_to_keylist(zone, keydir)
+    ksks = [k for k in keys if k.is_ksk()]
+    zsks = [k for k in keys if not k.is_ksk()]
+    isctest.kasp.check_keys(zone, keys, expected)
+    check_all(ns3, zone, policy, ksks, zsks, manual_mode=True)
+    isctest.kasp.check_dnssec_verify(ns3, zone)
