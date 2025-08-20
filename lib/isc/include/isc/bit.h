@@ -48,23 +48,23 @@
 #ifdef HAVE_BUILTIN_CLZG
 #define ISC_LEADING_ZEROS(x) __builtin_clzg(x, (int)(sizeof(x) * 8))
 #else /* HAVE_BUILTIN_CLZG */
-#define ISC_LEADING_ZEROS(x)                           \
-	((x) == 0) ? (sizeof(x) * 8)                   \
-		   : _Generic((x),                     \
-			unsigned int: __builtin_clz,   \
-			unsigned long: __builtin_clzl, \
-			unsigned long long: __builtin_clzll)(x)
+#define ISC_LEADING_ZEROS(x)                            \
+	(((x) == 0) ? (sizeof(x) * 8)                   \
+		    : _Generic((x),                     \
+			 unsigned int: __builtin_clz,   \
+			 unsigned long: __builtin_clzl, \
+			 unsigned long long: __builtin_clzll)(x))
 #endif /* HAVE_BUILTIN_CLZG */
 
 #ifdef HAVE_BUILTIN_CTZG
 #define ISC_TRAILING_ZEROS(x) __builtin_ctzg(x, (int)sizeof(x) * 8)
 #else /* HAVE_BUILTIN_CTZG */
-#define ISC_TRAILING_ZEROS(x)                          \
-	((x) == 0) ? (sizeof(x) * 8)                   \
-		   : _Generic((x),                     \
-			unsigned int: __builtin_ctz,   \
-			unsigned long: __builtin_ctzl, \
-			unsigned long long: __builtin_ctzll)(x)
+#define ISC_TRAILING_ZEROS(x)                           \
+	(((x) == 0) ? (sizeof(x) * 8)                   \
+		    : _Generic((x),                     \
+			 unsigned int: __builtin_ctz,   \
+			 unsigned long: __builtin_ctzl, \
+			 unsigned long long: __builtin_ctzll)(x))
 #endif /* HAVE_BUILTIN_CTZG */
 
 #define ISC_LEADING_ONES(x)  ISC_LEADING_ZEROS(~(x))
