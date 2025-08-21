@@ -27,7 +27,7 @@ from rollover.common import (
 
 
 CDSS = ["CDS (SHA-256)"]
-POLICY = "ksk-doubleksk"
+POLICY = "ksk-doubleksk-autosign"
 OFFSET1 = -int(timedelta(days=60).total_seconds())
 OFFSET2 = -int(timedelta(hours=27).total_seconds())
 TTL = int(KSK_CONFIG["dnskey-ttl"].total_seconds())

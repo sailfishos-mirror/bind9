@@ -11,7 +11,10 @@
 
 # pylint: disable=unused-import
 
+import pytest
+
 import isctest
+from isctest.util import param
 from rollover.common import (
     pytestmark,
     CDSS,
@@ -21,10 +24,17 @@ from rollover.common import (
 )
 
 
-def test_algoroll_ksk_zsk_initial(ns6):
+@pytest.mark.parametrize(
+    "tld",
+    [
+        param("kasp"),
+        param("manual"),
+    ],
+)
+def test_algoroll_ksk_zsk_initial(ns6, tld):
     config = ALGOROLL_CONFIG
-    policy = "rsasha256"
-    zone = "step1.algorithm-roll.kasp"
+    policy = f"rsasha256-{tld}"
+    zone = f"step1.algorithm-roll.{tld}"
 
     isctest.kasp.wait_keymgr_done(ns6, zone)
 

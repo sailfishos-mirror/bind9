@@ -104,6 +104,7 @@ typedef enum {
 	DNS_ZONEOPT_CHECKSVCB = 1 << 30,      /*%< check SVBC records */
 	DNS_ZONEOPT_ZONEVERSION = 1U << 31,   /*%< enable zoneversion */
 	DNS_ZONEOPT_FULLSIGN = 1ULL << 32,    /*%< fully sign zone */
+	DNS_ZONEOPT_FORCEKEYMGR = 1ULL << 33, /*%< force keymgr step */
 	DNS_ZONEOPT___MAX = UINT64_MAX, /* trick to make the ENUM 64-bit wide */
 } dns_zoneopt_t;
 
@@ -2210,7 +2211,7 @@ dns_zone_getprivatetype(dns_zone_t *zone);
  */
 
 void
-dns_zone_rekey(dns_zone_t *zone, bool fullsign);
+dns_zone_rekey(dns_zone_t *zone, bool fullsign, bool forcekeymgr);
 /*%<
  * Update the zone's DNSKEY set from the key repository.
  *
@@ -2218,6 +2219,9 @@ dns_zone_rekey(dns_zone_t *zone, bool fullsign);
  * the zone with the new key.  Otherwise, if there are no keys or
  * if the new keys are for algorithms that have already signed the
  * zone, then the zone can be re-signed incrementally.
+ *
+ * If 'forcekeymgr' is true, trigger a rekey event and allow the
+ * next steps in the run to happen.
  */
 
 isc_result_t

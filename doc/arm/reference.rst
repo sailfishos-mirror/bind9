@@ -6408,6 +6408,16 @@ keys
    ``insecure``. In this specific case, the existing key files should be moved
    to the zone's ``key-directory`` from the new configuration.
 
+.. namedconf:statement:: manual-mode
+   :tags: dnssec
+   :short: Run key management in a manual mode.
+
+    If enabled, BIND 9 does not automatically start and progress key rollovers,
+    instead the change is logged. Only after manual confirmation with
+    :option:`rndc dnssec -step <rndc dnssec>` the change is made.
+
+    This feature is off by default.
+
 .. namedconf:statement:: offline-ksk
    :tags: dnssec
    :short: Specifies whether the DNSKEY, CDS, and CDNSKEY RRsets are being signed offline.

@@ -16,6 +16,7 @@ dnssec-policy <string> {
 	dnskey-ttl <duration>;
 	inline-signing <boolean>;
 	keys { ( csk | ksk | zsk ) [ key-directory | key-store <string> ] lifetime <duration_or_unlimited> algorithm <string> [ tag-range <integer> <integer> ] [ <integer> ]; ... };
+	manual-mode <boolean>;
 	max-zone-ttl <duration>;
 	nsec3param [ iterations <integer> ] [ optout <boolean> ] [ salt-length <integer> ];
 	offline-ksk <boolean>;
