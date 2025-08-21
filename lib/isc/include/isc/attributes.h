@@ -110,3 +110,9 @@
 #else
 #define ISC_CONSTEXPR static const
 #endif
+
+#if __has_attribute(__nonnull__)
+#define ISC_ATTR_NONNULL(...) __attribute__((__nonnull__(__VA_ARGS__)))
+#else
+#define ISC_ATTR_NONNULL(...)
+#endif
