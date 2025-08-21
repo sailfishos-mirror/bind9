@@ -1556,7 +1556,8 @@ isc__log_initialize(void) {
 
 	isc__lctx = isc_mem_get(mctx, sizeof(*isc__lctx));
 	*isc__lctx = (isc_log_t){
-		.magic = LCTX_MAGIC, .mctx = mctx, /* implicit attach */
+		.magic = LCTX_MAGIC,
+		.mctx = mctx, /* implicit attach */
 	};
 
 	isc_mutex_init(&isc__lctx->lock);
