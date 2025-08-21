@@ -82,3 +82,9 @@
 #endif /* HAVE_FUNC_ATTRIBUTE_MALLOC */
 
 #define ISC_ATTR_UNUSED __attribute__((__unused__))
+
+#if __has_attribute(__nonnull__)
+#define ISC_ATTR_NONNULL(...) __attribute__((__nonnull__(__VA_ARGS__)))
+#else
+#define ISC_ATTR_NONNULL(...)
+#endif
