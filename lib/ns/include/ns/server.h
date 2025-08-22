@@ -51,6 +51,7 @@
 #define NS_SERVER_TRANSFERSTUCK	    0x00020000U /*%< -T transferstuck */
 #define NS_SERVER_LOGRESPONSES	    0x00040000U /*%< log responses */
 #define NS_SERVER_COOKIEALWAYSVALID 0x00080000U /*%< -T cookiealwaysvalid */
+#define NS_SERVER_RPZSLOW	    0x00100000U /*%< -T rpzslow */
 
 /*%
  * Type for callback function to get hostname.
