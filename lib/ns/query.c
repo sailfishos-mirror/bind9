@@ -4265,7 +4265,7 @@ rpz_rewrite(ns_client_t *client, dns_rdatatype_t qtype, isc_result_t qresult,
 	dns_rdataset_t *rdataset = NULL;
 	dns_fixedname_t nsnamef;
 	dns_name_t *nsname;
-	qresult_type_t qresult_type;
+	qresult_type_t qresult_type = qresult_type_done;
 	dns_rpz_zbits_t zbits;
 	isc_result_t result = ISC_R_SUCCESS;
 	dns_rpz_have_t have;
