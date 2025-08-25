@@ -47,9 +47,9 @@
 #define HALF_ROUND64(a, b, c, d, s, t)   \
 	a += b;                          \
 	c += d;                          \
-	b = isc_rotate_left64(b, s) ^ a; \
-	d = isc_rotate_left64(d, t) ^ c; \
-	a = isc_rotate_left64(a, 32);
+	b = ISC_ROTATE_LEFT64(b, s) ^ a; \
+	d = ISC_ROTATE_LEFT64(d, t) ^ c; \
+	a = ISC_ROTATE_LEFT64(a, 32);
 
 #define FULL_ROUND64(v0, v1, v2, v3)          \
 	HALF_ROUND64(v0, v1, v2, v3, 13, 16); \
@@ -60,9 +60,9 @@
 #define HALF_ROUND32(a, b, c, d, s, t)   \
 	a += b;                          \
 	c += d;                          \
-	b = isc_rotate_left32(b, s) ^ a; \
-	d = isc_rotate_left32(d, t) ^ c; \
-	a = isc_rotate_left32(a, 16);
+	b = ISC_ROTATE_LEFT32(b, s) ^ a; \
+	d = ISC_ROTATE_LEFT32(d, t) ^ c; \
+	a = ISC_ROTATE_LEFT32(a, 16);
 
 #define FULL_ROUND32(v0, v1, v2, v3)        \
 	HALF_ROUND32(v0, v1, v2, v3, 5, 8); \
