@@ -2627,6 +2627,13 @@ configure_rpz(dns_view_t *view, dns_view_t *pview, const cfg_obj_t **maps,
 		zones->p.servfail_until_ready = false;
 	}
 
+	if (dnsrps_enabled && zones->p.servfail_until_ready) {
+		zones->p.servfail_until_ready = false;
+		cfg_obj_log(rpz_obj, named_g_lctx, ISC_LOG_WARNING,
+			    "\"servfail-until-ready yes\" has no effect when "
+			    "used with \"dnsrps-enable yes\"");
+	}
+
 	if (pview != NULL) {
 		old = pview->rpzs;
 	} else {
