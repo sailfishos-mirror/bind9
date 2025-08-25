@@ -30,22 +30,24 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+#if !HAVE_ARC4RANDOM || defined(__linux__)
+
 #include <inttypes.h>
 #include <stdio.h>
 
-#include <isc/entropy.h>
 #include <isc/os.h>
 #include <isc/random.h>
 #include <isc/thread.h>
 #include <isc/util.h>
+#include <isc/uv.h>
 
 #define ISC_RANDOM_BUFSIZE (ISC_OS_CACHELINE_SIZE / sizeof(uint32_t))
 
 thread_local static uint32_t isc__random_pool[ISC_RANDOM_BUFSIZE];
 thread_local static size_t isc__random_pos = ISC_RANDOM_BUFSIZE;
 
-static uint32_t
-random_u32(void) {
+uint32_t
+isc_random32(void) {
 #if FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
 	/*
 	 * A fixed stream of numbers helps with problem reproduction when
@@ -56,26 +58,11 @@ random_u32(void) {
 #endif /* if FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION */
 
 	if (isc__random_pos == ISC_RANDOM_BUFSIZE) {
-		isc_entropy_get(isc__random_pool, sizeof(isc__random_pool));
+		isc_random_buf(isc__random_pool, sizeof(isc__random_pool));
 		isc__random_pos = 0;
 	}
 
 	return isc__random_pool[isc__random_pos++];
-}
-
-uint8_t
-isc_random8(void) {
-	return (uint8_t)random_u32();
-}
-
-uint16_t
-isc_random16(void) {
-	return (uint16_t)random_u32();
-}
-
-uint32_t
-isc_random32(void) {
-	return random_u32();
 }
 
 void
@@ -86,7 +73,8 @@ isc_random_buf(void *buf, size_t buflen) {
 		return;
 	}
 
-	isc_entropy_get(buf, buflen);
+	int r = uv_random(NULL, NULL, buf, buflen, 0, NULL);
+	UV_RUNTIME_CHECK(uv_random, r);
 }
 
 uint32_t
@@ -102,7 +90,7 @@ isc_random_uniform(uint32_t limit) {
 	 * integer part (upper 32 bits), and we will use the fraction part
 	 * (lower 32 bits) to determine whether or not we need to resample.
 	 */
-	uint64_t num = (uint64_t)random_u32() * (uint64_t)limit;
+	uint64_t num = (uint64_t)isc_random32() * (uint64_t)limit;
 	/*
 	 * In the fast path, we avoid doing a division in most cases by
 	 * comparing the fraction part of `num` with the limit, which is
@@ -154,7 +142,7 @@ isc_random_uniform(uint32_t limit) {
 		 * our valid range, it is superfluous, and we resample.
 		 */
 		while ((uint32_t)(num) < residue) {
-			num = (uint64_t)random_u32() * (uint64_t)limit;
+			num = (uint64_t)isc_random32() * (uint64_t)limit;
 		}
 	}
 	/*
@@ -162,3 +150,5 @@ isc_random_uniform(uint32_t limit) {
 	 */
 	return (uint32_t)(num >> 32);
 }
+
+#endif /* HAVE_ARC4RANDOM && !defined(__linux__) */

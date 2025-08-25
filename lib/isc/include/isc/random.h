@@ -24,18 +24,11 @@
  *
  */
 
-uint8_t
-isc_random8(void);
-/*!<
- * \brief Returns a single 8-bit random value.
- */
-
-uint16_t
-isc_random16(void);
-/*!<
- * \brief Returns a single 16-bit random value.
- */
-
+#if HAVE_ARC4RANDOM && !defined(__linux__)
+#define isc_random32()			arc4random()
+#define isc_random_buf(buf, buflen)	arc4random_buf(buf, buflen)
+#define isc_random_uniform(upper_bound) arc4random_uniform(upper_bound)
+#else /* HAVE_ARC4RANDOM && !defined(__linux__) */
 uint32_t
 isc_random32(void);
 /*!<
@@ -63,4 +56,22 @@ isc_random_uniform(uint32_t upper_bound);
  * multiple iterations to get a result; the probability of needing to
  * resample is very small when the upper_bound is small, rising to 0.5
  * when upper_bound is UINT32_MAX/2.
+ */
+
+#endif /* HAVE_ARC4RANDOM && !defined(__linux__) */
+
+static inline uint8_t
+isc_random8(void) {
+	return (uint8_t)isc_random32();
+}
+/*!<
+ * \brief Returns a single 8-bit random value.
+ */
+
+static inline uint16_t
+isc_random16(void) {
+	return (uint16_t)isc_random32();
+}
+/*!<
+ * \brief Returns a single 16-bit random value.
  */
