@@ -2697,6 +2697,8 @@ configure_rpz(dns_view_t *view, dns_view_t *pview, const cfg_obj_t **maps,
 	}
 
 	if (*old_rpz_okp) {
+		INSIST(pview->rpzs != NULL);
+
 		/* Discard the newly created rpzs. */
 		dns_rpz_zones_shutdown(view->rpzs);
 		dns_rpz_zones_detach(&view->rpzs);
@@ -2711,6 +2713,8 @@ configure_rpz(dns_view_t *view, dns_view_t *pview, const cfg_obj_t **maps,
 		dns_rpz_zones_attach(pview->rpzs, &view->rpzs);
 		dns_rpz_zones_detach(&pview->rpzs);
 	} else if (old != NULL && pview != NULL) {
+		INSIST(pview->rpzs != NULL);
+
 		++pview->rpzs->rpz_ver;
 		view->rpzs->rpz_ver = pview->rpzs->rpz_ver;
 		cfg_obj_log(rpz_obj, named_g_lctx, DNS_RPZ_DEBUG_LEVEL1,
