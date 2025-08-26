@@ -335,7 +335,6 @@ struct dns_zone {
 	isc_stdtime_t log_key_expired_timer;
 	char *keydirectory;
 	dns_keyfileio_t *kfio;
-	dns_keystorelist_t *keystores;
 	dns_xfrin_t *xfr;
 
 	uint32_t maxrefresh;
@@ -6854,8 +6853,9 @@ dns_zone_getdnsseckeys(dns_zone_t *zone, dns_db_t *db, dns_dbversion_t *ver,
 
 	/* Get keys from private key files. */
 	dns_zone_lock_keyfiles(zone);
-	result = dns_dnssec_findmatchingkeys(origin, kasp, dir, zone->keystores,
-					     now, dns_zone_getmctx(zone), keys);
+	result = dns_dnssec_findmatchingkeys(origin, kasp, dir,
+					     zone->view->keystores, now,
+					     dns_zone_getmctx(zone), keys);
 	dns_zone_unlock_keyfiles(zone);
 
 	if (result != ISC_R_SUCCESS && result != ISC_R_NOTFOUND) {
@@ -16693,7 +16693,7 @@ dns_zone_dnskey_inuse(dns_zone_t *zone, dns_rdata_t *rdata, bool *inuse) {
 
 	kasp = dns_zone_getkasp(zone);
 	keydir = dns_zone_getkeydirectory(zone);
-	keystores = dns_zone_getkeystores(zone);
+	keystores = zone->view->keystores;
 
 	dns_zone_lock_keyfiles(zone);
 	result = dns_dnssec_findmatchingkeys(dns_zone_getorigin(zone), kasp,
@@ -20004,32 +20004,6 @@ dns_zone_getkeydirectory(dns_zone_t *zone) {
 	return zone->keydirectory;
 }
 
-void
-dns_zone_setkeystores(dns_zone_t *zone, dns_keystorelist_t *keystores) {
-	REQUIRE(DNS_ZONE_VALID(zone));
-
-	LOCK_ZONE(zone);
-	zone->keystores = keystores;
-	UNLOCK_ZONE(zone);
-}
-
-dns_keystorelist_t *
-dns_zone_getkeystores(dns_zone_t *zone) {
-	dns_keystorelist_t *ks = NULL;
-
-	REQUIRE(DNS_ZONE_VALID(zone));
-
-	LOCK_ZONE(zone);
-	if (inline_raw(zone) && zone->secure != NULL) {
-		ks = zone->secure->keystores;
-	} else {
-		ks = zone->keystores;
-	}
-	UNLOCK_ZONE(zone);
-
-	return ks;
-}
-
 unsigned int
 dns_zonemgr_getcount(dns_zonemgr_t *zmgr, dns_zonestate_t state) {
 	unsigned int count = 0;
@@ -22418,7 +22392,8 @@ zone_rekey(dns_zone_t *zone) {
 
 	dns_zone_lock_keyfiles(zone);
 	result = dns_dnssec_findmatchingkeys(&zone->origin, kasp, dir,
-					     zone->keystores, now, mctx, &keys);
+					     zone->view->keystores, now, mctx,
+					     &keys);
 	dns_zone_unlock_keyfiles(zone);
 
 	if (result != ISC_R_SUCCESS) {

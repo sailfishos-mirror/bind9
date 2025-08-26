@@ -1031,7 +1031,7 @@ find_zone_keys(dns_zone_t *zone, isc_mem_t *mctx, unsigned int maxkeys,
 
 	kasp = dns_zone_getkasp(zone);
 	keydir = dns_zone_getkeydirectory(zone);
-	keystores = dns_zone_getkeystores(zone);
+	keystores = dns_zone_getview(zone)->keystores;
 
 	dns_zone_lock_keyfiles(zone);
 	result = dns_dnssec_findmatchingkeys(dns_zone_getorigin(zone), kasp,
