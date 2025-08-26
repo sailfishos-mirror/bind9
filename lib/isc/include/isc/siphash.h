@@ -44,12 +44,12 @@
 #define cROUNDS 2
 #define dROUNDS 4
 
-#define HALF_ROUND64(a, b, c, d, s, t)   \
-	a += b;                          \
-	c += d;                          \
-	b = ISC_ROTATE_LEFT64(b, s) ^ a; \
-	d = ISC_ROTATE_LEFT64(d, t) ^ c; \
-	a = ISC_ROTATE_LEFT64(a, 32);
+#define HALF_ROUND64(a, b, c, d, s, t) \
+	a += b;                        \
+	c += d;                        \
+	b = ISC_ROTATE_LEFT(b, s) ^ a; \
+	d = ISC_ROTATE_LEFT(d, t) ^ c; \
+	a = ISC_ROTATE_LEFT(a, 32);
 
 #define FULL_ROUND64(v0, v1, v2, v3)          \
 	HALF_ROUND64(v0, v1, v2, v3, 13, 16); \
@@ -57,12 +57,12 @@
 
 #define SIPROUND FULL_ROUND64
 
-#define HALF_ROUND32(a, b, c, d, s, t)   \
-	a += b;                          \
-	c += d;                          \
-	b = ISC_ROTATE_LEFT32(b, s) ^ a; \
-	d = ISC_ROTATE_LEFT32(d, t) ^ c; \
-	a = ISC_ROTATE_LEFT32(a, 16);
+#define HALF_ROUND32(a, b, c, d, s, t) \
+	a += b;                        \
+	c += d;                        \
+	b = ISC_ROTATE_LEFT(b, s) ^ a; \
+	d = ISC_ROTATE_LEFT(d, t) ^ c; \
+	a = ISC_ROTATE_LEFT(a, 16);
 
 #define FULL_ROUND32(v0, v1, v2, v3)        \
 	HALF_ROUND32(v0, v1, v2, v3, 5, 8); \

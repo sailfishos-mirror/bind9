@@ -40,7 +40,7 @@
 
 static inline size_t
 fx_add_to_hash(size_t hash, size_t i) {
-	return ISC_ROTATE_LEFTSIZE(hash, 5) ^ i * K;
+	return ISC_ROTATE_LEFT(hash, 5) ^ i * K;
 }
 
 /*
