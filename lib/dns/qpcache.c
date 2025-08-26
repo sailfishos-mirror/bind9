@@ -2790,6 +2790,11 @@ find_header:
 		    header->trust <= newheader->trust)
 		{
 			if (newheader->expire > header->expire) {
+				if (ZEROTTL(header)) {
+					DNS_SLABHEADER_SETATTR(
+						newheader,
+						DNS_SLABHEADERATTR_ZEROTTL);
+				}
 				newheader->expire = header->expire;
 			}
 		}
