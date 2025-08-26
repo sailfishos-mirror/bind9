@@ -7892,8 +7892,8 @@ create_views(cfg_obj_t *config, cfg_parser_t *parser,
 static isc_result_t
 configure_views(cfg_obj_t *config, const cfg_obj_t *bindkeys,
 		cfg_aclconfctx_t *aclconfctx, dns_viewlist_t *viewlist,
-		dns_viewlist_t *builtin_viewlist, named_cachelist_t *cachelist,
-		named_server_t *server, bool first_time) {
+		named_cachelist_t *cachelist, named_server_t *server,
+		bool first_time) {
 	isc_result_t result = ISC_R_SUCCESS;
 	const cfg_obj_t *views = NULL;
 	dns_viewlist_t tmpviewlist;
@@ -7957,7 +7957,7 @@ configure_views(cfg_obj_t *config, const cfg_obj_t *bindkeys,
 		cfg_obj_t *vconfig = cfg_listelt_value(element);
 		dns_view_t *view = NULL;
 
-		result = create_view(vconfig, builtin_viewlist, &view);
+		result = create_view(vconfig, viewlist, &view);
 		if (result != ISC_R_SUCCESS) {
 			return result;
 		}
@@ -7973,9 +7973,6 @@ configure_views(cfg_obj_t *config, const cfg_obj_t *bindkeys,
 		dns_view_freeze(view);
 		dns_view_detach(&view);
 	}
-
-	/* Now combine the two viewlists into one */
-	ISC_LIST_APPENDLIST(*viewlist, *builtin_viewlist, link);
 
 	/*
 	 * Commit any dns_zone_setview() calls on all zones in the new
@@ -8014,7 +8011,7 @@ apply_configuration(cfg_parser_t *configparser, cfg_obj_t *config,
 	dns_kasp_t *default_kasp = NULL;
 	dns_kasplist_t tmpkasplist, kasplist;
 	dns_keystorelist_t tmpkeystorelist, keystorelist;
-	dns_viewlist_t viewlist, builtin_viewlist;
+	dns_viewlist_t viewlist;
 	in_port_t listen_port, udpport_low, udpport_high;
 	int i, backlog;
 	isc_interval_t interval;
@@ -8051,7 +8048,6 @@ apply_configuration(cfg_parser_t *configparser, cfg_obj_t *config,
 	ISC_LIST_INIT(kasplist);
 	ISC_LIST_INIT(keystorelist);
 	ISC_LIST_INIT(viewlist);
-	ISC_LIST_INIT(builtin_viewlist);
 	ISC_LIST_INIT(cachelist);
 	ISC_LIST_INIT(altsecrets);
 
@@ -8772,8 +8768,7 @@ apply_configuration(cfg_parser_t *configparser, cfg_obj_t *config,
 	}
 
 	result = configure_views(config, bindkeys, named_g_aclconfctx,
-				 &viewlist, &builtin_viewlist, &cachelist,
-				 server, first_time);
+				 &viewlist, &cachelist, server, first_time);
 	if (result != ISC_R_SUCCESS) {
 		goto cleanup_cachelist;
 	}
@@ -9223,8 +9218,6 @@ cleanup_cachelist:
 		dns_cache_detach(&nsc->cache);
 		isc_mem_put(server->mctx, nsc, sizeof(*nsc));
 	}
-
-	ISC_LIST_APPENDLIST(viewlist, builtin_viewlist, link);
 
 cleanup_viewlist:
 	ISC_LIST_FOREACH(viewlist, view, link) {
