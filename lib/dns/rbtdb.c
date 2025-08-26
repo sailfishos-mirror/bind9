@@ -6642,7 +6642,7 @@ find_header:
 			return ISC_R_SUCCESS;
 		}
 		/*
-		 * If we have will be replacing a NS RRset force its TTL
+		 * If we will be replacing a NS RRset force its TTL
 		 * to be no more than the current NS RRset's TTL.  This
 		 * ensures the delegations that are withdrawn are honoured.
 		 */
@@ -6651,6 +6651,11 @@ find_header:
 		    !newheader_nx && header->trust <= newheader->trust)
 		{
 			if (newheader->rdh_ttl > header->rdh_ttl) {
+				if (ZEROTTL(header)) {
+					RDATASET_ATTR_SET(
+						newheader,
+						RDATASET_ATTR_ZEROTTL);
+				}
 				newheader->rdh_ttl = header->rdh_ttl;
 			}
 		}
