@@ -153,11 +153,11 @@
 	})
 
 #if SIZE_MAX == UINT64_MAX
-#define ISC_ROTATE_LEFTSIZE(x, n)  ISC_ROTATE_LEFT64(x, n)
-#define ISC_ROTATE_RIGHTSIZE(x, n) ISC_ROTATE_RIGHT64(x, n)
+#define ISC_ROTATE_LEFTSIZE(x, n)  ISC_ROTATE_LEFT64((uint64_t)x, n)
+#define ISC_ROTATE_RIGHTSIZE(x, n) ISC_ROTATE_RIGHT64((uint64_t)x, n)
 #elif SIZE_MAX == UINT32_MAX
-#define ISC_ROTATE_LEFTSIZE(x, n)  ISC_ROTATE_LEFT32(x, n)
-#define ISC_ROTATE_RIGHTSIZE(x, n) ISC_ROTATE_RIGHT32(x, n)
+#define ISC_ROTATE_LEFTSIZE(x, n)  ISC_ROTATE_LEFT32((uint32_t)x, n)
+#define ISC_ROTATE_RIGHTSIZE(x, n) ISC_ROTATE_RIGHT32((uint32_t)x, n)
 #else
 #error "size_t must be either 32 or 64-bits"
 #endif
