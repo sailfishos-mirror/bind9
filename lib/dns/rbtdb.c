@@ -6595,29 +6595,23 @@ find_header:
 			}
 		}
 		/*
-		 * Don't replace existing NS, A and AAAA RRsets in the
-		 * cache if they are already exist. This prevents named
-		 * being locked to old servers. Don't lower trust of
-		 * existing record if the update is forced. Nothing
-		 * special to be done w.r.t stale data; it gets replaced
-		 * normally further down.
+		 * Don't replace existing NS in the cache if they already exist
+		 * and replacing the existing one would increase the TTL. This
+		 * prevents named being locked to old servers. Don't lower trust
+		 * of existing record if the update is forced. Nothing special
+		 * to be done w.r.t stale data; it gets replaced normally
+		 * further down.
 		 */
 		if (IS_CACHE(rbtdb) && ACTIVE(header, now) &&
 		    header->type == dns_rdatatype_ns && !header_nx &&
 		    !newheader_nx && header->trust >= newheader->trust &&
+		    header->rdh_ttl < newheader->rdh_ttl &&
 		    dns_rdataslab_equalx((unsigned char *)header,
 					 (unsigned char *)newheader,
 					 (unsigned int)(sizeof(*newheader)),
 					 rbtdb->common.rdclass,
 					 (dns_rdatatype_t)header->type))
 		{
-			/*
-			 * Honour the new ttl if it is less than the
-			 * older one.
-			 */
-			if (header->rdh_ttl > newheader->rdh_ttl) {
-				set_ttl(rbtdb, header, newheader->rdh_ttl);
-			}
 			if (header->last_used != now) {
 				update_header(rbtdb, header, now);
 			}
@@ -6642,7 +6636,7 @@ find_header:
 			return ISC_R_SUCCESS;
 		}
 		/*
-		 * If we have will be replacing a NS RRset force its TTL
+		 * If we will be replacing a NS RRset force its TTL
 		 * to be no more than the current NS RRset's TTL.  This
 		 * ensures the delegations that are withdrawn are honoured.
 		 */
@@ -6651,6 +6645,11 @@ find_header:
 		    !newheader_nx && header->trust <= newheader->trust)
 		{
 			if (newheader->rdh_ttl > header->rdh_ttl) {
+				if (ZEROTTL(header)) {
+					RDATASET_ATTR_SET(
+						newheader,
+						RDATASET_ATTR_ZEROTTL);
+				}
 				newheader->rdh_ttl = header->rdh_ttl;
 			}
 		}
@@ -6662,17 +6661,11 @@ find_header:
 		     header->type == RBTDB_RDATATYPE_SIGDS) &&
 		    !header_nx && !newheader_nx &&
 		    header->trust >= newheader->trust &&
+		    header->rdh_ttl < newheader->rdh_ttl &&
 		    dns_rdataslab_equal((unsigned char *)header,
 					(unsigned char *)newheader,
 					(unsigned int)(sizeof(*newheader))))
 		{
-			/*
-			 * Honour the new ttl if it is less than the
-			 * older one.
-			 */
-			if (header->rdh_ttl > newheader->rdh_ttl) {
-				set_ttl(rbtdb, header, newheader->rdh_ttl);
-			}
 			if (header->last_used != now) {
 				update_header(rbtdb, header, now);
 			}
