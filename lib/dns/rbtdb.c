@@ -2872,7 +2872,7 @@ find_header:
 		}
 
 		/*
-		 * If we have will be replacing a NS RRset force its TTL
+		 * If we will be replacing a NS RRset force its TTL
 		 * to be no more than the current NS RRset's TTL.  This
 		 * ensures the delegations that are withdrawn are honoured.
 		 */
@@ -2881,6 +2881,11 @@ find_header:
 		    !newheader_nx && header->trust <= newheader->trust)
 		{
 			if (newheader->ttl > header->ttl) {
+				if (ZEROTTL(header)) {
+					DNS_SLABHEADER_SETATTR(
+						newheader,
+						DNS_SLABHEADERATTR_ZEROTTL);
+				}
 				newheader->ttl = header->ttl;
 			}
 		}
