@@ -32,7 +32,11 @@
 #include <isc/bit.h>
 
 /* The constant K from Rust's fxhash */
-#define K 0x9e3779b97f4a7c15ull
+#if SIZE_MAX == UINT64_MAX
+#define K UINT64_C(0x517cc1b727220a95)
+#else
+#define K UINT32_C(0x9e3779b9)
+#endif
 
 static inline size_t
 fx_add_to_hash(size_t hash, size_t i) {
