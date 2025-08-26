@@ -2734,29 +2734,22 @@ find_header:
 		}
 
 		/*
-		 * Don't replace existing NS, A and AAAA RRsets in the
-		 * cache if they already exist. This prevents named
-		 * being locked to old servers. Don't lower trust of
-		 * existing record if the update is forced. Nothing
-		 * special to be done w.r.t stale data; it gets replaced
-		 * normally further down.
+		 * Don't replace existing NS in the cache if they already exist
+		 * and replacing the existing one would increase the TTL. This
+		 * prevents named being locked to old servers. Don't lower trust
+		 * of existing record if the update is forced. Nothing special
+		 * to be done w.r.t stale data; it gets replaced normally
+		 * further down.
 		 */
 		if (ACTIVE(header, now) &&
 		    top->typepair == DNS_TYPEPAIR(dns_rdatatype_ns) &&
 		    EXISTS(header) && EXISTS(newheader) &&
 		    header->trust >= newheader->trust &&
+		    header->expire < newheader->expire &&
 		    dns_rdataslab_equalx(header, newheader,
 					 qpdb->common.rdclass,
 					 DNS_TYPEPAIR_TYPE(top->typepair)))
 		{
-			/*
-			 * Honour the new ttl if it is less than the
-			 * older one.
-			 */
-			if (header->expire > newheader->expire) {
-				setttl(header, newheader->expire);
-			}
-
 			qpcache_hit(qpdb, header);
 
 			if (header->noqname == NULL &&
@@ -2806,16 +2799,9 @@ find_header:
 		     top->typepair == DNS_SIGTYPEPAIR(dns_rdatatype_ds)) &&
 		    EXISTS(header) && EXISTS(newheader) &&
 		    header->trust >= newheader->trust &&
+		    header->expire < newheader->expire &&
 		    dns_rdataslab_equal(header, newheader))
 		{
-			/*
-			 * Honour the new ttl if it is less than the
-			 * older one.
-			 */
-			if (header->expire > newheader->expire) {
-				setttl(header, newheader->expire);
-			}
-
 			qpcache_hit(qpdb, header);
 
 			if (header->noqname == NULL &&
