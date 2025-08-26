@@ -43,6 +43,9 @@ options {
 view "default" {
 
 	catalog-zones {
+		zone "catalog0.example"
+			/* unset default-primaries, see GL#5494 */
+			in-memory yes;
 		zone "catalog1.example"
 			default-masters { 10.53.0.1; }
 			min-update-interval 1s
@@ -106,6 +109,12 @@ view "default" {
 	    type forward;
 	    forward only;
 	    forwarders { };
+	};
+
+	zone "catalog0.example" {
+		type secondary;
+		file "catalog0.example.db";
+		primaries { 10.53.0.1; };
 	};
 
 	zone "catalog1.example" {
