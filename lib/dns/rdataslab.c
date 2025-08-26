@@ -173,7 +173,7 @@ makeslab(dns_rdataset_t *rdataset, isc_mem_t *mctx, isc_region_t *region,
 	 */
 	nalloc = nitems;
 
-	RUNTIME_CHECK(!ISC_OVERFLOW_MUL(nalloc, sizeof(rdata[0]), &rdatasize));
+	RUNTIME_CHECK(!ckd_mul(&rdatasize, nalloc, sizeof(rdata[0])));
 	rdata = isc_mem_get(mctx, rdatasize);
 
 	/*

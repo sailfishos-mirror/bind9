@@ -319,7 +319,7 @@ keymgr_prepublication_time(dns_dnsseckey_t *key, dns_kasp_t *kasp,
 			return 0;
 		}
 
-		if (ISC_OVERFLOW_ADD(active, klifetime, &retire)) {
+		if (ckd_add(&retire, active, klifetime)) {
 			log_key_overflow(key->key, "retire");
 			retire = UINT32_MAX;
 		}
@@ -442,7 +442,7 @@ keymgr_key_update_lifetime(dns_dnsseckey_t *key, dns_kasp_t *kasp,
 			uint32_t a = now;
 			uint32_t inactive;
 			(void)dst_key_gettime(key->key, DST_TIME_ACTIVATE, &a);
-			if (ISC_OVERFLOW_ADD(a, lifetime, &inactive)) {
+			if (ckd_add(&inactive, a, lifetime)) {
 				log_key_overflow(key->key, "inactive");
 				inactive = UINT32_MAX;
 			}
@@ -1986,7 +1986,7 @@ keymgr_key_rollover(dns_kasp_key_t *kaspkey, dns_dnsseckey_t *active_key,
 	if (lifetime > 0) {
 		uint32_t inactive;
 
-		if (ISC_OVERFLOW_ADD(active, lifetime, &inactive)) {
+		if (ckd_add(&inactive, active, lifetime)) {
 			log_key_overflow(new_key->key, "inactive");
 			inactive = UINT32_MAX;
 		}

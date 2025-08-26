@@ -190,7 +190,7 @@ isc_time_add(const isc_time_t *t, const isc_interval_t *i, isc_time_t *result) {
 	REQUIRE(t->nanoseconds < NS_PER_SEC && i->nanoseconds < NS_PER_SEC);
 
 	/* Seconds */
-	if (ISC_OVERFLOW_ADD(t->seconds, i->seconds, &result->seconds)) {
+	if (ckd_add(&result->seconds, t->seconds, i->seconds)) {
 		return ISC_R_RANGE;
 	}
 
@@ -214,7 +214,7 @@ isc_time_subtract(const isc_time_t *t, const isc_interval_t *i,
 	REQUIRE(t->nanoseconds < NS_PER_SEC && i->nanoseconds < NS_PER_SEC);
 
 	/* Seconds */
-	if (ISC_OVERFLOW_SUB(t->seconds, i->seconds, &result->seconds)) {
+	if (ckd_sub(&result->seconds, t->seconds, i->seconds)) {
 		return ISC_R_RANGE;
 	}
 

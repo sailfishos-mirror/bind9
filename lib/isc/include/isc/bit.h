@@ -19,26 +19,16 @@
 #include <isc/attributes.h>
 #include <isc/util.h>
 
-#ifndef __has_header
-#define __has_header(x) 0
-#endif
-
 #if __has_header(<stdbit.h>)
 
 #include <stdbit.h>
 
-#define ISC_POPCOUNT(x)	      stdc_count_zeros(x)
-#define ISC_LEADING_ZEROS(x)  stdc_leading_zeros(x)
-#define ISC_TRAILING_ZEROS(x) stdc_trailing_zeros(x)
-#define ISC_LEADING_ONES(x)   stdc_leading_ones(x)
-#define ISC_TRAILING_ONES(x)  stdc_trailing_ones(x)
-
 #else /* __has_header(<stdbit.h>) */
 
 #ifdef HAVE_BUILTIN_POPCOUNTG
-#define ISC_POPCOUNT(x) __builtin_popcountg(x)
+#define stdc_count_zeros(x) __builtin_popcountg(x)
 #else /* HAVE_BUILTIN_POPCOUNTG */
-#define ISC_POPCOUNT(x)                             \
+#define stdc_count_zeros(x)                         \
 	_Generic((x),                               \
 		unsigned int: __builtin_popcount,   \
 		unsigned long: __builtin_popcountl, \
@@ -46,9 +36,9 @@
 #endif /* HAVE_BUILTIN_POPCOUNTG */
 
 #ifdef HAVE_BUILTIN_CLZG
-#define ISC_LEADING_ZEROS(x) __builtin_clzg(x, (int)(sizeof(x) * 8))
+#define stdc_leading_zeros(x) __builtin_clzg(x, (int)(sizeof(x) * 8))
 #else /* HAVE_BUILTIN_CLZG */
-#define ISC_LEADING_ZEROS(x)                            \
+#define stdc_leading_zeros(x)                           \
 	(((x) == 0) ? (sizeof(x) * 8)                   \
 		    : _Generic((x),                     \
 			 unsigned int: __builtin_clz,   \
@@ -57,9 +47,9 @@
 #endif /* HAVE_BUILTIN_CLZG */
 
 #ifdef HAVE_BUILTIN_CTZG
-#define ISC_TRAILING_ZEROS(x) __builtin_ctzg(x, (int)sizeof(x) * 8)
+#define stdc_trailing_zeros(x) __builtin_ctzg(x, (int)sizeof(x) * 8)
 #else /* HAVE_BUILTIN_CTZG */
-#define ISC_TRAILING_ZEROS(x)                           \
+#define stdc_trailing_zeros(x)                          \
 	(((x) == 0) ? (sizeof(x) * 8)                   \
 		    : _Generic((x),                     \
 			 unsigned int: __builtin_ctz,   \
@@ -67,8 +57,8 @@
 			 unsigned long long: __builtin_ctzll)(x))
 #endif /* HAVE_BUILTIN_CTZG */
 
-#define ISC_LEADING_ONES(x)  ISC_LEADING_ZEROS(~(x))
-#define ISC_TRAILING_ONES(x) ISC_TRAILING_ZEROS(~(x))
+#define stdc_leading_ones(x)  stdc_leading_zeros(~(x))
+#define stdc_trailing_ones(x) stdc_trailing_zeros(~(x))
 
 #endif /* __has_header(<stdbit.h>) */
 

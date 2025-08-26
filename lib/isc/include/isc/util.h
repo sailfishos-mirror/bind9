@@ -35,6 +35,10 @@
 #define __has_feature(x) 0
 #endif /* if !defined(__has_feature) */
 
+#ifndef __has_header
+#define __has_header(x) 0
+#endif
+
 /***
  *** General Macros.
  ***/
