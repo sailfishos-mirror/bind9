@@ -55,6 +55,12 @@ view "default" {
 	    forwarders { };
 	};
 
+	zone "catalog0.example" {
+		type secondary;
+		file "catalog0.example.db";
+		primaries { 10.53.0.1; };
+	};
+
 	zone "catalog1.example" {
 		type secondary;
 		file "catalog1.example.db";
