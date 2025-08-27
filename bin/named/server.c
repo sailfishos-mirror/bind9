@@ -3795,9 +3795,8 @@ static isc_result_t
 configure_view(dns_view_t *view, dns_viewlist_t *viewlist, cfg_obj_t *config,
 	       cfg_obj_t *vconfig, named_cachelist_t *cachelist,
 	       named_cachelist_t *oldcachelist, dns_kasplist_t *kasplist,
-	       dns_keystorelist_t *keystores, const cfg_obj_t *bindkeys,
-	       isc_mem_t *mctx, cfg_aclconfctx_t *actx, bool need_hints,
-	       bool first_time) {
+	       const cfg_obj_t *bindkeys, isc_mem_t *mctx,
+	       cfg_aclconfctx_t *actx, bool need_hints, bool first_time) {
 	const cfg_obj_t *maps[4];
 	const cfg_obj_t *cfgmaps[3];
 	const cfg_obj_t *optionmaps[3];
@@ -3859,8 +3858,6 @@ configure_view(dns_view_t *view, dns_viewlist_t *viewlist, cfg_obj_t *config,
 	bool oldcache = false;
 
 	REQUIRE(DNS_VIEW_VALID(view));
-
-	view->keystores = keystores;
 
 	if (config != NULL) {
 		(void)cfg_map_get(config, "options", &options);
@@ -8600,12 +8597,8 @@ apply_configuration(cfg_parser_t *configparser, cfg_obj_t *config,
 	dns_kasp_detach(&default_kasp);
 
 	/*
-	 * Save keystore list and kasp list.
+	 * Save kasp list.
 	 */
-	tmpkeystorelist = server->keystorelist;
-	server->keystorelist = keystorelist;
-	keystorelist = tmpkeystorelist;
-
 	tmpkasplist = server->kasplist;
 	server->kasplist = kasplist;
 	kasplist = tmpkasplist;
@@ -8675,11 +8668,10 @@ apply_configuration(cfg_parser_t *configparser, cfg_obj_t *config,
 			goto cleanup_cachelist;
 		}
 
-		result = configure_view(
-			view, &viewlist, config, vconfig, &cachelist,
-			&server->cachelist, &server->kasplist,
-			&server->keystorelist, bindkeys, isc_g_mctx,
-			named_g_aclconfctx, true, first_time);
+		result = configure_view(view, &viewlist, config, vconfig,
+					&cachelist, &server->cachelist,
+					&server->kasplist, bindkeys, isc_g_mctx,
+					named_g_aclconfctx, true, first_time);
 		if (result != ISC_R_SUCCESS) {
 			dns_view_detach(&view);
 			goto cleanup_cachelist;
@@ -8698,11 +8690,10 @@ apply_configuration(cfg_parser_t *configparser, cfg_obj_t *config,
 		if (result != ISC_R_SUCCESS) {
 			goto cleanup_cachelist;
 		}
-		result = configure_view(
-			view, &viewlist, config, NULL, &cachelist,
-			&server->cachelist, &server->kasplist,
-			&server->keystorelist, bindkeys, isc_g_mctx,
-			named_g_aclconfctx, true, first_time);
+		result = configure_view(view, &viewlist, config, NULL,
+					&cachelist, &server->cachelist,
+					&server->kasplist, bindkeys, isc_g_mctx,
+					named_g_aclconfctx, true, first_time);
 		if (result != ISC_R_SUCCESS) {
 			dns_view_detach(&view);
 			goto cleanup_cachelist;
@@ -8726,11 +8717,10 @@ apply_configuration(cfg_parser_t *configparser, cfg_obj_t *config,
 			goto cleanup_cachelist;
 		}
 
-		result = configure_view(
-			view, &viewlist, config, vconfig, &cachelist,
-			&server->cachelist, &server->kasplist,
-			&server->keystorelist, bindkeys, isc_g_mctx,
-			named_g_aclconfctx, false, first_time);
+		result = configure_view(view, &viewlist, config, vconfig,
+					&cachelist, &server->cachelist,
+					&server->kasplist, bindkeys, isc_g_mctx,
+					named_g_aclconfctx, false, first_time);
 		if (result != ISC_R_SUCCESS) {
 			dns_view_detach(&view);
 			goto cleanup_cachelist;
@@ -9123,6 +9113,18 @@ apply_configuration(cfg_parser_t *configparser, cfg_obj_t *config,
 	tmpaltsecrets = server->sctx->altsecrets;
 	server->sctx->altsecrets = altsecrets;
 	altsecrets = tmpaltsecrets;
+
+	/*
+	 * Swap the new keystores list with the old one (so the new one will be
+	 * used and old one will be cleared).
+	 */
+	tmpkeystorelist = server->keystorelist;
+	server->keystorelist = keystorelist;
+	keystorelist = tmpkeystorelist;
+	if (first_time) {
+		dns_zonemgr_setkeystores(server->zonemgr,
+					 &server->keystorelist);
+	}
 
 	(void)named_server_loadnta(server);
 

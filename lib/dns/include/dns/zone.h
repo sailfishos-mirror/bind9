@@ -2736,6 +2736,24 @@ dns_zone_getzoneversion(dns_zone_t *zone, isc_buffer_t *b);
  * \li	ISC_R_FAILURE other failure.
  */
 
+void
+dns_zonemgr_setkeystores(dns_zonemgr_t *zmgr, dns_keystorelist_t *keystores);
+/**<
+ * Set the global setting keystores into the zonemgr, so it can be used from the
+ * DNS code.
+ *
+ * Requires:
+ * \li	'zmgr' to be a valid.
+ * \li  'keystores' to be a valid.
+ */
+
+dns_keystorelist_t *
+dns_zone_getkeystores(dns_zone_t *zone);
+/**<
+ * Get the keystores pointer, it should never be NULL once the server is
+ * initialized.
+ */
+
 #if DNS_ZONE_TRACE
 #define dns_zone_ref(ptr)   dns_zone__ref(ptr, __func__, __FILE__, __LINE__)
 #define dns_zone_unref(ptr) dns_zone__unref(ptr, __func__, __FILE__, __LINE__)
