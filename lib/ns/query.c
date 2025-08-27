@@ -4004,6 +4004,9 @@ rpz_rewrite(ns_client_t *client, dns_rdatatype_t qtype, isc_result_t qresult,
 	if (first_time && popt.servfail_until_ready &&
 	    zones_processed < zones_registered)
 	{
+		/* Do not pollute SERVFAIL cache  */
+		client->inner.attributes |= NS_CLIENTATTR_NOSETFC;
+
 		rpz_log_fail(client, DNS_RPZ_DEBUG_LEVEL3, NULL,
 			     DNS_RPZ_TYPE_QNAME, "RPZ not ready yet", result);
 		st->m.policy = DNS_RPZ_POLICY_ERROR;
