@@ -2793,9 +2793,11 @@ configure_catz_zone(dns_view_t *view, dns_view_t *pview,
 	const char *str;
 	isc_result_t result;
 	dns_name_t origin;
+	dns_ipkeylist_t ipkl;
 	dns_catz_options_t *opts;
 
 	dns_name_init(&origin);
+	dns_ipkeylist_init(&ipkl);
 	catz_obj = cfg_listelt_value(element);
 
 	str = cfg_obj_asstring(cfg_tuple_get(catz_obj, "zone name"));
@@ -2810,6 +2812,21 @@ configure_catz_zone(dns_view_t *view, dns_view_t *pview,
 		cfg_obj_log(catz_obj, DNS_CATZ_ERROR_LEVEL,
 			    "catz: invalid zone name '%s'", str);
 		goto cleanup;
+	}
+
+	obj = cfg_tuple_get(catz_obj, "default-masters");
+	if (obj == NULL || !cfg_obj_istuple(obj)) {
+		obj = cfg_tuple_get(catz_obj, "default-primaries");
+	}
+	if (obj != NULL && cfg_obj_istuple(obj)) {
+		result = named_config_getipandkeylist(config, obj, view->mctx,
+						      &ipkl);
+		if (result != ISC_R_SUCCESS) {
+			cfg_obj_log(catz_obj, DNS_CATZ_ERROR_LEVEL,
+				    "catz: default-primaries parse error: %s",
+				    isc_result_totext(result));
+			goto cleanup;
+		}
 	}
 
 	result = dns_catz_zone_add(view->catzs, &origin, &zone);
@@ -2829,18 +2846,24 @@ configure_catz_zone(dns_view_t *view, dns_view_t *pview,
 					      view);
 		dns_catz_zone_for_each_entry2(zone, catz_reconfigure, view,
 					      &data);
+
+		result = ISC_R_SUCCESS;
+	} else if (result != ISC_R_SUCCESS) {
+		cfg_obj_log(catz_obj, DNS_CATZ_ERROR_LEVEL,
+			    "catz: dns_catz_zone_add failed: %s",
+			    isc_result_totext(result));
+		goto cleanup;
 	}
 
 	dns_catz_zone_resetdefoptions(zone);
 	opts = dns_catz_zone_getdefoptions(zone);
-
-	obj = cfg_tuple_get(catz_obj, "default-masters");
-	if (obj == NULL || !cfg_obj_istuple(obj)) {
-		obj = cfg_tuple_get(catz_obj, "default-primaries");
-	}
-	if (obj != NULL && cfg_obj_istuple(obj)) {
-		result = named_config_getipandkeylist(config, obj, view->mctx,
-						      &opts->masters);
+	if (ipkl.count != 0) {
+		/*
+		 * Transfer the ownership of the pointers inside 'ipkl' and
+		 * set its count to 0 in order to not cleanup it later below.
+		 */
+		opts->masters = ipkl;
+		ipkl.count = 0;
 	}
 
 	obj = cfg_tuple_get(catz_obj, "in-memory");
@@ -2869,6 +2892,9 @@ configure_catz_zone(dns_view_t *view, dns_view_t *pview,
 
 cleanup:
 	dns_name_free(&origin, view->mctx);
+	if (ipkl.count != 0) {
+		dns_ipkeylist_clear(view->mctx, &ipkl);
+	}
 
 	return result;
 }

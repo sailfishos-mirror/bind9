@@ -38,6 +38,15 @@ options {
 
 view "default" {
 
+	zone "catalog0.example" {
+		type primary;
+		file "catalog0.example.db";
+		allow-transfer { any; };
+		allow-update { any; };
+		also-notify { 10.53.0.2; };
+		notify explicit;
+	};
+
 	zone "catalog1.example" {
 		type primary;
 		file "catalog1.example.db";
