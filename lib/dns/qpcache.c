@@ -2559,6 +2559,7 @@ expire_ncache_entry(qpcache_t *qpdb, qpcnode_t *qpnode, dns_slabtop_t *top,
 			/*
 			 * The NXDOMAIN/NODATA(QTYPE=ANY) is more trusted.
 			 */
+			qpcache_hit(qpdb, top->header);
 			bindrdataset(qpdb, qpnode, top->header, now, nlocktype,
 				     tlocktype,
 				     addedrdataset DNS__DB_FLARG_PASS);
@@ -2751,6 +2752,7 @@ add(qpcache_t *qpdb, qpcnode_t *qpnode, dns_slabheader_t *newheader,
 		if (trust < header->trust &&
 		    (ACTIVE(header, now) || !EXISTS(header)))
 		{
+			qpcache_hit(qpdb, header);
 			bindrdataset(qpdb, qpnode, header, now, nlocktype,
 				     tlocktype,
 				     addedrdataset DNS__DB_FLARG_PASS);
@@ -2774,8 +2776,6 @@ add(qpcache_t *qpdb, qpcnode_t *qpnode, dns_slabheader_t *newheader,
 					 qpdb->common.rdclass,
 					 DNS_TYPEPAIR_TYPE(header->typepair)))
 		{
-			qpcache_hit(qpdb, header);
-
 			if (header->noqname == NULL &&
 			    newheader->noqname != NULL)
 			{
@@ -2788,6 +2788,8 @@ add(qpcache_t *qpdb, qpcnode_t *qpnode, dns_slabheader_t *newheader,
 				header->closest = newheader->closest;
 				newheader->closest = NULL;
 			}
+
+			qpcache_hit(qpdb, header);
 			bindrdataset(qpdb, qpnode, header, now, nlocktype,
 				     tlocktype,
 				     addedrdataset DNS__DB_FLARG_PASS);
@@ -2824,8 +2826,6 @@ add(qpcache_t *qpdb, qpcnode_t *qpnode, dns_slabheader_t *newheader,
 		    header->expire < newheader->expire &&
 		    dns_rdataslab_equal(header, newheader))
 		{
-			qpcache_hit(qpdb, header);
-
 			if (header->noqname == NULL &&
 			    newheader->noqname != NULL)
 			{
@@ -2838,6 +2838,8 @@ add(qpcache_t *qpdb, qpcnode_t *qpnode, dns_slabheader_t *newheader,
 				header->closest = newheader->closest;
 				newheader->closest = NULL;
 			}
+
+			qpcache_hit(qpdb, header);
 			bindrdataset(qpdb, qpnode, header, now, nlocktype,
 				     tlocktype,
 				     addedrdataset DNS__DB_FLARG_PASS);
