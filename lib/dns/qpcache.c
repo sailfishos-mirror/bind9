@@ -2534,6 +2534,48 @@ qpcnode_detachnode(dns_dbnode_t **nodep DNS__DB_FLARG) {
 }
 
 static isc_result_t
+expire_ncache_entry(qpcache_t *qpdb, qpcnode_t *qpnode, dns_slabtop_t *top,
+		    dns_slabheader_t *newheader, dns_trust_t trust,
+		    dns_rdataset_t *addedrdataset, isc_stdtime_t now,
+		    isc_rwlocktype_t nlocktype,
+		    isc_rwlocktype_t tlocktype DNS__DB_FLARG) {
+	dns_rdatatype_t rdtype = DNS_TYPEPAIR_TYPE(newheader->typepair);
+	dns_rdatatype_t covers = DNS_TYPEPAIR_COVERS(newheader->typepair);
+	dns_typepair_t sigpair = !dns_rdatatype_issig(rdtype)
+					 ? DNS_SIGTYPEPAIR(rdtype)
+					 : dns_typepair_none;
+	/*
+	 * 1. If we find a cached NXDOMAIN, don't cache anything else
+	 *    (dns_typepair_any).
+	 *
+	 * 2. Don't cache an RRSIG if it covers a type for which we have a
+	 *    cached NODATA record.
+	 */
+	if ((top->typepair == dns_typepair_any) ||
+	    (sigpair != dns_rdatatype_none && newheader->typepair == sigpair &&
+	     DNS_TYPEPAIR_TYPE(top->typepair) == covers))
+	{
+		if (trust < top->header->trust) {
+			/*
+			 * The NXDOMAIN/NODATA(QTYPE=ANY) is more trusted.
+			 */
+			bindrdataset(qpdb, qpnode, top->header, now, nlocktype,
+				     tlocktype,
+				     addedrdataset DNS__DB_FLARG_PASS);
+			return DNS_R_UNCHANGED;
+		}
+
+		/*
+		 * The new rdataset is better.  Expire the ncache entry.
+		 */
+		mark_ancient(top->header);
+		return ISC_R_SUCCESS;
+	}
+
+	return DNS_R_CONTINUE;
+}
+
+static isc_result_t
 add(qpcache_t *qpdb, qpcnode_t *qpnode, dns_slabheader_t *newheader,
     unsigned int options, dns_rdataset_t *addedrdataset, isc_stdtime_t now,
     isc_rwlocktype_t nlocktype, isc_rwlocktype_t tlocktype DNS__DB_FLARG) {
@@ -2543,9 +2585,7 @@ add(qpcache_t *qpdb, qpcnode_t *qpnode, dns_slabheader_t *newheader,
 	uint32_t ntypes = 0;
 	dns_rdatatype_t rdtype = DNS_TYPEPAIR_TYPE(newheader->typepair);
 	dns_rdatatype_t covers = DNS_TYPEPAIR_COVERS(newheader->typepair);
-	dns_typepair_t sigpair = !dns_rdatatype_issig(rdtype)
-					 ? DNS_SIGTYPEPAIR(rdtype)
-					 : dns_typepair_none;
+	dns_typepair_t sigpair = dns_typepair_none;
 
 	REQUIRE(rdtype != dns_rdatatype_none);
 	if (dns_rdatatype_issig(rdtype)) {
@@ -2564,120 +2604,101 @@ add(qpcache_t *qpdb, qpcnode_t *qpnode, dns_slabheader_t *newheader,
 		trust = newheader->trust;
 	}
 
-	if (EXISTS(newheader)) {
-		if (NEGATIVE(newheader)) {
-			/*
-			 * We're adding a negative cache entry.
-			 */
-			if (rdtype == dns_rdatatype_any) {
-				/*
-				 * If we're adding an negative cache entry
-				 * which covers all types (NXDOMAIN,
-				 * NODATA(QTYPE=ANY)),
-				 *
-				 * We make all other data ancient so that the
-				 * only rdataset that can be found at this
-				 * node is the negative cache entry.
-				 */
-				DNS_SLABTOP_FOREACH(top, qpnode->data) {
-					mark_ancient(top->header);
-				}
-				goto find_header;
-			}
+	if (EXISTS(newheader) && NEGATIVE(newheader) &&
+	    !dns_rdatatype_issig(rdtype))
+	{
+		/*
+		 * Look for any RRSIGs of the given type in the main search loop
+		 * so they can be also marked ancient later.
+		 */
+		sigpair = DNS_SIGTYPEPAIR(rdtype);
+	}
 
-			if (rdtype == dns_rdatatype_rrsig) {
-				/*
-				 * If we're adding a proof that a signature
-				 * doesn't exist, mark all signatures as
-				 * ancient.  This is basically the same as
-				 * above, but just for RRSIGs.
-				 */
+	bool scan_all = false;
 
-				DNS_SLABTOP_FOREACH(top, qpnode->data) {
-					if (DNS_TYPEPAIR_TYPE(top->typepair) ==
-					    dns_rdatatype_rrsig)
-					{
-						mark_ancient(top->header);
-					}
-				}
-				goto find_header;
-			}
+	if (EXISTS(newheader) && NEGATIVE(newheader) &&
+	    (rdtype == dns_rdatatype_any || rdtype == dns_rdatatype_rrsig))
+	{
+		/*
+		 * We're adding an negative cache entry which covers all types
+		 * (NXDOMAIN, NODATA(QTYPE=ANY)) or we are adding a proof that a
+		 * signature doesn't exist -> we need to scan all the entries.
+		 */
+		scan_all = true;
+	}
 
-			/*
-			 * Otherwise look for any RRSIGs of the given
-			 * type so they can be marked ancient later.
-			 */
-			DNS_SLABTOP_FOREACH(top, qpnode->data) {
-				if (top->typepair == sigpair) {
-					sigheader = top->header;
-					break;
-				}
-			}
-		} else {
-			dns_slabtop_t *foundtop = NULL;
-			/*
-			 * We're adding something that isn't a
-			 * negative cache entry.
-			 */
-			DNS_SLABTOP_FOREACH(top, qpnode->data) {
-				/*
-				 * Look for any existing negative cache
-				 * entries.
-				 */
-				if (!NEGATIVE(top->header)) {
-					continue;
-				}
-
-				/*
-				 * If we find a cached NXDOMAIN, don't
-				 * cache anything else.
-				 */
-				if (top->typepair == dns_typepair_any) {
-					foundtop = top;
-					break;
-				}
-
-				/*
-				 * Don't cache an RRSIG if it covers a type
-				 * for which we have a cached NODATA record.
-				 */
-				if (newheader->typepair == sigpair &&
-				    DNS_TYPEPAIR_TYPE(top->typepair) == covers)
-				{
-					foundtop = top;
-					break;
-				}
-			}
-
-			if (foundtop != NULL && EXISTS(foundtop->header) &&
-			    ACTIVE(foundtop->header, now))
-			{
-				/*
-				 * Found one.
-				 */
-				if (trust < foundtop->header->trust) {
-					/*
-					 * The NXDOMAIN/NODATA(QTYPE=ANY)
-					 * is more trusted.
-					 */
-					bindrdataset(
-						qpdb, qpnode, foundtop->header,
-						now, nlocktype, tlocktype,
-						addedrdataset
-							DNS__DB_FLARG_PASS);
-					return DNS_R_UNCHANGED;
-				}
-				/*
-				 * The new rdataset is better.  Expire the
-				 * ncache entry.
-				 */
-				mark_ancient(foundtop->header);
-				goto find_header;
-			}
-		}
+	if (EXISTS(newheader) && !NEGATIVE(newheader)) {
+		/*
+		 * We are adding negative header, we need to scan all entries
+		 * for existing NXDOMAIN/NODATA(QTYPE=ANY) or the existing
+		 * negative covered type if we are adding a RRSIG(type).
+		 */
+		scan_all = true;
 	}
 
 	DNS_SLABTOP_FOREACH(top, qpnode->data) {
+		if (EXISTS(newheader) && NEGATIVE(newheader) &&
+		    rdtype == dns_rdatatype_any)
+		{
+			/*
+			 * We're adding an negative cache entry which covers all
+			 * types (NXDOMAIN, NODATA(QTYPE=ANY)).
+			 *
+			 * Make all other data ancient so that the only rdataset
+			 * that can be found at this node is the negative cache
+			 * entry.
+			 */
+			mark_ancient(top->header);
+		}
+
+		if (EXISTS(newheader) && NEGATIVE(newheader) &&
+		    rdtype == dns_rdatatype_rrsig)
+		{
+			/*
+			 * We're adding a proof that a signature doesn't exist.
+			 *
+			 * Mark all existing signatures as ancient.
+			 */
+			if (DNS_TYPEPAIR_TYPE(top->typepair) ==
+			    dns_rdatatype_rrsig)
+			{
+				mark_ancient(top->header);
+			}
+		}
+
+		if (EXISTS(newheader) && !NEGATIVE(newheader) &&
+		    NEGATIVE(top->header) && EXISTS(top->header) &&
+		    ACTIVE(top->header, now))
+		{
+			/*
+			 * Look for existing active NXDOMAIN or negative covered
+			 * type if we are adding RRSIG.
+			 */
+			isc_result_t result = expire_ncache_entry(
+				qpdb, qpnode, top, newheader, trust,
+				addedrdataset, now, nlocktype, tlocktype);
+			if (result == DNS_R_UNCHANGED) {
+				/*
+				 * The existing negative entry is more trusted
+				 * than the new rdataset.
+				 */
+				return DNS_R_UNCHANGED;
+			} else if (result == ISC_R_SUCCESS) {
+				/*
+				 * The new rdataset is better.  Since we just
+				 * expired the negative cache entry, we can exit
+				 * the loop early as we are not going to find
+				 * anything.
+				 */
+				INSIST(header == NULL);
+				INSIST(sigheader == NULL);
+				if (!scan_all) {
+					break;
+				}
+			}
+			INSIST(result == DNS_R_CONTINUE);
+		}
+
 		if (ACTIVE(top->header, now)) {
 			++ntypes;
 			expiretop = top;
@@ -2688,16 +2709,31 @@ add(qpcache_t *qpdb, qpcnode_t *qpnode, dns_slabheader_t *newheader,
 
 		if (top->typepair == newheader->typepair) {
 			header = top->header;
+		}
+
+		if (sigpair != dns_rdatatype_none && top->typepair == sigpair) {
+			sigheader = top->header;
+		}
+
+		if (scan_all) {
+			continue;
+		}
+
+		if (header != NULL && sigpair == dns_rdatatype_none) {
+			/*
+			 * We found the right type and we are not looking for
+			 * matching RRSIG.
+			 */
+			break;
+		} else if (header != NULL && sigheader != NULL) {
+			/*
+			 * We found the right type and the matching RRSIG.
+			 */
 			break;
 		}
 	}
 
-find_header:
 	if (header != NULL) {
-		/*
-		 * We've found the right type.
-		 */
-
 		/*
 		 * Deleting an already non-existent rdataset has no effect.
 		 */
