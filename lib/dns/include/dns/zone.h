@@ -1633,29 +1633,6 @@ dns_zone_getkeydirectory(dns_zone_t *zone);
  *	Pointer to null-terminated file name, or NULL.
  */
 
-void
-dns_zone_setkeystores(dns_zone_t *zone, dns_keystorelist_t *keystores);
-/*%<
- *	Sets the keystore list where private keys used for
- *	online signing or dynamic zones are found.
- *
- * Require:
- *\li	'zone' to be a valid zone.
- */
-
-dns_keystorelist_t *
-dns_zone_getkeystores(dns_zone_t *zone);
-/*%<
- *	Gets the keystore list where private keys used for
- *	online signing or dynamic zones are found.
- *
- * Require:
- *\li	'zone' to be a valid zone.
- *
- * Returns:
- *	Pointer to the keystore list, or NULL.
- */
-
 isc_result_t
 dns_zone_getdnsseckeys(dns_zone_t *zone, dns_db_t *db, dns_dbversion_t *ver,
 		       isc_stdtime_t now, dns_dnsseckeylist_t *keys);
