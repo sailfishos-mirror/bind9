@@ -478,7 +478,7 @@ cfg_kasp_fromconfig(const cfg_obj_t *config, dns_kasp_t *default_kasp,
 	uint32_t zonepropdelay = 0, parentpropdelay = 0;
 	uint32_t ipub = 0, iret = 0;
 	uint32_t ksk_min_lifetime = 0, zsk_min_lifetime = 0;
-	bool offline_ksk = false;
+	bool offline_ksk = false, manual_mode = false;
 
 	REQUIRE(config != NULL);
 	REQUIRE(kaspp != NULL && *kaspp == NULL);
@@ -583,6 +583,13 @@ cfg_kasp_fromconfig(const cfg_obj_t *config, dns_kasp_t *default_kasp,
 	} else {
 		dns_kasp_setinlinesigning(kasp, true);
 	}
+
+	obj = NULL;
+	(void)confget(maps, "manual-mode", &obj);
+	if (obj != NULL) {
+		manual_mode = cfg_obj_asboolean(obj);
+	}
+	dns_kasp_setmanualmode(kasp, manual_mode);
 
 	maxttl = get_duration(maps, "max-zone-ttl", DNS_KASP_ZONE_MAXTTL);
 	dns_kasp_setzonemaxttl(kasp, maxttl);

@@ -306,6 +306,7 @@ dnssec-policy \"default\" {\n\
 	cds-digest-types { 2; };\n\
 	dnskey-ttl " DNS_KASP_KEY_TTL ";\n\
 	inline-signing yes;\n\
+	manual-mode no;\n\
 	offline-ksk no;\n\
 	publish-safety " DNS_KASP_PUBLISH_SAFETY "; \n\
 	retire-safety " DNS_KASP_RETIRE_SAFETY "; \n\
@@ -324,6 +325,7 @@ dnssec-policy \"insecure\" {\n\
 	max-zone-ttl 0; \n\
 	keys { };\n\
 	inline-signing yes;\n\
+	manual-mode no;\n\
 };\n\
 \n\
 "

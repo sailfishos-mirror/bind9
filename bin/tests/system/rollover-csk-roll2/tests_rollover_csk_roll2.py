@@ -13,8 +13,11 @@
 
 from datetime import timedelta
 
+import pytest
+
 import isctest
 from isctest.kasp import Ipub, Iret
+from isctest.util import param
 from rollover.common import (
     pytestmark,
     alg,
@@ -65,10 +68,21 @@ OFFSETS["step7-p"] = OFFSETS["step6-p"] - int(timedelta(days=90).total_seconds()
 OFFSETS["step7-s"] = OFFSETS["step6-s"] - int(timedelta(days=90).total_seconds())
 
 
-def test_csk_roll2_step1(alg, size, ns3):
-    zone = "step1.csk-roll2.autosign"
+@pytest.mark.parametrize(
+    "tld",
+    [
+        param("autosign"),
+        param("manual"),
+    ],
+)
+def test_csk_roll2_step1(tld, alg, size, ns3):
+    zone = f"step1.csk-roll2.{tld}"
+    policy = f"{POLICY}-{tld}"
 
     isctest.kasp.wait_keymgr_done(ns3, zone)
+
+    # manual-mode: Nothing changing in the zone, no 'dnssec -step' required.
+    # Note that the key was already generated during setup.
 
     step = {
         # Introduce the first key. This will immediately be active.
@@ -82,13 +96,44 @@ def test_csk_roll2_step1(alg, size, ns3):
         # registration delay).
         "nextev": CSK_LIFETIME - IPUB - TIMEDELTA["P7D"],
     }
-    isctest.kasp.check_rollover_step(ns3, CONFIG, POLICY, step)
+    isctest.kasp.check_rollover_step(ns3, CONFIG, policy, step)
 
 
-def test_csk_roll2_step2(alg, size, ns3):
-    zone = "step2.csk-roll2.autosign"
+@pytest.mark.parametrize(
+    "tld",
+    [
+        param("autosign"),
+        param("manual"),
+    ],
+)
+def test_csk_roll2_step2(tld, alg, size, ns3):
+    zone = f"step2.csk-roll2.{tld}"
+    policy = f"{POLICY}-{tld}"
 
     isctest.kasp.wait_keymgr_done(ns3, zone)
+
+    if tld == "manual":
+        # Same as step 1.
+        step = {
+            "zone": zone,
+            "cdss": CDSS,
+            "keyprops": [
+                f"csk {LIFETIME_POLICY} {alg} {size} goal:omnipresent dnskey:omnipresent krrsig:omnipresent zrrsig:omnipresent ds:omnipresent offset:{OFFSETS['step2-p']}",
+            ],
+            "manual-mode": True,
+            "nextev": None,
+        }
+        keys = isctest.kasp.check_rollover_step(ns3, CONFIG, policy, step)
+
+        # Check logs.
+        tag = keys[0].key.tag
+        msg = f"keymgr-manual-mode: block CSK rollover for key {zone}/ECDSAP256SHA256/{tag} (policy {policy})"
+        ns3.log.expect(msg)
+
+        # Force step.
+        with ns3.watch_log_from_here() as watcher:
+            ns3.rndc(f"dnssec -step {zone}")
+            watcher.wait_for_line(f"keymgr: {zone} done")
 
     step = {
         # Successor CSK is prepublished (signs DNSKEY RRset, but not yet
@@ -107,13 +152,58 @@ def test_csk_roll2_step2(alg, size, ns3):
         # Next key event is when the successor CSK becomes OMNIPRESENT.
         "nextev": IPUB,
     }
-    isctest.kasp.check_rollover_step(ns3, CONFIG, POLICY, step)
+    isctest.kasp.check_rollover_step(ns3, CONFIG, policy, step)
 
 
-def test_csk_roll2_step3(alg, size, ns3):
-    zone = "step3.csk-roll2.autosign"
+@pytest.mark.parametrize(
+    "tld",
+    [
+        param("autosign"),
+        param("manual"),
+    ],
+)
+def test_csk_roll2_step3(tld, alg, size, ns3):
+    zone = f"step3.csk-roll2.{tld}"
+    policy = f"{POLICY}-{tld}"
 
     isctest.kasp.wait_keymgr_done(ns3, zone)
+
+    if tld == "manual":
+        # Same as step 2, but DNSKEY has become OMNIPRESENT.
+        step = {
+            "zone": zone,
+            "cdss": CDSS,
+            "keyprops": [
+                f"csk {LIFETIME_POLICY} {alg} {size} goal:hidden dnskey:omnipresent krrsig:omnipresent zrrsig:omnipresent ds:omnipresent offset:{OFFSETS['step3-p']}",
+                f"csk {LIFETIME_POLICY} {alg} {size} goal:omnipresent dnskey:omnipresent krrsig:omnipresent zrrsig:hidden ds:hidden offset:{OFFSETS['step3-s']}",
+            ],
+            "keyrelationships": [0, 1],
+            "manual-mode": True,
+            "nextev": None,
+        }
+        keys = isctest.kasp.check_rollover_step(ns3, CONFIG, policy, step)
+
+        # Check logs.
+        tag = keys[1].key.tag
+        msg = f"keymgr-manual-mode: block transition CSK {zone}/ECDSAP256SHA256/{tag} type ZRRSIG state HIDDEN to state RUMOURED"
+        ns3.log.expect(msg)
+
+        # Force step.
+        with ns3.watch_log_from_here() as watcher:
+            ns3.rndc(f"dnssec -step {zone}")
+            watcher.wait_for_line(f"keymgr: {zone} done")
+
+        # Check logs.
+        tag = keys[0].key.tag
+        msg = f"keymgr-manual-mode: block transition CSK {zone}/ECDSAP256SHA256/{tag} type ZRRSIG state OMNIPRESENT to state UNRETENTIVE"
+        if msg in ns3.log:
+            # Force step.
+            isctest.log.debug(
+                f"keymgr-manual-mode blocking transition CSK {zone}/ECDSAP256SHA256/{tag} type ZRRSIG state OMNIPRESENT to state UNRETENTIVE, step again"
+            )
+            with ns3.watch_log_from_here() as watcher:
+                ns3.rndc(f"dnssec -step {zone}")
+                watcher.wait_for_line(f"keymgr: {zone} done")
 
     step = {
         # Successor CSK becomes omnipresent, meaning we can start signing
@@ -145,13 +235,23 @@ def test_csk_roll2_step3(alg, size, ns3):
         # from the predecessor ZSK.
         "smooth": True,
     }
-    isctest.kasp.check_rollover_step(ns3, CONFIG, POLICY, step)
+    isctest.kasp.check_rollover_step(ns3, CONFIG, policy, step)
 
 
-def test_csk_roll2_step4(alg, size, ns3):
-    zone = "step4.csk-roll2.autosign"
+@pytest.mark.parametrize(
+    "tld",
+    [
+        param("autosign"),
+        param("manual"),
+    ],
+)
+def test_csk_roll2_step4(tld, alg, size, ns3):
+    zone = f"step4.csk-roll2.{tld}"
+    policy = f"{POLICY}-{tld}"
 
     isctest.kasp.wait_keymgr_done(ns3, zone)
+
+    # manual-mode: Nothing changing in the zone, no 'dnssec -step' required.
 
     step = {
         "zone": zone,
@@ -174,13 +274,48 @@ def test_csk_roll2_step4(alg, size, ns3):
         # We already swapped the DS in the previous step, so disable ds-swap.
         "ds-swap": False,
     }
-    isctest.kasp.check_rollover_step(ns3, CONFIG, POLICY, step)
+    isctest.kasp.check_rollover_step(ns3, CONFIG, policy, step)
 
 
-def test_csk_roll2_step5(alg, size, ns3):
-    zone = "step5.csk-roll2.autosign"
+@pytest.mark.parametrize(
+    "tld",
+    [
+        param("autosign"),
+        param("manual"),
+    ],
+)
+def test_csk_roll2_step5(tld, alg, size, ns3):
+    zone = f"step5.csk-roll2.{tld}"
+    policy = f"{POLICY}-{tld}"
 
     isctest.kasp.wait_keymgr_done(ns3, zone)
+
+    if tld == "manual":
+        # Same as step 4, but DS has become HIDDEN/OMNIPRESENT.
+        step = {
+            "zone": zone,
+            "cdss": CDSS,
+            "keyprops": [
+                f"csk {LIFETIME_POLICY} {alg} {size} goal:hidden dnskey:omnipresent krrsig:omnipresent zrrsig:hidden ds:hidden offset:{OFFSETS['step5-p']}",
+                f"csk {LIFETIME_POLICY} {alg} {size} goal:omnipresent dnskey:omnipresent krrsig:omnipresent zrrsig:omnipresent ds:omnipresent offset:{OFFSETS['step5-s']}",
+            ],
+            "keyrelationships": [0, 1],
+            "manual-mode": True,
+            "nextev": None,
+        }
+        keys = isctest.kasp.check_rollover_step(ns3, CONFIG, policy, step)
+
+        # Check logs.
+        tag = keys[0].key.tag
+        msg1 = f"keymgr-manual-mode: block transition CSK {zone}/ECDSAP256SHA256/{tag} type DNSKEY state OMNIPRESENT to state UNRETENTIVE"
+        msg2 = f"keymgr-manual-mode: block transition CSK {zone}/ECDSAP256SHA256/{tag} type KRRSIG state OMNIPRESENT to state UNRETENTIVE"
+        ns3.log.expect(msg1)
+        ns3.log.expect(msg2)
+
+        # Force step.
+        with ns3.watch_log_from_here() as watcher:
+            ns3.rndc(f"dnssec -step {zone}")
+            watcher.wait_for_line(f"keymgr: {zone} done")
 
     step = {
         "zone": zone,
@@ -200,13 +335,23 @@ def test_csk_roll2_step5(alg, size, ns3):
         # This is the DNSKEY TTL plus zone propagation delay.
         "nextev": KEYTTLPROP,
     }
-    isctest.kasp.check_rollover_step(ns3, CONFIG, POLICY, step)
+    isctest.kasp.check_rollover_step(ns3, CONFIG, policy, step)
 
 
-def test_csk_roll2_step6(alg, size, ns3):
-    zone = "step6.csk-roll2.autosign"
+@pytest.mark.parametrize(
+    "tld",
+    [
+        param("autosign"),
+        param("manual"),
+    ],
+)
+def test_csk_roll2_step6(tld, alg, size, ns3):
+    zone = f"step6.csk-roll2.{tld}"
+    policy = f"{POLICY}-{tld}"
 
     isctest.kasp.wait_keymgr_done(ns3, zone)
+
+    # manual-mode: Nothing changing in the zone, no 'dnssec -step' required.
 
     step = {
         "zone": zone,
@@ -223,13 +368,23 @@ def test_csk_roll2_step6(alg, size, ns3):
         # This is the Lcsk, minus time passed since the key was published.
         "nextev": CSK_LIFETIME - IRET - IPUB - KEYTTLPROP,
     }
-    isctest.kasp.check_rollover_step(ns3, CONFIG, POLICY, step)
+    isctest.kasp.check_rollover_step(ns3, CONFIG, policy, step)
 
 
-def test_csk_roll2_step7(alg, size, ns3):
-    zone = "step7.csk-roll2.autosign"
+@pytest.mark.parametrize(
+    "tld",
+    [
+        param("autosign"),
+        param("manual"),
+    ],
+)
+def test_csk_roll2_step7(tld, alg, size, ns3):
+    zone = f"step7.csk-roll2.{tld}"
+    policy = f"{POLICY}-{tld}"
 
     isctest.kasp.wait_keymgr_done(ns3, zone)
+
+    # manual-mode: Nothing changing in the zone, no 'dnssec -step' required.
 
     step = {
         "zone": zone,
@@ -242,4 +397,4 @@ def test_csk_roll2_step7(alg, size, ns3):
         "keyrelationships": [0, 1],
         "nextev": None,
     }
-    isctest.kasp.check_rollover_step(ns3, CONFIG, POLICY, step)
+    isctest.kasp.check_rollover_step(ns3, CONFIG, policy, step)

@@ -343,7 +343,8 @@ keymgr_prepublication_time(dns_dnsseckey_t *key, dns_kasp_t *kasp,
 }
 
 static void
-keymgr_key_retire(dns_dnsseckey_t *key, dns_kasp_t *kasp, isc_stdtime_t now) {
+keymgr_key_retire(dns_dnsseckey_t *key, dns_kasp_t *kasp, uint8_t opts,
+		  isc_stdtime_t now) {
 	char keystr[DST_KEY_FORMATSIZE];
 	isc_result_t ret;
 	isc_stdtime_t retire;
@@ -353,17 +354,40 @@ keymgr_key_retire(dns_dnsseckey_t *key, dns_kasp_t *kasp, isc_stdtime_t now) {
 	REQUIRE(key != NULL);
 	REQUIRE(key->key != NULL);
 
-	/* This key wants to retire and hide in a corner. */
+	dst_key_format(key->key, keystr, sizeof(keystr));
+
+	ret = dst_key_getstate(key->key, DST_KEY_GOAL, &s);
+	INSIST(ret == ISC_R_SUCCESS);
+
+	if (dns_kasp_manualmode(kasp) &&
+	    (opts & DNS_KEYMGRATTR_FORCESTEP) == 0 && s != HIDDEN)
+	{
+		isc_log_write(dns_lctx, DNS_LOGCATEGORY_DNSSEC,
+			      DNS_LOGMODULE_DNSSEC, ISC_LOG_INFO,
+			      "keymgr-manual-mode: block retire DNSKEY "
+			      "%s (%s)",
+			      keystr, keymgr_keyrole(key->key));
+		return;
+	} else {
+		/* This key wants to retire and hide in a corner. */
+		isc_log_write(dns_lctx, DNS_LOGCATEGORY_DNSSEC,
+			      DNS_LOGMODULE_DNSSEC, ISC_LOG_INFO,
+			      "keymgr: retire DNSKEY %s (%s)", keystr,
+			      keymgr_keyrole(key->key));
+
+		dst_key_setstate(key->key, DST_KEY_GOAL, HIDDEN);
+	}
+
+	/*
+	 * This key may not have key states set yet. Pretend as if they are
+	 * in the OMNIPRESENT state.
+	 */
 	ret = dst_key_gettime(key->key, DST_TIME_INACTIVE, &retire);
 	if (ret != ISC_R_SUCCESS || (retire > now)) {
 		dst_key_settime(key->key, DST_TIME_INACTIVE, now);
 	}
-	dst_key_setstate(key->key, DST_KEY_GOAL, HIDDEN);
 	keymgr_settime_remove(key, kasp);
 
-	/* This key may not have key states set yet. Pretend as if they are
-	 * in the OMNIPRESENT state.
-	 */
 	if (dst_key_getstate(key->key, DST_KEY_DNSKEY, &s) != ISC_R_SUCCESS) {
 		dst_key_setstate(key->key, DST_KEY_DNSKEY, OMNIPRESENT);
 		dst_key_settime(key->key, DST_TIME_DNSKEY, now);
@@ -392,11 +416,6 @@ keymgr_key_retire(dns_dnsseckey_t *key, dns_kasp_t *kasp, isc_stdtime_t now) {
 			dst_key_settime(key->key, DST_TIME_ZRRSIG, now);
 		}
 	}
-
-	dst_key_format(key->key, keystr, sizeof(keystr));
-	isc_log_write(dns_lctx, DNS_LOGCATEGORY_DNSSEC, DNS_LOGMODULE_DNSSEC,
-		      ISC_LOG_INFO, "keymgr: retire DNSKEY %s (%s)", keystr,
-		      keymgr_keyrole(key->key));
 }
 
 /* Update lifetime and retire and remove time accordingly. */
@@ -980,7 +999,7 @@ keymgr_dnskey_hidden_or_chained(dns_dnsseckeylist_t *keyring,
  */
 static bool
 keymgr_have_ds(dns_dnsseckeylist_t *keyring, dns_dnsseckey_t *key, int type,
-	       dst_key_state_t next_state, bool secure_to_insecure) {
+	       dst_key_state_t next_state, uint8_t opts) {
 	/* (3a) */
 	dst_key_state_t states[2][NUM_KEYSTATES] = {
 		/* DNSKEY, ZRRSIG, KRRSIG, DS */
@@ -998,7 +1017,7 @@ keymgr_have_ds(dns_dnsseckeylist_t *keyring, dns_dnsseckey_t *key, int type,
 					    states[0], na, false, false) ||
 	       keymgr_key_exists_with_state(keyring, key, type, next_state,
 					    states[1], na, false, false) ||
-	       (secure_to_insecure &&
+	       ((opts & DNS_KEYMGRATTR_S2I) != 0 &&
 		keymgr_key_exists_with_state(keyring, key, type, next_state, na,
 					     na, false, false));
 }
@@ -1237,17 +1256,14 @@ keymgr_policy_approval(dns_dnsseckeylist_t *keyring, dns_dnsseckey_t *key,
  */
 static bool
 keymgr_transition_allowed(dns_dnsseckeylist_t *keyring, dns_dnsseckey_t *key,
-			  int type, dst_key_state_t next_state,
-			  bool secure_to_insecure) {
+			  int type, dst_key_state_t next_state, uint8_t opts) {
 	/* Debug logging. */
 	if (isc_log_wouldlog(dns_lctx, ISC_LOG_DEBUG(1))) {
 		bool rule1a, rule1b, rule2a, rule2b, rule3a, rule3b;
 		char keystr[DST_KEY_FORMATSIZE];
 		dst_key_format(key->key, keystr, sizeof(keystr));
-		rule1a = keymgr_have_ds(keyring, key, type, NA,
-					secure_to_insecure);
-		rule1b = keymgr_have_ds(keyring, key, type, next_state,
-					secure_to_insecure);
+		rule1a = keymgr_have_ds(keyring, key, type, NA, opts);
+		rule1b = keymgr_have_ds(keyring, key, type, next_state, opts);
 		rule2a = keymgr_have_dnskey(keyring, key, type, NA);
 		rule2b = keymgr_have_dnskey(keyring, key, type, next_state);
 		rule3a = keymgr_have_rrsig(keyring, key, type, NA);
@@ -1272,9 +1288,8 @@ keymgr_transition_allowed(dns_dnsseckeylist_t *keyring, dns_dnsseckey_t *key,
 		 * invalid state.  If the rule check passes, also check if
 		 * the next state is also still a valid situation.
 		 */
-		(!keymgr_have_ds(keyring, key, type, NA, secure_to_insecure) ||
-		 keymgr_have_ds(keyring, key, type, next_state,
-				secure_to_insecure)) &&
+		(!keymgr_have_ds(keyring, key, type, NA, opts) ||
+		 keymgr_have_ds(keyring, key, type, next_state, opts)) &&
 		/*
 		 * Rule 2: There must be a DNSKEY at all times.  Again, first
 		 * check the current situation, then assess the next state.
@@ -1465,8 +1480,10 @@ keymgr_transition_time(dns_dnsseckey_t *key, int type,
  */
 static isc_result_t
 keymgr_update(dns_dnsseckeylist_t *keyring, dns_kasp_t *kasp, isc_stdtime_t now,
-	      isc_stdtime_t *nexttime, bool secure_to_insecure) {
+	      isc_stdtime_t *nexttime, uint8_t opts) {
+	isc_result_t result = DNS_R_UNCHANGED;
 	bool changed;
+	bool force = ((opts & DNS_KEYMGRATTR_FORCESTEP) != 0);
 
 	/* Repeat until nothing changed. */
 transition:
@@ -1553,8 +1570,7 @@ transition:
 
 			/* Is the transition DNSSEC safe? */
 			if (!keymgr_transition_allowed(keyring, dkey, i,
-						       next_state,
-						       secure_to_insecure))
+						       next_state, opts))
 			{
 				/* No, this would make the zone bogus. */
 				isc_log_write(
@@ -1591,6 +1607,29 @@ transition:
 				continue;
 			}
 
+			/*
+			 * Are we allowed to make the transition automatically?
+			 */
+			if (next_state != OMNIPRESENT && next_state != HIDDEN) {
+				if (dns_kasp_manualmode(kasp) && !force) {
+					isc_log_write(
+						dns_lctx,
+						DNS_LOGCATEGORY_DNSSEC,
+						DNS_LOGMODULE_DNSSEC,
+						ISC_LOG_INFO,
+						"keymgr-manual-mode: block "
+						"transition "
+						"%s %s type %s "
+						"state %s to state %s",
+						keymgr_keyrole(dkey->key),
+						keystr, keystatetags[i],
+						keystatestrings[state],
+						keystatestrings[next_state]);
+					continue;
+				}
+			}
+
+			/* It is safe to make the transition. */
 			isc_log_write(dns_lctx, DNS_LOGCATEGORY_DNSSEC,
 				      DNS_LOGMODULE_DNSSEC, ISC_LOG_DEBUG(1),
 				      "keymgr: transition %s %s type %s "
@@ -1599,7 +1638,6 @@ transition:
 				      keystatetags[i], keystatestrings[state],
 				      keystatestrings[next_state]);
 
-			/* It is safe to make the transition. */
 			dst_key_setstate(dkey->key, i, next_state);
 			dst_key_settime(dkey->key, keystatetimes[i], now);
 			INSIST(dst_key_ismodified(dkey->key));
@@ -1609,10 +1647,13 @@ transition:
 
 	/* We changed something, continue processing. */
 	if (changed) {
+		result = ISC_R_SUCCESS;
+		/* No longer force for the next run */
+		force = false;
 		goto transition;
 	}
 
-	return ISC_R_SUCCESS;
+	return result;
 }
 
 /*
@@ -1735,9 +1776,10 @@ keymgr_key_rollover(dns_kasp_key_t *kaspkey, dns_dnsseckey_t *active_key,
 		    dns_dnsseckeylist_t *keyring, dns_dnsseckeylist_t *newkeys,
 		    const dns_name_t *origin, dns_rdataclass_t rdclass,
 		    dns_kasp_t *kasp, const char *keydir, uint32_t lifetime,
-		    bool rollover, isc_stdtime_t now, isc_stdtime_t *nexttime,
+		    uint8_t opts, isc_stdtime_t now, isc_stdtime_t *nexttime,
 		    isc_mem_t *mctx) {
 	char keystr[DST_KEY_FORMATSIZE];
+	char namestr[DNS_NAME_FORMATSIZE];
 	isc_stdtime_t retire = 0, active = 0, prepub = 0;
 	dns_dnsseckey_t *new_key = NULL;
 	dns_dnsseckey_t *candidate = NULL;
@@ -1814,7 +1856,7 @@ keymgr_key_rollover(dns_kasp_key_t *kaspkey, dns_dnsseckey_t *active_key,
 		/*
 		 * If rollover is not allowed, warn.
 		 */
-		if (!rollover) {
+		if ((opts & DNS_KEYMGRATTR_NOROLL) != 0) {
 			dst_key_format(active_key->key, keystr, sizeof(keystr));
 			isc_log_write(dns_lctx, DNS_LOGCATEGORY_DNSSEC,
 				      DNS_LOGMODULE_DNSSEC, ISC_LOG_WARNING,
@@ -1825,7 +1867,6 @@ keymgr_key_rollover(dns_kasp_key_t *kaspkey, dns_dnsseckey_t *active_key,
 			return ISC_R_SUCCESS;
 		}
 	} else if (isc_log_wouldlog(dns_lctx, ISC_LOG_DEBUG(1))) {
-		char namestr[DNS_NAME_FORMATSIZE];
 		dns_name_format(origin, namestr, sizeof(namestr));
 		isc_log_write(dns_lctx, DNS_LOGCATEGORY_DNSSEC,
 			      DNS_LOGMODULE_DNSSEC, ISC_LOG_DEBUG(1),
@@ -1846,11 +1887,55 @@ keymgr_key_rollover(dns_kasp_key_t *kaspkey, dns_dnsseckey_t *active_key,
 		    dst_key_is_unused(candidate->key))
 		{
 			/* Found a candidate in keyring. */
+			new_key = candidate;
 			break;
 		}
 	}
 
-	if (candidate == NULL) {
+	if (dns_kasp_manualmode(kasp) && (opts & DNS_KEYMGRATTR_FORCESTEP) == 0)
+	{
+		if (active_key != NULL && new_key != NULL) {
+			char keystr2[DST_KEY_FORMATSIZE];
+			dst_key_format(active_key->key, keystr, sizeof(keystr));
+			dst_key_format(new_key->key, keystr2, sizeof(keystr2));
+			dns_name_format(origin, namestr, sizeof(namestr));
+			isc_log_write(
+				dns_lctx, DNS_LOGCATEGORY_DNSSEC,
+				DNS_LOGMODULE_DNSSEC, ISC_LOG_INFO,
+				"keymgr-manual-mode: block %s rollover for key "
+				"%s to key %s (policy %s)",
+				keymgr_keyrole(active_key->key), keystr,
+				keystr2, dns_kasp_getname(kasp));
+		} else if (active_key != NULL) {
+			dst_key_format(active_key->key, keystr, sizeof(keystr));
+			dns_name_format(origin, namestr, sizeof(namestr));
+			isc_log_write(dns_lctx, DNS_LOGCATEGORY_DNSSEC,
+				      DNS_LOGMODULE_DNSSEC, ISC_LOG_INFO,
+				      "keymgr-manual-mode: block %s rollover "
+				      "for key %s (policy %s)",
+				      keymgr_keyrole(active_key->key), keystr,
+				      dns_kasp_getname(kasp));
+		} else if (new_key != NULL) {
+			dst_key_format(new_key->key, keystr, sizeof(keystr));
+			dns_name_format(origin, namestr, sizeof(namestr));
+			isc_log_write(dns_lctx, DNS_LOGCATEGORY_DNSSEC,
+				      DNS_LOGMODULE_DNSSEC, ISC_LOG_INFO,
+				      "keymgr-manual-mode: block %s "
+				      "introduction %s (policy %s)",
+				      keymgr_keyrole(new_key->key), keystr,
+				      dns_kasp_getname(kasp));
+		} else {
+			dns_name_format(origin, namestr, sizeof(namestr));
+			isc_log_write(dns_lctx, DNS_LOGCATEGORY_DNSSEC,
+				      DNS_LOGMODULE_DNSSEC, ISC_LOG_INFO,
+				      "keymgr-manual-mode: block new key "
+				      "generation for zone %s (policy %s)",
+				      namestr, dns_kasp_getname(kasp));
+		}
+		return ISC_R_SUCCESS;
+	}
+
+	if (new_key == NULL) {
 		/* No key available in keyring, create a new one. */
 		bool csk = (dns_kasp_key_ksk(kaspkey) &&
 			    dns_kasp_key_zsk(kaspkey));
@@ -1865,8 +1950,6 @@ keymgr_key_rollover(dns_kasp_key_t *kaspkey, dns_dnsseckey_t *active_key,
 		dst_key_settime(dst_key, DST_TIME_CREATED, now);
 		dns_dnsseckey_create(mctx, &dst_key, &new_key);
 		keymgr_key_init(new_key, kasp, now, csk);
-	} else {
-		new_key = candidate;
 	}
 	dst_key_setnum(new_key->key, DST_NUM_LIFETIME, lifetime);
 
@@ -2062,12 +2145,12 @@ isc_result_t
 dns_keymgr_run(const dns_name_t *origin, dns_rdataclass_t rdclass,
 	       isc_mem_t *mctx, dns_dnsseckeylist_t *keyring,
 	       dns_dnsseckeylist_t *dnskeys, const char *keydir,
-	       dns_kasp_t *kasp, isc_stdtime_t now, isc_stdtime_t *nexttime) {
-	isc_result_t result = ISC_R_SUCCESS;
+	       dns_kasp_t *kasp, uint8_t opts, isc_stdtime_t now,
+	       isc_stdtime_t *nexttime) {
+	isc_result_t result = DNS_R_UNCHANGED;
 	dns_dnsseckeylist_t newkeys;
 	dns_kasp_key_t *kkey;
 	dns_dnsseckey_t *newkey = NULL;
-	bool secure_to_insecure = false;
 	int numkeys = 0;
 	int options = (DST_TYPE_PRIVATE | DST_TYPE_PUBLIC | DST_TYPE_STATE);
 	char keystr[DST_KEY_FORMATSIZE];
@@ -2138,7 +2221,7 @@ dns_keymgr_run(const dns_name_t *origin, dns_rdataclass_t rdclass,
 
 		/* No match, so retire unwanted retire key. */
 		if (!found_match) {
-			keymgr_key_retire(dkey, kasp, now);
+			keymgr_key_retire(dkey, kasp, opts, now);
 		}
 
 		/* Check purge-keys interval. */
@@ -2166,7 +2249,6 @@ dns_keymgr_run(const dns_name_t *origin, dns_rdataclass_t rdclass,
 	{
 		uint32_t lifetime = dns_kasp_key_lifetime(kkey);
 		dns_dnsseckey_t *active_key = NULL;
-		bool rollover_allowed = true;
 
 		/* Do we have keys available for this kasp key? */
 		for (dns_dnsseckey_t *dkey = ISC_LIST_HEAD(*keyring);
@@ -2207,7 +2289,7 @@ dns_keymgr_run(const dns_name_t *origin, dns_rdataclass_t rdclass,
 						 * Retire excess keys in use.
 						 */
 						keymgr_key_retire(dkey, kasp,
-								  now);
+								  opts, now);
 					}
 					continue;
 				}
@@ -2249,7 +2331,7 @@ dns_keymgr_run(const dns_name_t *origin, dns_rdataclass_t rdclass,
 						keystr,
 						keymgr_keyrole(dnskey->key),
 						dns_kasp_getname(kasp));
-					rollover_allowed = false;
+					opts |= DNS_KEYMGRATTR_NOROLL;
 					active_key = dnskey;
 					break;
 				}
@@ -2257,10 +2339,11 @@ dns_keymgr_run(const dns_name_t *origin, dns_rdataclass_t rdclass,
 		}
 
 		/* See if this key requires a rollover. */
-		RETERR(keymgr_key_rollover(kkey, active_key, keyring, &newkeys,
-					   origin, rdclass, kasp, keydir,
-					   lifetime, rollover_allowed, now,
-					   nexttime, mctx));
+		RETERR(keymgr_key_rollover(
+			kkey, active_key, keyring, &newkeys, origin, rdclass,
+			kasp, keydir, lifetime, opts, now, nexttime, mctx));
+
+		opts &= ~DNS_KEYMGRATTR_NOROLL;
 	}
 
 	/* Walked all kasp key configurations.  Append new keys. */
@@ -2272,10 +2355,12 @@ dns_keymgr_run(const dns_name_t *origin, dns_rdataclass_t rdclass,
 	 * If the policy has an empty key list, this means the zone is going
 	 * back to unsigned.
 	 */
-	secure_to_insecure = dns_kasp_keylist_empty(kasp);
+	if (dns_kasp_keylist_empty(kasp)) {
+		opts |= DNS_KEYMGRATTR_S2I;
+	}
 
 	/* Read to update key states. */
-	keymgr_update(keyring, kasp, now, nexttime, secure_to_insecure);
+	isc_result_t retval = keymgr_update(keyring, kasp, now, nexttime, opts);
 
 	/* Store key states and update hints. */
 	for (dns_dnsseckey_t *dkey = ISC_LIST_HEAD(*keyring); dkey != NULL;
@@ -2285,6 +2370,7 @@ dns_keymgr_run(const dns_name_t *origin, dns_rdataclass_t rdclass,
 		if (dst_key_getttl(dkey->key) != dns_kasp_dnskeyttl(kasp)) {
 			dst_key_setttl(dkey->key, dns_kasp_dnskeyttl(kasp));
 			modified = true;
+			retval = ISC_R_SUCCESS;
 		}
 		if (modified && !dkey->purge) {
 			const char *directory = dst_key_directory(dkey->key);
@@ -2310,10 +2396,9 @@ dns_keymgr_run(const dns_name_t *origin, dns_rdataclass_t rdclass,
 		dst_key_setmodified(dkey->key, false);
 	}
 
-	result = ISC_R_SUCCESS;
-
+	result = retval;
 failure:
-	if (result != ISC_R_SUCCESS) {
+	if (result != ISC_R_SUCCESS && result != DNS_R_UNCHANGED) {
 		while ((newkey = ISC_LIST_HEAD(newkeys)) != NULL) {
 			ISC_LIST_UNLINK(newkeys, newkey, link);
 			INSIST(newkey->key != NULL);

@@ -19,5 +19,5 @@ zone "three-is-a-crowd.kasp" {
         file "three-is-a-crowd.kasp.db";
         inline-signing yes;
         /* Use same policy as KSK rollover test zones. */
-        dnssec-policy "ksk-doubleksk";
+        dnssec-policy "ksk-doubleksk-autosign";
 };

@@ -11,26 +11,31 @@
  * information regarding copyright ownership.
  */
 
+{% set zones = ["autosign", "manual"] %}
+
 include "kasp.conf";
 include "named.common.conf";
 
-zone "step1.enable-dnssec.autosign" {
+{% for tld in zones %}
+zone "step1.enable-dnssec.@tld@" {
 	type primary;
-	file "step1.enable-dnssec.autosign.db";
-	dnssec-policy "enable-dnssec";
+	file "step1.enable-dnssec.@tld@.db";
+	dnssec-policy "enable-dnssec-@tld@";
 };
-zone "step2.enable-dnssec.autosign" {
+zone "step2.enable-dnssec.@tld@" {
 	type primary;
-	file "step2.enable-dnssec.autosign.db";
-	dnssec-policy "enable-dnssec";
+	file "step2.enable-dnssec.@tld@.db";
+	dnssec-policy "enable-dnssec-@tld@";
 };
-zone "step3.enable-dnssec.autosign" {
+zone "step3.enable-dnssec.@tld@" {
 	type primary;
-	file "step3.enable-dnssec.autosign.db";
-	dnssec-policy "enable-dnssec";
+	file "step3.enable-dnssec.@tld@.db";
+	dnssec-policy "enable-dnssec-@tld@";
 };
-zone "step4.enable-dnssec.autosign" {
+zone "step4.enable-dnssec.@tld@" {
 	type primary;
-	file "step4.enable-dnssec.autosign.db";
-	dnssec-policy "enable-dnssec";
+	file "step4.enable-dnssec.@tld@.db";
+	dnssec-policy "enable-dnssec-@tld@";
 };
+
+{% endfor %}
