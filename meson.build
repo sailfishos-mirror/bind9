@@ -314,6 +314,7 @@ if developer_mode
     config.set('DNS_TYPEPAIR_CHECK', 1)
 endif
 
+# mandatory builtins
 foreach fn : [
     '__builtin_add_overflow',
     '__builtin_expect',
@@ -324,6 +325,16 @@ foreach fn : [
 ]
     if not cc.has_function(fn)
         error('@0@ support required'.format(fn))
+    endif
+endforeach
+
+# optional builtins
+foreach fn : [
+    '__builtin_stdc_rotate_left',
+    '__builtin_stdc_rotate_right',
+]
+    if cc.has_function(fn)
+        config.set('HAVE_@0@'.format(fn.substring(2).to_upper()), 1)
     endif
 endforeach
 

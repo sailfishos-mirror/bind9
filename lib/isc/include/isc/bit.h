@@ -62,92 +62,84 @@
 
 #endif /* __has_header(<stdbit.h>) */
 
-#define ISC_ROTATE_LEFT8(x, n)                                                \
-	({                                                                    \
-		STATIC_ASSERT(n > 0 && n < 8,                                 \
-			      "rotation must be a constant between 0 and 8"); \
-		STATIC_ASSERT(                                                \
-			__builtin_types_compatible_p(typeof(x), uint8_t),     \
-			"rotated value must be uint8_t");                     \
-		((x) << (n) | (x) >> (8 - (n)));                              \
-	})
+#if HAVE_BUILTIN_STD_ROTATE_LEFT && HAVE_BUILTIN_STD_ROTATE_RIGHT
+#define ISC_ROTATE_LEFT(x, n)  __builtin_stdc_rotate_left(x, n)
+#define ISC_ROTATE_RIGHT(x, n) __builtin_stdc_rotate_right(x, n)
+#else /* HAVE_BUILTIN_STD_ROTATE_LEFT && HAVE_BUILTIN_STD_ROTATE_RIGHT */
 
-#define ISC_ROTATE_LEFT16(x, n)                                                \
-	({                                                                     \
-		STATIC_ASSERT(n > 0 && n < 16,                                 \
-			      "rotation must be a constant between 0 and 16"); \
-		STATIC_ASSERT(                                                 \
-			__builtin_types_compatible_p(typeof(x), uint16_t),     \
-			"rotated value must be uint16_t");                     \
-		((x) << (n) | (x) >> (16 - (n)));                              \
-	})
+static inline uint8_t
+isc_rotate_left8(const uint8_t x, uint32_t n) {
+	return (x << n) | (x >> (8 - n));
+}
 
-#define ISC_ROTATE_LEFT32(x, n)                                                \
-	({                                                                     \
-		STATIC_ASSERT(n > 0 && n < 32,                                 \
-			      "rotation must be a constant between 0 and 32"); \
-		STATIC_ASSERT(                                                 \
-			__builtin_types_compatible_p(typeof(x), uint32_t),     \
-			"rotated value must be uint32_t");                     \
-		((x) << (n) | (x) >> (32 - (n)));                              \
-	})
+static inline uint16_t
+isc_rotate_left16(const uint16_t x, uint32_t n) {
+	return (x << n) | (x >> (16 - n));
+}
 
-#define ISC_ROTATE_LEFT64(x, n)                                                \
-	({                                                                     \
-		STATIC_ASSERT(n > 0 && n < 64,                                 \
-			      "rotation must be a constant between 0 and 64"); \
-		STATIC_ASSERT(                                                 \
-			__builtin_types_compatible_p(typeof(x), uint64_t),     \
-			"rotated value must be uint64_t");                     \
-		((x) << (n) | (x) >> (64 - (n)));                              \
-	})
+static inline uint32_t
+isc_rotate_left32(const uint32_t x, uint32_t n) {
+	return (x << n) | (x >> (32 - n));
+}
 
-#define ISC_ROTATE_RIGHT8(x, n)                                               \
-	({                                                                    \
-		STATIC_ASSERT(n > 0 && n < 8,                                 \
-			      "rotation must be a constant between 0 and 8"); \
-		STATIC_ASSERT(                                                \
-			__builtin_types_compatible_p(typeof(x), uint8_t),     \
-			"rotated value must be uint8_t");                     \
-		((x) >> (n) | (x) << (8 - (n)));                              \
-	})
+static inline uint64_t
+isc_rotate_left64(const uint64_t x, uint32_t n) {
+	return (x << n) | (x >> (64 - n));
+}
 
-#define ISC_ROTATE_RIGHT16(x, n)                                               \
-	({                                                                     \
-		STATIC_ASSERT(n > 0 && n < 16,                                 \
-			      "rotation must be a constant between 0 and 16"); \
-		STATIC_ASSERT(                                                 \
-			__builtin_types_compatible_p(typeof(x), uint16_t),     \
-			"rotated value must be uint16_t");                     \
-		((x) >> (n) | (x) << (16 - (n)));                              \
-	})
+static inline uint8_t
+isc_rotate_right8(const uint8_t x, uint32_t n) {
+	return (x >> n) | (x << (8 - n));
+}
 
-#define ISC_ROTATE_RIGHT32(x, n)                                               \
-	({                                                                     \
-		STATIC_ASSERT(n > 0 && n < 32,                                 \
-			      "rotation must be a constant between 0 and 32"); \
-		STATIC_ASSERT(                                                 \
-			__builtin_types_compatible_p(typeof(x), uint32_t),     \
-			"rotated value must be uint32_t");                     \
-		((x) >> (n) | (x) << (32 - (n)));                              \
-	})
+static inline uint16_t
+isc_rotate_right16(const uint16_t x, uint32_t n) {
+	return (x >> n) | (x << (16 - n));
+}
 
-#define ISC_ROTATE_RIGHT64(x, n)                                               \
-	({                                                                     \
-		STATIC_ASSERT(n > 0 && n < 64,                                 \
-			      "rotation must be a constant between 0 and 64"); \
-		STATIC_ASSERT(                                                 \
-			__builtin_types_compatible_p(typeof(x), uint64_t),     \
-			"rotated value must be uint64_t");                     \
-		((x) >> (n) | (x) << (64 - (n)));                              \
-	})
+static inline uint32_t
+isc_rotate_right32(const uint32_t x, uint32_t n) {
+	return (x >> n) | (x << (32 - n));
+}
+
+static inline uint64_t
+isc_rotate_right64(const uint64_t x, uint32_t n) {
+	return (x >> n) | (x << (64 - n));
+}
+
+#if __APPLE_CC__
+
+/*
+ * Apple compiler doesn't recognize size_t and uintXX_t types as same,
+ * so we need to add kludges for size_t below.
+ */
 
 #if SIZE_MAX == UINT64_MAX
-#define ISC_ROTATE_LEFTSIZE(x, n)  ISC_ROTATE_LEFT64((uint64_t)x, n)
-#define ISC_ROTATE_RIGHTSIZE(x, n) ISC_ROTATE_RIGHT64((uint64_t)x, n)
+#define EXTRA_ROTATE_LEFT  , size_t : isc_rotate_left64
+#define EXTRA_ROTATE_RIGHT , size_t : isc_rotate_right64
 #elif SIZE_MAX == UINT32_MAX
-#define ISC_ROTATE_LEFTSIZE(x, n)  ISC_ROTATE_LEFT32((uint32_t)x, n)
-#define ISC_ROTATE_RIGHTSIZE(x, n) ISC_ROTATE_RIGHT32((uint32_t)x, n)
+#define EXTRA_ROTATE_LEFT  , size_t : isc_rotate_left32
+#define EXTRA_ROTATE_RIGHT , size_t : isc_rotate_right32
 #else
 #error "size_t must be either 32 or 64-bits"
 #endif
+#else
+#define EXTRA_ROTATE_LEFT
+#define EXTRA_ROTATE_RIGHT
+#endif
+
+#define ISC_ROTATE_LEFT(x, n)                \
+	_Generic((x),                        \
+		uint8_t: isc_rotate_left8,   \
+		uint16_t: isc_rotate_left16, \
+		uint32_t: isc_rotate_left32, \
+		uint64_t: isc_rotate_left64 EXTRA_ROTATE_LEFT)(x, n)
+
+#define ISC_ROTATE_RIGHT(x, n)                \
+	_Generic((x),                         \
+		uint8_t: isc_rotate_right8,   \
+		uint16_t: isc_rotate_right16, \
+		uint32_t: isc_rotate_right32, \
+		uint64_t: isc_rotate_right64 EXTRA_ROTATE_RIGHT)(x, n)
+
+#endif /* HAVE_BUILTIN_STD_ROTATE_LEFT && HAVE_BUILTIN_STD_ROTATE_RIGHT */
