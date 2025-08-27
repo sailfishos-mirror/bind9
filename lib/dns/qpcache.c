@@ -2570,7 +2570,7 @@ expire_ncache_entry(qpcache_t *qpdb, qpcnode_t *qpnode, dns_slabtop_t *top,
 		 * The new rdataset is better.  Expire the ncache entry.
 		 */
 		mark_ancient(top->header);
-		return ISC_R_SUCCESS;
+		return DNS_R_CONTINUE;
 	}
 
 	return DNS_R_CONTINUE;
@@ -2593,10 +2593,10 @@ add(qpcache_t *qpdb, qpcnode_t *qpnode, dns_slabheader_t *newheader,
 		/* signature must be either negative or cover something */
 		REQUIRE(NEGATIVE(newheader) || covers != dns_rdatatype_none);
 	} else {
-		/* otherwise, it must cover nothing */
+		/* non-signature it must cover nothing */
 		REQUIRE(covers == dns_rdatatype_none);
 	}
-	/* positive header can't be ANY */
+	/* positive header can't be for type ANY */
 	REQUIRE(rdtype != dns_rdatatype_any || NEGATIVE(newheader));
 
 	if ((options & DNS_DBADD_FORCE) != 0) {
@@ -2609,32 +2609,10 @@ add(qpcache_t *qpdb, qpcnode_t *qpnode, dns_slabheader_t *newheader,
 	    !dns_rdatatype_issig(rdtype))
 	{
 		/*
-		 * Look for any RRSIGs of the given type in the main search loop
-		 * so they can be also marked ancient later.
+		 * Look for any RRSIGs of the given type in the main search
+		 * loop so they can be also marked ancient later.
 		 */
 		sigpair = DNS_SIGTYPEPAIR(rdtype);
-	}
-
-	bool scan_all = false;
-
-	if (EXISTS(newheader) && NEGATIVE(newheader) &&
-	    (rdtype == dns_rdatatype_any || rdtype == dns_rdatatype_rrsig))
-	{
-		/*
-		 * We're adding an negative cache entry which covers all types
-		 * (NXDOMAIN, NODATA(QTYPE=ANY)) or we are adding a proof that a
-		 * signature doesn't exist -> we need to scan all the entries.
-		 */
-		scan_all = true;
-	}
-
-	if (EXISTS(newheader) && !NEGATIVE(newheader)) {
-		/*
-		 * We are adding negative header, we need to scan all entries
-		 * for existing NXDOMAIN/NODATA(QTYPE=ANY) or the existing
-		 * negative covered type if we are adding a RRSIG(type).
-		 */
-		scan_all = true;
 	}
 
 	DNS_SLABTOP_FOREACH(top, qpnode->data) {
@@ -2642,12 +2620,12 @@ add(qpcache_t *qpdb, qpcnode_t *qpnode, dns_slabheader_t *newheader,
 		    rdtype == dns_rdatatype_any)
 		{
 			/*
-			 * We're adding an negative cache entry which covers all
-			 * types (NXDOMAIN, NODATA(QTYPE=ANY)).
+			 * We're adding a negative cache entry which
+			 * covers all types (NXDOMAIN, NODATA(QTYPE=ANY)).
 			 *
-			 * Make all other data ancient so that the only rdataset
-			 * that can be found at this node is the negative cache
-			 * entry.
+			 * Make all other data ancient so that the only
+			 * rdataset that can be found at this node is the
+			 * negative cache entry.
 			 */
 			mark_ancient(top->header);
 		}
@@ -2672,8 +2650,8 @@ add(qpcache_t *qpdb, qpcnode_t *qpnode, dns_slabheader_t *newheader,
 		    ACTIVE(top->header, now))
 		{
 			/*
-			 * Look for existing active NXDOMAIN or negative covered
-			 * type if we are adding RRSIG.
+			 * Look for existing active NXDOMAIN or negative
+			 * covered type if we are adding RRSIG.
 			 */
 			isc_result_t result = expire_ncache_entry(
 				qpdb, qpnode, top, newheader, trust,
@@ -2684,18 +2662,6 @@ add(qpcache_t *qpdb, qpcnode_t *qpnode, dns_slabheader_t *newheader,
 				 * than the new rdataset.
 				 */
 				return DNS_R_UNCHANGED;
-			} else if (result == ISC_R_SUCCESS) {
-				/*
-				 * The new rdataset is better.  Since we just
-				 * expired the negative cache entry, we can exit
-				 * the loop early as we are not going to find
-				 * anything.
-				 */
-				INSIST(header == NULL);
-				INSIST(sigheader == NULL);
-				if (!scan_all) {
-					break;
-				}
 			}
 			INSIST(result == DNS_R_CONTINUE);
 		}
@@ -2709,28 +2675,13 @@ add(qpcache_t *qpdb, qpcnode_t *qpnode, dns_slabheader_t *newheader,
 		}
 
 		if (top->typepair == newheader->typepair) {
+			INSIST(header == NULL);
 			header = top->header;
 		}
 
 		if (sigpair != dns_rdatatype_none && top->typepair == sigpair) {
+			INSIST(sigheader == NULL);
 			sigheader = top->header;
-		}
-
-		if (scan_all) {
-			continue;
-		}
-
-		if (header != NULL && sigpair == dns_rdatatype_none) {
-			/*
-			 * We found the right type and we are not looking for
-			 * matching RRSIG.
-			 */
-			break;
-		} else if (header != NULL && sigheader != NULL) {
-			/*
-			 * We found the right type and the matching RRSIG.
-			 */
-			break;
 		}
 	}
 
