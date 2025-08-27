@@ -4262,14 +4262,18 @@ rpz_rewrite(ns_client_t *client, dns_rdatatype_t qtype, isc_result_t qresult,
 	    bool resuming, dns_rdataset_t *ordataset, dns_rdataset_t *osigset) {
 	dns_rpz_zones_t *rpzs;
 	dns_rpz_st_t *st;
-	dns_rdataset_t *rdataset;
+	dns_rdataset_t *rdataset = NULL;
 	dns_fixedname_t nsnamef;
 	dns_name_t *nsname;
-	qresult_type_t qresult_type;
+	qresult_type_t qresult_type = qresult_type_done;
 	dns_rpz_zbits_t zbits;
 	isc_result_t result = ISC_R_SUCCESS;
 	dns_rpz_have_t have;
 	dns_rpz_popt_t popt;
+	bool first_time;
+	dns_rpz_num_t zones_registered;
+	dns_rpz_num_t zones_processed;
+
 	int rpz_ver;
 	unsigned int options;
 #ifdef USE_DNSRPS
@@ -4301,6 +4305,9 @@ rpz_rewrite(ns_client_t *client, dns_rdatatype_t qtype, isc_result_t qresult,
 	}
 	have = rpzs->have;
 	popt = rpzs->p;
+	first_time = rpzs->first_time;
+	zones_registered = atomic_load_acquire(&rpzs->zones_registered);
+	zones_processed = atomic_load_acquire(&rpzs->zones_processed);
 	rpz_ver = rpzs->rpz_ver;
 	RWUNLOCK(&rpzs->search_lock, isc_rwlocktype_read);
 
@@ -4346,6 +4353,16 @@ rpz_rewrite(ns_client_t *client, dns_rdatatype_t qtype, isc_result_t qresult,
 			}
 		}
 #endif /* ifdef USE_DNSRPS */
+	}
+
+	/* Check if the initial loading of RPZ is complete. */
+	if (first_time && popt.servfail_until_ready &&
+	    zones_processed < zones_registered)
+	{
+		rpz_log_fail(client, DNS_RPZ_DEBUG_LEVEL3, NULL,
+			     DNS_RPZ_TYPE_QNAME, "RPZ not ready yet", result);
+		st->m.policy = DNS_RPZ_POLICY_ERROR;
+		goto cleanup;
 	}
 
 	/*
@@ -4396,8 +4413,6 @@ rpz_rewrite(ns_client_t *client, dns_rdatatype_t qtype, isc_result_t qresult,
 			     qresult);
 		return ISC_R_SUCCESS;
 	}
-
-	rdataset = NULL;
 
 	if ((st->state & (DNS_RPZ_DONE_CLIENT_IP | DNS_RPZ_DONE_QNAME)) !=
 	    (DNS_RPZ_DONE_CLIENT_IP | DNS_RPZ_DONE_QNAME))

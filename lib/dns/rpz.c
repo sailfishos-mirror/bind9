@@ -30,6 +30,7 @@
 #include <isc/rwlock.h>
 #include <isc/string.h>
 #include <isc/util.h>
+#include <isc/uv.h>
 #include <isc/work.h>
 
 #include <dns/db.h>
@@ -1499,7 +1500,8 @@ add_name(dns_rpz_zone_t *rpz, dns_rpz_type_t rpz_type,
  */
 isc_result_t
 dns_rpz_new_zones(dns_view_t *view, isc_loopmgr_t *loopmgr, char *rps_cstr,
-		  size_t rps_cstr_size, dns_rpz_zones_t **rpzsp) {
+		  size_t rps_cstr_size, dns_rpz_zones_t **rpzsp,
+		  bool first_time) {
 	dns_rpz_zones_t *rpzs = NULL;
 	isc_mem_t *mctx = NULL;
 #ifdef USE_DNSRPS
@@ -1517,6 +1519,7 @@ dns_rpz_new_zones(dns_view_t *view, isc_loopmgr_t *loopmgr, char *rps_cstr,
 		.rps_cstr_size = rps_cstr_size,
 		.loopmgr = loopmgr,
 		.magic = DNS_RPZ_ZONES_MAGIC,
+		.first_time = first_time,
 	};
 
 	isc_rwlock_init(&rpzs->search_lock);
@@ -1668,7 +1671,19 @@ dns_rpz_dbupdate_unregister(dns_db_t *db, dns_rpz_zone_t *rpz) {
 	REQUIRE(DNS_DB_VALID(db));
 	REQUIRE(DNS_RPZ_ZONE_VALID(rpz));
 
+	LOCK(&rpz->rpzs->maint_lock);
 	dns_db_updatenotify_unregister(db, dns_rpz_dbupdate_callback, rpz);
+	if (rpz->processed) {
+		rpz->processed = false;
+		INSIST(atomic_fetch_sub_acq_rel(&rpz->rpzs->zones_processed,
+						1) > 0);
+	}
+	if (rpz->dbregistered) {
+		rpz->dbregistered = false;
+		INSIST(atomic_fetch_sub_acq_rel(&rpz->rpzs->zones_registered,
+						1) > 0);
+	}
+	UNLOCK(&rpz->rpzs->maint_lock);
 }
 
 void
@@ -1676,8 +1691,15 @@ dns_rpz_dbupdate_register(dns_db_t *db, dns_rpz_zone_t *rpz) {
 	REQUIRE(DNS_DB_VALID(db));
 	REQUIRE(DNS_RPZ_ZONE_VALID(rpz));
 
+	LOCK(&rpz->rpzs->maint_lock);
+	if (!rpz->dbregistered) {
+		rpz->dbregistered = true;
+		atomic_fetch_add_acq_rel(&rpz->rpzs->zones_registered, 1);
+	}
 	dns_db_updatenotify_register(db, dns_rpz_dbupdate_callback, rpz);
+	UNLOCK(&rpz->rpzs->maint_lock);
 }
+
 static void
 dns__rpz_timer_start(dns_rpz_zone_t *rpz) {
 	uint64_t tdiff;
@@ -1742,6 +1764,11 @@ update_rpz_done_cb(void *data) {
 	dns_db_closeversion(rpz->updb, &rpz->updbversion, false);
 	dns_db_detach(&rpz->updb);
 
+	if (rpz->dbregistered && !rpz->processed) {
+		rpz->processed = true;
+		atomic_fetch_add_acq_rel(&rpz->rpzs->zones_processed, 1);
+	}
+
 	UNLOCK(&rpz->rpzs->maint_lock);
 
 	isc_log_write(dns_lctx, DNS_LOGCATEGORY_GENERAL, DNS_LOGMODULE_MASTER,
@@ -1758,6 +1785,7 @@ update_nodes(dns_rpz_zone_t *rpz, isc_ht_t *newnodes) {
 	dns_name_t *name = NULL;
 	dns_fixedname_t fixname;
 	char domain[DNS_NAME_FORMATSIZE];
+	bool slow_mode;
 
 	dns_name_format(&rpz->origin, domain, DNS_NAME_FORMATSIZE);
 
@@ -1780,6 +1808,10 @@ update_nodes(dns_rpz_zone_t *rpz, isc_ht_t *newnodes) {
 			      isc_result_totext(result));
 		goto cleanup;
 	}
+
+	LOCK(&rpz->rpzs->maint_lock);
+	slow_mode = rpz->rpzs->p.slow_mode;
+	UNLOCK(&rpz->rpzs->maint_lock);
 
 	while (result == ISC_R_SUCCESS) {
 		char namebuf[DNS_NAME_FORMATSIZE];
@@ -1881,6 +1913,10 @@ update_nodes(dns_rpz_zone_t *rpz, isc_ht_t *newnodes) {
 
 	next:
 		result = dns_dbiterator_next(updbit);
+
+		if (slow_mode) {
+			uv_sleep(100);
+		}
 	}
 	INSIST(result != ISC_R_SUCCESS);
 	if (result == ISC_R_NOMORE) {

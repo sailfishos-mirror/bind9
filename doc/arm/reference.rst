@@ -5331,6 +5331,15 @@ the same zone files both inside and outside an :rfc:`1918` cloud and using
 RPZ to delete answers that would otherwise contain :rfc:`1918` values on
 the externally visible name server or view.
 
+Also by default, when :iscman:`named` is started it may start answering to
+queries before the response policy zones are completely loaded and processed.
+This can be changed with the ``servfail-until-ready yes`` option, in which case
+incoming requests will result in SERVFAIL answer, until all the response policy
+zones are ready. Note that if one or more response policy zones fail to load,
+:iscman:`named` starts responding to queries according to those zones that did
+load. Note, that enabling this option has no effect when a DNS Response Policy
+Service (DNSRPS) interface is used.
+
 Also by default, RPZ actions are applied only to DNS requests that
 either do not request DNSSEC metadata (DO=0) or when no DNSSEC records
 are available for the requested name in the original zone (not the response
