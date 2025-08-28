@@ -79,19 +79,18 @@
 
 struct dns_view {
 	/* Unlocked. */
-	unsigned int	    magic;
-	isc_mem_t	   *mctx;
-	dns_rdataclass_t    rdclass;
-	char		   *name;
-	dns_zt_t	   *zonetable;
-	dns_resolver_t	   *resolver;
-	dns_adb_t	   *adb;
-	dns_requestmgr_t   *requestmgr;
-	dns_dispatchmgr_t  *dispatchmgr;
-	dns_cache_t	   *cache;
-	dns_db_t	   *cachedb;
-	dns_db_t	   *hints;
-	dns_keystorelist_t *keystores;
+	unsigned int	   magic;
+	isc_mem_t	  *mctx;
+	dns_rdataclass_t   rdclass;
+	char		  *name;
+	dns_zt_t	  *zonetable;
+	dns_resolver_t	  *resolver;
+	dns_adb_t	  *adb;
+	dns_requestmgr_t  *requestmgr;
+	dns_dispatchmgr_t *dispatchmgr;
+	dns_cache_t	  *cache;
+	dns_db_t	  *cachedb;
+	dns_db_t	  *hints;
 
 	/*
 	 * security roots and negative trust anchors.

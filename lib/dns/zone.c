@@ -637,6 +637,7 @@ struct dns_zonemgr {
 	unsigned int startupnotifyrate;
 	unsigned int serialqueryrate;
 	unsigned int startupserialqueryrate;
+	dns_keystorelist_t *keystores;
 
 	dns_keymgmt_t *keymgmt;
 
@@ -6854,7 +6855,7 @@ dns_zone_getdnsseckeys(dns_zone_t *zone, dns_db_t *db, dns_dbversion_t *ver,
 	/* Get keys from private key files. */
 	dns_zone_lock_keyfiles(zone);
 	result = dns_dnssec_findmatchingkeys(origin, kasp, dir,
-					     zone->view->keystores, now,
+					     dns_zone_getkeystores(zone), now,
 					     dns_zone_getmctx(zone), keys);
 	dns_zone_unlock_keyfiles(zone);
 
@@ -16693,7 +16694,7 @@ dns_zone_dnskey_inuse(dns_zone_t *zone, dns_rdata_t *rdata, bool *inuse) {
 
 	kasp = dns_zone_getkasp(zone);
 	keydir = dns_zone_getkeydirectory(zone);
-	keystores = zone->view->keystores;
+	keystores = dns_zone_getkeystores(zone);
 
 	dns_zone_lock_keyfiles(zone);
 	result = dns_dnssec_findmatchingkeys(dns_zone_getorigin(zone), kasp,
@@ -19805,6 +19806,16 @@ dns_zonemgr_setstartupnotifyrate(dns_zonemgr_t *zmgr, unsigned int value) {
 }
 
 void
+dns_zonemgr_setkeystores(dns_zonemgr_t *zmgr, dns_keystorelist_t *keystores) {
+	zmgr->keystores = keystores;
+}
+
+dns_keystorelist_t *
+dns_zone_getkeystores(dns_zone_t *zone) {
+	return zone->zmgr->keystores;
+}
+
+void
 dns_zonemgr_setserialqueryrate(dns_zonemgr_t *zmgr, unsigned int value) {
 	REQUIRE(DNS_ZONEMGR_VALID(zmgr));
 
@@ -22392,8 +22403,8 @@ zone_rekey(dns_zone_t *zone) {
 
 	dns_zone_lock_keyfiles(zone);
 	result = dns_dnssec_findmatchingkeys(&zone->origin, kasp, dir,
-					     zone->view->keystores, now, mctx,
-					     &keys);
+					     dns_zone_getkeystores(zone), now,
+					     mctx, &keys);
 	dns_zone_unlock_keyfiles(zone);
 
 	if (result != ISC_R_SUCCESS) {
