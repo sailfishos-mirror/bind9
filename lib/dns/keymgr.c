@@ -1667,16 +1667,9 @@ transition:
 	return result;
 }
 
-/*
- * See if this key needs to be initialized with properties.  A key created
- * and derived from a dnssec-policy will have the required metadata available,
- * otherwise these may be missing and need to be initialized.  The key states
- * will be initialized according to existing timing metadata.
- *
- */
-static void
-keymgr_key_init(dns_dnsseckey_t *key, dns_kasp_t *kasp, isc_stdtime_t now,
-		bool csk) {
+void
+dns_keymgr_key_init(dns_dnsseckey_t *key, dns_kasp_t *kasp, isc_stdtime_t now,
+		    bool csk) {
 	bool ksk, zsk;
 	isc_result_t ret;
 	isc_stdtime_t active = 0, pub = 0, syncpub = 0, retire = 0, remove = 0;
@@ -1960,7 +1953,7 @@ keymgr_key_rollover(dns_kasp_key_t *kaspkey, dns_dnsseckey_t *active_key,
 		dst_key_setttl(dst_key, dns_kasp_dnskeyttl(kasp));
 		dst_key_settime(dst_key, DST_TIME_CREATED, now);
 		dns_dnsseckey_create(mctx, &dst_key, &new_key);
-		keymgr_key_init(new_key, kasp, now, csk);
+		dns_keymgr_key_init(new_key, kasp, now, csk);
 	}
 	dst_key_setnum(new_key->key, DST_NUM_LIFETIME, lifetime);
 
@@ -2247,7 +2240,7 @@ dns_keymgr_run(const dns_name_t *origin, dns_rdataclass_t rdclass,
 	{
 		bool found_match = false;
 
-		keymgr_key_init(dkey, kasp, now, numkeys == 1);
+		dns_keymgr_key_init(dkey, kasp, now, numkeys == 1);
 
 		for (kkey = ISC_LIST_HEAD(dns_kasp_keys(kasp)); kkey != NULL;
 		     kkey = ISC_LIST_NEXT(kkey, link))
@@ -2884,7 +2877,7 @@ dns_keymgr_offline(const dns_name_t *origin, dns_dnsseckeylist_t *keyring,
 			continue;
 		}
 
-		keymgr_key_init(dkey, kasp, now, false);
+		dns_keymgr_key_init(dkey, kasp, now, false);
 
 		/* Get current metadata */
 		RETERR(dst_key_getstate(dkey->key, DST_KEY_DNSKEY,
