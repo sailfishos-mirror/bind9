@@ -57,7 +57,7 @@ usage(void);
 static void
 usage(void) {
 	fprintf(stderr,
-		"usage: %s [-achijlvz] [-p [-x]] [-t directory] "
+		"usage: %s [-achijklvz] [-p [-x]] [-t directory] "
 		"[named.conf]\n",
 		isc_commandline_progname);
 	exit(EXIT_SUCCESS);
@@ -593,7 +593,7 @@ main(int argc, char **argv) {
 	/*
 	 * Process memory debugging argument first.
 	 */
-#define CMDLINE_FLAGS "acdhijlm:nt:pvxz"
+#define CMDLINE_FLAGS "acdhijklm:nt:pvxz"
 	while ((c = isc_commandline_parse(argc, argv, CMDLINE_FLAGS)) != -1) {
 		switch (c) {
 		case 'm':
@@ -636,6 +636,10 @@ main(int argc, char **argv) {
 
 		case 'j':
 			nomerge = false;
+			break;
+
+		case 'k':
+			checkflags |= BIND_CHECK_KEYS;
 			break;
 
 		case 'l':

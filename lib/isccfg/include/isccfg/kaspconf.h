@@ -15,13 +15,17 @@
 
 #include <isccfg/cfg.h>
 
+#define ISCCFG_KASPCONF_CHECK_ALGORITHMS 0x01
+#define ISCCFG_KASPCONF_CHECK_KEYLIST	 0x02
+#define ISCCFG_KASPCONF_LOG_ERRORS	 0x04
+
 /***
  *** Functions
  ***/
 
 isc_result_t
 cfg_kasp_fromconfig(const cfg_obj_t *config, dns_kasp_t *default_kasp,
-		    bool check_algorithms, isc_mem_t *mctx,
+		    unsigned int options, isc_mem_t *mctx,
 		    dns_keystorelist_t *keystorelist, dns_kasplist_t *kasplist,
 		    dns_kasp_t **kaspp);
 /*%<
@@ -34,8 +38,16 @@ cfg_kasp_fromconfig(const cfg_obj_t *config, dns_kasp_t *default_kasp,
  *
  * The 'keystorelist' is where to lookup key stores if KASP keys are using them.
  *
- * If 'check_algorithms' is true then the dnssec-policy DNSSEC key
- * algorithms are checked against those supported by the crypto provider.
+ * If 'options' has ISCCFG_KASPCONF_CHECK_ALGORITHMS set, then the dnssec-policy
+ * DNSSEC key algorithms are checked against those supported by the crypto
+ * provider.
+ *
+ * If 'options' has ISCCFG_KASPCONF_CHECK_KEYLIST set, then this function
+ * insists that the key list is not empty, unless the policy is "insecure"
+ * (then the key list must be empty).
+ *
+ * If 'options' has ISCCFG_KASPCONF_LOG_ERRORS set, then configuration errors
+ * and warnings are logged to the global logging context.
  *
  * Requires:
  *

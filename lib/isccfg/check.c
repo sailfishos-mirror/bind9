@@ -47,6 +47,7 @@
 #include <dns/fixedname.h>
 #include <dns/journal.h>
 #include <dns/kasp.h>
+#include <dns/keymgr.h>
 #include <dns/keystore.h>
 #include <dns/keyvalues.h>
 #include <dns/peer.h>
@@ -1397,6 +1398,11 @@ check_options(const cfg_obj_t *options, const cfg_obj_t *config,
 	if (obj != NULL) {
 		bool bad_kasp = false;
 		bool bad_name = false;
+		unsigned int kaspopts = (ISCCFG_KASPCONF_CHECK_KEYLIST |
+					 ISCCFG_KASPCONF_LOG_ERRORS);
+		if (check_algorithms) {
+			kaspopts |= ISCCFG_KASPCONF_CHECK_ALGORITHMS;
+		}
 
 		if (optlevel != optlevel_config && !cfg_obj_isstring(obj)) {
 			bad_kasp = true;
@@ -1422,8 +1428,8 @@ check_options(const cfg_obj_t *options, const cfg_obj_t *config,
 					}
 
 					ret = cfg_kasp_fromconfig(
-						kconfig, NULL, check_algorithms,
-						mctx, &kslist, &list, &kasp);
+						kconfig, NULL, kaspopts, mctx,
+						&kslist, &list, &kasp);
 					if (ret != ISC_R_SUCCESS) {
 						if (result == ISC_R_SUCCESS) {
 							result = ret;
@@ -2815,29 +2821,29 @@ cleanup:
 
 static isc_result_t
 check_keydir(const cfg_obj_t *config, const cfg_obj_t *zconfig,
-	     dns_name_t *zname, const char *name, const char *keydir,
-	     isc_symtab_t *keydirs, isc_mem_t *mctx) {
+	     dns_name_t *origin, const char *zname, const char *name,
+	     const char *keydir, isc_symtab_t *keydirs, isc_mem_t *mctx,
+	     bool check_keys) {
 	const char *dir = keydir;
 	isc_result_t ret, result = ISC_R_SUCCESS;
-	bool do_cleanup = false;
 	bool done = false;
 	bool keystore = false;
 	const cfg_obj_t *kasps = NULL;
+	const cfg_obj_t *kaspobj = NULL;
 	dns_kasp_t *kasp = NULL;
 	dns_kasplist_t kasplist;
 	const cfg_obj_t *keystores = NULL;
 	dns_keystorelist_t kslist;
+	isc_time_t timenow;
+	isc_stdtime_t now;
 
-	/* If no dnssec-policy or key-store, use the dir (key-directory) */
+	timenow = isc_time_now();
+	now = isc_time_seconds(&timenow);
+
 	(void)cfg_map_get(config, "dnssec-policy", &kasps);
 	(void)cfg_map_get(config, "key-store", &keystores);
-	if (kasps == NULL || keystores == NULL) {
-		goto check;
-	}
-
 	ISC_LIST_INIT(kasplist);
 	ISC_LIST_INIT(kslist);
-	do_cleanup = true;
 
 	/*
 	 * Build the keystore list.
@@ -2854,7 +2860,7 @@ check_keydir(const cfg_obj_t *config, const cfg_obj_t *zconfig,
 	 */
 	CFG_LIST_FOREACH(kasps, element) {
 		cfg_obj_t *kconfig = cfg_listelt_value(element);
-		const cfg_obj_t *kaspobj = NULL;
+		kaspobj = NULL;
 
 		if (!cfg_obj_istuple(kconfig)) {
 			continue;
@@ -2865,7 +2871,7 @@ check_keydir(const cfg_obj_t *config, const cfg_obj_t *zconfig,
 			continue;
 		}
 
-		ret = cfg_kasp_fromconfig(kconfig, NULL, false, mctx, &kslist,
+		ret = cfg_kasp_fromconfig(kconfig, NULL, 0, mctx, &kslist,
 					  &kasplist, &kasp);
 		if (ret != ISC_R_SUCCESS) {
 			kasp = NULL;
@@ -2876,6 +2882,7 @@ check_keydir(const cfg_obj_t *config, const cfg_obj_t *zconfig,
 	if (kasp == NULL) {
 		goto check;
 	}
+	INSIST(kaspobj != NULL);
 
 	/* Check key-stores of keys */
 	dns_kasp_freeze(kasp);
@@ -2888,35 +2895,116 @@ check_keydir(const cfg_obj_t *config, const cfg_obj_t *zconfig,
 		ret = keydirexist(zconfig,
 				  keystore ? "key-store directory"
 					   : "key-directory",
-				  zname, dir, name, keydirs, mctx);
+				  origin, dir, name, keydirs, mctx);
 		if (ret != ISC_R_SUCCESS) {
 			result = ret;
 		}
 	}
+
+	if (check_keys) {
+		/* Find matching key files. */
+		dns_dnsseckeylist_t keys;
+		int numkaspkeys = 0;
+		int numkeyfiles = 0;
+
+		ISC_LIST_INIT(keys);
+		ret = dns_dnssec_findmatchingkeys(origin, kasp, keydir, &kslist,
+						  now, mctx, &keys);
+		if (ret != ISC_R_SUCCESS) {
+			result = ret;
+		}
+
+		ISC_LIST_FOREACH(keys, dkey, link) {
+			numkeyfiles++;
+		}
+
+		ISC_LIST_FOREACH(keys, dkey, link) {
+			bool found_match = false;
+
+			dns_keymgr_key_init(dkey, kasp, now, numkeyfiles == 1);
+
+			ISC_LIST_FOREACH(dns_kasp_keys(kasp), kkey, link) {
+				if (dns_kasp_key_match(kkey, dkey)) {
+					found_match = true;
+					break;
+				}
+			}
+
+			if (!found_match) {
+				char keystr[DST_KEY_FORMATSIZE];
+				dst_key_format(dkey->key, keystr,
+					       sizeof(keystr));
+				cfg_obj_log(kaspobj, ISC_LOG_ERROR,
+					    "zone '%s': key file '%s' does not "
+					    "match dnssec-policy %s",
+					    zname, keystr,
+					    dns_kasp_getname(kasp));
+				result = ISC_R_NOTFOUND;
+			}
+		}
+
+		ISC_LIST_FOREACH(dns_kasp_keys(kasp), kkey, link) {
+			bool found_match = false;
+
+			numkaspkeys++;
+
+			ISC_LIST_FOREACH(keys, dkey, link) {
+				if (dns_kasp_key_match(kkey, dkey)) {
+					found_match = true;
+					break;
+				}
+			}
+
+			if (!found_match) {
+				char keystr[DNS_KASP_KEY_FORMATSIZE];
+				dns_kasp_key_format(kkey, keystr,
+						    sizeof(keystr));
+
+				cfg_obj_log(
+					kaspobj, ISC_LOG_ERROR,
+					"zone '%s': no key file found matching "
+					"dnssec-policy %s key:'%s'",
+					zname, dns_kasp_getname(kasp), keystr);
+				result = ISC_R_NOTFOUND;
+			}
+		}
+
+		if (numkaspkeys != numkeyfiles) {
+			cfg_obj_log(kaspobj, ISC_LOG_ERROR,
+				    "zone '%s': wrong number of key files (%d, "
+				    "expected %d)",
+				    zname, numkeyfiles, numkaspkeys);
+			result = ISC_R_FAILURE;
+		}
+
+		ISC_LIST_FOREACH(keys, key, link) {
+			ISC_LIST_UNLINK(keys, key, link);
+			dns_dnsseckey_destroy(mctx, &key);
+		}
+	}
+
 	dns_kasp_thaw(kasp);
 	done = true;
 
 check:
 	if (!done) {
-		ret = keydirexist(zconfig, "key-directory", zname, dir, name,
+		ret = keydirexist(zconfig, "key-directory", origin, dir, name,
 				  keydirs, mctx);
 		if (ret != ISC_R_SUCCESS) {
 			result = ret;
 		}
 	}
 
-	if (do_cleanup) {
-		if (kasp != NULL) {
-			dns_kasp_detach(&kasp);
-		}
-		ISC_LIST_FOREACH(kasplist, k, link) {
-			ISC_LIST_UNLINK(kasplist, k, link);
-			dns_kasp_detach(&k);
-		}
-		ISC_LIST_FOREACH(kslist, ks, link) {
-			ISC_LIST_UNLINK(kslist, ks, link);
-			dns_keystore_detach(&ks);
-		}
+	if (kasp != NULL) {
+		dns_kasp_detach(&kasp);
+	}
+	ISC_LIST_FOREACH(kasplist, k, link) {
+		ISC_LIST_UNLINK(kasplist, k, link);
+		dns_kasp_detach(&k);
+	}
+	ISC_LIST_FOREACH(kslist, ks, link) {
+		ISC_LIST_UNLINK(kslist, ks, link);
+		dns_keystore_detach(&ks);
 	}
 
 	return result;
@@ -3046,6 +3134,7 @@ isccfg_check_zoneconf(const cfg_obj_t *zconfig, const cfg_obj_t *voptions,
 	bool has_dnssecpolicy = false;
 	bool kasp_inlinesigning = false;
 	bool inline_signing = false;
+	bool check_keys = (flags & BIND_CHECK_KEYS) != 0;
 	const void *clauses = NULL;
 	const char *option = NULL;
 	const char *kaspname = NULL;
@@ -3821,8 +3910,9 @@ isccfg_check_zoneconf(const cfg_obj_t *zconfig, const cfg_obj_t *voptions,
 	 */
 	if (zname != NULL && keydirs != NULL) {
 		if (has_dnssecpolicy) {
-			tresult = check_keydir(config, zconfig, zname, kaspname,
-					       dir, keydirs, mctx);
+			tresult = check_keydir(config, zconfig, zname, znamestr,
+					       kaspname, dir, keydirs, mctx,
+					       check_keys);
 		} else {
 			tresult = keydirexist(zconfig, "key-directory", zname,
 					      dir, kaspname, keydirs, mctx);

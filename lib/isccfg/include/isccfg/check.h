@@ -41,6 +41,11 @@
  * Check the dnssec-policy DNSSEC algorithms against those
  * supported by the crypto provider.
  */
+#define BIND_CHECK_KEYS 0x00000004
+/*%<
+ * Check the dnssec-policy DNSSEC keys against the key files
+ * in the key stores.
+ */
 
 isc_result_t
 isccfg_check_namedconf(const cfg_obj_t *config, unsigned int flags,

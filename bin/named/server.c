@@ -8052,6 +8052,9 @@ configure_kasplist(const cfg_obj_t *config, dns_kasplist_t *kasplist,
 	isc_result_t result = ISC_R_SUCCESS;
 	dns_kasp_t *default_kasp = NULL;
 	const cfg_obj_t *kasps = NULL;
+	unsigned int kaspopts = (ISCCFG_KASPCONF_CHECK_ALGORITHMS |
+				 ISCCFG_KASPCONF_CHECK_KEYLIST |
+				 ISCCFG_KASPCONF_LOG_ERRORS);
 
 	APPLY_CONFIGURATION_SUBROUTINE_LOG;
 
@@ -8063,7 +8066,7 @@ configure_kasplist(const cfg_obj_t *config, dns_kasplist_t *kasplist,
 		cfg_obj_t *kconfig = cfg_listelt_value(element);
 		dns_kasp_t *kasp = NULL;
 
-		result = cfg_kasp_fromconfig(kconfig, default_kasp, true,
+		result = cfg_kasp_fromconfig(kconfig, default_kasp, kaspopts,
 					     isc_g_mctx, keystorelist, kasplist,
 					     &kasp);
 		if (result != ISC_R_SUCCESS) {
@@ -8091,7 +8094,7 @@ configure_kasplist(const cfg_obj_t *config, dns_kasplist_t *kasplist,
 		cfg_obj_t *kconfig = cfg_listelt_value(element);
 		dns_kasp_t *kasp = NULL;
 
-		result = cfg_kasp_fromconfig(kconfig, default_kasp, true,
+		result = cfg_kasp_fromconfig(kconfig, default_kasp, kaspopts,
 					     isc_g_mctx, keystorelist, kasplist,
 					     &kasp);
 		if (result != ISC_R_SUCCESS) {
