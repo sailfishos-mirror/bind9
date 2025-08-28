@@ -35,7 +35,7 @@ ret=0
 matches=0
 for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
   j=$((i % 4))
-  dig_cmd @10.53.0.1 cyclic.example >dig.out.cyclic || ret=1
+  dig_cmd +qid=$i @10.53.0.1 cyclic.example >dig.out.cyclic || ret=1
   if [ $i -le 4 ]; then
     cp dig.out.cyclic dig.out.$j
   else
@@ -60,7 +60,7 @@ ret=0
 matches=0
 for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
   j=$((i % 4))
-  dig_cmd @10.53.0.1 cyclic2.example >dig.out.cyclic2 || ret=1
+  dig_cmd +qid=$i @10.53.0.1 cyclic2.example >dig.out.cyclic2 || ret=1
   if [ $i -le 4 ]; then
     cp dig.out.cyclic2 dig.out.$j
   else
@@ -100,7 +100,7 @@ ret=0
 matches=0
 for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
   j=$((i % 4))
-  dig_cmd @10.53.0.2 cyclic.example >dig.out.cyclic || ret=1
+  dig_cmd +qid=$i @10.53.0.2 cyclic.example >dig.out.cyclic || ret=1
   if [ $i -le 4 ]; then
     cp dig.out.cyclic dig.out.$j
   else
@@ -125,7 +125,7 @@ ret=0
 matches=0
 for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
   j=$((i % 4))
-  dig_cmd @10.53.0.2 cyclic2.example >dig.out.cyclic2 || ret=1
+  dig_cmd +qid=$i @10.53.0.2 cyclic2.example >dig.out.cyclic2 || ret=1
   if [ $i -le 4 ]; then
     cp dig.out.cyclic2 dig.out.$j
   else
@@ -180,7 +180,7 @@ ret=0
 matches=0
 for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
   j=$((i % 4))
-  dig_cmd @10.53.0.2 cyclic.example >dig.out.cyclic || ret=1
+  dig_cmd +qid=$i @10.53.0.2 cyclic.example >dig.out.cyclic || ret=1
   if [ $i -le 4 ]; then
     cp dig.out.cyclic dig.out.$j
   else
@@ -205,7 +205,7 @@ ret=0
 matches=0
 for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
   j=$((i % 4))
-  dig_cmd @10.53.0.2 cyclic2.example >dig.out.cyclic2 || ret=1
+  dig_cmd +qid=$i @10.53.0.2 cyclic2.example >dig.out.cyclic2 || ret=1
   if [ $i -le 4 ]; then
     cp dig.out.cyclic2 dig.out.$j
   else
@@ -247,7 +247,7 @@ dig_cmd @10.53.0.3 cyclic.example >dig.out.cyclic || ret=1
 matches=0
 for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
   j=$((i % 4))
-  dig_cmd @10.53.0.3 cyclic.example >dig.out.cyclic || ret=1
+  dig_cmd +qid=$i @10.53.0.3 cyclic.example >dig.out.cyclic || ret=1
   if [ $i -le 4 ]; then
     cp dig.out.cyclic dig.out.$j
   else
@@ -274,7 +274,7 @@ dig_cmd @10.53.0.3 cyclic2.example >dig.out.cyclic2 || ret=1
 matches=0
 for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
   j=$((i % 4))
-  dig_cmd @10.53.0.3 cyclic2.example >dig.out.cyclic2 || ret=1
+  dig_cmd +qid=$i @10.53.0.3 cyclic2.example >dig.out.cyclic2 || ret=1
   if [ $i -le 4 ]; then
     cp dig.out.cyclic2 dig.out.$j
   else

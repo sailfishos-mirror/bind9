@@ -96,13 +96,6 @@ struct dns_slabheader {
 	};
 	dns_typepair_t typepair;
 
-	_Atomic(uint16_t) count;
-	/*%<
-	 * Monotonically increased every time this rdataset is bound so that
-	 * it is used as the base of the starting point in DNS responses
-	 * when the "cyclic" rrset-order is required.
-	 */
-
 	/* resigning (zone) and TTL-cleaning (cache) */
 	uint16_t      resign_lsb : 1;
 	isc_stdtime_t resign;

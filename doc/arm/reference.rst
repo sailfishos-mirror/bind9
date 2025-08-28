@@ -4054,8 +4054,8 @@ RRset Ordering
        exactly like ``cyclic``.
 
    ``cyclic``
-       Records are returned in a cyclic round-robin order, rotating by one
-       record per query.
+       Records are returned in a cyclic round-robin order, offset is based
+       on the query ID, for speed and thread safety.
 
    ``none``
        Records are returned in the order they were retrieved from the
@@ -4066,7 +4066,7 @@ RRset Ordering
    statements are present in the configuration file used by :iscman:`named`:
 
      - If no :any:`rrset-order` statement is present in the configuration
-       file, the implicit default is to return all records in ``random``
+       file, the implicit default is to return all records in ``cyclic``
        order.
 
      - If any :any:`rrset-order` statements are present in the configuration

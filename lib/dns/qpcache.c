@@ -439,13 +439,6 @@ static dns_dbmethods_t qpdb_cachemethods;
 static void
 cleanup_deadnodes_cb(void *arg);
 
-/*%
- * 'init_count' is used to initialize 'newheader->count' which in turn
- * is used to determine where in the cycle rrset-order cyclic starts.
- * We don't lock this as we don't care about simultaneous updates.
- */
-static atomic_uint_fast16_t init_count = 0;
-
 /*
  * Locking
  *
@@ -1067,8 +1060,6 @@ bindrdataset(qpcache_t *qpdb, qpcnode_t *node, dns_slabheader_t *header,
 		rdataset->attributes.ancient = true;
 		rdataset->ttl = 0;
 	}
-
-	rdataset->count = atomic_fetch_add_relaxed(&header->count, 1);
 
 	rdataset->slab.db = (dns_db_t *)qpdb;
 	rdataset->slab.node = (dns_dbnode_t *)node;
@@ -3004,8 +2995,6 @@ qpcache_addrdataset(dns_db_t *db, dns_dbnode_t *node, dns_dbversion_t *version,
 		DNS_SLABHEADER_SETATTR(newheader, DNS_SLABHEADERATTR_ZEROTTL);
 	}
 
-	atomic_init(&newheader->count,
-		    atomic_fetch_add_relaxed(&init_count, 1));
 	if (rdataset->attributes.prefetch) {
 		DNS_SLABHEADER_SETATTR(newheader, DNS_SLABHEADERATTR_PREFETCH);
 	}

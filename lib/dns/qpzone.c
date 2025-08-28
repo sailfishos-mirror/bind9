@@ -367,13 +367,6 @@ typedef struct qpdb_dbiterator {
 	enum { full, nonsec3, nsec3only } nsec3mode;
 } qpdb_dbiterator_t;
 
-/*%
- * 'init_count' is used to initialize 'newheader->count' which inturn
- * is used to determine where in the cycle rrset-order cyclic starts.
- * We don't lock this as we don't care about simultaneous updates.
- */
-static atomic_uint_fast16_t init_count = 0;
-
 /*
  * Locking
  *
@@ -990,8 +983,6 @@ bindrdataset(qpzonedb_t *qpdb, qpznode_t *node, dns_slabheader_t *header,
 	if (OPTOUT(header)) {
 		rdataset->attributes.optout = true;
 	}
-
-	rdataset->count = atomic_fetch_add_relaxed(&header->count, 1);
 
 	rdataset->slab.db = (dns_db_t *)qpdb;
 	rdataset->slab.node = (dns_dbnode_t *)node;
@@ -2167,7 +2158,6 @@ loading_addrdataset(void *arg, const dns_name_t *name,
 	newheader->ttl = rdataset->ttl;
 	newheader->trust = rdataset->trust;
 	newheader->serial = 1;
-	newheader->count = 1;
 
 	dns_slabheader_setownercase(newheader, name);
 
@@ -4744,9 +4734,6 @@ qpzone_addrdataset(dns_db_t *db, dns_dbnode_t *dbnode,
 		DNS_SLABHEADER_SETATTR(newheader, DNS_SLABHEADERATTR_ZEROTTL);
 	}
 
-	atomic_init(&newheader->count,
-		    atomic_fetch_add_relaxed(&init_count, 1));
-
 	newheader->serial = version->serial;
 	if (rdataset->attributes.resign) {
 		DNS_SLABHEADER_SETATTR(newheader, DNS_SLABHEADERATTR_RESIGN);
@@ -4855,8 +4842,6 @@ qpzone_subtractrdataset(dns_db_t *db, dns_dbnode_t *dbnode,
 	newheader->ttl = rdataset->ttl;
 	atomic_init(&newheader->attributes, 0);
 	newheader->serial = version->serial;
-	atomic_init(&newheader->count,
-		    atomic_fetch_add_relaxed(&init_count, 1));
 	if (rdataset->attributes.resign) {
 		DNS_SLABHEADER_SETATTR(newheader, DNS_SLABHEADERATTR_RESIGN);
 		newheader->resign =

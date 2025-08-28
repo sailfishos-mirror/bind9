@@ -62,7 +62,6 @@ dns_rdataset_init(dns_rdataset_t *rdataset) {
 	*rdataset = (dns_rdataset_t){
 		.magic = DNS_RDATASET_MAGIC,
 		.link = ISC_LINK_INITIALIZER,
-		.count = DNS_RDATASET_COUNT_UNDEFINED,
 	};
 }
 
@@ -78,7 +77,6 @@ dns_rdataset_invalidate(dns_rdataset_t *rdataset) {
 	*rdataset = (dns_rdataset_t){
 		.magic = 0,
 		.link = ISC_LINK_INITIALIZER,
-		.count = DNS_RDATASET_COUNT_UNDEFINED,
 	};
 }
 
@@ -97,7 +95,6 @@ dns__rdataset_disassociate(dns_rdataset_t *rdataset DNS__DB_FLARG) {
 	*rdataset = (dns_rdataset_t){
 		.magic = DNS_RDATASET_MAGIC,
 		.link = ISC_LINK_INITIALIZER,
-		.count = DNS_RDATASET_COUNT_UNDEFINED,
 	};
 }
 
@@ -264,8 +261,7 @@ towire_addrdata(dns_rdata_t *rdata, dns_compress_t *cctx, isc_buffer_t *target,
 static isc_result_t
 towire_question(dns_rdataset_t *rdataset, const dns_name_t *name,
 		dns_compress_t *cctx, isc_buffer_t *target,
-		isc_buffer_t *rrbuffer, unsigned int options ISC_ATTR_UNUSED,
-		unsigned int *countp) {
+		isc_buffer_t *rrbuffer, unsigned int *countp) {
 	isc_result_t result;
 
 	result = dns_rdataset_first(rdataset);
@@ -284,8 +280,7 @@ towire_question(dns_rdataset_t *rdataset, const dns_name_t *name,
 static isc_result_t
 towire_answer(dns_rdataset_t *rdataset, const dns_name_t *name,
 	      dns_compress_t *cctx, isc_buffer_t *target,
-	      isc_buffer_t *rrbuffer, unsigned int options ISC_ATTR_UNUSED,
-	      unsigned int *countp) {
+	      isc_buffer_t *rrbuffer, uint16_t id, unsigned int *countp) {
 	isc_result_t result;
 	size_t start = 0, count = 0, added = 0;
 	isc_buffer_t rdlen;
@@ -299,10 +294,8 @@ towire_answer(dns_rdataset_t *rdataset, const dns_name_t *name,
 		return result;
 	}
 
-	if (WANT_CYCLIC(rdataset) && rdataset->type != dns_rdatatype_rrsig &&
-	    rdataset->count != DNS_RDATASET_COUNT_UNDEFINED)
-	{
-		start = rdataset->count % count;
+	if (WANT_CYCLIC(rdataset) && rdataset->type != dns_rdatatype_rrsig) {
+		start = id % count;
 
 		/* Do we need larger buffer? */
 		if (start > ARRAY_SIZE(dns__rdataset_rdatas)) {
@@ -380,11 +373,10 @@ cleanup:
 	return result;
 }
 
-static isc_result_t
-towire(dns_rdataset_t *rdataset, const dns_name_t *owner_name,
-       dns_compress_t *cctx, isc_buffer_t *target, bool partial,
-       unsigned int options, unsigned int *countp,
-       void **state ISC_ATTR_UNUSED) {
+isc_result_t
+dns_rdataset_towire(dns_rdataset_t *rdataset, const dns_name_t *owner_name,
+		    uint16_t id, dns_compress_t *cctx, isc_buffer_t *target,
+		    bool partial, unsigned int options, unsigned int *countp) {
 	isc_result_t result;
 	isc_buffer_t savedbuffer = *target;
 	isc_buffer_t rrbuffer;
@@ -422,13 +414,13 @@ towire(dns_rdataset_t *rdataset, const dns_name_t *owner_name,
 
 	if (rdataset->attributes.question) {
 		result = towire_question(rdataset, name, cctx, target,
-					 &rrbuffer, options, countp);
+					 &rrbuffer, countp);
 		if (result != ISC_R_SUCCESS) {
 			goto rollback;
 		}
 	} else {
 		result = towire_answer(rdataset, name, cctx, target, &rrbuffer,
-				       options, countp);
+				       id, countp);
 		if (result != ISC_R_SUCCESS) {
 			goto rollback;
 		}
@@ -447,24 +439,6 @@ rollback:
 	*target = savedbuffer;
 
 	return result;
-}
-
-isc_result_t
-dns_rdataset_towirepartial(dns_rdataset_t *rdataset,
-			   const dns_name_t *owner_name, dns_compress_t *cctx,
-			   isc_buffer_t *target, unsigned int options,
-			   unsigned int *countp, void **state) {
-	REQUIRE(state == NULL); /* XXX remove when implemented */
-	return towire(rdataset, owner_name, cctx, target, true, options, countp,
-		      state);
-}
-
-isc_result_t
-dns_rdataset_towire(dns_rdataset_t *rdataset, const dns_name_t *owner_name,
-		    dns_compress_t *cctx, isc_buffer_t *target,
-		    unsigned int options, unsigned int *countp) {
-	return towire(rdataset, owner_name, cctx, target, false, options,
-		      countp, NULL);
 }
 
 isc_result_t
