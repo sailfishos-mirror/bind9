@@ -3200,6 +3200,8 @@ writeset(const char *prefix, dns_rdatatype_t type) {
 }
 
 static void
+print_time(FILE *fp) ISC_ATTR_NONNULL(1);
+static void
 print_time(FILE *fp) {
 	time_t currenttime = time(NULL);
 	struct tm t, *tm = localtime_r(&currenttime, &t);
@@ -3215,6 +3217,8 @@ print_time(FILE *fp) {
 	fprintf(fp, "; File written on %s\n", timebuf);
 }
 
+static void
+print_version(FILE *fp) ISC_ATTR_NONNULL(1);
 static void
 print_version(FILE *fp) {
 	if (outputformat != dns_masterformat_text) {
@@ -4021,6 +4025,7 @@ main(int argc, char *argv[]) {
 			fatal("failed to open temporary output file: %s",
 			      isc_result_totext(result));
 		}
+		INSIST(outfp != NULL);
 		removefile = true;
 		setfatalcallback(&removetempfile);
 	}
