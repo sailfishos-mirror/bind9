@@ -4050,7 +4050,8 @@ RRset Ordering
    The legal values for ``<ordering>`` are:
 
    ``random``
-       Records are returned in a random order.
+       Records are returned in a non-deterministic order.  The random ordering
+       doesn't guarantee uniform distribution of all permutations.
 
    ``cyclic``
        Records are returned in a cyclic round-robin order, rotating by one
