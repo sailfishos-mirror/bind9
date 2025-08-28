@@ -121,3 +121,42 @@ def test_dnssecpolicy_keystore():
         f"zone '{zone}': no key file found matching dnssec-policy default-kz key:'zsk algorithm:ECDSAP256SHA256 length:256 tag-range:0-65535'"
         in err
     )
+
+    # Mismatch algorithm (default policy)
+    zone = "bad-default-algorithm.example"
+    out = isctest.run.cmd(
+        [CHECKCONF, "-k", "bad-default-algorithm.conf"], raise_on_exception=False
+    )
+    err = out.stdout.decode("utf-8")
+    keys = isctest.kasp.keydir_to_keylist(zone)
+    assert len(keys) == 1
+    assert (
+        f"zone '{zone}': key file '{zone}/RSASHA256/{keys[0].tag}' does not match dnssec-policy default"
+        in err
+    )
+    assert (
+        f"zone '{zone}': no key file found matching dnssec-policy default key:'csk algorithm:ECDSAP256SHA256 length:256 tag-range:0-65535'"
+        in err
+    )
+
+    # Mismatch role (default policy)
+    zone = "bad-default-kz.example"
+    out = isctest.run.cmd(
+        [CHECKCONF, "-k", "bad-default-kz.conf"], raise_on_exception=False
+    )
+    err = out.stdout.decode("utf-8")
+    keys = isctest.kasp.keydir_to_keylist(zone)
+    assert len(keys) == 2
+    assert (
+        f"zone '{zone}': key file '{zone}/ECDSAP256SHA256/{keys[0].tag}' does not match dnssec-policy default"
+        in err
+    )
+    assert (
+        f"zone '{zone}': key file '{zone}/ECDSAP256SHA256/{keys[1].tag}' does not match dnssec-policy default"
+        in err
+    )
+    assert (
+        f"zone '{zone}': no key file found matching dnssec-policy default key:'csk algorithm:ECDSAP256SHA256 length:256 tag-range:0-65535'"
+        in err
+    )
+    assert f"zone '{zone}': wrong number of key files (2, expected 1)" in err

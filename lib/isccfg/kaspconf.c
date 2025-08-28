@@ -570,10 +570,8 @@ cfg_kasp_fromconfig(const cfg_obj_t *config, dns_kasp_t *default_kasp,
 	/* Now configure. */
 	INSIST(DNS_KASP_VALID(kasp));
 
-	if (config != NULL) {
-		koptions = cfg_tuple_get(config, "options");
-		maps[i++] = koptions;
-	}
+	koptions = cfg_tuple_get(config, "options");
+	maps[i++] = koptions;
 	maps[i] = NULL;
 
 	/* Configuration: Signatures */
@@ -872,6 +870,100 @@ cfg_kasp_fromconfig(const cfg_obj_t *config, dns_kasp_t *default_kasp,
 
 cleanup:
 
+	/* Something bad happened, detach (destroys kasp) and return error. */
+	dns_kasp_detach(&kasp);
+	return result;
+}
+
+isc_result_t
+cfg_kasp_builtinconfig(isc_mem_t *mctx, const char *name,
+		       dns_keystorelist_t *keystorelist,
+		       dns_kasplist_t *kasplist, dns_kasp_t **kaspp) {
+	isc_result_t result;
+	dns_kasp_t *kasp = NULL;
+
+	REQUIRE(kaspp != NULL && *kaspp == NULL);
+	REQUIRE(strcmp(name, "default") == 0 || strcmp(name, "insecure") == 0);
+
+	result = dns_kasplist_find(kasplist, name, &kasp);
+	if (result == ISC_R_SUCCESS) {
+		dns_kasp_detach(&kasp);
+		return ISC_R_EXISTS;
+	}
+	if (result != ISC_R_NOTFOUND) {
+		return result;
+	}
+	result = ISC_R_SUCCESS;
+
+	/* No kasp with configured name was found in list, create new one. */
+	INSIST(kasp == NULL);
+	dns_kasp_create(mctx, name, &kasp);
+	INSIST(kasp != NULL);
+
+	/* Now configure. */
+	INSIST(DNS_KASP_VALID(kasp));
+
+	/* Configuration: Signatures */
+	dns_kasp_setsigjitter(kasp, parse_duration(DNS_KASP_SIG_JITTER));
+	dns_kasp_setsigrefresh(kasp, parse_duration(DNS_KASP_SIG_REFRESH));
+	dns_kasp_setsigvalidity_dnskey(
+		kasp, parse_duration(DNS_KASP_SIG_VALIDITY_DNSKEY));
+	dns_kasp_setsigvalidity(kasp, parse_duration(DNS_KASP_SIG_VALIDITY));
+
+	/* Configuration: Zone settings */
+	dns_kasp_setinlinesigning(kasp, true);
+	dns_kasp_setmanualmode(kasp, false);
+	dns_kasp_setzonemaxttl(kasp, parse_duration(DNS_KASP_ZONE_MAXTTL));
+	dns_kasp_setzonepropagationdelay(
+		kasp, parse_duration(DNS_KASP_ZONE_PROPDELAY));
+
+	/* Configuration: Parent settings */
+	dns_kasp_setdsttl(kasp, parse_duration(DNS_KASP_DS_TTL));
+	dns_kasp_setparentpropagationdelay(
+		kasp, parse_duration(DNS_KASP_PARENT_PROPDELAY));
+
+	/* Configuration: Keys */
+	dns_kasp_setofflineksk(kasp, false);
+	dns_kasp_setcdnskey(kasp, true);
+	dns_kasp_adddigest(kasp, DNS_DSDIGEST_SHA256);
+	dns_kasp_setdnskeyttl(kasp, parse_duration(DNS_KASP_KEY_TTL));
+	dns_kasp_setpublishsafety(kasp,
+				  parse_duration(DNS_KASP_PUBLISH_SAFETY));
+	dns_kasp_setretiresafety(kasp, parse_duration(DNS_KASP_RETIRE_SAFETY));
+
+	dns_kasp_setpurgekeys(kasp, parse_duration(DNS_KASP_PURGE_KEYS));
+
+	if (strcmp(name, "default") == 0) {
+		dns_kasp_key_t *new_key = NULL;
+		dns_kasp_key_create(kasp, &new_key);
+		new_key->role |= DNS_KASP_KEY_ROLE_KSK;
+		new_key->role |= DNS_KASP_KEY_ROLE_ZSK;
+		new_key->lifetime = 0;
+		new_key->algorithm = DST_ALG_ECDSA256;
+		new_key->length = 256;
+		result = dns_keystorelist_find(keystorelist,
+					       DNS_KEYSTORE_KEYDIRECTORY,
+					       &new_key->keystore);
+		if (result != ISC_R_SUCCESS) {
+			goto cleanup;
+		}
+		dns_kasp_addkey(kasp, new_key);
+	}
+
+	/* Configuration: Denial of existence */
+	dns_kasp_setnsec3(kasp, false);
+
+	/* Append it to the list for future lookups. */
+	ISC_LIST_APPEND(*kasplist, kasp, link);
+	INSIST(!(ISC_LIST_EMPTY(*kasplist)));
+
+	/* Success: Attach the kasp to the pointer and return. */
+	dns_kasp_attach(kasp, kaspp);
+
+	/* Don't detach as kasp is on '*kasplist' */
+	return ISC_R_SUCCESS;
+
+cleanup:
 	/* Something bad happened, detach (destroys kasp) and return error. */
 	dns_kasp_detach(&kasp);
 	return result;
