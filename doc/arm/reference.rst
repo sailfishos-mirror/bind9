@@ -4050,8 +4050,8 @@ RRset Ordering
    The legal values for ``<ordering>`` are:
 
    ``random``
-       Records are returned in a non-deterministic order.  The random ordering
-       doesn't guarantee uniform distribution of all permutations.
+       This value has been deprecated and using ``random`` behaves
+       exactly like ``cyclic``.
 
    ``cyclic``
        Records are returned in a cyclic round-robin order, rotating by one
@@ -4086,9 +4086,9 @@ RRset Ordering
    ::
 
        rrset-order {
-           type A name "foo.isc.org" order random;
+           type A name "foo.isc.org" order none;
            type AAAA name "foo.isc.org" order cyclic;
-           name "*.bar.isc.org" order random;
+           name "*.bar.isc.org" order none;
            name "*.baz.isc.org" order cyclic;
        };
 
@@ -4097,11 +4097,11 @@ RRset Ordering
    ===================    ========    ===========
    QNAME                  QTYPE       RRset Order
    ===================    ========    ===========
-   ``foo.isc.org``        ``A``       ``random``
+   ``foo.isc.org``        ``A``       ``none``
    ``foo.isc.org``        ``AAAA``    ``cyclic``
    ``foo.isc.org``        ``TXT``     ``none``
    ``sub.foo.isc.org``    all         ``none``
-   ``sub.bar.isc.org``    all         ``random``
+   ``sub.bar.isc.org``    all         ``none``
    ``baz.isc.org``        all         ``none``
    ``sub.baz.isc.org``    all         ``cyclic``
    ===================    ========    ===========

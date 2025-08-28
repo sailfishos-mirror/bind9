@@ -209,20 +209,7 @@ dns_rdataset_current(dns_rdataset_t *rdataset, dns_rdata_t *rdata) {
 }
 
 #define MAX_SHUFFLE    32
-#define WANT_RANDOM(r) (((r)->attributes.order == dns_order_randomize))
 #define WANT_CYCLIC(r) (((r)->attributes.order == dns_order_cyclic))
-
-struct towire_sort {
-	int key;
-	dns_rdata_t *rdata;
-};
-
-static void
-swap_rdata(dns_rdata_t *in, unsigned int a, unsigned int b) {
-	dns_rdata_t rdata = in[a];
-	in[a] = in[b];
-	in[b] = rdata;
-}
 
 static isc_result_t
 towire(dns_rdataset_t *rdataset, const dns_name_t *owner_name,
@@ -236,11 +223,11 @@ towire(dns_rdataset_t *rdataset, const dns_name_t *owner_name,
 	unsigned int headlen;
 	bool question = false;
 	bool shuffle = false;
-	bool want_random, want_cyclic;
+	bool want_cyclic;
 	dns_rdata_t in_fixed[MAX_SHUFFLE];
 	dns_rdata_t *in = in_fixed;
-	struct towire_sort out_fixed[MAX_SHUFFLE];
-	struct towire_sort *out = out_fixed;
+	dns_rdata_t *out_fixed[MAX_SHUFFLE];
+	dns_rdata_t **out = out_fixed;
 	dns_fixedname_t fixed;
 	dns_name_t *name = NULL;
 
@@ -254,7 +241,6 @@ towire(dns_rdataset_t *rdataset, const dns_name_t *owner_name,
 	REQUIRE(countp != NULL);
 	REQUIRE(cctx != NULL && cctx->mctx != NULL);
 
-	want_random = WANT_RANDOM(rdataset);
 	want_cyclic = WANT_CYCLIC(rdataset);
 
 	if (rdataset->attributes.question) {
@@ -287,7 +273,7 @@ towire(dns_rdataset_t *rdataset, const dns_name_t *owner_name,
 	 * Do we want to shuffle this answer?
 	 */
 	if (!question && count > 1 && rdataset->type != dns_rdatatype_rrsig) {
-		if (want_random || want_cyclic) {
+		if (want_cyclic) {
 			shuffle = true;
 		}
 	}
@@ -303,7 +289,6 @@ towire(dns_rdataset_t *rdataset, const dns_name_t *owner_name,
 	}
 
 	if (shuffle) {
-		uint32_t seed = 0;
 		unsigned int j = 0;
 
 		/*
@@ -322,10 +307,6 @@ towire(dns_rdataset_t *rdataset, const dns_name_t *owner_name,
 		}
 		INSIST(i == count);
 
-		if (want_random) {
-			seed = isc_random32();
-		}
-
 		if (want_cyclic &&
 		    (rdataset->count != DNS_RDATASET_COUNT_UNDEFINED))
 		{
@@ -333,12 +314,7 @@ towire(dns_rdataset_t *rdataset, const dns_name_t *owner_name,
 		}
 
 		for (i = 0; i < count; i++) {
-			if (want_random) {
-				swap_rdata(in, j, j + seed % (count - j));
-			}
-
-			out[i].key = 0;
-			out[i].rdata = &in[j];
+			out[i] = &in[j];
 			if (++j == count) {
 				j = 0;
 			}
@@ -379,7 +355,8 @@ towire(dns_rdataset_t *rdataset, const dns_name_t *owner_name,
 		isc_buffer_putuint16(target, rdataset->type);
 		isc_buffer_putuint16(target, rdataset->rdclass);
 		if (!question) {
-			dns_rdata_t rdata = DNS_RDATA_INIT;
+			dns_rdata_t rdata_s = DNS_RDATA_INIT;
+			dns_rdata_t *rdata = &rdata_s;
 
 			isc_buffer_putuint32(target, rdataset->ttl);
 
@@ -393,12 +370,12 @@ towire(dns_rdataset_t *rdataset, const dns_name_t *owner_name,
 			 * Copy out the rdata
 			 */
 			if (shuffle) {
-				rdata = *(out[i].rdata);
+				rdata = out[i];
 			} else {
-				dns_rdata_reset(&rdata);
-				dns_rdataset_current(rdataset, &rdata);
+				dns_rdata_reset(&rdata_s);
+				dns_rdataset_current(rdataset, &rdata_s);
 			}
-			result = dns_rdata_towire(&rdata, cctx, target);
+			result = dns_rdata_towire(rdata, cctx, target);
 			if (result != ISC_R_SUCCESS) {
 				goto rollback;
 			}

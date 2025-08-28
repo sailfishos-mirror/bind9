@@ -1360,7 +1360,10 @@ configure_order(dns_order_t *order, const cfg_obj_t *ent) {
 	INSIST(cfg_obj_isstring(obj));
 	str = cfg_obj_asstring(obj);
 	if (!strcasecmp(str, "random")) {
-		mode = dns_order_randomize;
+		cfg_obj_log(obj, ISC_LOG_WARNING,
+			    "random ordering is obsolete; "
+			    "cyclic ordering is being used instead");
+		mode = dns_order_cyclic;
 	} else if (!strcasecmp(str, "cyclic")) {
 		mode = dns_order_cyclic;
 	} else if (!strcasecmp(str, "none")) {
