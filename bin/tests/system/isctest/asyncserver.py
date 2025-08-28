@@ -414,6 +414,68 @@ class ConnectionHandler(abc.ABC):
         raise NotImplementedError
 
 
+def block_reading(peer: Peer, writer_not_the_reader: asyncio.StreamWriter) -> None:
+    """
+    Block reads for the reader associated with the provided writer.
+
+    Yes, pass the writer, not the reader. See the comments below for details.
+    """
+
+    try:
+        # Python >= 3.7
+        loop = asyncio.get_running_loop()
+    except AttributeError:
+        # Python < 3.7
+        loop = asyncio.get_event_loop()
+
+    logging.info("Blocking reads from %s", peer)
+
+    # This is Michał's submission for the Ugliest Hack of the Year contest.
+    # (The alternative was implementing an asyncio transport from scratch.)
+    #
+    # In order to prevent the client socket from being read from, simply
+    # not calling `reader.read()` is not enough, because asyncio buffers
+    # incoming data itself on the transport level.  However, `StreamReader`
+    # does not expose the underlying transport as a property.  Therefore,
+    # cheat by extracting it from `StreamWriter` as it is the same
+    # bidirectional transport as for the read side (a `Transport`, which is
+    # a subclass of both `ReadTransport` and `WriteTransport`) and call
+    # `ReadTransport.pause_reading()` to remove the underlying socket from
+    # the set of descriptors monitored by the selector, thereby preventing
+    # any reads from happening on the client socket.  However...
+    loop.call_soon(writer_not_the_reader.transport.pause_reading)  # type: ignore
+
+    # ...due to `AsyncDnsServer._handle_tcp()` being a coroutine, by the
+    # time it gets executed, asyncio transport code will already have added
+    # the client socket to the set of descriptors monitored by the
+    # selector.  Therefore, if the client starts sending data immediately,
+    # a read from the socket will have already been scheduled by the time
+    # this handler gets executed.  There is no way to prevent that from
+    # happening, so work around it by abusing the fact that the transport
+    # at hand is specifically an instance of `_SelectorSocketTransport`
+    # (from asyncio.selector_events) and set the size of its read buffer to
+    # just a single byte.  This does give asyncio enough time to read that
+    # single byte from the client socket's buffer before that socket is
+    # removed from the set of monitored descriptors, but prevents the
+    # one-off read from emptying the client socket buffer _entirely_, which
+    # is enough to trigger sending an RST segment when the connection is
+    # closed shortly afterwards.
+    writer_not_the_reader.transport.max_size = 1  # type: ignore
+
+
+@dataclass
+class IgnoreAllConnections(ConnectionHandler):
+    """
+    A connection handler that makes the server not read anything from the
+    client socket, effectively ignoring all incoming connections.
+    """
+
+    async def handle(
+        self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter, peer: Peer
+    ) -> None:
+        block_reading(peer, writer)
+
+
 @dataclass
 class ConnectionReset(ConnectionHandler):
     """
@@ -435,46 +497,7 @@ class ConnectionReset(ConnectionHandler):
     async def handle(
         self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter, peer: Peer
     ) -> None:
-        try:
-            # Python >= 3.7
-            loop = asyncio.get_running_loop()
-        except AttributeError:
-            # Python < 3.7
-            loop = asyncio.get_event_loop()
-
-        logging.info("Blocking reads from %s", peer)
-
-        # This is Michał's submission for the Ugliest Hack of the Year contest.
-        # (The alternative was implementing an asyncio transport from scratch.)
-        #
-        # In order to prevent the client socket from being read from, simply
-        # not calling `reader.read()` is not enough, because asyncio buffers
-        # incoming data itself on the transport level.  However, `StreamReader`
-        # does not expose the underlying transport as a property.  Therefore,
-        # cheat by extracting it from `StreamWriter` as it is the same
-        # bidirectional transport as for the read side (a `Transport`, which is
-        # a subclass of both `ReadTransport` and `WriteTransport`) and call
-        # `ReadTransport.pause_reading()` to remove the underlying socket from
-        # the set of descriptors monitored by the selector, thereby preventing
-        # any reads from happening on the client socket.  However...
-        loop.call_soon(writer.transport.pause_reading)  # type: ignore
-
-        # ...due to `AsyncDnsServer._handle_tcp()` being a coroutine, by the
-        # time it gets executed, asyncio transport code will already have added
-        # the client socket to the set of descriptors monitored by the
-        # selector.  Therefore, if the client starts sending data immediately,
-        # a read from the socket will have already been scheduled by the time
-        # this handler gets executed.  There is no way to prevent that from
-        # happening, so work around it by abusing the fact that the transport
-        # at hand is specifically an instance of `_SelectorSocketTransport`
-        # (from asyncio.selector_events) and set the size of its read buffer to
-        # just a single byte.  This does give asyncio enough time to read that
-        # single byte from the client socket's buffer before that socket is
-        # removed from the set of monitored descriptors, but prevents the
-        # one-off read from emptying the client socket buffer _entirely_, which
-        # is enough to trigger sending an RST segment when the connection is
-        # closed shortly afterwards.
-        writer.transport.max_size = 1  # type: ignore
+        block_reading(peer, writer)
 
         if self.delay > 0:
             logging.info(
