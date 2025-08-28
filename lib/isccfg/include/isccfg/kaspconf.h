@@ -73,6 +73,30 @@ cfg_kasp_fromconfig(const cfg_obj_t *config, dns_kasp_t *default_kasp,
  */
 
 isc_result_t
+cfg_kasp_builtinconfig(isc_mem_t *mctx, const char *name,
+		       dns_keystorelist_t *keystorelist,
+		       dns_kasplist_t *kasplist, dns_kasp_t **kaspp);
+/*%<
+ * Create built-in KASP.
+ *
+ * If a 'kasplist' is provided, a lookup happens and if a KASP already exists
+ * with the same name, no new KASP is created, and no attach to 'kaspp' happens.
+ *
+ * Requires:
+ *
+ *\li  'mctx' is a valid memory context.
+ *
+ *\li  kaspp != NULL && *kaspp == NULL
+ *
+ * Returns:
+ *
+ *\li  #ISC_R_SUCCESS  If creating and configuring the KASP succeeds.
+ *\li  #ISC_R_EXISTS   If 'kasplist' already has the default policy.
+ *
+ *\li  Other errors are possible.
+ */
+
+isc_result_t
 cfg_keystore_fromconfig(const cfg_obj_t *config, isc_mem_t *mctx,
 			isc_log_t *logctx, const char *engine,
 			dns_keystorelist_t *keystorelist,

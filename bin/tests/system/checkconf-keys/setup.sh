@@ -19,6 +19,19 @@ set -e
 mkdir ksk
 mkdir zsk
 
+zone="default.example"
+cp template.db.in "${zone}.db"
+$KEYGEN -a 13 -fK $zone 2>keygen.out.$zone.1
+
+zone="bad-default-kz.example"
+cp template.db.in "${zone}.db"
+$KEYGEN -a 13 -fK $zone 2>keygen.out.$zone.1
+$KEYGEN -a 13 $zone 2>keygen.out.$zone.2
+
+zone="bad-default-algorithm.example"
+cp template.db.in "${zone}.db"
+$KEYGEN -a 8 -fK $zone 2>keygen.out.$zone.1
+
 zone="alternative.kz.example"
 cp template.db.in "${zone}.db"
 $KEYGEN -a RSASHA256 -b 2048 $zone 2>keygen.out.$zone.1

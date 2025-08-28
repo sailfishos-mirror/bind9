@@ -3032,11 +3032,12 @@ check_keydir(const cfg_obj_t *config, const cfg_obj_t *zconfig,
 	const char *dir = keydir;
 	const cfg_listelt_t *element;
 	isc_result_t ret, result = ISC_R_SUCCESS;
-	bool done = false;
 	bool keystore = false;
 	const cfg_obj_t *kasps = NULL;
 	dns_kasp_t *kasp = NULL, *kasp_next = NULL;
 	const cfg_obj_t *kaspobj = NULL;
+	const cfg_obj_t *obj = NULL;
+	dns_kasp_t *default_kasp = NULL;
 	dns_kasplist_t kasplist;
 
 	const cfg_obj_t *keystores = NULL;
@@ -3066,38 +3067,88 @@ check_keydir(const cfg_obj_t *config, const cfg_obj_t *zconfig,
 	(void)cfg_keystore_fromconfig(NULL, mctx, logctx, NULL, &kslist, NULL);
 
 	/*
-	 * Look for the dnssec-policy by name, which is the dnssec-policy
-	 * for the zone in question.
+	 * dnssec-policy "default".
+	 */
+	ret = cfg_kasp_builtinconfig(mctx, "default", &kslist, &kasplist,
+				     &default_kasp);
+	if (ret != ISC_R_SUCCESS) {
+		cfg_obj_log(config, logctx, ISC_LOG_ERROR,
+			    "failed to load the 'default' dnssec-policy: %s",
+			    isc_result_totext(ret));
+		result = ret;
+		goto check;
+	}
+	dns_kasp_freeze(default_kasp);
+
+	/*
+	 * dnssec-policy "insecure".
+	 */
+	ret = cfg_kasp_builtinconfig(mctx, "insecure", &kslist, &kasplist,
+				     &kasp);
+	if (ret != ISC_R_SUCCESS) {
+		cfg_obj_log(config, logctx, ISC_LOG_ERROR,
+			    "failed to load the 'insecure' dnssec-policy: %s",
+			    isc_result_totext(ret));
+		result = ret;
+		goto check;
+	}
+	dns_kasp_freeze(kasp);
+	dns_kasp_detach(&kasp);
+
+	/*
+	 * Configured dnssec-policy clauses.
 	 */
 	for (element = cfg_list_first(kasps); element != NULL;
 	     element = cfg_list_next(element))
 	{
 		cfg_obj_t *kconfig = cfg_listelt_value(element);
-		kaspobj = NULL;
+		obj = NULL;
 
 		if (!cfg_obj_istuple(kconfig)) {
 			continue;
 		}
 
-		kaspobj = cfg_tuple_get(kconfig, "name");
-		if (strcmp(name, cfg_obj_asstring(kaspobj)) != 0) {
-			continue;
+		obj = cfg_tuple_get(kconfig, "name");
+		ret = cfg_kasp_fromconfig(kconfig, default_kasp, 0, mctx,
+					  logctx, &kslist, &kasplist, &kasp);
+		if (ret != ISC_R_SUCCESS) {
+			result = ret;
+			goto check;
 		}
 
-		ret = cfg_kasp_fromconfig(kconfig, NULL, 0, mctx, logctx,
-					  &kslist, &kasplist, &kasp);
-		if (ret != ISC_R_SUCCESS) {
-			kasp = NULL;
+		if (strcmp(name, cfg_obj_asstring(obj)) == 0) {
+			kaspobj = obj;
+			dns_kasp_freeze(kasp);
 		}
-		break;
+		dns_kasp_detach(&kasp);
 	}
-	if (kasp == NULL) {
+
+	/*
+	 * Look for the dnssec-policy by name, which is the dnssec-policy
+	 * for the zone in question.
+	 */
+	ret = dns_kasplist_find(&kasplist, name, &kasp);
+	if (ret != ISC_R_SUCCESS) {
+		cfg_obj_log(config, logctx, ISC_LOG_ERROR,
+			    "no dnssec-policy found for zone '%s'", zname);
+		result = ISC_R_NOTFOUND;
 		goto check;
 	}
-	INSIST(kaspobj != NULL);
+	INSIST(kasp != NULL);
+
+	if (kaspobj == NULL) {
+		kaspobj = kasps == NULL ? config : kasps;
+	}
+
+	if (strcmp(name, "insecure") == 0 || strcmp(name, "default") == 0) {
+		ret = keydirexist(zconfig, "key-directory", origin, dir, name,
+				  keydirs, logctx, mctx);
+		if (ret != ISC_R_SUCCESS) {
+			result = ret;
+		}
+	}
 
 	/* Check key-stores of keys */
-	dns_kasp_freeze(kasp);
 	for (dns_kasp_key_t *kkey = ISC_LIST_HEAD(dns_kasp_keys(kasp));
 	     kkey != NULL; kkey = ISC_LIST_NEXT(kkey, link))
 	{
@@ -3212,18 +3263,10 @@ check_keydir(const cfg_obj_t *config, const cfg_obj_t *zconfig,
 		}
 	}
 
-	dns_kasp_thaw(kasp);
-	done = true;
-
 check:
-	if (!done) {
-		ret = keydirexist(zconfig, "key-directory", origin, dir, name,
-				  keydirs, logctx, mctx);
-		if (ret != ISC_R_SUCCESS) {
-			result = ret;
-		}
+	if (default_kasp != NULL) {
+		dns_kasp_detach(&default_kasp);
 	}
-
 	if (kasp != NULL) {
 		dns_kasp_detach(&kasp);
 	}

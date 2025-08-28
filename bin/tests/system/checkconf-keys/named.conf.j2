@@ -53,6 +53,12 @@ dnssec-policy "keystores-kz" {
 	};
 };
 
+zone "default.example" {
+	type primary;
+	file "default.example.db";
+	dnssec-policy "default";
+};
+
 zone "alternative.kz.example" {
 	type primary;
 	file "alternative.kz.example.db";
