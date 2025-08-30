@@ -863,6 +863,18 @@ query_cleanup(ns_client_t *client) {
 	query_reset(client, false);
 }
 
+static void
+maybe_init_fetch_counter(ns_client_t *client) {
+	if (client->query.qc == NULL) {
+		/*
+		 * Start global outgoing query count.
+		 */
+		isc_counter_create(client->manager->mctx,
+				   client->inner.view->max_queries,
+				   &client->query.qc);
+	}
+}
+
 void
 ns_query_free(ns_client_t *client) {
 	REQUIRE(NS_CLIENT_VALID(client));
@@ -2795,6 +2807,7 @@ fetch_and_forget(ns_client_t *client, dns_name_t *qname, dns_rdatatype_t qtype,
 	fetchp = &client->query.recursions[recursion_type].fetch;
 
 	isc_nmhandle_attach(client->inner.handle, handlep);
+	maybe_init_fetch_counter(client);
 	result = dns_resolver_createfetch(
 		client->inner.view->resolver, qname, qtype, NULL, NULL, NULL,
 		peeraddr, client->message->id, options, 0, NULL,
@@ -6292,6 +6305,7 @@ ns_query_recurse(ns_client_t *client, dns_rdatatype_t qtype, dns_name_t *qname,
 
 	isc_nmhandle_attach(client->inner.handle,
 			    &HANDLE_RECTYPE_NORMAL(client));
+	maybe_init_fetch_counter(client);
 	result = dns_resolver_createfetch(
 		client->inner.view->resolver, qname, qtype, qdomain,
 		nameservers, NULL, peeraddr, client->message->id,
@@ -11796,10 +11810,10 @@ ns_query_start(ns_client_t *client, isc_nmhandle_t *handle) {
 	}
 
 	/*
-	 * Start global outgoing query count.
+	 * Query counter will be started lazily, as it is unneeded for auth
+	 * queries.
 	 */
-	isc_counter_create(client->manager->mctx,
-			   client->inner.view->max_queries, &client->query.qc);
+	client->query.qc = NULL;
 
 	query_setup(client, qtype);
 }
