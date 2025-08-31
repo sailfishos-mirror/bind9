@@ -3222,9 +3222,9 @@ findname(fetchctx_t *fctx, const dns_name_t *name, in_port_t port,
 	INSIST(!SHUTTINGDOWN(fctx));
 	fetchctx_ref(fctx);
 	result = dns_adb_createfind(fctx->adb, fctx->loop, fctx_finddone, fctx,
-				    name, fctx->name, fctx->type, options, now,
-				    res->view->dstport, fctx->depth + 1,
-				    fctx->qc, fctx->gqc, &find);
+				    name, options, now, res->view->dstport,
+				    fctx->depth + 1, fctx->qc, fctx->gqc,
+				    &find);
 
 	isc_log_write(DNS_LOGCATEGORY_RESOLVER, DNS_LOGMODULE_RESOLVER,
 		      ISC_LOG_DEBUG(3), "fctx %p(%s): createfind for %s - %s",

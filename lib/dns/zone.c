@@ -12772,8 +12772,8 @@ notify_find_address(dns_notify_t *notify) {
 
 	result = dns_adb_createfind(
 		adb, notify->zone->loop, process_notify_adb_event, notify,
-		&notify->ns, dns_rootname, 0, options, 0,
-		notify->zone->view->dstport, 0, NULL, NULL, &notify->find);
+		&notify->ns, options, 0, notify->zone->view->dstport, 0, NULL,
+		NULL, &notify->find);
 	dns_adb_detach(&adb);
 
 	/* Something failed? */
@@ -21351,8 +21351,8 @@ checkds_find_address(dns_checkds_t *checkds) {
 
 	result = dns_adb_createfind(
 		adb, checkds->zone->loop, process_checkds_adb_event, checkds,
-		&checkds->ns, dns_rootname, 0, options, 0,
-		checkds->zone->view->dstport, 0, NULL, NULL, &checkds->find);
+		&checkds->ns, options, 0, checkds->zone->view->dstport, 0, NULL,
+		NULL, &checkds->find);
 	dns_adb_detach(&adb);
 
 	/* Something failed? */

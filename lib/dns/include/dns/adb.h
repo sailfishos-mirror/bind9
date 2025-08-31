@@ -276,8 +276,7 @@ dns_adb_shutdown(dns_adb_t *adb);
 
 isc_result_t
 dns_adb_createfind(dns_adb_t *adb, isc_loop_t *loop, isc_job_cb cb, void *cbarg,
-		   const dns_name_t *name, const dns_name_t *qname,
-		   dns_rdatatype_t qtype, unsigned int options,
+		   const dns_name_t *name, unsigned int options,
 		   isc_stdtime_t now, in_port_t port, unsigned int depth,
 		   isc_counter_t *qc, isc_counter_t *gqc, dns_adbfind_t **find);
 /*%<
@@ -325,8 +324,6 @@ dns_adb_createfind(dns_adb_t *adb, isc_loop_t *loop, isc_job_cb cb, void *cbarg,
  *
  *\li	*name is a valid dns_name_t.
  *
- *\li	qname != NULL and *qname be a valid dns_name_t.
- *
  *\li	find != NULL && *find == NULL.
  *
  * Returns:
@@ -370,16 +367,6 @@ dns_adb_cancelfind(dns_adbfind_t *find);
  * Ensures:
  *
  *\li	The event was posted to the task.
- */
-
-void
-dns_adbfind_done(dns_adbfind_t find);
-/*%<
- * Marks a find as ready to free.
- *
- * Requires:
- *
- *\li	'find' != NULL and *find be valid dns_adbfind_t pointer.
  */
 
 unsigned int
