@@ -246,6 +246,22 @@ sys_defines = [
 
 add_project_arguments(sys_defines, language: 'c')
 
+### Sanitizer
+asan_options = 'abort_on_error=1:disable_coredump=0:unmap_shadow_on_exit=1:detect_odr_violation=0'
+tsan_options = 'disable_coredump=0:second_deadlock_stack=1:atexit_sleep_ms=1000:history_size=7:log_exe_name=true:log_path=tsan'
+ubsan_options = 'halt_on_error=1:abort_on_error=1:disable_coredump=0'
+
+# Refer to sanitize.c.in for the justification
+config_sanitize = configuration_data()
+
+config_sanitize.set10('BIND_ASAN_ENABLED', 'address' in sanitizer)
+config_sanitize.set10('BIND_LSAN_ENABLED', 'leak' in sanitizer)
+config_sanitize.set10('BIND_TSAN_ENABLED', 'thread' in sanitizer)
+config_sanitize.set10('BIND_UBSAN_ENABLED', 'undefined' in sanitizer)
+config_sanitize.set('BIND_ASAN_OPTIONS', asan_options)
+config_sanitize.set('BIND_TSAN_OPTIONS', tsan_options)
+config_sanitize.set('BIND_UBSAN_OPTIONS', ubsan_options)
+
 ### Environment
 
 env = environment(
@@ -253,6 +269,15 @@ env = environment(
         'BIND_PROJECT_VERSION': meson.project_version(),
         'BIND_BUILD_ROOT': meson.project_build_root(),
         'BIND_SOURCE_ROOT': meson.project_source_root(),
+    },
+)
+
+# Meson defines these variables in unit tests when not set
+test_env = environment(
+    {
+        'ASAN_OPTIONS': asan_options,
+        'TSAN_OPTIONS': tsan_options,
+        'UBSAN_OPTIONS': ubsan_options,
     },
 )
 
@@ -1093,6 +1118,12 @@ bind_keys = custom_target(
     ],
 )
 
+default_sanitize_options = configure_file(
+    input: files('sanitize.c.in'),
+    output: 'sanitize.c',
+    configuration: config_sanitize,
+)
+
 # Headers
 dns_inc = include_directories('lib' / 'dns' / 'include')
 isc_inc = include_directories('lib' / 'isc' / 'include')
@@ -1313,6 +1344,7 @@ executable(
     export_dynamic: true,
     implicit_include_directories: false,
     install: true,
+    sources: default_sanitize_options,
     dependencies: [
         libisc_dep,
     ],
@@ -1324,7 +1356,7 @@ executable(
     export_dynamic: true,
     implicit_include_directories: true,
     install: true,
-    sources: bind_keys,
+    sources: [bind_keys, default_sanitize_options],
     dependencies: [
         libisc_dep,
         libisccfg_dep,
@@ -1338,6 +1370,7 @@ executable(
     export_dynamic: true,
     implicit_include_directories: false,
     install: true,
+    sources: default_sanitize_options,
     dependencies: [
         libdns_dep,
         libisc_dep,
@@ -1353,6 +1386,7 @@ executable(
     export_dynamic: true,
     implicit_include_directories: false,
     install: true,
+    sources: default_sanitize_options,
     dependencies: [
         libdns_dep,
         libisc_dep,
@@ -1366,6 +1400,7 @@ executable(
     export_dynamic: true,
     implicit_include_directories: false,
     install: true,
+    sources: default_sanitize_options,
     dependencies: [
         libdns_dep,
         libisc_dep,
@@ -1379,6 +1414,7 @@ executable(
     export_dynamic: true,
     implicit_include_directories: false,
     install: true,
+    sources: default_sanitize_options,
     dependencies: [
         libdns_dep,
         libisc_dep,
@@ -1392,6 +1428,7 @@ executable(
     export_dynamic: true,
     implicit_include_directories: false,
     install: true,
+    sources: default_sanitize_options,
     dependencies: [
         libdns_dep,
         libisc_dep,
@@ -1405,6 +1442,7 @@ executable(
     export_dynamic: true,
     implicit_include_directories: false,
     install: true,
+    sources: default_sanitize_options,
     dependencies: [
         libdns_dep,
         libisc_dep,
@@ -1418,6 +1456,7 @@ executable(
     export_dynamic: true,
     implicit_include_directories: false,
     install: true,
+    sources: default_sanitize_options,
     dependencies: [
         libdns_dep,
         libisc_dep,
@@ -1431,6 +1470,7 @@ executable(
     export_dynamic: true,
     implicit_include_directories: false,
     install: true,
+    sources: default_sanitize_options,
     dependencies: [
         libdns_dep,
         libisc_dep,
@@ -1444,6 +1484,7 @@ executable(
     export_dynamic: true,
     implicit_include_directories: false,
     install: true,
+    sources: default_sanitize_options,
     dependencies: [
         libdns_dep,
         libisc_dep,
@@ -1457,6 +1498,7 @@ executable(
     export_dynamic: true,
     implicit_include_directories: false,
     install: true,
+    sources: default_sanitize_options,
     dependencies: [
         libdns_dep,
         libisc_dep,
@@ -1470,6 +1512,7 @@ executable(
     export_dynamic: true,
     implicit_include_directories: false,
     install: true,
+    sources: default_sanitize_options,
     dependencies: [
         libdns_dep,
         libisc_dep,
@@ -1484,6 +1527,7 @@ if config.has('HAVE_DNSTAP')
         export_dynamic: true,
         implicit_include_directories: true,
         install: true,
+        sources: default_sanitize_options,
         dependencies: [
             libdns_dep,
             libisc_dep,
@@ -1499,6 +1543,7 @@ executable(
     export_dynamic: true,
     implicit_include_directories: false,
     install: true,
+    sources: default_sanitize_options,
     dependencies: [
         libdns_dep,
         libisc_dep,
@@ -1514,6 +1559,7 @@ executable(
     export_dynamic: true,
     implicit_include_directories: false,
     install: true,
+    sources: default_sanitize_options,
     dependencies: [
         libdns_dep,
         libisc_dep,
@@ -1527,7 +1573,7 @@ executable(
     implicit_include_directories: true,
     include_directories: [bin_inc],
     install: true,
-    sources: bind_keys,
+    sources: [bind_keys, default_sanitize_options],
     dependencies: [
         libisc_dep,
         libdns_dep,
@@ -1541,6 +1587,7 @@ executable(
     export_dynamic: true,
     implicit_include_directories: false,
     install: true,
+    sources: default_sanitize_options,
     dependencies: [
         libisc_dep,
         libdns_dep,
@@ -1561,6 +1608,7 @@ executable(
     export_dynamic: true,
     implicit_include_directories: false,
     install: true,
+    sources: default_sanitize_options,
     dependencies: [
         libdns_dep,
         libisc_dep,
@@ -1573,6 +1621,7 @@ executable(
     export_dynamic: true,
     implicit_include_directories: false,
     install: true,
+    sources: default_sanitize_options,
     dependencies: [
         libdns_dep,
         libisc_dep,
@@ -1585,6 +1634,7 @@ executable(
     export_dynamic: true,
     implicit_include_directories: false,
     install: true,
+    sources: default_sanitize_options,
     dependencies: [
         libdns_dep,
         libisc_dep,
@@ -1599,6 +1649,7 @@ executable(
     export_dynamic: true,
     implicit_include_directories: false,
     install: true,
+    sources: default_sanitize_options,
     dependencies: [
         libdns_dep,
         libisc_dep,
@@ -1653,7 +1704,7 @@ executable(
     include_directories: [named_inc, bin_inc],
     install: true,
     install_dir: sbindir,
-    sources: bind_keys,
+    sources: [bind_keys, default_sanitize_options],
     dependencies: named_deps
     + [
         openssl_dep,
@@ -1677,6 +1728,7 @@ executable(
     export_dynamic: true,
     implicit_include_directories: false,
     install: true,
+    sources: default_sanitize_options,
     dependencies: [
         libdns_dep,
         libisc_dep,
@@ -1689,6 +1741,7 @@ executable(
     export_dynamic: true,
     implicit_include_directories: false,
     install: true,
+    sources: default_sanitize_options,
     dependencies: [
         libdns_dep,
         libisc_dep,
@@ -1705,6 +1758,7 @@ executable(
     export_dynamic: true,
     implicit_include_directories: false,
     install: true,
+    sources: default_sanitize_options,
     dependencies: [
         libdns_dep,
         libisc_dep,
@@ -1724,6 +1778,7 @@ executable(
     include_directories: confgen_inc_p,
     install: true,
     install_dir: sbindir,
+    sources: default_sanitize_options,
     dependencies: [
         libdns_dep,
         libisc_dep,
@@ -1737,6 +1792,7 @@ executable(
     implicit_include_directories: false,
     install: true,
     install_dir: sbindir,
+    sources: default_sanitize_options,
     dependencies: [
         libdns_dep,
         libisc_dep,
@@ -1753,6 +1809,7 @@ executable(
     include_directories: confgen_inc_p,
     install: true,
     install_dir: sbindir,
+    sources: default_sanitize_options,
     dependencies: [
         libdns_dep,
         libisc_dep,
@@ -1823,6 +1880,7 @@ foreach name, sources : fuzz_binaries
         install: false,
         c_args: ['-Wno-vla'],
         link_args: fuzz_link_args,
+        sources: default_sanitize_options,
         dependencies: [
             libdns_dep,
             libisc_dep,
@@ -1847,6 +1905,7 @@ foreach name, sources : system_test_binaries
         export_dynamic: true,
         implicit_include_directories: false,
         install: false,
+        sources: default_sanitize_options,
         dependencies: [
             libdns_dep,
             libisc_dep,
