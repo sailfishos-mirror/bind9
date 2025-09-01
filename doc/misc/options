@@ -300,7 +300,7 @@ options {
 	tcp-send-buffer <integer>;
 	tkey-dhkey <quoted_string> <integer>; // deprecated
 	tkey-domain <quoted_string>;
-	tkey-gssapi-credential <quoted_string>;
+	tkey-gssapi-credential <quoted_string>; // deprecated
 	tkey-gssapi-keytab <quoted_string>;
 	tls-port <integer>;
 	transfer-format ( many-answers | one-answer );
