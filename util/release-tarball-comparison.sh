@@ -34,7 +34,7 @@ if [ -z "${GITLAB_USER}" ] || [ -z "${GITLAB_TOKEN}" ]; then
 fi
 
 # Create the container to work in.
-CONTAINER_ID=$(docker create --interactive debian:bookworm)
+CONTAINER_ID=$(docker create --interactive debian:trixie)
 trap "docker container rm -f \${CONTAINER_ID} >/dev/null" EXIT
 docker start "${CONTAINER_ID}"
 
