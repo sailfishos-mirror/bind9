@@ -123,7 +123,6 @@ options {\n\
 	tcp-listen-queue 10;\n\
 	tcp-receive-buffer 0;\n\
 	tcp-send-buffer 0;\n\
-#	tkey-domain <none>\n\
 #	tkey-gssapi-credential <none>\n\
 	transfer-message-size 20480;\n\
 	transfers-in 10;\n\
