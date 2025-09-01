@@ -56,19 +56,6 @@ named_tkeyctx_fromconfig(const cfg_obj_t *options, isc_mem_t *mctx,
 	dns_tkeyctx_create(mctx, &tctx);
 
 	obj = NULL;
-	result = cfg_map_get(options, "tkey-domain", &obj);
-	if (result == ISC_R_SUCCESS) {
-		s = cfg_obj_asstring(obj);
-		isc_buffer_constinit(&b, s, strlen(s));
-		isc_buffer_add(&b, strlen(s));
-		name = dns_fixedname_initname(&fname);
-		RETERR(dns_name_fromtext(name, &b, dns_rootname, 0));
-		tctx->domain = isc_mem_get(mctx, sizeof(dns_name_t));
-		dns_name_init(tctx->domain);
-		dns_name_dup(name, mctx, tctx->domain);
-	}
-
-	obj = NULL;
 	result = cfg_map_get(options, "tkey-gssapi-credential", &obj);
 	if (result == ISC_R_SUCCESS) {
 		s = cfg_obj_asstring(obj);
