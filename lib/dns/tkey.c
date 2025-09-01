@@ -101,12 +101,6 @@ dns_tkeyctx_destroy(dns_tkeyctx_t **tctxp) {
 	*tctxp = NULL;
 	mctx = tctx->mctx;
 
-	if (tctx->domain != NULL) {
-		if (dns_name_dynamic(tctx->domain)) {
-			dns_name_free(tctx->domain, mctx);
-		}
-		isc_mem_put(mctx, tctx->domain, sizeof(dns_name_t));
-	}
 	if (tctx->gssapi_keytab != NULL) {
 		isc_mem_free(mctx, tctx->gssapi_keytab);
 	}
@@ -441,21 +435,6 @@ dns_tkey_processquery(dns_message_t *msg, dns_tkeyctx_t *tctx,
 					  ring));
 		break;
 	case DNS_TKEYMODE_GSSAPI:
-		/*
-		 * For non-delete operations we do this:
-		 *
-		 * if (qname != ".")
-		 *	keyname = qname + defaultdomain
-		 * else
-		 *	keyname = <random hex> + defaultdomain
-		 */
-		if (tctx->domain == NULL && tkeyin.mode != DNS_TKEYMODE_GSSAPI)
-		{
-			tkey_log("dns_tkey_processquery: tkey-domain not set");
-			result = DNS_R_REFUSED;
-			goto failure;
-		}
-
 		keyname = dns_fixedname_initname(&fkeyname);
 
 		if (!dns_name_equal(qname, dns_rootname)) {
