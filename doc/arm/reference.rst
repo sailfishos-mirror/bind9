@@ -1462,24 +1462,7 @@ default is used.
    principal which the server can acquire through the default system key
    file, normally ``/etc/krb5.keytab``. The location of the keytab file can be
    overridden using the :any:`tkey-gssapi-keytab` option. Normally this
-   principal is of the form ``DNS/server.domain``. To use
-   GSS-TSIG, :any:`tkey-domain` must also be set if a specific keytab is
-   not set with :any:`tkey-gssapi-keytab`.
-
-.. namedconf:statement:: tkey-domain
-   :tags: security
-   :short: Sets the domain appended to the names of all shared keys generated with ``TKEY``.
-
-   This domain is appended to the names of all shared keys generated with
-   ``TKEY``. When a client requests a ``TKEY`` exchange, it may or may
-   not specify the desired name for the key. If present, the name of the
-   shared key is ``client-specified part`` + :any:`tkey-domain`.
-   Otherwise, the name of the shared key is ``random hex digits``
-   + :any:`tkey-domain`. In most cases, the ``domainname``
-   should be the server's domain name, or an otherwise nonexistent
-   subdomain like ``_tkey.domainname``. If using GSS-TSIG,
-   this variable must be defined, unless a specific keytab
-   is indicated using :any:`tkey-gssapi-keytab`.
+   principal is of the form ``DNS/server.domain``.
 
 .. namedconf:statement:: dump-file
    :tags: logging
