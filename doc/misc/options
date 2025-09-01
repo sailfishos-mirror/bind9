@@ -299,7 +299,7 @@ options {
 	tcp-receive-buffer <integer>;
 	tcp-send-buffer <integer>;
 	tkey-dhkey <quoted_string> <integer>; // deprecated
-	tkey-domain <quoted_string>;
+	tkey-domain <quoted_string>; // deprecated
 	tkey-gssapi-credential <quoted_string>; // deprecated
 	tkey-gssapi-keytab <quoted_string>;
 	tls-port <integer>;

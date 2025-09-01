@@ -1339,7 +1339,7 @@ static cfg_clausedef_t options_clauses[] = {
 	{ "tcp-receive-buffer", &cfg_type_uint32, 0 },
 	{ "tcp-send-buffer", &cfg_type_uint32, 0 },
 	{ "tkey-dhkey", &cfg_type_tkey_dhkey, CFG_CLAUSEFLAG_DEPRECATED },
-	{ "tkey-domain", &cfg_type_qstring, 0 },
+	{ "tkey-domain", &cfg_type_qstring, CFG_CLAUSEFLAG_DEPRECATED },
 	{ "tkey-gssapi-credential", &cfg_type_qstring,
 	  CFG_CLAUSEFLAG_DEPRECATED },
 	{ "tkey-gssapi-keytab", &cfg_type_qstring, 0 },
