@@ -228,9 +228,9 @@
 #define NS_PROCESSING_LIMIT 20
 
 STATIC_ASSERT(NS_PROCESSING_LIMIT > NS_RR_LIMIT,
-	      "The maximum number of NS RRs processed for each delegation "
-	      "(NS_PROCESSING_LIMIT) must be larger than the large delegation "
-	      "threshold (NS_RR_LIMIT).");
+	      "The maximum number of NS RRs processed for each "
+	      "delegation (NS_PROCESSING_LIMIT) must be larger than the large "
+	      "delegation threshold (NS_RR_LIMIT).");
 
 /* Hash table for zone counters */
 #ifndef RES_DOMAIN_HASH_BITS
