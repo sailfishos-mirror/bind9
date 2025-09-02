@@ -1715,8 +1715,7 @@ dns_adb_shutdown(dns_adb_t *adb) {
  */
 isc_result_t
 dns_adb_createfind(dns_adb_t *adb, isc_loop_t *loop, isc_job_cb cb, void *cbarg,
-		   const dns_name_t *name, const dns_name_t *qname,
-		   dns_rdatatype_t qtype ISC_ATTR_UNUSED, unsigned int options,
+		   const dns_name_t *name, unsigned int options,
 		   isc_stdtime_t now, in_port_t port, unsigned int depth,
 		   isc_counter_t *qc, isc_counter_t *gqc,
 		   dns_adbfind_t **findp) {
@@ -1737,7 +1736,6 @@ dns_adb_createfind(dns_adb_t *adb, isc_loop_t *loop, isc_job_cb cb, void *cbarg,
 		REQUIRE(cb != NULL);
 	}
 	REQUIRE(name != NULL);
-	REQUIRE(qname != NULL);
 	REQUIRE(findp != NULL && *findp == NULL);
 
 	REQUIRE((options & DNS_ADBFIND_ADDRESSMASK) != 0);
@@ -2948,8 +2946,6 @@ maybe_adjust_quota(dns_adb_t *adb, dns_adbaddrinfo_t *addr, bool timeout) {
 			  addr->entry->atr, new_quota);
 	}
 }
-
-#define EDNSTOS 3U
 
 void
 dns_adb_plainresponse(dns_adb_t *adb, dns_adbaddrinfo_t *addr) {
