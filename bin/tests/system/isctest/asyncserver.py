@@ -734,6 +734,7 @@ class AsyncDnsServer(AsyncServer):
 
     def __init__(
         self,
+        default_rcode: dns.rcode.Rcode = dns.rcode.REFUSED,
         acknowledge_manual_dname_handling: bool = False,
         acknowledge_tsig_dnspython_hacks: bool = False,
     ) -> None:
@@ -742,6 +743,7 @@ class AsyncDnsServer(AsyncServer):
         self._zone_tree: _ZoneTree = _ZoneTree()
         self._connection_handler: Optional[ConnectionHandler] = None
         self._response_handlers: List[ResponseHandler] = []
+        self._default_rcode = default_rcode
         self._acknowledge_manual_dname_handling = acknowledge_manual_dname_handling
         self._acknowledge_tsig_dnspython_hacks = acknowledge_tsig_dnspython_hacks
 
@@ -1067,6 +1069,8 @@ class AsyncDnsServer(AsyncServer):
         """
         Yield response(s) either from response handlers or zone data.
         """
+        qctx.response.set_rcode(self._default_rcode)
+
         self._prepare_response_from_zone_data(qctx)
 
         response_handled = False
@@ -1113,8 +1117,8 @@ class AsyncDnsServer(AsyncServer):
             qctx.zone = zone
             return False
 
-        if not qctx.response.answer:
-            qctx.response.set_rcode(dns.rcode.REFUSED)
+        # RCODE is already set to self._default_rcode, i.e. REFUSED by default;
+        # it should also not be changed when following a CNAME chain
         return True
 
     def _delegation_response(self, qctx: QueryContext) -> bool:
@@ -1192,6 +1196,7 @@ class AsyncDnsServer(AsyncServer):
         if not cname:
             return False
 
+        qctx.response.set_rcode(dns.rcode.NOERROR)
         cname_rrset = dns.rrset.RRset(qctx.current_qname, qctx.qclass, cname.rdtype)
         cname_rrset.update(cname)
         qctx.response.answer.append(cname_rrset)
