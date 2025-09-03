@@ -20,6 +20,7 @@
 #include <string.h>
 
 #include <isc/async.h>
+#include <isc/atomic.h>
 #include <isc/counter.h>
 #include <isc/hex.h>
 #include <isc/list.h>
@@ -207,6 +208,20 @@ client_trace(ns_client_t *client, int level, const char *message) {
 		b = NULL;          \
 	} while (0)
 #define RESTORE(a, b) SAVE(a, b)
+
+static atomic_uint_fast32_t last_rpznotready_log = 0;
+
+static bool
+can_log_rpznotready(void) {
+	isc_stdtime_t last;
+	isc_stdtime_t now = isc_stdtime_now();
+	last = atomic_exchange_relaxed(&last_rpznotready_log, now);
+	if (now != last) {
+		return true;
+	}
+
+	return false;
+}
 
 static bool
 validate(ns_client_t *client, dns_db_t *db, dns_name_t *name,
@@ -4004,8 +4019,15 @@ rpz_rewrite(ns_client_t *client, dns_rdatatype_t qtype, isc_result_t qresult,
 	if (first_time && popt.servfail_until_ready &&
 	    zones_processed < zones_registered)
 	{
-		rpz_log_fail(client, DNS_RPZ_DEBUG_LEVEL3, NULL,
-			     DNS_RPZ_TYPE_QNAME, "RPZ not ready yet", result);
+		/* Do not pollute SERVFAIL cache  */
+		client->inner.attributes |= NS_CLIENTATTR_NOSETFC;
+
+		if (can_log_rpznotready()) {
+			rpz_log_fail(client, DNS_RPZ_INFO_LEVEL, NULL,
+				     DNS_RPZ_TYPE_QNAME,
+				     "RPZ servfail-until-ready", DNS_R_WAIT);
+		}
+
 		st->m.policy = DNS_RPZ_POLICY_ERROR;
 		goto cleanup;
 	}
