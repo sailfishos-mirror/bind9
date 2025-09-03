@@ -2698,6 +2698,18 @@ add(qpcache_t *qpdb, qpcnode_t *qpnode, dns_slabheader_t *newheader,
 			bindrdataset(qpdb, qpnode, header, now, nlocktype,
 				     tlocktype,
 				     addedrdataset DNS__DB_FLARG_PASS);
+			if (ACTIVE(header, now) &&
+			    (options & DNS_DBADD_EQUALOK) != 0 &&
+			    dns_rdataslab_equalx(
+				    header, newheader, qpdb->common.rdclass,
+				    DNS_TYPEPAIR_TYPE(header->typepair)))
+			{
+				/*
+				 * Updated by caller to ISC_R_SUCCESS after
+				 * cleaning up newheader.
+				 */
+				return ISC_R_EXISTS;
+			}
 			return DNS_R_UNCHANGED;
 		}
 
@@ -2735,6 +2747,13 @@ add(qpcache_t *qpdb, qpcnode_t *qpnode, dns_slabheader_t *newheader,
 			bindrdataset(qpdb, qpnode, header, now, nlocktype,
 				     tlocktype,
 				     addedrdataset DNS__DB_FLARG_PASS);
+			if ((options & DNS_DBADD_EQUALOK) != 0) {
+				/*
+				 * Updated by caller to ISC_R_SUCCESS after
+				 * cleaning up newheader.
+				 */
+				return ISC_R_EXISTS;
+			}
 			return DNS_R_UNCHANGED;
 		}
 
@@ -2785,6 +2804,13 @@ add(qpcache_t *qpdb, qpcnode_t *qpnode, dns_slabheader_t *newheader,
 			bindrdataset(qpdb, qpnode, header, now, nlocktype,
 				     tlocktype,
 				     addedrdataset DNS__DB_FLARG_PASS);
+			if ((options & DNS_DBADD_EQUALOK) != 0) {
+				/*
+				 * Updated by caller to ISC_R_SUCCESS after
+				 * cleaning up newheader.
+				 */
+				return ISC_R_EXISTS;
+			}
 			return DNS_R_UNCHANGED;
 		}
 
@@ -3089,6 +3115,10 @@ qpcache_addrdataset(dns_db_t *db, dns_dbnode_t *node, dns_dbversion_t *version,
 	}
 
 	NODE_UNLOCK(nlock, &nlocktype);
+
+	if (result == ISC_R_EXISTS) {
+		result = ISC_R_SUCCESS;
+	}
 
 	if (tlocktype != isc_rwlocktype_none) {
 		TREE_UNLOCK(&qpdb->tree_lock, &tlocktype);
