@@ -51,7 +51,11 @@ update add  32.2.5.168.192.rpz-ip.bl	300 A	127.0.0.2
 ; prefer first conflicting IP zone for a5-3.tld2
 ;	12
 update add 32.3.5.168.192.rpz-ip.bl	300 A	127.0.0.1
+; non canonical form entry to trigger log message
+update add  128.2.0.0.0.0.3.2.2001.rpz-ip.bl	300 CNAME .
 send
+
+;
 update add 32.3.5.168.192.rpz-ip.bl-2	300 A	127.0.0.2
 send
 
