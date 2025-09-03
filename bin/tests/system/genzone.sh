@@ -392,7 +392,13 @@ https1			HTTPS	1 . port=60
 ; type 66
 dsync01			DSYNC	CDS NOTIFY 53 .
 
-; type 68 -- 98 (unassigned)
+; type 67
+hhit			HHIT	abcd
+
+; type 68
+brid			BRID	abcd
+
+; type 69 -- 98 (unassigned)
 
 ; type 99
 spf01			SPF	"v=spf1 -all"
