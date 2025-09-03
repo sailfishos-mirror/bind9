@@ -12208,12 +12208,10 @@ static void
 dump_done(void *arg, isc_result_t result) {
 	dns_zone_t *zone = arg;
 	dns_zone_t *secure = NULL;
-	dns_db_t *db;
-	dns_dbversion_t *version;
 	bool again = false;
 	bool compact = false;
 	uint32_t serial;
-	isc_result_t tresult;
+	isc_result_t tresult = ISC_R_UNSET;
 
 	REQUIRE(DNS_ZONE_VALID(zone));
 
@@ -12241,13 +12239,10 @@ dump_done(void *arg, isc_result_t result) {
 	}
 
 	if (result == ISC_R_SUCCESS && zone->journal != NULL) {
-		/*
-		 * We don't own these, zone->dctx must stay valid.
-		 */
-		db = dns_dumpctx_db(zone->dumpctx);
-		version = dns_dumpctx_version(zone->dumpctx);
-		tresult = dns_db_getsoaserial(db, version, &serial);
+		tresult = dns_dumpctx_serial(zone->dumpctx, &serial);
+	}
 
+	if (tresult == ISC_R_SUCCESS) {
 		/*
 		 * Handle lock order inversion.
 		 */
@@ -12269,7 +12264,7 @@ dump_done(void *arg, isc_result_t result) {
 		 * If there is a secure version of this zone
 		 * use its serial if it is less than ours.
 		 */
-		if (tresult == ISC_R_SUCCESS && secure != NULL) {
+		if (secure != NULL) {
 			uint32_t sserial;
 			isc_result_t mresult;
 
@@ -12285,13 +12280,13 @@ dump_done(void *arg, isc_result_t result) {
 			}
 			ZONEDB_UNLOCK(&secure->dblock, isc_rwlocktype_read);
 		}
-		if (tresult == ISC_R_SUCCESS && zone->xfr == NULL) {
+		if (zone->xfr == NULL) {
 			dns_db_t *zdb = NULL;
 			if (dns_zone_getdb(zone, &zdb) == ISC_R_SUCCESS) {
 				zone_journal_compact(zone, zdb, serial);
 				dns_db_detach(&zdb);
 			}
-		} else if (tresult == ISC_R_SUCCESS) {
+		} else {
 			compact = true;
 			zone->compact_serial = serial;
 		}
