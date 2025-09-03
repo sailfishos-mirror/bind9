@@ -802,7 +802,7 @@ name2ipkey(int log_level, dns_rpz_zone_t *rpz, dns_rpz_type_t rpz_type,
 	dns_fixedname_t ip_name2f;
 	dns_name_t ip_name;
 	const char *prefix_str = NULL, *cp = NULL, *end = NULL;
-	char *cp2;
+	char *prefix_end, *cp2;
 	int ip_labels;
 	dns_rpz_prefix_t prefix;
 	unsigned long prefix_num, l;
@@ -840,12 +840,9 @@ name2ipkey(int log_level, dns_rpz_zone_t *rpz, dns_rpz_type_t rpz_type,
 			"");
 		return ISC_R_FAILURE;
 	}
-	/*
-	 * Patch in trailing nul character to print just the length
-	 * label (for various cases below).
-	 */
-	*cp2 = '\0';
+	prefix_end = cp2;
 	if (prefix_num < 1U || prefix_num > 128U) {
+		*prefix_end = '\0';
 		badname(log_level, src_name, "; invalid prefix length of ",
 			prefix_str);
 		return ISC_R_FAILURE;
@@ -858,6 +855,7 @@ name2ipkey(int log_level, dns_rpz_zone_t *rpz, dns_rpz_type_t rpz_type,
 		 * from the form "prefix.z.y.x.w"
 		 */
 		if (prefix_num > 32U) {
+			*prefix_end = '\0';
 			badname(log_level, src_name,
 				"; invalid IPv4 prefix length of ", prefix_str);
 			return ISC_R_FAILURE;
@@ -936,6 +934,7 @@ name2ipkey(int log_level, dns_rpz_zone_t *rpz, dns_rpz_type_t rpz_type,
 		i = prefix % DNS_RPZ_CIDR_WORD_BITS;
 		aword = tgt_ip->w[prefix / DNS_RPZ_CIDR_WORD_BITS];
 		if ((aword & ~DNS_RPZ_WORD_MASK(i)) != 0) {
+			*prefix_end = '\0';
 			badname(log_level, src_name,
 				"; too small prefix length of ", prefix_str);
 			return ISC_R_FAILURE;
