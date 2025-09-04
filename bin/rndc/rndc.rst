@@ -171,13 +171,20 @@ Currently supported commands are:
 
    See also :option:`rndc addzone` and :option:`rndc modzone`.
 
-.. option:: dnssec (-status | -rollover -key id [-alg algorithm] [-when time] | -checkds [-key id [-alg algorithm]] [-when time]  published | withdrawn)) zone [class [view]]
+.. option:: dnssec (-status | -step | -rollover -key id [-alg algorithm] [-when time] | -checkds [-key id [-alg algorithm]] [-when time]  published | withdrawn)) zone [class [view]]
 
    This command allows you to interact with the "dnssec-policy" of a given
    zone.
 
    ``rndc dnssec -status`` show the DNSSEC signing state for the specified
    zone.
+
+   ``rndc dnssec -step`` sends a signal to an instance of :iscman:`named` for a
+   zone configured with ``dnssec-policy`` in manual mode, telling it to
+   continue with the operations that had previously been blocked but logged.
+   This gives the human operator a chance to review the log messages,
+   understand what will happen next and then, using ``rndc dnssec -step``, to
+   inform :iscman:`named` to proceed to the next stage.
 
    ``rndc dnssec -rollover`` allows you to schedule key rollover for a
    specific key (overriding the original key lifetime).
