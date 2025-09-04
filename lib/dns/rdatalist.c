@@ -43,7 +43,6 @@ static dns_rdatasetmethods_t methods = {
 	isc__rdatalist_setownercase,
 	isc__rdatalist_getownercase,
 	NULL, /* addglue */
-	NULL, /* equals */
 };
 
 void
