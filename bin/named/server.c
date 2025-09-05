@@ -3635,7 +3635,7 @@ configure_view(dns_view_t *view, dns_viewlist_t *viewlist, cfg_obj_t *config,
 	bool empty_zones_enable;
 	const cfg_obj_t *disablelist = NULL;
 	isc_stats_t *resstats = NULL;
-	dns_stats_t *resquerystats = NULL;
+	isc_statsmulti_t *resquerystats = NULL;
 	isc_histomulti_t *resqueryinrttstats = NULL;
 	isc_histomulti_t *resqueryoutrttstats = NULL;
 	bool auto_root = false;
@@ -5465,7 +5465,7 @@ cleanup:
 		isc_stats_detach(&resstats);
 	}
 	if (resquerystats != NULL) {
-		dns_stats_detach(&resquerystats);
+		isc_statsmulti_detach(&resquerystats);
 	}
 	if (resqueryinrttstats != NULL) {
 		isc_histomulti_detach(&resqueryinrttstats);
@@ -10054,12 +10054,12 @@ named_server_resetstatscommand(named_server_t *server, isc_lex_t *lex,
 	}
 
 	if (recursive_high_water) {
-		isc_stats_set(ns_stats_get(server->sctx->nsstats), 0,
-			      ns_statscounter_recurshighwater);
+		ns_stats_reset_highwater(server->sctx->nshighwaterstats,
+					 ns_highwater_recursive);
 	}
 	if (tcp_high_water) {
-		isc_stats_set(ns_stats_get(server->sctx->nsstats), 0,
-			      ns_statscounter_tcphighwater);
+		ns_stats_reset_highwater(server->sctx->nshighwaterstats,
+					 ns_highwater_tcp);
 	}
 
 	return ISC_R_SUCCESS;
@@ -11539,9 +11539,9 @@ named_server_status(named_server_t *server, isc_buffer_t *text) {
 	CHECK(putstr(text, line));
 
 	snprintf(line, sizeof(line), "recursive high-water: %u\n",
-		 (unsigned int)ns_stats_get_counter(
-			 server->sctx->nsstats,
-			 ns_statscounter_recurshighwater));
+		 (unsigned int)ns_stats_get_highwater(
+			 server->sctx->nshighwaterstats,
+			 ns_highwater_recursive));
 	CHECK(putstr(text, line));
 
 	snprintf(line, sizeof(line), "tcp clients: %u/%u\n",
@@ -11550,8 +11550,8 @@ named_server_status(named_server_t *server, isc_buffer_t *text) {
 	CHECK(putstr(text, line));
 
 	snprintf(line, sizeof(line), "TCP high-water: %u\n",
-		 (unsigned int)ns_stats_get_counter(
-			 server->sctx->nsstats, ns_statscounter_tcphighwater));
+		 (unsigned int)ns_stats_get_highwater(
+			 server->sctx->nshighwaterstats, ns_highwater_tcp));
 	CHECK(putstr(text, line));
 
 	reload_status = atomic_load(&server->reload_status);

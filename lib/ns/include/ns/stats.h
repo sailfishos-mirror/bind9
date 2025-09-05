@@ -17,6 +17,7 @@
 
 #include <isc/mem.h>
 #include <isc/stats.h>
+#include <isc/statsmulti.h>
 
 #include <ns/types.h>
 
@@ -107,50 +108,54 @@ enum {
 	ns_statscounter_prefetch = 64,
 	ns_statscounter_keytagopt = 65,
 
-	ns_statscounter_tcphighwater = 66,
+	ns_statscounter_reclimitdropped = 66,
 
-	ns_statscounter_reclimitdropped = 67,
+	ns_statscounter_updatequota = 67,
+	ns_statscounter_dot = 68,
+	ns_statscounter_doh = 69,
+	ns_statscounter_dohplain = 70,
 
-	ns_statscounter_updatequota = 68,
+	ns_statscounter_proxyudp = 71,
+	ns_statscounter_proxytcp = 72,
+	ns_statscounter_proxydot = 73,
+	ns_statscounter_proxydoh = 74,
+	ns_statscounter_proxydohplain = 75,
+	ns_statscounter_encryptedproxydot = 76,
+	ns_statscounter_encryptedproxydoh = 77,
 
-	ns_statscounter_recurshighwater = 69,
+	ns_statscounter_max = 78,
+};
 
-	ns_statscounter_dot = 70,
-	ns_statscounter_doh = 71,
-	ns_statscounter_dohplain = 72,
+/*%
+ * Highwater statistics counters. Used as isc_statscounter_t values
+ * for the separate highwater stats structure.
+ */
+enum {
+	ns_highwater_tcp = 0,
+	ns_highwater_recursive = 1,
 
-	ns_statscounter_proxyudp = 73,
-	ns_statscounter_proxytcp = 74,
-	ns_statscounter_proxydot = 75,
-	ns_statscounter_proxydoh = 76,
-	ns_statscounter_proxydohplain = 77,
-	ns_statscounter_encryptedproxydot = 78,
-	ns_statscounter_encryptedproxydoh = 79,
-
-	ns_statscounter_max = 80,
+	ns_highwater_max = 2,
 };
 
 void
-ns_stats_attach(ns_stats_t *stats, ns_stats_t **statsp);
+ns_stats_create(isc_mem_t *mctx, isc_statsmulti_t **statsp,
+		isc_stats_t **hwstatsp);
 
 void
-ns_stats_detach(ns_stats_t **statsp);
+ns_stats_increment(isc_statsmulti_t *stats, isc_statscounter_t counter);
 
 void
-ns_stats_create(isc_mem_t *mctx, int ncounters, ns_stats_t **statsp);
-
-isc_statscounter_t
-ns_stats_increment(ns_stats_t *stats, isc_statscounter_t counter);
+ns_stats_decrement(isc_statsmulti_t *stats, isc_statscounter_t counter);
 
 void
-ns_stats_decrement(ns_stats_t *stats, isc_statscounter_t counter);
-
-isc_stats_t *
-ns_stats_get(ns_stats_t *stats);
-
-void
-ns_stats_update_if_greater(ns_stats_t *stats, isc_statscounter_t counter,
+ns_stats_update_if_greater(isc_stats_t *hwstats, isc_statscounter_t counter,
 			   isc_statscounter_t value);
 
 isc_statscounter_t
-ns_stats_get_counter(ns_stats_t *stats, isc_statscounter_t counter);
+ns_stats_get_counter(isc_statsmulti_t *stats, isc_statscounter_t counter);
+
+isc_statscounter_t
+ns_stats_get_highwater(isc_stats_t *hwstats, isc_statscounter_t counter);
+
+void
+ns_stats_reset_highwater(isc_stats_t *hwstats, isc_statscounter_t counter);

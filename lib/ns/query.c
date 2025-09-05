@@ -546,7 +546,7 @@ inc_stats(ns_client_t *client, isc_statscounter_t counter) {
 	dns_rdatatype_t qtype;
 	dns_rdataset_t *rdataset;
 	isc_stats_t *zonestats;
-	dns_stats_t *querystats = NULL;
+	isc_statsmulti_t *querystats = NULL;
 
 	ns_stats_increment(client->manager->sctx->nsstats, counter);
 
@@ -2587,7 +2587,6 @@ free_fresp(ns_client_t *client, dns_fetchresponse_t **frespp) {
 
 static isc_result_t
 recursionquotatype_attach(ns_client_t *client, bool soft_limit) {
-	isc_statscounter_t recurscount;
 	isc_result_t result;
 
 	result = isc_quota_acquire(&client->manager->sctx->recursionquota);
@@ -2610,12 +2609,13 @@ recursionquotatype_attach(ns_client_t *client, bool soft_limit) {
 		return result;
 	}
 
-	recurscount = ns_stats_increment(client->manager->sctx->nsstats,
-					 ns_statscounter_recursclients);
+	ns_stats_increment(client->manager->sctx->nsstats,
+			   ns_statscounter_recursclients);
+	isc_statscounter_t recurscount = ns_stats_get_counter(
+		client->manager->sctx->nsstats, ns_statscounter_recursclients);
 
-	ns_stats_update_if_greater(client->manager->sctx->nsstats,
-				   ns_statscounter_recurshighwater,
-				   recurscount + 1);
+	ns_stats_update_if_greater(client->manager->sctx->nshighwaterstats,
+				   ns_highwater_recursive, recurscount);
 
 	return result;
 }
