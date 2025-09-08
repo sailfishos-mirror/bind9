@@ -129,8 +129,8 @@ add_tsig(dst_context_t *tsigctx, dns_tsigkey_t *key, isc_buffer_t *target,
 	ISC_LIST_APPEND(rdatalist.rdata, &rdata, link);
 	dns_rdataset_init(&rdataset);
 	dns_rdatalist_tordataset(&rdatalist, &rdataset);
-	CHECK(dns_rdataset_towire(&rdataset, key->name, &cctx, target, 0,
-				  &count));
+	CHECK(dns_rdataset_towire(&rdataset, key->name, 0, &cctx, target, false,
+				  0, &count));
 
 	/*
 	 * Fixup additional record count.

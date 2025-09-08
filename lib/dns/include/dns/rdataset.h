@@ -147,14 +147,6 @@ struct dns_rdataset {
 		dns_orderopt_t order	    : 2;
 	} attributes;
 
-	/*%
-	 * the counter provides the starting point in the "cyclic" order.
-	 * The value UINT32_MAX has a special meaning of "picking up a
-	 * random value." in order to take care of databases that do not
-	 * increment the counter.
-	 */
-	uint32_t count;
-
 	/*
 	 * This RRSIG RRset should be re-generated around this time.
 	 * Only valid if 'resign' attribute is set.
@@ -228,12 +220,11 @@ struct dns_rdataset {
 	};
 };
 
-#define DNS_RDATASET_COUNT_UNDEFINED UINT32_MAX
-
-#define DNS_RDATASET_INIT               \
-	{ .magic = DNS_RDATASET_MAGIC,  \
-	  .link = ISC_LINK_INITIALIZER, \
-	  .count = DNS_RDATASET_COUNT_UNDEFINED }
+#define DNS_RDATASET_INIT                     \
+	{                                     \
+		.magic = DNS_RDATASET_MAGIC,  \
+		.link = ISC_LINK_INITIALIZER, \
+	}
 
 /* clang-format off */
 /*
@@ -437,14 +428,16 @@ dns_rdataset_totext(dns_rdataset_t *rdataset, const dns_name_t *owner_name,
 
 isc_result_t
 dns_rdataset_towire(dns_rdataset_t *rdataset, const dns_name_t *owner_name,
-		    dns_compress_t *cctx, isc_buffer_t *target,
-		    unsigned int options, unsigned int *countp);
+		    uint16_t id, dns_compress_t *cctx, isc_buffer_t *target,
+		    bool partial, unsigned int options, unsigned int *countp);
 /*%<
  * Convert 'rdataset' to wire format, compressing names as specified
  * in 'cctx', and storing the result in 'target'.
  *
  * Notes:
  *\li	The rdata cursor position will be changed.
+ *
+ *\li	If 'partial' is true, a partial rdataset may be written.
  *
  *\li	The number of RRs added to target will be added to *countp.
  *
@@ -469,28 +462,6 @@ dns_rdataset_towire(dns_rdataset_t *rdataset, const dns_name_t *owner_name,
  *
  *\li	Any error returned by dns_rdata_towire(), dns_rdataset_next(),
  *	dns_name_towire().
- */
-
-isc_result_t
-dns_rdataset_towirepartial(dns_rdataset_t   *rdataset,
-			   const dns_name_t *owner_name, dns_compress_t *cctx,
-			   isc_buffer_t *target, unsigned int options,
-			   unsigned int *countp, void **state);
-/*%<
- * Like dns_rdataset_towire() except that a partial rdataset may be written.
- *
- * Requires:
- *\li	All the requirements of dns_rdataset_towiresorted().
- *	If 'state' is non NULL then the current position in the
- *	rdataset will be remembered if the rdataset in not
- *	completely written and should be passed on on subsequent
- *	calls (NOT CURRENTLY IMPLEMENTED).
- *
- * Returns:
- *\li	#ISC_R_SUCCESS if all of the records were written.
- *\li	#ISC_R_NOSPACE if unable to fit in all of the records. *countp
- *		      will be updated to reflect the number of records
- *		      written.
  */
 
 isc_result_t

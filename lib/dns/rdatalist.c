@@ -80,7 +80,6 @@ dns_rdatalist_tordataset(dns_rdatalist_t *rdatalist, dns_rdataset_t *rdataset) {
 		.rdlist.list = rdatalist,
 
 		.link = rdataset->link,
-		.count = rdataset->count,
 		.attributes = rdataset->attributes,
 		.magic = rdataset->magic,
 	};

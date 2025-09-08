@@ -1823,7 +1823,7 @@ wrong_priority(dns_rdataset_t *rds, int pass, dns_rdatatype_t preferred_glue) {
 }
 
 static isc_result_t
-renderset(dns_rdataset_t *rdataset, const dns_name_t *owner_name,
+renderset(dns_rdataset_t *rdataset, const dns_name_t *owner_name, uint16_t id,
 	  dns_compress_t *cctx, isc_buffer_t *target, unsigned int reserved,
 	  unsigned int options, unsigned int *countp) {
 	isc_result_t result;
@@ -1836,8 +1836,8 @@ renderset(dns_rdataset_t *rdataset, const dns_name_t *owner_name,
 	}
 
 	target->length -= reserved;
-	result = dns_rdataset_towire(rdataset, owner_name, cctx, target,
-				     options, countp);
+	result = dns_rdataset_towire(rdataset, owner_name, id, cctx, target,
+				     false, options, countp);
 	target->length += reserved;
 
 	return result;
@@ -1932,15 +1932,9 @@ dns_message_rendersection(dns_message_t *msg, dns_section_t sectionid,
 		{
 			st = *(msg->buffer);
 			count = 0;
-			if (partial) {
-				result = dns_rdataset_towirepartial(
-					rdataset, name, msg->cctx, msg->buffer,
-					rd_options, &count, NULL);
-			} else {
-				result = dns_rdataset_towire(
-					rdataset, name, msg->cctx, msg->buffer,
-					rd_options, &count);
-			}
+			result = dns_rdataset_towire(
+				rdataset, name, msg->id, msg->cctx, msg->buffer,
+				partial, rd_options, &count);
 			total += count;
 			if (partial && result == ISC_R_NOSPACE) {
 				msg->flags |= DNS_MESSAGEFLAG_TC;
@@ -1990,15 +1984,9 @@ dns_message_rendersection(dns_message_t *msg, dns_section_t sectionid,
 				st = *(msg->buffer);
 
 				count = 0;
-				if (partial) {
-					result = dns_rdataset_towirepartial(
-						rds, n, msg->cctx, msg->buffer,
-						rd_options, &count, NULL);
-				} else {
-					result = dns_rdataset_towire(
-						rds, n, msg->cctx, msg->buffer,
-						rd_options, &count);
-				}
+				result = dns_rdataset_towire(
+					rds, n, msg->id, msg->cctx, msg->buffer,
+					partial, rd_options, &count);
 
 				total += count;
 
@@ -2151,7 +2139,7 @@ dns_message_renderend(dns_message_t *msg) {
 		 * Render.
 		 */
 		count = 0;
-		result = renderset(msg->opt, dns_rootname, msg->cctx,
+		result = renderset(msg->opt, dns_rootname, msg->id, msg->cctx,
 				   msg->buffer, msg->reserved, 0, &count);
 		msg->counts[DNS_SECTION_ADDITIONAL] += count;
 		if (result != ISC_R_SUCCESS) {
@@ -2220,7 +2208,7 @@ dns_message_renderend(dns_message_t *msg) {
 			return result;
 		}
 		count = 0;
-		result = renderset(msg->tsig, msg->tsigname, msg->cctx,
+		result = renderset(msg->tsig, msg->tsigname, msg->id, msg->cctx,
 				   msg->buffer, msg->reserved, 0, &count);
 		msg->counts[DNS_SECTION_ADDITIONAL] += count;
 		if (result != ISC_R_SUCCESS) {
@@ -2244,7 +2232,7 @@ dns_message_renderend(dns_message_t *msg) {
 		 * the owner name of a SIG(0) is irrelevant, and will not
 		 * be set in a message being rendered.
 		 */
-		result = renderset(msg->sig0, dns_rootname, msg->cctx,
+		result = renderset(msg->sig0, dns_rootname, msg->id, msg->cctx,
 				   msg->buffer, msg->reserved, 0, &count);
 		msg->counts[DNS_SECTION_ADDITIONAL] += count;
 		if (result != ISC_R_SUCCESS) {
