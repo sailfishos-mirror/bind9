@@ -115,7 +115,7 @@ filter_prep_response_begin(void *arg, void *cbdata, isc_result_t *resp);
 static ns_hookresult_t
 filter_query_done_send(void *arg, void *cbdata, isc_result_t *resp);
 static ns_hookresult_t
-filter_qctx_destroy(void *arg, void *cbdata, isc_result_t *resp);
+filter_freeclientstate(void *arg, void *cbdata, isc_result_t *resp);
 
 /*%
  * Register the functions to be called at each hook point in 'hooktable', using
@@ -151,12 +151,12 @@ install_hooks(ns_hooktable_t *hooktable, isc_mem_t *mctx,
 		.action_data = inst,
 	};
 
-	const ns_hook_t filter_destroy = {
-		.action = filter_qctx_destroy,
+	const ns_hook_t filter_reset = {
+		.action = filter_freeclientstate,
 		.action_data = inst,
 	};
 
-	ns_hook_add(hooktable, mctx, NS_QUERY_QCTX_INITIALIZED, &filter_init);
+	ns_hook_add(hooktable, mctx, NS_QUERY_SETUP, &filter_init);
 	ns_hook_add(hooktable, mctx, NS_QUERY_AUTHZONE_ATTACHED, &filter_init);
 	ns_hook_add(hooktable, mctx, NS_QUERY_RESPOND_BEGIN, &filter_respbegin);
 	ns_hook_add(hooktable, mctx, NS_QUERY_RESPOND_ANY_FOUND,
@@ -164,7 +164,7 @@ install_hooks(ns_hooktable_t *hooktable, isc_mem_t *mctx,
 	ns_hook_add(hooktable, mctx, NS_QUERY_PREP_RESPONSE_BEGIN,
 		    &filter_prepresp);
 	ns_hook_add(hooktable, mctx, NS_QUERY_DONE_SEND, &filter_donesend);
-	ns_hook_add(hooktable, mctx, NS_QUERY_QCTX_DESTROYED, &filter_destroy);
+	ns_hook_add(hooktable, mctx, NS_QUERY_RESET, &filter_reset);
 }
 
 /**
@@ -862,16 +862,11 @@ filter_query_done_send(void *arg, void *cbdata, isc_result_t *resp) {
  * from hash table and return it to the memory pool.
  */
 static ns_hookresult_t
-filter_qctx_destroy(void *arg, void *cbdata, isc_result_t *resp) {
+filter_freeclientstate(void *arg, void *cbdata, isc_result_t *resp) {
 	query_ctx_t *qctx = (query_ctx_t *)arg;
 	filter_instance_t *inst = (filter_instance_t *)cbdata;
 
 	*resp = ISC_R_UNSET;
-
-	if (!qctx->detach_client) {
-		return NS_HOOK_CONTINUE;
-	}
-
 	client_state_destroy(qctx, inst);
 
 	return NS_HOOK_CONTINUE;

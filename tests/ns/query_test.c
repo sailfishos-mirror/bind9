@@ -828,20 +828,6 @@ hook_async_query_done_begin(void *arg, void *data, isc_result_t *resultp) {
 	return hook_async_common(arg, data, resultp, NS_QUERY_DONE_BEGIN);
 }
 
-/*
- * hook on destroying actx.  Can't be used for async event, but we use this
- * to remember the qctx at that point.
- */
-static ns_hookresult_t
-ns_test_qctx_destroy_hook(void *arg, void *data, isc_result_t *resultp) {
-	query_ctx_t *qctx = arg;
-	hookasync_data_t *asdata = data;
-
-	asdata->qctx = *qctx; /* remember passed ctx for inspection */
-	*resultp = ISC_R_UNSET;
-	return NS_HOOK_CONTINUE;
-}
-
 static void
 run_hookasync_test(const ns__query_hookasync_test_params_t *test) {
 	query_ctx_t *qctx = NULL;
@@ -854,10 +840,6 @@ run_hookasync_test(const ns__query_hookasync_test_params_t *test) {
 	};
 	const ns_hook_t testhook = {
 		.action = test->action,
-		.action_data = &asdata,
-	};
-	const ns_hook_t destroyhook = {
-		.action = ns_test_qctx_destroy_hook,
 		.action_data = &asdata,
 	};
 	isc_statscounter_t srvfail_cnt;
@@ -880,8 +862,6 @@ run_hookasync_test(const ns__query_hookasync_test_params_t *test) {
 		ns_hook_add(ns__hook_table, isc_g_mctx, test->hookpoint2,
 			    &testhook);
 	}
-	ns_hook_add(ns__hook_table, isc_g_mctx, NS_QUERY_QCTX_DESTROYED,
-		    &destroyhook);
 
 	{
 		const ns_test_qctx_create_params_t qctx_params = {
@@ -972,18 +952,11 @@ run_hookasync_test(const ns__query_hookasync_test_params_t *test) {
 
 	/*
 	 * Confirm SERVFAIL has been sent if it was expected.
-	 * Also, the last-generated qctx should have detach_client being true.
 	 */
 	if (expect_servfail) {
 		INSIST(ns_stats_get_counter(
 			       qctx->client->manager->sctx->nsstats,
 			       ns_statscounter_servfail) == srvfail_cnt + 1);
-		if (test->do_cancel) {
-			/* qctx was created on resume and copied in hook */
-			INSIST(asdata.qctx.detach_client);
-		} else {
-			INSIST(qctx->detach_client);
-		}
 	}
 
 	/*

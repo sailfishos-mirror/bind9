@@ -66,11 +66,11 @@ typedef struct state {
  * Forward declarations of functions referenced in install_hooks().
  */
 static ns_hookresult_t
-async_qctx_initialize(void *arg, void *cbdata, isc_result_t *resp);
+async_query_setup(void *arg, void *cbdata, isc_result_t *resp);
 static ns_hookresult_t
 async_query_done_begin(void *arg, void *cbdata, isc_result_t *resp);
 static ns_hookresult_t
-async_qctx_destroy(void *arg, void *cbdata, isc_result_t *resp);
+async_query_reset(void *arg, void *cbdata, isc_result_t *resp);
 
 /*%
  * Register the functions to be called at each hook point in 'hooktable', using
@@ -81,22 +81,22 @@ async_qctx_destroy(void *arg, void *cbdata, isc_result_t *resp);
 static void
 install_hooks(ns_hooktable_t *hooktable, isc_mem_t *mctx,
 	      async_instance_t *inst) {
-	const ns_hook_t async_init = {
-		.action = async_qctx_initialize,
+	const ns_hook_t async_setup = {
+		.action = async_query_setup,
 		.action_data = inst,
 	};
 	const ns_hook_t async_donebegin = {
 		.action = async_query_done_begin,
 		.action_data = inst,
 	};
-	const ns_hook_t async_destroy = {
-		.action = async_qctx_destroy,
+	const ns_hook_t async_reset = {
+		.action = async_query_reset,
 		.action_data = inst,
 	};
 
-	ns_hook_add(hooktable, mctx, NS_QUERY_QCTX_INITIALIZED, &async_init);
+	ns_hook_add(hooktable, mctx, NS_QUERY_SETUP, &async_setup);
 	ns_hook_add(hooktable, mctx, NS_QUERY_DONE_BEGIN, &async_donebegin);
-	ns_hook_add(hooktable, mctx, NS_QUERY_QCTX_DESTROYED, &async_destroy);
+	ns_hook_add(hooktable, mctx, NS_QUERY_RESET, &async_reset);
 }
 
 static void
@@ -242,12 +242,12 @@ client_state_destroy(const query_ctx_t *qctx, async_instance_t *inst) {
 }
 
 static ns_hookresult_t
-async_qctx_initialize(void *arg, void *cbdata, isc_result_t *resp) {
+async_query_setup(void *arg, void *cbdata, isc_result_t *resp) {
 	query_ctx_t *qctx = (query_ctx_t *)arg;
 	async_instance_t *inst = (async_instance_t *)cbdata;
 	state_t *state = NULL;
 
-	logmsg("qctx init hook");
+	logmsg("query setup hook");
 	*resp = ISC_R_UNSET;
 
 	state = client_state_get(qctx, inst);
@@ -330,17 +330,12 @@ async_query_done_begin(void *arg, void *cbdata, isc_result_t *resp) {
 }
 
 static ns_hookresult_t
-async_qctx_destroy(void *arg, void *cbdata, isc_result_t *resp) {
+async_query_reset(void *arg, void *cbdata, isc_result_t *resp) {
 	query_ctx_t *qctx = (query_ctx_t *)arg;
 	async_instance_t *inst = (async_instance_t *)cbdata;
 
-	logmsg("qctx destroy hook");
+	logmsg("query reset hook");
 	*resp = ISC_R_UNSET;
-
-	if (!qctx->detach_client) {
-		return NS_HOOK_CONTINUE;
-	}
-
 	client_state_destroy(qctx, inst);
 
 	return NS_HOOK_CONTINUE;
