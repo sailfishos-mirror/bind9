@@ -822,6 +822,10 @@ ns_query_cancel(ns_client_t *client) {
 
 static void
 query_reset(ns_client_t *client, bool everything) {
+	query_ctx_t qctx = { .view = client->inner.view, .client = client };
+
+	CALL_HOOK_NORETURN(NS_QUERY_RESET, &qctx);
+
 	CTRACE(ISC_LOG_DEBUG(3), "query_reset");
 
 	/*%
@@ -5132,8 +5136,6 @@ qctx_init(ns_client_t *client, dns_fetchresponse_t **frespp,
 	if (dns_rdatatype_issig(qctx->qtype)) {
 		qctx->type = dns_rdatatype_any;
 	}
-
-	CALL_HOOK_NORETURN(NS_QUERY_QCTX_INITIALIZED, qctx);
 }
 
 /*%
