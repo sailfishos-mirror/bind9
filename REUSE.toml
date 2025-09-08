@@ -1,0 +1,213 @@
+version = 1
+SPDX-PackageName = "BIND 9"
+SPDX-PackageSupplier = "Internet Systems Consortium, Inc. (\"ISC\") <info@isc.org>"
+SPDX-PackageDownloadLocation = "https://gitlab.isc.org/isc-projects/bind9/"
+
+[[annotations]]
+path = [
+	"**/**.after**",
+	"**/**.bad",
+	"**/**.batch",
+	"**/**.before**",
+	"**/**.ccache",
+	"**/**.good",
+	"**/**.key",
+	"**/**.keytab",
+	"**/**.pem",
+	"**/**.private",
+	"**/**.raw",
+	"**/**.saved",
+	"**/**.zonelist",
+	"**/**dig.out**",
+	"**/Makefile",
+	"**/Makefile.**",
+	"**/testdata/**",
+	".github/**",
+	".gitlab/**",
+	".mailmap",
+	"AUTHORS",
+	"COPYRIGHT",
+	"Makefile",
+	"Makefile.**",
+	"bin/tests/system/checkzone/zones/bad-caa-rr.db",
+	"bin/tests/system/checkzone/zones/bad1.db",
+	"bin/tests/system/checkzone/zones/crashzone.db",
+	"bin/tests/system/checkzone/zones/warn.deprecated.cds-sha1.db",
+	"bin/tests/system/checkzone/zones/warn.deprecated.digest-sha1.db",
+	"bin/tests/system/checkzone/zones/warn.deprecated.ds-alg.db",
+	"bin/tests/system/checkzone/zones/warn.deprecated.key-alg.db",
+	"bin/tests/system/checkzone/zones/warn.deprecated.nsec3rsasha1.db",
+	"bin/tests/system/checkzone/zones/warn.deprecated.rsasha1.db",
+	"bin/tests/system/dnstap/large-answer.fstrm",
+	"bin/tests/system/doth/CA/CA.cfg",
+	"bin/tests/system/doth/CA/README",
+	"bin/tests/system/doth/CA/index.txt",
+	"bin/tests/system/doth/CA/index.txt.attr",
+	"bin/tests/system/doth/CA/serial",
+	"bin/tests/system/formerr/badnsec3owner",
+	"bin/tests/system/formerr/badrecordname",
+	"bin/tests/system/formerr/dupans",
+	"bin/tests/system/formerr/dupquestion",
+	"bin/tests/system/formerr/keyclass",
+	"bin/tests/system/formerr/malformeddeltype",
+	"bin/tests/system/formerr/malformedrrsig",
+	"bin/tests/system/formerr/nametoolong",
+	"bin/tests/system/formerr/noquestions",
+	"bin/tests/system/formerr/optwrongname",
+	"bin/tests/system/formerr/qtypeasanswer",
+	"bin/tests/system/formerr/questionclass",
+	"bin/tests/system/formerr/shortquestion",
+	"bin/tests/system/formerr/shortrecord",
+	"bin/tests/system/formerr/tsignotlast",
+	"bin/tests/system/formerr/tsigwrongclass",
+	"bin/tests/system/formerr/twoquestionnames",
+	"bin/tests/system/formerr/twoquestiontypes",
+	"bin/tests/system/formerr/wrongclass",
+	"bin/tests/system/journal/ns1/managed-keys.bind.in",
+	"bin/tests/system/journal/ns1/managed-keys.bind.jnl.in",
+	"bin/tests/system/journal/ns2/managed-keys.bind.in",
+	"bin/tests/system/journal/ns2/managed-keys.bind.jnl.in",
+	"bin/tests/system/keepalive/expected",
+	"bin/tests/system/legacy/ns6/edns512.db.signed",
+	"bin/tests/system/legacy/ns7/edns512-notcp.db.signed",
+	"bin/tests/system/masterfile/knowngood.include",
+	"bin/tests/system/masterfile/knowngood.ttl1",
+	"bin/tests/system/masterfile/knowngood.ttl2",
+	"bin/tests/system/notify/ns4/named.port.in",
+	"bin/tests/system/nsupdate/commandlist",
+	"bin/tests/system/nsupdate/verylarge.in",
+	"bin/tests/system/org.isc.bind.system.plist",
+	"bin/tests/system/pipelined/input",
+	"bin/tests/system/pipelined/inputb",
+	"bin/tests/system/pipelined/ref",
+	"bin/tests/system/pipelined/refb",
+	"bin/tests/system/rsabigexponent/ns2/dsset-example.in",
+	"bin/tests/system/run.gdb",
+	"bin/tests/system/runtime/ctrl-chars",
+	"bin/tests/system/runtime/long-cmd-line",
+	"bin/tests/system/statschannel/traffic.expect.1",
+	"bin/tests/system/statschannel/traffic.expect.2",
+	"bin/tests/system/statschannel/traffic.expect.4",
+	"bin/tests/system/statschannel/traffic.expect.5",
+	"bin/tests/system/statschannel/traffic.expect.6",
+	"bin/tests/system/tcp/1996-alloc_dnsbuf-crash-test.pkt",
+	"bin/tests/system/tsig/badlocation",
+	"bin/tests/system/tsig/badtime",
+	"bin/tests/system/unknown/large.out",
+	"bin/tests/system/xfer/ans5/badkeydata",
+	"bin/tests/system/xfer/ans5/badmessageid",
+	"bin/tests/system/xfer/ans5/goodaxfr",
+	"bin/tests/system/xfer/ans5/partial",
+	"bin/tests/system/xfer/ans5/soamismatch",
+	"bin/tests/system/xfer/ans5/unknownkey",
+	"bin/tests/system/xfer/ans5/unsigned",
+	"bin/tests/system/xfer/ans5/wrongkey",
+	"bin/tests/system/xfer/ans5/wrongname",
+	"bin/tests/system/xfer/knowngood.mapped",
+	"cocci/**.cocci",
+	"cocci/**.disabled",
+	"cocci/**.spatch",
+	"doc/arm/**.dia",
+	"doc/arm/**.png",
+	"doc/arm/isc-logo.pdf",
+	"doc/man/**.1in",
+	"doc/man/**.5in",
+	"doc/man/**.8in",
+	"fuzz/**.in/**"
+]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "Internet Systems Consortium, Inc. (\"ISC\")"
+SPDX-License-Identifier = "MPL-2.0"
+
+[[annotations]]
+path = [
+	"doc/dnssec-guide/img/**.png"
+]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "Internet Systems Consortium, Inc. (\"ISC\")"
+SPDX-License-Identifier = "MPL-2.0"
+
+[[annotations]]
+path = [
+	"m4/libtool.m4",
+	"m4/ltoptions.m4",
+	"m4/ltsugar.m4",
+	"m4/ltversion.m4",
+	"m4/ltversion.m4",
+	"m4/lt~obsolete.m4"
+]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "Free Software Foundation, Inc.\n This file is free software; the Free Software Foundation gives unlimited\n permission to copy and/or distribute it, with or without modifications, as long\n as this notice is preserved."
+
+[[annotations]]
+path = [
+	"contrib/dlz/modules/**/testing/**"
+]
+precedence = "aggregate"
+SPDX-FileCopyrightText = ["Internet Systems Consortium, Inc. (\"ISC\")", "Stichting NLnet, Netherlands"]
+SPDX-License-Identifier = "ISC and MPL-2.0"
+
+[[annotations]]
+path = [
+	"**/.clang-format",
+	"**/.clang-format.headers",
+	"**/.dir-locals.el",
+	"**/.gitattributes",
+	"**/.gitignore",
+	"**/named**.args",
+	"**/named**.args.in",
+	"**/named.dropedns",
+	"**/named.ednsformerr",
+	"**/named.ednsnotimp",
+	"**/named.ednsrefused",
+	"**/named.maxudp1460",
+	"**/named.maxudp512",
+	"**/named.noaa",
+	"**/named.noedns",
+	"**/named.nosoa",
+	"**/named.notcp",
+	"**/startme",
+	".clang-format",
+	".clang-format.headers",
+	".dir-locals.el",
+	".editorconfig",
+	".git-blame-ignore-revs",
+	".gitattributes",
+	".gitignore",
+	".gitlab-ci.yml",
+	".lgtm.yml",
+	".pylintrc",
+	".readthedocs.yaml",
+	".tsan-suppress",
+	".uncrustify.cfg",
+	"contrib/gitchangelog/changelog.rc.py",
+	"contrib/gitchangelog/relnotes.rc.py",
+	"doc/misc/**.zoneopt",
+	"doc/misc/options",
+	"doc/misc/rndc.grammar",
+	"sonar-project.properties"
+]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "Internet Systems Consortium, Inc. (\"ISC\")"
+SPDX-License-Identifier = "CC0-1.0"
+
+[[annotations]]
+path = [
+	"bin/tests/system/geoip2/data/**.json",
+	"bin/tests/system/geoip2/data/**.mmdb"
+]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "Internet Systems Consortium, Inc. (\"ISC\")"
+SPDX-License-Identifier = "CC0-1.0"
+
+[[annotations]]
+path = [
+	"**/platform.h",
+	"bin/python/**",
+	"bin/tests/optional/**",
+	"make/**",
+	"unit/unittest.sh"
+]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "Internet Systems Consortium, Inc. (\"ISC\")"
+SPDX-License-Identifier = "CC0-1.0"
