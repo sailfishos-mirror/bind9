@@ -5202,9 +5202,13 @@ qctx_freedata(query_ctx_t *qctx) {
 
 static void
 qctx_destroy(query_ctx_t *qctx) {
-	CALL_HOOK_NORETURN(NS_QUERY_QCTX_DESTROYED, qctx);
+	if (qctx->view) {
+		dns_view_detach(&qctx->view);
+	}
 
-	dns_view_detach(&qctx->view);
+	if (qctx->allocated) {
+		isc_mem_put(qctx->client->manager->mctx, qctx, sizeof(*qctx));
+	}
 }
 
 /*
@@ -5224,33 +5228,40 @@ qctx_destroy(query_ctx_t *qctx) {
  * responsibility to do it if it's necessary.
  */
 static void
-qctx_save(query_ctx_t *src, query_ctx_t *tgt) {
+qctx_save(query_ctx_t *src, query_ctx_t **targetp) {
+	query_ctx_t *target = isc_mem_get(src->client->manager->mctx,
+					  sizeof(query_ctx_t));
+
 	/* First copy all fields in a straightforward way */
-	*tgt = *src;
+	*target = *src;
 
 	/* Then "move" pointers (except client and view) */
-	INITANDSAVE(tgt->dbuf, src->dbuf);
-	INITANDSAVE(tgt->fname, src->fname);
-	INITANDSAVE(tgt->tname, src->tname);
-	INITANDSAVE(tgt->rdataset, src->rdataset);
-	INITANDSAVE(tgt->sigrdataset, src->sigrdataset);
-	INITANDSAVE(tgt->noqname, src->noqname);
-	INITANDSAVE(tgt->fresp, src->fresp);
-	INITANDSAVE(tgt->db, src->db);
-	INITANDSAVE(tgt->version, src->version);
-	INITANDSAVE(tgt->node, src->node);
-	INITANDSAVE(tgt->zdb, src->zdb);
-	INITANDSAVE(tgt->znode, src->znode);
-	INITANDSAVE(tgt->zfname, src->zfname);
-	INITANDSAVE(tgt->zversion, src->zversion);
-	INITANDSAVE(tgt->zrdataset, src->zrdataset);
-	INITANDSAVE(tgt->zsigrdataset, src->zsigrdataset);
-	INITANDSAVE(tgt->rpz_st, src->rpz_st);
-	INITANDSAVE(tgt->zone, src->zone);
+	INITANDSAVE(target->dbuf, src->dbuf);
+	INITANDSAVE(target->fname, src->fname);
+	INITANDSAVE(target->tname, src->tname);
+	INITANDSAVE(target->rdataset, src->rdataset);
+	INITANDSAVE(target->sigrdataset, src->sigrdataset);
+	INITANDSAVE(target->noqname, src->noqname);
+	INITANDSAVE(target->fresp, src->fresp);
+	INITANDSAVE(target->db, src->db);
+	INITANDSAVE(target->version, src->version);
+	INITANDSAVE(target->node, src->node);
+	INITANDSAVE(target->zdb, src->zdb);
+	INITANDSAVE(target->znode, src->znode);
+	INITANDSAVE(target->zfname, src->zfname);
+	INITANDSAVE(target->zversion, src->zversion);
+	INITANDSAVE(target->zrdataset, src->zrdataset);
+	INITANDSAVE(target->zsigrdataset, src->zsigrdataset);
+	INITANDSAVE(target->rpz_st, src->rpz_st);
+	INITANDSAVE(target->zone, src->zone);
 
 	/* View has to stay in 'src' for qctx_destroy. */
-	tgt->view = NULL;
-	dns_view_attach(src->view, &tgt->view);
+	target->view = NULL;
+	dns_view_attach(src->view, &target->view);
+
+	target->allocated = true;
+
+	*targetp = target;
 }
 
 /*%
@@ -5792,7 +5803,6 @@ async_restart(void *arg) {
 	qctx_clean(qctx);
 	qctx_freedata(qctx);
 	qctx_destroy(qctx);
-	isc_mem_put(client->manager->mctx, qctx, sizeof(*qctx));
 	isc_nmhandle_detach(&handle);
 }
 
@@ -6182,13 +6192,6 @@ fetch_callback(void *arg) {
 		 */
 		CTRACE(ISC_LOG_ERROR, "fetch cancelled");
 		query_error(client, DNS_R_SERVFAIL, __LINE__);
-
-		/*
-		 * Free any persistent plugin data that was allocated to
-		 * service the client, then detach the client object.
-		 */
-		qctx.detach_client = true;
-		qctx_destroy(&qctx);
 	} else {
 		/*
 		 * Resume the find process.
@@ -6208,10 +6211,9 @@ fetch_callback(void *arg) {
 						      errorloglevel, false);
 			}
 		}
-
-		qctx_destroy(&qctx);
 	}
 
+	qctx_destroy(&qctx);
 	dns_resolver_destroyfetch(&fetch);
 }
 
@@ -6643,13 +6645,6 @@ query_hookresume(void *arg) {
 		 */
 		qctx_clean(qctx);
 		qctx_freedata(qctx);
-
-		/*
-		 * As we're almost done with this client, make sure any internal
-		 * resource for hooks will be released (if necessary) via the
-		 * QCTX_DESTROYED hook.
-		 */
-		qctx->detach_client = true;
 	} else {
 		switch (rev->hookpoint) {
 		case NS_QUERY_SETUP:
@@ -6727,7 +6722,6 @@ query_hookresume(void *arg) {
 	isc_mem_put(hctx->mctx, rev, sizeof(*rev));
 	hctx->destroy(&hctx);
 	qctx_destroy(qctx);
-	isc_mem_put(client->manager->mctx, qctx, sizeof(*qctx));
 }
 
 isc_result_t
@@ -6748,8 +6742,7 @@ ns_query_hookasync(query_ctx_t *qctx, ns_query_starthookasync_t runasync,
 		goto cleanup;
 	}
 
-	saved_qctx = isc_mem_get(client->manager->mctx, sizeof(*saved_qctx));
-	qctx_save(qctx, saved_qctx);
+	qctx_save(qctx, &saved_qctx);
 	result = runasync(saved_qctx, client->manager->mctx, arg,
 			  client->manager->loop, query_hookresume, client,
 			  &client->query.hookactx);
@@ -6794,10 +6787,7 @@ cleanup:
 		qctx_clean(saved_qctx);
 		qctx_freedata(saved_qctx);
 		qctx_destroy(saved_qctx);
-		isc_mem_put(client->manager->mctx, saved_qctx,
-			    sizeof(*saved_qctx));
 	}
-	qctx->detach_client = true;
 	return result;
 }
 
@@ -11334,9 +11324,7 @@ ns_query_done(query_ctx_t *qctx) {
 		{
 			query_ctx_t *saved_qctx = NULL;
 			qctx->client->query.restarts++;
-			saved_qctx = isc_mem_get(qctx->client->manager->mctx,
-						 sizeof(*saved_qctx));
-			qctx_save(qctx, saved_qctx);
+			qctx_save(qctx, &saved_qctx);
 			isc_nmhandle_attach(qctx->client->inner.handle,
 					    &qctx->client->inner.restarthandle);
 			isc_async_run(qctx->client->manager->loop,
@@ -11390,7 +11378,6 @@ ns_query_done(query_ctx_t *qctx) {
 			query_error(qctx->client, qctx->result, qctx->line);
 		}
 
-		qctx->detach_client = true;
 		return qctx->result;
 	}
 
@@ -11434,7 +11421,6 @@ ns_query_done(query_ctx_t *qctx) {
 	CALL_HOOK(NS_QUERY_DONE_SEND, qctx);
 
 	query_send(qctx->client);
-	qctx->detach_client = true;
 
 	return qctx->result;
 
@@ -11447,7 +11433,6 @@ cleanup:
 	qctx_clean(qctx);
 	qctx_freedata(qctx);
 	if (!qctx->async) {
-		qctx->detach_client = true;
 		query_error(qctx->client, DNS_R_SERVFAIL, __LINE__);
 	}
 	return result;
