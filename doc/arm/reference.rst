@@ -1617,7 +1617,7 @@ default is used.
    :short: Disables DNSSEC algorithms from a specified zone.
 
    This disables the specified DNSSEC algorithms at and below the specified
-   name. Multiple :any:`disable-algorithms` statements are allowed. Only
+   zone. Multiple :any:`disable-algorithms` statements are allowed. Only
    the best-match :any:`disable-algorithms` clause is used to
    determine the algorithms.
 
