@@ -57,6 +57,7 @@
 #include <dns/rdatastruct.h>
 #include <dns/stats.h>
 #include <dns/time.h>
+#include <dns/types.h>
 #include <dns/view.h>
 #include <dns/zone.h>
 
@@ -64,12 +65,13 @@
 #include "qpzone_p.h"
 #include "rdataslab_p.h"
 
-#define CHECK(op)                            \
-	do {                                 \
-		result = (op);               \
-		if (result != ISC_R_SUCCESS) \
-			goto failure;        \
-	} while (0)
+#define CHECK(op)                              \
+	{                                      \
+		result = (op);                 \
+		if (result != ISC_R_SUCCESS) { \
+			goto failure;          \
+		}                              \
+	}
 
 #define HEADERNODE(h) ((qpznode_t *)((h)->node))
 
@@ -806,6 +808,51 @@ qpznode_acquire(qpznode_t *node DNS__DB_FLARG) {
 }
 
 static void
+clean_multiple_headers(dns_slabtop_t *top) {
+	dns_slabheader_t *parent = top->header;
+	dns_slabheader_t *header = NULL, *header_down = NULL;
+
+	for (header = parent->down; header != NULL; header = header_down) {
+		header_down = header->down;
+		INSIST(header->serial <= parent->serial);
+		if (header->serial == parent->serial || IGNORE(header)) {
+			parent->down = header->down;
+			dns_slabheader_destroy(&header);
+		} else {
+			parent = header;
+		}
+	}
+}
+
+static void
+check_top_header(dns_slabtop_t *top) {
+	dns_slabheader_t *header = top->header;
+	if (IGNORE(header)) {
+		top->header = header->down;
+		dns_slabheader_destroy(&header);
+	}
+}
+
+static bool
+clean_multiple_versions(dns_slabtop_t *top, uint32_t least_serial) {
+	dns_slabheader_t *parent = top->header;
+	dns_slabheader_t *header = NULL, *header_down = NULL;
+	bool multiple = false;
+
+	for (header = parent->down; header != NULL; header = header_down) {
+		header_down = header->down;
+		if (header->serial < least_serial) {
+			parent->down = header->down;
+			dns_slabheader_destroy(&header);
+		} else {
+			multiple = true;
+			parent = header;
+		}
+	}
+	return multiple;
+}
+
+static void
 clean_zone_node(qpznode_t *node, uint32_t least_serial) {
 	dns_slabtop_t *top_prev = NULL;
 	bool still_dirty = false;
@@ -823,59 +870,15 @@ clean_zone_node(qpznode_t *node, uint32_t least_serial) {
 		 * with the same serial number, or that have the IGNORE
 		 * attribute.
 		 */
-		dns_slabheader_t *dcurrent = NULL;
-		dns_slabheader_t *dcurrent_down = NULL, *dparent = NULL;
-
-		dparent = top->header;
-		for (dcurrent = dparent->down; dcurrent != NULL;
-		     dcurrent = dcurrent_down)
-		{
-			dcurrent_down = dcurrent->down;
-			INSIST(dcurrent->serial <= dparent->serial);
-			if (dcurrent->serial == dparent->serial ||
-			    IGNORE(dcurrent))
-			{
-				dparent->down = dcurrent_down;
-				dns_slabheader_destroy(&dcurrent);
-			} else {
-				dparent = dcurrent;
-			}
-		}
+		clean_multiple_headers(top);
 
 		/*
-		 * We've now eliminated all IGNORE datasets with the possible
-		 * exception of current, which we now check.
+		 * All IGNORE datasets have been eliminated with the possible
+		 * exception of the top header, which we now check.
 		 */
-		dcurrent = top->header;
-		if (IGNORE(dcurrent)) {
-			top->header = dcurrent->down;
-			dns_slabheader_destroy(&dcurrent);
-		}
+		check_top_header(top);
 
 		if (top->header == NULL) {
-			goto empty;
-		}
-
-		/*
-		 * We now try to find the first down node less than the least
-		 * serial, and if there are such rdatasets, delete it and any
-		 * older versions.
-		 */
-		dparent = top->header;
-		for (dcurrent = dparent->down; dcurrent != NULL;
-		     dcurrent = dcurrent_down)
-		{
-			dcurrent_down = dcurrent->down;
-			if (dcurrent->serial < least_serial) {
-				dparent->down = dcurrent_down;
-				dns_slabheader_destroy(&dcurrent);
-			} else {
-				dparent = dcurrent;
-			}
-		}
-
-		if (top->header == NULL) {
-		empty:
 			if (top_prev != NULL) {
 				top_prev->next = top->next;
 			} else {
@@ -884,11 +887,17 @@ clean_zone_node(qpznode_t *node, uint32_t least_serial) {
 			dns_slabtop_destroy(node->mctx, &top);
 		} else {
 			/*
-			 * Note.  The serial number of 'current' might be less
-			 * than least_serial too, but we cannot delete it
+			 * Try to find the first down node less than the least
+			 * serial, and if there are such rdatasets, delete it
+			 * and any older versions.
+			 *
+			 * Note: The serial number of the top header might be
+			 * less than least_serial too, but we cannot delete it
 			 * because it is the most recent version.
 			 */
-			still_dirty = true;
+			still_dirty = clean_multiple_versions(top,
+							      least_serial);
+
 			top_prev = top;
 		}
 	}
@@ -1013,13 +1022,34 @@ bindrdataset(qpzonedb_t *qpdb, qpznode_t *node, dns_slabheader_t *header,
 	}
 }
 
+static dns_slabheader_t *
+first_header(dns_slabtop_t *top, uint32_t serial) {
+	for (dns_slabheader_t *header = top->header; header != NULL;
+	     header = header->down)
+	{
+		if (header->serial <= serial && !IGNORE(header)) {
+			return header;
+		}
+	}
+
+	return NULL;
+}
+
+static dns_slabheader_t *
+first_existing_header(dns_slabtop_t *top, uint32_t serial) {
+	dns_slabheader_t *header = first_header(top, serial);
+	if (header != NULL && EXISTS(header)) {
+		return header;
+	}
+	return NULL;
+}
+
 static void
 setnsec3parameters(dns_db_t *db, qpz_version_t *version) {
 	qpznode_t *node = NULL;
 	dns_rdata_nsec3param_t nsec3param;
 	isc_region_t region;
 	isc_result_t result;
-	dns_slabtop_t *top = NULL;
 	unsigned char *raw; /* RDATASLAB */
 	unsigned int count, length;
 	qpzonedb_t *qpdb = (qpzonedb_t *)db;
@@ -1033,21 +1063,11 @@ setnsec3parameters(dns_db_t *db, qpz_version_t *version) {
 
 	NODE_RDLOCK(nlock, &nlocktype);
 
-	top = node->data;
-	while (top != NULL && top->typepair != dns_rdatatype_nsec3param) {
-		top = top->next;
-	}
-	if (top != NULL) {
-		dns_slabheader_t *header = top->header;
-		while (header != NULL &&
-		       (IGNORE(header) || header->serial > version->serial))
-		{
-			header = header->down;
+	DNS_SLABTOP_FOREACH(top, node->data) {
+		if (top->typepair != dns_rdatatype_nsec3param) {
+			continue;
 		}
-
-		if (header != NULL && EXISTS(header)) {
-			found = header;
-		}
+		found = first_existing_header(top, version->serial);
 	}
 
 	if (found != NULL) {
@@ -1575,17 +1595,7 @@ qpzone_findrdataset(dns_db_t *db, dns_dbnode_t *dbnode,
 	}
 
 	DNS_SLABTOP_FOREACH(top, node->data) {
-		dns_slabheader_t *header = top->header;
-		do {
-			if (header->serial <= serial && !IGNORE(header)) {
-				if (!EXISTS(header)) {
-					header = NULL;
-				}
-				break;
-			} else {
-				header = header->down;
-			}
-		} while (header != NULL);
+		dns_slabheader_t *header = first_existing_header(top, serial);
 		if (header != NULL) {
 			/*
 			 * We have an active, extant rdataset.  If it's a
@@ -1694,7 +1704,6 @@ done:
 static bool
 cname_and_other(qpznode_t *node, uint32_t serial) {
 	bool cname = false, other = false;
-	dns_rdatatype_t rdtype;
 
 	/*
 	 * Look for CNAME and "other data" rdatasets active in our version.
@@ -1702,21 +1711,9 @@ cname_and_other(qpznode_t *node, uint32_t serial) {
 	 * or RRSIG.
 	 */
 	DNS_SLABTOP_FOREACH(top, node->data) {
-		dns_slabheader_t *header = top->header;
-
-		rdtype = DNS_TYPEPAIR_TYPE(top->typepair);
+		dns_rdatatype_t rdtype = DNS_TYPEPAIR_TYPE(top->typepair);
 		if (rdtype == dns_rdatatype_cname) {
-			do {
-				if (header->serial <= serial && !IGNORE(header))
-				{
-					if (!EXISTS(header)) {
-						header = NULL;
-					}
-					break;
-				}
-				header = header->down;
-			} while (header != NULL);
-			if (header != NULL) {
+			if (first_existing_header(top, serial) != NULL) {
 				cname = true;
 			}
 		} else if (rdtype != dns_rdatatype_key &&
@@ -1724,17 +1721,7 @@ cname_and_other(qpznode_t *node, uint32_t serial) {
 			   rdtype != dns_rdatatype_nsec &&
 			   rdtype != dns_rdatatype_rrsig)
 		{
-			do {
-				if (header->serial <= serial && !IGNORE(header))
-				{
-					if (!EXISTS(header)) {
-						header = NULL;
-					}
-					break;
-				}
-				header = header->down;
-			} while (header != NULL);
-			if (header != NULL) {
+			if (first_existing_header(top, serial) != NULL) {
 				if (!prio_type(rdtype)) {
 					/*
 					 * CNAME is in the priority list, so if
@@ -2663,17 +2650,7 @@ step(qpz_search_t *search, dns_qpiter_t *it, direction_t direction,
 
 		NODE_RDLOCK(nlock, &nlocktype);
 		DNS_SLABTOP_FOREACH(top, node->data) {
-			dns_slabheader_t *header = top->header;
-			while (header != NULL &&
-			       (IGNORE(header) ||
-				header->serial > search->serial))
-			{
-				header = header->down;
-			}
-			if (header != NULL && EXISTS(header)) {
-				found = header;
-				break;
-			}
+			found = first_existing_header(top, search->serial);
 		}
 		NODE_UNLOCK(nlock, &nlocktype);
 		if (found != NULL) {
@@ -3043,22 +3020,11 @@ again:
 		NODE_RDLOCK(nlock, &nlocktype);
 		empty_node = true;
 		DNS_SLABTOP_FOREACH(top, node->data) {
-			dns_slabheader_t *header = top->header;
 			/*
 			 * Look for an active, extant NSEC or RRSIG NSEC.
 			 */
-			do {
-				if (header->serial <= search->serial &&
-				    !IGNORE(header))
-				{
-					if (!EXISTS(header)) {
-						header = NULL;
-					}
-					break;
-				} else {
-					header = header->down;
-				}
-			} while (header != NULL);
+			dns_slabheader_t *header =
+				first_existing_header(top, search->serial);
 			if (header != NULL) {
 				/*
 				 * We now know that there is at least one
@@ -3186,23 +3152,12 @@ qpzone_check_zonecut(qpznode_t *node, void *arg DNS__DB_FLARG) {
 	 * Look for an NS or DNAME rdataset active in our version.
 	 */
 	DNS_SLABTOP_FOREACH(top, node->data) {
-		dns_slabheader_t *header = top->header;
 		if (top->typepair == DNS_TYPEPAIR(dns_rdatatype_ns) ||
 		    top->typepair == DNS_TYPEPAIR(dns_rdatatype_dname) ||
 		    top->typepair == DNS_SIGTYPEPAIR(dns_rdatatype_dname))
 		{
-			do {
-				if (header->serial <= search->serial &&
-				    !IGNORE(header))
-				{
-					if (!EXISTS(header)) {
-						header = NULL;
-					}
-					break;
-				} else {
-					header = header->down;
-				}
-			} while (header != NULL);
+			dns_slabheader_t *header =
+				first_existing_header(top, search->serial);
 			if (header != NULL) {
 				if (top->typepair ==
 				    DNS_TYPEPAIR(dns_rdatatype_dname))
@@ -3516,21 +3471,11 @@ found:
 	sigpair = DNS_SIGTYPEPAIR(type);
 	empty_node = true;
 	DNS_SLABTOP_FOREACH(top, node->data) {
-		dns_slabheader_t *header = top->header;
 		/*
 		 * Look for an active, extant rdataset.
 		 */
-		do {
-			if (header->serial <= search.serial && !IGNORE(header))
-			{
-				if (!EXISTS(header)) {
-					header = NULL;
-				}
-				break;
-			} else {
-				header = header->down;
-			}
-		} while (header != NULL);
+		dns_slabheader_t *header = first_existing_header(top,
+								 search.serial);
 		if (header != NULL) {
 			/*
 			 * We now know that there is at least one active
@@ -4030,16 +3975,10 @@ rdatasetiter_first(dns_rdatasetiter_t *iterator DNS__DB_FLARG) {
 	NODE_RDLOCK(nlock, &nlocktype);
 
 	DNS_SLABTOP_FOREACH(top, node->data) {
-		dns_slabheader_t *header = top->header;
-		while (header != NULL &&
-		       (IGNORE(header) || header->serial > version->serial))
-		{
-			header = header->down;
-		}
+		qrditer->current = first_existing_header(top, version->serial);
 
-		if (header != NULL && EXISTS(header)) {
+		if (qrditer->current != NULL) {
 			qrditer->currenttop = top;
-			qrditer->current = header;
 			break;
 		}
 	}
@@ -4075,16 +4014,9 @@ rdatasetiter_next(dns_rdatasetiter_t *iterator DNS__DB_FLARG) {
 	 * Find the start of the header chain for the next type.
 	 */
 	DNS_SLABTOP_FOREACH(top, next) {
-		dns_slabheader_t *header = top->header;
-		while (header != NULL &&
-		       (IGNORE(header) || header->serial > version->serial))
-		{
-			header = header->down;
-		}
-
-		if (header != NULL && EXISTS(header)) {
+		qrditer->current = first_existing_header(top, version->serial);
+		if (qrditer->current != NULL) {
 			qrditer->currenttop = top;
-			qrditer->current = header;
 			break;
 		}
 	}
