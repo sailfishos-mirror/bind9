@@ -139,6 +139,11 @@ teardown_server(void **state) {
 
 static dns_zone_t *served_zone = NULL;
 
+void
+ns_test_serve_zone_sethooktab(ns_hooktable_t *hooktab) {
+	dns_zone_sethooktable(served_zone, hooktab, ns_hooktable_free);
+}
+
 isc_result_t
 ns_test_serve_zone(const char *zonename, const char *filename,
 		   dns_view_t *view) {

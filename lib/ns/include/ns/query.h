@@ -208,9 +208,8 @@ struct query_ctx {
 	dns_fixedname_t wildcardname;	    /* name needing wcard proof */
 	dns_fixedname_t dsname;		    /* name needing DS */
 
-	ns_client_t *client;	    /* client object */
-	bool	     detach_client; /* client needs detaching */
-	bool	     async;	    /* asynchronous hook running */
+	ns_client_t *client; /* client object */
+	bool	     async;  /* asynchronous hook running */
 
 	dns_fetchresponse_t *fresp; /* recursion response */
 
@@ -229,6 +228,8 @@ struct query_ctx {
 	dns_zone_t   *zone;   /* zone to search */
 
 	dns_view_t *view; /* client view */
+
+	bool allocated; /* qctx needs to be freed when destroying */
 
 	isc_result_t result; /* query result */
 	int	     line;   /* line to report error */

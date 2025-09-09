@@ -59,10 +59,11 @@
  * contains a function pointer to a hook action and a pointer to data which is
  * to be passed to the action function when it is called.
  *
- * Each view has its own separate hook table, populated by loading plugin
- * modules specified in the "plugin" statements in named.conf.  There is also a
- * special, global hook table (ns__hook_table) that is only used by libns unit
- * tests and whose existence can be safely ignored by plugin modules.
+ * Each view and zone has its own separate hook table, populated by loading
+ * plugin modules specified in the "plugin" statements in named.conf. (See
+ * `ZONE-SPECIFIC PLUGINS` section below.) There is also a special, global
+ * hook table (ns__hook_table) that is only used by libns unit tests and
+ * whose existence can be safely ignored by plugin modules.
  *
  * Hook actions are functions which:
  *
@@ -342,6 +343,38 @@
  *   actions. As long as hook actions have side effects, including
  *   modifying the internal query state, it's not guaranteed safe
  *   to use multiple independent hooks at the same time.)
+ *
+ * ZONE-SPECIFIC PLUGINS
+ *
+ * A plugin can be configured at the zone level instead of the view level
+ * (either directly inside a zone, or through zone template inclusion). Each
+ * zone has its own hooktable and plugin list, so the mechanism described
+ * above works in the same way. There are two differences, however:
+ *
+ * - Zone plugin hooks are called first. Zone template hooks are called
+ *   second. View hooks are called third. If any plugin hook at any level
+ *   returns NS_HOOK_RETURN, the whole calling chain is stopped and no
+ *   subsequent hooks are called. (See the `ns__query_hookchain` unit test
+ *   in `tests/ns/query_test.c`.)
+ *
+ * - When a query hook is called, the `qctx->client->query.authzone`
+ *   pointer is checked to determine whether an authoritative zone is
+ *   being used to answer the query; if so, the zone's hooktable is used to
+ *   call the hooks. As a consequence, a zone plugin won't be called by all
+ *   the hook points defined below in `ns_hookpoint_t`. For instance,
+ *   `NS_QUERY_SETUP` and `NS_QUERY_QCTX_INITIALIZED` will never be
+ *   called in a zone plugin, as they occur before the zone has been
+ *   looked up.  `NS_QUERY_DONE_BEGIN` could be called if an
+ *   authoritative zone has been used, but in some flows (for
+ *   instance, bad cookie handling), it would be skipped.
+ *
+ * The `plugin_register` function (defined by each plugin and called
+ * when the plugin is loaded) has a `ns_hooksource_t source` parameter.
+ * It indicates whether the plugin has been loaded at the zone level
+ * (`NS_HOOKSOURCE_ZONE`) or at the view level (`NS_HOOKSOURCE_VIEW`).
+ * While this can be ignored if it doesn't matter where the plugin is
+ * loaded, it can also be checked to enforce that the plugin is loaded
+ * only at the zone or view level.
  */
 
 /*!
@@ -351,9 +384,8 @@
  */
 typedef enum {
 	/* hookpoints from query.c */
-	NS_QUERY_QCTX_INITIALIZED,
-	NS_QUERY_QCTX_DESTROYED,
 	NS_QUERY_SETUP,
+	NS_QUERY_RESET,
 	NS_QUERY_START_BEGIN,
 	NS_QUERY_LOOKUP_BEGIN,
 	NS_QUERY_RESUME_BEGIN,
@@ -378,6 +410,7 @@ typedef enum {
 	NS_QUERY_PREP_RESPONSE_BEGIN,
 	NS_QUERY_DONE_BEGIN,
 	NS_QUERY_DONE_SEND,
+	NS_QUERY_AUTHZONE_ATTACHED,
 
 	/* XXX other files could be added later */
 
@@ -448,6 +481,22 @@ typedef struct ns_hook_resume {
 } ns_hook_resume_t;
 
 /*
+ * Wrapper struct holding hook/plugins owning data structures used and owned by
+ * zones and views having registered plugins.
+ */
+typedef enum {
+	NS_HOOKSOURCE_UNDEFINED,
+	NS_HOOKSOURCE_VIEW,
+	NS_HOOKSOURCE_ZONE
+} ns_hooksource_t;
+
+typedef struct ns_hook_data {
+	ns_hooktable_t *hooktable;
+	ns_plugins_t   *plugins;
+	ns_hooksource_t source;
+} ns_hook_data_t;
+
+/*
  * Plugin API version
  *
  * When the API changes, increment NS_PLUGIN_VERSION. If the
@@ -463,7 +512,8 @@ typedef struct ns_hook_resume {
 typedef isc_result_t
 ns_plugin_register_t(const char *parameters, const void *cfg, const char *file,
 		     unsigned long line, isc_mem_t *mctx, void *actx,
-		     ns_hooktable_t *hooktable, void **instp);
+		     ns_hooktable_t *hooktable, ns_hooksource_t source,
+		     void **instp);
 /*%<
  * Called when registering a new plugin.
  *
@@ -535,7 +585,7 @@ ns_plugin_expandpath(const char *src, char *dst, size_t dstsize);
 isc_result_t
 ns_plugin_register(const char *modpath, const char *parameters, const void *cfg,
 		   const char *cfg_file, unsigned long cfg_line,
-		   isc_mem_t *mctx, void *actx, dns_view_t *view);
+		   isc_mem_t *mctx, void *actx, ns_hook_data_t *hookdata);
 /*%<
  * Load the plugin module specified from the file 'modpath', and
  * register an instance using 'parameters'.
@@ -603,7 +653,7 @@ ns_hooktable_init(ns_hooktable_t *hooktable);
  * Initialize a hook table.
  */
 
-isc_result_t
+void
 ns_hooktable_create(isc_mem_t *mctx, ns_hooktable_t **tablep);
 /*%<
  * Allocate and initialize a hook table.

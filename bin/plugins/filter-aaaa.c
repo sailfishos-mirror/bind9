@@ -105,7 +105,7 @@ typedef struct filter_instance {
  * Forward declarations of functions referenced in install_hooks().
  */
 static ns_hookresult_t
-filter_qctx_initialize(void *arg, void *cbdata, isc_result_t *resp);
+filter_initialize(void *arg, void *cbdata, isc_result_t *resp);
 static ns_hookresult_t
 filter_respond_begin(void *arg, void *cbdata, isc_result_t *resp);
 static ns_hookresult_t
@@ -115,7 +115,7 @@ filter_prep_response_begin(void *arg, void *cbdata, isc_result_t *resp);
 static ns_hookresult_t
 filter_query_done_send(void *arg, void *cbdata, isc_result_t *resp);
 static ns_hookresult_t
-filter_qctx_destroy(void *arg, void *cbdata, isc_result_t *resp);
+filter_freeclientstate(void *arg, void *cbdata, isc_result_t *resp);
 
 /*%
  * Register the functions to be called at each hook point in 'hooktable', using
@@ -127,7 +127,7 @@ static void
 install_hooks(ns_hooktable_t *hooktable, isc_mem_t *mctx,
 	      filter_instance_t *inst) {
 	const ns_hook_t filter_init = {
-		.action = filter_qctx_initialize,
+		.action = filter_initialize,
 		.action_data = inst,
 	};
 
@@ -151,19 +151,20 @@ install_hooks(ns_hooktable_t *hooktable, isc_mem_t *mctx,
 		.action_data = inst,
 	};
 
-	const ns_hook_t filter_destroy = {
-		.action = filter_qctx_destroy,
+	const ns_hook_t filter_reset = {
+		.action = filter_freeclientstate,
 		.action_data = inst,
 	};
 
-	ns_hook_add(hooktable, mctx, NS_QUERY_QCTX_INITIALIZED, &filter_init);
+	ns_hook_add(hooktable, mctx, NS_QUERY_SETUP, &filter_init);
+	ns_hook_add(hooktable, mctx, NS_QUERY_AUTHZONE_ATTACHED, &filter_init);
 	ns_hook_add(hooktable, mctx, NS_QUERY_RESPOND_BEGIN, &filter_respbegin);
 	ns_hook_add(hooktable, mctx, NS_QUERY_RESPOND_ANY_FOUND,
 		    &filter_respanyfound);
 	ns_hook_add(hooktable, mctx, NS_QUERY_PREP_RESPONSE_BEGIN,
 		    &filter_prepresp);
 	ns_hook_add(hooktable, mctx, NS_QUERY_DONE_SEND, &filter_donesend);
-	ns_hook_add(hooktable, mctx, NS_QUERY_QCTX_DESTROYED, &filter_destroy);
+	ns_hook_add(hooktable, mctx, NS_QUERY_RESET, &filter_reset);
 }
 
 /**
@@ -328,9 +329,12 @@ cleanup:
 isc_result_t
 plugin_register(const char *parameters, const void *cfg, const char *cfg_file,
 		unsigned long cfg_line, isc_mem_t *mctx, void *actx,
-		ns_hooktable_t *hooktable, void **instp) {
+		ns_hooktable_t *hooktable, ns_hooksource_t source,
+		void **instp) {
 	filter_instance_t *inst = NULL;
 	isc_result_t result = ISC_R_SUCCESS;
+
+	UNUSED(source);
 
 	isc_log_write(NS_LOGCATEGORY_GENERAL, NS_LOGMODULE_HOOKS, ISC_LOG_INFO,
 		      "registering 'filter-aaaa' "
@@ -624,9 +628,15 @@ process_section(const section_filter_t *filter) {
  * in a hash table keyed according to the client object; this enables us to
  * retrieve persistent data related to a client query for as long as the
  * object persists.
+ *
+ * Whether the plugin is registered at view level and the server makes authority
+ * on zones, this can be called twice (once when the query context is
+ * initialized, once when the authoritative zone is found). This is all fine:
+ * the state will be initialized on the first call, and the function bails off
+ * early on the second call (the state is already initialized).
  */
 static ns_hookresult_t
-filter_qctx_initialize(void *arg, void *cbdata, isc_result_t *resp) {
+filter_initialize(void *arg, void *cbdata, isc_result_t *resp) {
 	query_ctx_t *qctx = (query_ctx_t *)arg;
 	filter_instance_t *inst = (filter_instance_t *)cbdata;
 	filter_data_t *client_state;
@@ -855,16 +865,11 @@ filter_query_done_send(void *arg, void *cbdata, isc_result_t *resp) {
  * from hash table and return it to the memory pool.
  */
 static ns_hookresult_t
-filter_qctx_destroy(void *arg, void *cbdata, isc_result_t *resp) {
+filter_freeclientstate(void *arg, void *cbdata, isc_result_t *resp) {
 	query_ctx_t *qctx = (query_ctx_t *)arg;
 	filter_instance_t *inst = (filter_instance_t *)cbdata;
 
 	*resp = ISC_R_UNSET;
-
-	if (!qctx->detach_client) {
-		return NS_HOOK_CONTINUE;
-	}
-
 	client_state_destroy(qctx, inst);
 
 	return NS_HOOK_CONTINUE;

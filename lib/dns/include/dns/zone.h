@@ -2754,6 +2754,49 @@ dns_zone_getkeystores(dns_zone_t *zone);
  * initialized.
  */
 
+void *
+dns_zone_gethooktable(dns_zone_t *zone);
+/**<
+ * Returns the zone hooktable
+ *
+ * Requires:
+ * \li	'zone' to be a valid zone.
+ */
+
+void
+dns_zone_sethooktable(dns_zone_t *zone, void *hooktable,
+		      void (*hooktable_free)(isc_mem_t *, void **));
+/**<
+ * Initialize zone hooktable and free callback
+ *
+ * Requires:
+ * \li	'zone' to be a valid zone.
+ * \li  'hooktable' to be initialized.
+ * \li  'hooktable_free' to be valid.
+ */
+
+void
+dns_zone_setplugins(dns_zone_t *zone, void *plugins,
+		    void (*plugins_free)(isc_mem_t *, void **));
+/**<
+ * Initialize zone plugins owning list and free callback
+ *
+ * Requires:
+ * \li	'zone' to be a valid zone.
+ * \li  'plugins' to be initialized.
+ * \li  'plugins_free' to be valid.
+ */
+
+void
+dns_zone_unloadplugins(dns_zone_t *zone);
+/**<
+ * Unload all plugins attached to this zone, and free the hooktable as well as
+ * the plugins list.
+ *
+ * Requires:
+ * \li	'zone' to be a valid zone.
+ */
+
 #if DNS_ZONE_TRACE
 #define dns_zone_ref(ptr)   dns_zone__ref(ptr, __func__, __FILE__, __LINE__)
 #define dns_zone_unref(ptr) dns_zone__unref(ptr, __func__, __FILE__, __LINE__)

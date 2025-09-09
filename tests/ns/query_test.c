@@ -828,20 +828,6 @@ hook_async_query_done_begin(void *arg, void *data, isc_result_t *resultp) {
 	return hook_async_common(arg, data, resultp, NS_QUERY_DONE_BEGIN);
 }
 
-/*
- * hook on destroying actx.  Can't be used for async event, but we use this
- * to remember the qctx at that point.
- */
-static ns_hookresult_t
-ns_test_qctx_destroy_hook(void *arg, void *data, isc_result_t *resultp) {
-	query_ctx_t *qctx = arg;
-	hookasync_data_t *asdata = data;
-
-	asdata->qctx = *qctx; /* remember passed ctx for inspection */
-	*resultp = ISC_R_UNSET;
-	return NS_HOOK_CONTINUE;
-}
-
 static void
 run_hookasync_test(const ns__query_hookasync_test_params_t *test) {
 	query_ctx_t *qctx = NULL;
@@ -854,10 +840,6 @@ run_hookasync_test(const ns__query_hookasync_test_params_t *test) {
 	};
 	const ns_hook_t testhook = {
 		.action = test->action,
-		.action_data = &asdata,
-	};
-	const ns_hook_t destroyhook = {
-		.action = ns_test_qctx_destroy_hook,
 		.action_data = &asdata,
 	};
 	isc_statscounter_t srvfail_cnt;
@@ -880,8 +862,6 @@ run_hookasync_test(const ns__query_hookasync_test_params_t *test) {
 		ns_hook_add(ns__hook_table, isc_g_mctx, test->hookpoint2,
 			    &testhook);
 	}
-	ns_hook_add(ns__hook_table, isc_g_mctx, NS_QUERY_QCTX_DESTROYED,
-		    &destroyhook);
 
 	{
 		const ns_test_qctx_create_params_t qctx_params = {
@@ -972,18 +952,11 @@ run_hookasync_test(const ns__query_hookasync_test_params_t *test) {
 
 	/*
 	 * Confirm SERVFAIL has been sent if it was expected.
-	 * Also, the last-generated qctx should have detach_client being true.
 	 */
 	if (expect_servfail) {
 		INSIST(ns_stats_get_counter(
 			       qctx->client->manager->sctx->nsstats,
 			       ns_statscounter_servfail) == srvfail_cnt + 1);
-		if (test->do_cancel) {
-			/* qctx was created on resume and copied in hook */
-			INSIST(asdata.qctx.detach_client);
-		} else {
-			INSIST(qctx->detach_client);
-		}
 	}
 
 	/*
@@ -1480,11 +1453,273 @@ ISC_LOOP_TEST_IMPL(ns__query_hookasync_e2e) {
 	isc_loopmgr_shutdown();
 }
 
+/*
+ * Tests covering the correctness of hook call order, i.e. hooks from a zone are
+ * called first, then hooks from a view, then the default hook table. And any
+ * hook returning NS_HOOK_RETURN interrupt the whole chain
+ */
+typedef struct {
+	ns_hook_action_t zonehookactions[2];
+	ns_hook_action_t viewhookactions[2];
+	ns_hook_action_t defaulthookactions[2];
+	const char *expected;
+} ns__query_hook_test_params_t;
+
+static void
+ns__query_test_concat(char *base, const char *tail) {
+	char b[512];
+
+	strcpy(b, base);
+	snprintf(base, sizeof(b), "%s%s", b, tail);
+}
+
+static ns_hookresult_t
+ns__query_test_zonehook1(void *arg, void *data, isc_result_t *resultp) {
+	UNUSED(arg);
+	UNUSED(resultp);
+
+	ns__query_test_concat(data, "z1");
+	return NS_HOOK_CONTINUE;
+}
+
+static ns_hookresult_t
+ns__query_test_zonehook2(void *arg, void *data, isc_result_t *resultp) {
+	UNUSED(arg);
+	UNUSED(resultp);
+
+	ns__query_test_concat(data, "z2");
+	return NS_HOOK_RETURN;
+}
+
+static ns_hookresult_t
+ns__query_test_viewhook1(void *arg, void *data, isc_result_t *resultp) {
+	UNUSED(arg);
+	UNUSED(resultp);
+
+	ns__query_test_concat(data, "v1");
+	return NS_HOOK_CONTINUE;
+}
+
+static ns_hookresult_t
+ns__query_test_viewhook2(void *arg, void *data, isc_result_t *resultp) {
+	UNUSED(arg);
+	UNUSED(resultp);
+
+	ns__query_test_concat(data, "v2");
+	return NS_HOOK_RETURN;
+}
+
+static ns_hookresult_t
+ns__query_test_defaulthook1(void *arg, void *data, isc_result_t *resultp) {
+	UNUSED(arg);
+	UNUSED(resultp);
+
+	ns__query_test_concat(data, "d1");
+	return NS_HOOK_CONTINUE;
+}
+
+static ns_hookresult_t
+ns__query_test_defaulthook2(void *arg, void *data, isc_result_t *resultp) {
+	UNUSED(arg);
+	UNUSED(resultp);
+
+	ns__query_test_concat(data, "d2");
+	return NS_HOOK_RETURN;
+}
+
+static bool
+ns__query_test_setup_hooks(const ns_hook_t *h1, const ns_hook_t *h2,
+			   ns_hooktable_t **tp) {
+	if (h1->action || h2->action) {
+		INSIST(*tp == NULL);
+		ns_hooktable_create(isc_g_mctx, tp);
+
+		if (h1->action) {
+			ns_hook_add(*tp, isc_g_mctx, NS_QUERY_NXDOMAIN_BEGIN,
+				    h1);
+		}
+
+		if (h2->action) {
+			ns_hook_add(*tp, isc_g_mctx, NS_QUERY_NXDOMAIN_BEGIN,
+				    h2);
+		}
+
+		return true;
+	}
+
+	return false;
+}
+
+static void
+ns__query_test_run_hookchain_test(const ns__query_hook_test_params_t *test) {
+	isc_result_t result;
+	query_ctx_t *qctx = NULL;
+	char buffer[512] = { 0 };
+	ns_hooktable_t *zone_hooktab = NULL;
+	ns_hooktable_t *view_hooktab = NULL;
+
+	const ns_test_qctx_create_params_t qctx_params = {
+		.qname = "idontexists.foo",
+		.qtype = dns_rdatatype_a,
+		.with_cache = true,
+	};
+
+	const ns_hook_t zonehook1 = { .action = test->zonehookactions[0],
+				      .action_data = buffer };
+
+	const ns_hook_t zonehook2 = { .action = test->zonehookactions[1],
+				      .action_data = buffer };
+
+	const ns_hook_t viewhook1 = { .action = test->viewhookactions[0],
+				      .action_data = buffer };
+
+	const ns_hook_t viewhook2 = { .action = test->viewhookactions[1],
+				      .action_data = buffer };
+
+	const ns_hook_t defaulthook1 = { .action = test->defaulthookactions[0],
+					 .action_data = buffer };
+
+	const ns_hook_t defaulthook2 = { .action = test->defaulthookactions[1],
+					 .action_data = buffer };
+
+	/*
+	 * Create a fake query context
+	 */
+	result = ns_test_qctx_create(&qctx_params, &qctx);
+	INSIST(result == ISC_R_SUCCESS);
+
+	/*
+	 * Load a zone
+	 */
+	result = ns_test_serve_zone("foo", TESTS_DIR "/testdata/query/foo.db",
+				    qctx->client->inner.view);
+	INSIST(result == ISC_R_SUCCESS);
+
+	/*
+	 * Attach hooks to the zone
+	 */
+	if (ns__query_test_setup_hooks(&zonehook1, &zonehook2, &zone_hooktab)) {
+		ns_test_serve_zone_sethooktab(zone_hooktab);
+	}
+
+	/*
+	 * Attach hooks to the view
+	 */
+	if (ns__query_test_setup_hooks(&viewhook1, &viewhook2, &view_hooktab)) {
+		qctx->client->inner.view->hooktable = view_hooktab;
+	}
+
+	/*
+	 * Setup the default hook table
+	 */
+	(void)ns__query_test_setup_hooks(&defaulthook1, &defaulthook2,
+					 &ns__hook_table);
+
+	/*
+	 * Handling the response
+	 */
+	qctx->client->inner.sendcb = send_noop;
+	isc_nmhandle_attach(qctx->client->inner.handle,
+			    &qctx->client->inner.reqhandle);
+
+	/*
+	 * Run the query
+	 */
+	ns__query_start(qctx);
+	ns_query_done(qctx);
+
+	/*
+	 * Result checking
+	 */
+	assert_string_equal(buffer, test->expected);
+
+	/*
+	 * Cleanup
+	 */
+	ns_test_qctx_destroy(&qctx);
+	ns_test_cleanup_zone();
+
+	if (ns__hook_table) {
+		ns_hooktable_free(isc_g_mctx, (void **)&ns__hook_table);
+	}
+
+	if (view_hooktab) {
+		ns_hooktable_free(isc_g_mctx, (void **)&view_hooktab);
+	}
+}
+
+ISC_LOOP_TEST_IMPL(ns__query_hookchain) {
+	const ns__query_hook_test_params_t tests[] = {
+		{ { ns__query_test_zonehook1, ns__query_test_zonehook1 },
+		  { ns__query_test_viewhook1, ns__query_test_viewhook1 },
+		  { ns__query_test_defaulthook1, ns__query_test_defaulthook1 },
+		  "z1z1v1v1d1d1" },
+		{ { ns__query_test_zonehook1, ns__query_test_zonehook1 },
+		  { ns__query_test_viewhook1, ns__query_test_viewhook1 },
+		  { ns__query_test_defaulthook2, ns__query_test_defaulthook1 },
+		  "z1z1v1v1d2" },
+		{ { ns__query_test_zonehook2, ns__query_test_zonehook1 },
+		  { ns__query_test_viewhook1, ns__query_test_viewhook1 },
+		  { ns__query_test_defaulthook1, ns__query_test_defaulthook1 },
+		  "z2" },
+		{ { ns__query_test_zonehook1, ns__query_test_zonehook2 },
+		  { ns__query_test_viewhook1, ns__query_test_viewhook1 },
+		  { ns__query_test_defaulthook1, ns__query_test_defaulthook1 },
+		  "z1z2" },
+		{ { ns__query_test_zonehook1, ns__query_test_zonehook1 },
+		  { ns__query_test_viewhook2, ns__query_test_viewhook1 },
+		  { ns__query_test_defaulthook1, ns__query_test_defaulthook1 },
+		  "z1z1v2" },
+		{ { ns__query_test_zonehook1, ns__query_test_zonehook1 },
+		  { ns__query_test_viewhook1, ns__query_test_viewhook2 },
+		  { ns__query_test_defaulthook1, ns__query_test_defaulthook1 },
+		  "z1z1v1v2" },
+		{ { ns__query_test_zonehook1, NULL },
+		  { ns__query_test_viewhook1, ns__query_test_viewhook2 },
+		  { ns__query_test_defaulthook1, ns__query_test_defaulthook1 },
+		  "z1v1v2" },
+		{ { NULL, NULL },
+		  { ns__query_test_viewhook1, ns__query_test_viewhook2 },
+		  { ns__query_test_defaulthook1, ns__query_test_defaulthook1 },
+		  "v1v2" },
+		{ { NULL, NULL },
+		  { ns__query_test_viewhook1, NULL },
+		  { ns__query_test_defaulthook1, ns__query_test_defaulthook1 },
+		  "v1d1d1" },
+		{ { NULL, NULL },
+		  { ns__query_test_viewhook1, NULL },
+		  { NULL, NULL },
+		  "v1" },
+		{ { NULL, NULL },
+		  { ns__query_test_viewhook2, NULL },
+		  { NULL, NULL },
+		  "v2" },
+		{ { ns__query_test_zonehook1, NULL },
+		  { NULL, NULL },
+		  { NULL, NULL },
+		  "z1" },
+		{ { NULL, NULL },
+		  { NULL, NULL },
+		  { ns__query_test_defaulthook1, NULL },
+		  "d1" },
+		{ { NULL, NULL }, { NULL, NULL }, { NULL, NULL }, "" },
+
+	};
+
+	for (size_t i = 0; i < ARRAY_SIZE(tests); i++) {
+		ns__query_test_run_hookchain_test(&tests[i]);
+	}
+
+	isc_loop_teardown(isc_loop_main(), shutdown_interfacemgr, NULL);
+	isc_loopmgr_shutdown();
+}
+
 ISC_TEST_LIST_START
 ISC_TEST_ENTRY_CUSTOM(ns__query_sfcache, setup_server, teardown_server)
 ISC_TEST_ENTRY_CUSTOM(ns__query_start, setup_server, teardown_server)
 ISC_TEST_ENTRY_CUSTOM(ns__query_hookasync, setup_server, teardown_server)
 ISC_TEST_ENTRY_CUSTOM(ns__query_hookasync_e2e, setup_server, teardown_server)
+ISC_TEST_ENTRY_CUSTOM(ns__query_hookchain, setup_server, teardown_server)
 ISC_TEST_LIST_END
 
 ISC_TEST_MAIN

@@ -75,6 +75,12 @@ ns_test_serve_zone(const char *zonename, const char *filename,
 		   dns_view_t *view);
 
 /*%
+ * Set a hooktable on the served zone
+ */
+void
+ns_test_serve_zone_sethooktab(ns_hooktable_t *hooktab);
+
+/*%
  * Release the zone loaded by ns_test_serve_zone().
  */
 void

@@ -3712,18 +3712,13 @@ create_mapped_acl(void) {
 	return result;
 }
 
-/*%
- * A callback for the cfg_pluginlist_foreach() call in configure_view() below.
- * If registering any plugin fails, registering subsequent ones is not
- * attempted.
- */
-static isc_result_t
-register_one_plugin(const cfg_obj_t *config, const cfg_obj_t *obj,
-		    const char *plugin_path, const char *parameters,
-		    void *callback_data) {
-	dns_view_t *view = callback_data;
+isc_result_t
+named_register_one_plugin(const cfg_obj_t *config, const cfg_obj_t *obj,
+			  const char *plugin_path, const char *parameters,
+			  void *callback_data) {
 	char full_path[PATH_MAX];
 	isc_result_t result;
+	ns_hook_data_t *hookdata = callback_data;
 
 	result = ns_plugin_expandpath(plugin_path, full_path,
 				      sizeof(full_path));
@@ -3738,7 +3733,7 @@ register_one_plugin(const cfg_obj_t *config, const cfg_obj_t *obj,
 
 	result = ns_plugin_register(full_path, parameters, config,
 				    cfg_obj_file(obj), cfg_obj_line(obj),
-				    isc_g_mctx, named_g_aclconfctx, view);
+				    isc_g_mctx, named_g_aclconfctx, hookdata);
 	if (result != ISC_R_SUCCESS) {
 		isc_log_write(NAMED_LOGCATEGORY_GENERAL, NAMED_LOGMODULE_SERVER,
 			      ISC_LOG_ERROR,
@@ -5422,16 +5417,20 @@ configure_view(dns_view_t *view, dns_viewlist_t *viewlist, cfg_obj_t *config,
 	}
 
 	if (plugin_list != NULL) {
+		ns_hook_data_t hookdata = { .source = NS_HOOKSOURCE_VIEW };
+
 		INSIST(view->hooktable == NULL);
-		CHECK(ns_hooktable_create(view->mctx,
-					  (ns_hooktable_t **)&view->hooktable));
+		ns_hooktable_create(view->mctx, &hookdata.hooktable);
+		view->hooktable = hookdata.hooktable;
 		view->hooktable_free = ns_hooktable_free;
 
-		ns_plugins_create(view->mctx, (ns_plugins_t **)&view->plugins);
+		ns_plugins_create(view->mctx, &hookdata.plugins);
+		view->plugins = hookdata.plugins;
 		view->plugins_free = ns_plugins_free;
 
 		CHECK(cfg_pluginlist_foreach(config, plugin_list,
-					     register_one_plugin, view));
+					     named_register_one_plugin,
+					     &hookdata));
 	}
 
 	/*
@@ -6660,6 +6659,8 @@ configure_zone(const cfg_obj_t *config, const cfg_obj_t *zconfig,
 	if (dns_zone_getkasp(zone) != NULL) {
 		dns_zone_rekey(zone, fullsign, false);
 	}
+
+	result = named_zone_loadplugins(zone, config, toptions, zoptions);
 
 cleanup:
 	if (zone != NULL) {
@@ -13200,7 +13201,8 @@ do_addzone(named_server_t *server, ns_cfgctx_t *cfg, dns_view_t *view,
 	}
 	result = isccfg_check_zoneconf(zoneobj, voptions, cfg->config, NULL,
 				       NULL, NULL, NULL, view->name,
-				       view->rdclass, cfg->actx, cfg->mctx);
+				       view->rdclass, BIND_CHECK_PLUGINS,
+				       cfg->actx, cfg->mctx);
 	if (result != ISC_R_SUCCESS) {
 		isc_loopmgr_resume();
 		goto cleanup;
@@ -13397,7 +13399,8 @@ do_modzone(named_server_t *server, ns_cfgctx_t *cfg, dns_view_t *view,
 	}
 	result = isccfg_check_zoneconf(zoneobj, voptions, cfg->config, NULL,
 				       NULL, NULL, NULL, view->name,
-				       view->rdclass, cfg->actx, cfg->mctx);
+				       view->rdclass, BIND_CHECK_PLUGINS,
+				       cfg->actx, cfg->mctx);
 	if (result != ISC_R_SUCCESS) {
 		isc_loopmgr_resume();
 		goto cleanup;

@@ -530,6 +530,14 @@ struct dns_zone {
 	 */
 	dns_skr_t *skr;
 	dns_skrbundle_t *skrbundle;
+
+	/*
+	 * Plugin-related data structures
+	 */
+	void *plugins;
+	void (*plugins_free)(isc_mem_t *, void **);
+	void *hooktable;
+	void (*hooktable_free)(isc_mem_t *, void **);
 };
 
 #define zonediff_init(z, d)                \
@@ -1376,6 +1384,7 @@ zone_free(dns_zone_t *zone) {
 	if (zone->gluecachestats != NULL) {
 		isc_stats_detach(&zone->gluecachestats);
 	}
+	dns_zone_unloadplugins(zone);
 
 	/* last stuff */
 	ZONEDB_DESTROYLOCK(&zone->dblock);
@@ -24863,4 +24872,49 @@ dns_zone_setrad(dns_zone_t *zone, dns_name_t *name) {
 		call_rcu(&xchg_rad->rcu_head, free_rad_rcu);
 	}
 	rcu_read_unlock();
+}
+
+void *
+dns_zone_gethooktable(dns_zone_t *zone) {
+	REQUIRE(DNS_ZONE_VALID(zone));
+	return zone->hooktable;
+}
+
+void
+dns_zone_sethooktable(dns_zone_t *zone, void *hooktable,
+		      void (*hooktable_free)(isc_mem_t *, void **)) {
+	REQUIRE(DNS_ZONE_VALID(zone));
+	REQUIRE(zone->hooktable == NULL);
+	REQUIRE(zone->hooktable_free == NULL);
+
+	zone->hooktable = hooktable;
+	zone->hooktable_free = hooktable_free;
+}
+
+void
+dns_zone_setplugins(dns_zone_t *zone, void *plugins,
+		    void (*plugins_free)(isc_mem_t *, void **)) {
+	REQUIRE(DNS_ZONE_VALID(zone));
+	REQUIRE(zone->plugins == NULL);
+	REQUIRE(zone->plugins_free == NULL);
+
+	zone->plugins = plugins;
+	zone->plugins_free = plugins_free;
+}
+
+void
+dns_zone_unloadplugins(dns_zone_t *zone) {
+	if (zone->hooktable != NULL) {
+		INSIST(zone->hooktable_free);
+		zone->hooktable_free(zone->mctx, &zone->hooktable);
+		INSIST(zone->hooktable == NULL);
+		zone->hooktable_free = NULL;
+	}
+
+	if (zone->plugins != NULL) {
+		INSIST(zone->plugins_free);
+		zone->plugins_free(zone->mctx, &zone->plugins);
+		INSIST(zone->plugins == NULL);
+		zone->plugins_free = NULL;
+	}
 }
