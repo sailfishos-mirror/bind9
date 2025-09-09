@@ -5229,6 +5229,8 @@ qctx_destroy(query_ctx_t *qctx) {
  */
 static void
 qctx_save(query_ctx_t *src, query_ctx_t **targetp) {
+	REQUIRE(targetp != NULL && *targetp == NULL);
+
 	query_ctx_t *target = isc_mem_get(src->client->manager->mctx,
 					  sizeof(query_ctx_t));
 
