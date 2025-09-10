@@ -4754,5 +4754,16 @@ n=$((n + 1))
 if [ "$ret" -ne 0 ]; then echo_i "failed"; fi
 status=$((status + ret))
 
+echo_i "test that RRSIGS are returned for glue name with CD=1 ($n)"
+ret=0
+dig_with_opts @10.53.0.4 ns3.secure.example A +cd >dig.out.ns4.test$n
+grep "status: NOERROR" dig.out.ns4.test$n >/dev/null || ret=1
+grep "ANSWER: 2," dig.out.ns4.test$n >/dev/null || ret=1
+grep "ns3\.secure\.example\..[0-9]*.IN.A.10\.53\.0.3" dig.out.ns4.test$n >/dev/null || ret=1
+grep "ns3\.secure\.example\..[0-9]*.IN.RRSIG.A " dig.out.ns4.test$n >/dev/null || ret=1
+n=$((n + 1))
+if [ "$ret" -ne 0 ]; then echo_i "failed"; fi
+status=$((status + ret))
+
 echo_i "exit status: $status"
 [ $status -eq 0 ] || exit 1
