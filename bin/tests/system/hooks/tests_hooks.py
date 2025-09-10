@@ -9,6 +9,10 @@
 # See the COPYRIGHT file distributed with this work for additional
 # information regarding copyright ownership.
 
+import glob
+import os
+import subprocess
+
 import dns
 import pytest
 import isctest
@@ -75,5 +79,9 @@ def test_hooks_zone_rndc_reload(servers):
     ns2.rndc("reload")
 
 
-def test_hooks_config(run_tests_sh):
-    run_tests_sh()
+def test_hooks_checkconf():
+    for filename in glob.glob("conf/good*.conf"):
+        isctest.run.cmd([os.environ["CHECKCONF"], filename])
+    for filename in glob.glob("conf/bad*.conf"):
+        with pytest.raises(subprocess.CalledProcessError):
+            isctest.run.cmd([os.environ["CHECKCONF"], filename])
