@@ -24874,7 +24874,7 @@ dns_zone_setrad(dns_zone_t *zone, dns_name_t *name) {
 	rcu_read_unlock();
 }
 
-void *
+inline void *
 dns_zone_gethooktable(dns_zone_t *zone) {
 	REQUIRE(DNS_ZONE_VALID(zone));
 	return zone->hooktable;

@@ -259,17 +259,12 @@ acquire_recursionquota(ns_client_t *client);
 static void
 release_recursionquota(ns_client_t *client);
 
-static ns_hookresult_t
+static inline ns_hookresult_t
 ns__query_callhook(uint8_t id, query_ctx_t *qctx, isc_result_t *result,
 		   ns_hooktable_t *hooktab) {
 	isc_result_t hookresult = *result;
-	ns_hook_t *hook;
+	ns_hook_t *hook = ISC_LIST_HEAD((*hooktab)[id]);
 
-	if (hooktab == NULL) {
-		return NS_HOOK_CONTINUE;
-	}
-
-	hook = ISC_LIST_HEAD((*hooktab)[id]);
 	while (hook != NULL) {
 		ns_hook_action_t func = hook->action;
 		void *data = hook->action_data;
@@ -291,48 +286,21 @@ ns__query_callhook(uint8_t id, query_ctx_t *qctx, isc_result_t *result,
 	return NS_HOOK_CONTINUE;
 }
 
-static void
+static inline void
 ns__query_callhook_noreturn(uint8_t id, query_ctx_t *qctx,
 			    ns_hooktable_t *hooktab) {
-	ns_hook_t *hook;
-	isc_result_t dummyres;
+	ns_hook_t *hook = ISC_LIST_HEAD((*hooktab)[id]);
 
-	if (hooktab == NULL) {
-		return;
-	}
-
-	hook = ISC_LIST_HEAD((*hooktab)[id]);
 	while (hook != NULL) {
 		ns_hook_action_t func = hook->action;
 		void *data = hook->action_data;
+		isc_result_t dummyres;
 
 		INSIST(func != NULL);
 
 		func(qctx, data, &dummyres);
 		hook = ISC_LIST_NEXT(hook, link);
 	}
-}
-
-static ns_hooktable_t *
-ns__zone_hooktab(query_ctx_t *qctx) {
-	ns_hooktable_t *hooktab = NULL;
-
-	if (qctx != NULL && qctx->client->query.authzone != NULL) {
-		hooktab = dns_zone_gethooktable(qctx->client->query.authzone);
-	}
-
-	return hooktab;
-}
-
-static ns_hooktable_t *
-ns__view_hooktab(query_ctx_t *qctx) {
-	ns_hooktable_t *hooktab = NULL;
-
-	if (qctx != NULL && qctx->view != NULL) {
-		hooktab = qctx->view->hooktable;
-	}
-
-	return hooktab;
 }
 
 /*
@@ -345,21 +313,24 @@ ns__view_hooktab(query_ctx_t *qctx) {
  * is a macro instead of a static function; it needs to be able to use
  * 'goto cleanup' regardless of the return value.)
  */
-#define CALL_HOOK(_id, _qctx)                                              \
-	if (ns__query_callhook(_id, _qctx, &result,                        \
-			       ns__zone_hooktab(_qctx)) == NS_HOOK_RETURN) \
-	{                                                                  \
-		goto cleanup;                                              \
-	}                                                                  \
-	if (ns__query_callhook(_id, _qctx, &result,                        \
-			       ns__view_hooktab(_qctx)) == NS_HOOK_RETURN) \
-	{                                                                  \
-		goto cleanup;                                              \
-	}                                                                  \
-	if (ns__query_callhook(_id, _qctx, &result, ns__hook_table) ==     \
-	    NS_HOOK_RETURN)                                                \
-	{                                                                  \
-		goto cleanup;                                              \
+#define CALL_HOOK(_id, _qctx)                                               \
+	if ((_qctx)->zhooks != NULL &&                                      \
+	    ns__query_callhook(_id, _qctx, &result, (_qctx)->zhooks) ==     \
+		    NS_HOOK_RETURN)                                         \
+	{                                                                   \
+		goto cleanup;                                               \
+	}                                                                   \
+	if ((_qctx)->view != NULL && (_qctx)->view->hooktable != NULL &&    \
+	    ns__query_callhook(_id, _qctx, &result,                         \
+			       (_qctx)->view->hooktable) == NS_HOOK_RETURN) \
+	{                                                                   \
+		goto cleanup;                                               \
+	}                                                                   \
+	if (ns__hook_table != NULL &&                                       \
+	    ns__query_callhook(_id, _qctx, &result, ns__hook_table) ==      \
+		    NS_HOOK_RETURN)                                         \
+	{                                                                   \
+		goto cleanup;                                               \
 	}
 
 /*
@@ -372,9 +343,16 @@ ns__view_hooktab(query_ctx_t *qctx) {
  * macro for symmetry with CALL_HOOK above.)
  */
 #define CALL_HOOK_NORETURN(_id, _qctx)                                    \
-	ns__query_callhook_noreturn(_id, _qctx, ns__zone_hooktab(_qctx)); \
-	ns__query_callhook_noreturn(_id, _qctx, ns__view_hooktab(_qctx)); \
-	ns__query_callhook_noreturn(_id, _qctx, ns__hook_table);
+	if ((_qctx)->zhooks != NULL) {                                    \
+		ns__query_callhook_noreturn(_id, _qctx, (_qctx)->zhooks); \
+	}                                                                 \
+	if ((_qctx)->view != NULL && (_qctx)->view->hooktable != NULL) {  \
+		ns__query_callhook_noreturn(_id, _qctx,                   \
+					    (_qctx)->view->hooktable);    \
+	}                                                                 \
+	if (ns__hook_table != NULL) {                                     \
+		ns__query_callhook_noreturn(_id, _qctx, ns__hook_table);  \
+	}
 
 /*
  * The functions defined below implement the query logic that previously lived
@@ -822,15 +800,23 @@ ns_query_cancel(ns_client_t *client) {
 
 static void
 query_reset(ns_client_t *client, bool everything) {
-	query_ctx_t qctx = { .view = client->inner.view, .client = client };
-
-	CALL_HOOK_NORETURN(NS_QUERY_RESET, &qctx);
-
-	CTRACE(ISC_LOG_DEBUG(3), "query_reset");
-
 	/*%
 	 * Reset the query state of a client to its default state.
 	 */
+
+	CTRACE(ISC_LOG_DEBUG(3), "query_reset");
+
+	/*
+	 * Set up a transient qctx so we can call the NS_QUERY_RESET hook;
+	 * this will free resources being held by plugins for this
+	 * query, if any were configured.
+	 */
+	query_ctx_t qctx = { .view = client->inner.view, .client = client };
+	if (client->query.authzone != NULL) {
+		qctx.zhooks = dns_zone_gethooktable(client->query.authzone);
+	}
+
+	CALL_HOOK_NORETURN(NS_QUERY_RESET, &qctx);
 
 	/*
 	 * Cancel the fetch if it's running.
@@ -5184,6 +5170,7 @@ qctx_freedata(query_ctx_t *qctx) {
 
 	if (qctx->zone != NULL) {
 		dns_zone_detach(&qctx->zone);
+		qctx->zhooks = NULL;
 	}
 
 	if (qctx->zdb != NULL) {
@@ -5595,6 +5582,7 @@ ns__query_start(query_ctx_t *qctx) {
 			}
 			if (qctx->zone != NULL) {
 				dns_zone_detach(&qctx->zone);
+				qctx->zhooks = NULL;
 			}
 			qctx->version = NULL;
 			RESTORE(qctx->version, tversion);
@@ -5683,6 +5671,8 @@ ns__query_start(query_ctx_t *qctx) {
 				 */
 				dns_zone_attach(qctx->zone,
 						&qctx->client->query.authzone);
+				qctx->zhooks =
+					dns_zone_gethooktable(qctx->zone);
 				CALL_HOOK(NS_QUERY_AUTHZONE_ATTACHED, qctx);
 			}
 			dns_db_attach(qctx->db, &qctx->client->query.authdb);
@@ -8584,6 +8574,7 @@ query_zone_delegation(query_ctx_t *qctx) {
 			}
 			if (qctx->zone != NULL) {
 				dns_zone_detach(&qctx->zone);
+				qctx->zhooks = NULL;
 			}
 			qctx->version = NULL;
 			RESTORE(qctx->version, tversion);
