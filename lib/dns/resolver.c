@@ -5934,7 +5934,7 @@ rctx_cache_insecure(respctx_t *rctx, dns_message_t *message, dns_name_t *name,
 	 * Cache the rdataset.
 	 */
 	result = cache_rrset(fctx, rctx->now, name, rdataset, NULL, &node,
-			     added, NULL, NULL);
+			     added, NULL, false);
 
 	return result;
 }
