@@ -1344,3 +1344,15 @@ def test_unknown_algorithms():
     isctest.check.noerror(res1)
     isctest.check.noerror(res2)
     isctest.check.noadflag(res2)
+
+
+def test_rrsigs_for_glue():
+    msg = isctest.query.create("ns3.secure.example", "A", cd=True)
+    res = isctest.query.tcp(msg, "10.53.0.4")
+    isctest.check.noerror(res)
+    isctest.check.rr_count_eq(res.answer, 2)
+    assert any(record.rdtype == rdatatype.A for record in res.answer)
+    assert any(
+        record.rdtype == rdatatype.RRSIG and record.covers == rdatatype.A
+        for record in res.answer
+    )

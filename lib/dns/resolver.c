@@ -5224,7 +5224,7 @@ cache_rrset(fetchctx_t *fctx, isc_stdtime_t now, dns_name_t *name,
 	    dns_dbnode_t **nodep, dns_rdataset_t *added,
 	    dns_rdataset_t *addedsig, bool need_validation) {
 	isc_result_t result = ISC_R_SUCCESS;
-	unsigned int options = 0;
+	unsigned int options = 0, equalok = 0;
 	dns_dbnode_t *node = NULL;
 
 	if (rdataset == NULL) {
@@ -5247,6 +5247,17 @@ cache_rrset(fetchctx_t *fctx, isc_stdtime_t now, dns_name_t *name,
 	}
 
 	/*
+	 * If we're validating and passing the added rdataset back to the
+	 * caller, then we ask dns_db_addrdataset() to compare the old and
+	 * new rdatasets whenever the result would normally have been
+	 * DNS_R_UNCHANGED, and to return ISC_R_SUCCESS if they compare
+	 * equal. This allows us to continue and cache RRSIGs in that case.
+	 */
+	if (!need_validation && added != NULL) {
+		equalok = DNS_DBADD_EQUALOK;
+	}
+
+	/*
 	 * If the node pointer points to a node, attach to it.
 	 *
 	 * If it points to NULL, find or create the node and pass
@@ -5263,31 +5274,20 @@ cache_rrset(fetchctx_t *fctx, isc_stdtime_t now, dns_name_t *name,
 
 	if (result == ISC_R_SUCCESS) {
 		result = dns_db_addrdataset(fctx->cache, node, NULL, now,
-					    rdataset, options, added);
+					    rdataset, options | equalok, added);
 	}
 
-	if (result == DNS_R_UNCHANGED) {
-		/*
-		 * The cache wasn't updated because something was
-		 * already there. If the data was the same as what
-		 * we were trying to add, then sigrdataset might
-		 * still be useful.
-		 */
-		if (!need_validation && added != NULL &&
-		    !dns_rdataset_equals(rdataset, added))
-		{
-			/* Skip adding the sigrdataset */
-		} else {
-			/* Carry on caching the sigrdataset */
-			result = ISC_R_SUCCESS;
-		}
+	if (equalok == 0 && result == DNS_R_UNCHANGED) {
+		result = ISC_R_SUCCESS;
 	}
 
 	if (result == ISC_R_SUCCESS && sigrdataset != NULL) {
 		result = dns_db_addrdataset(fctx->cache, node, NULL, now,
 					    sigrdataset, options, addedsig);
 		if (result != ISC_R_SUCCESS && result != DNS_R_UNCHANGED) {
-			dns__rdataset_disassociate(added);
+			if (added != NULL) {
+				dns__rdataset_disassociate(added);
+			}
 		}
 	}
 
