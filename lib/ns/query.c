@@ -304,14 +304,17 @@ ns__query_callhook_noreturn(uint8_t id, query_ctx_t *qctx,
 }
 
 /*
- * Call the specified hook function in every configured module that implements
- * that function. If any hook function returns NS_HOOK_RETURN, we
- * set 'result' and terminate processing by jumping to the 'cleanup' tag.
+ * Call the specified hook function in every configured module that
+ * implements that function. If any hook function returns NS_HOOK_RETURN,
+ * we set 'result' and terminate processing by jumping to the 'cleanup' tag.
  *
- * (Note that a hook function may set the 'result' to ISC_R_SUCCESS but
+ * Before any hook point is reached, qctx->view must be initialized to
+ * point to a valid view.
+ *
+ * Note: that a hook function may set the 'result' to ISC_R_SUCCESS but
  * still terminate processing within the calling function. That's why this
  * is a macro instead of a static function; it needs to be able to use
- * 'goto cleanup' regardless of the return value.)
+ * 'goto cleanup' regardless of the return value.
  */
 #define CALL_HOOK(_id, _qctx)                                               \
 	if ((_qctx)->zhooks != NULL &&                                      \
@@ -339,8 +342,11 @@ ns__query_callhook_noreturn(uint8_t id, query_ctx_t *qctx,
  * codes are ignored. This is intended for use with initialization and
  * destruction calls which *must* run in every configured module.
  *
- * (This could be implemented as a static void function, but is left as a
- * macro for symmetry with CALL_HOOK above.)
+ * Before any hook point is reached, qctx->view must be initialized to
+ * point to a valid view.
+ *
+ * This could be implemented as a static void function, but is left as a
+ * macro for symmetry with CALL_HOOK above.
  */
 #define CALL_HOOK_NORETURN(_id, _qctx)                                    \
 	if ((_qctx)->zhooks != NULL) {                                    \
@@ -807,27 +813,6 @@ query_reset(ns_client_t *client, bool everything) {
 	CTRACE(ISC_LOG_DEBUG(3), "query_reset");
 
 	/*
-	 * Set up a transient qctx so we can call the NS_QUERY_RESET hook;
-	 * this will free resources being held by plugins for this
-	 * query, if any were configured.
-	 *
-	 * Note that NS_QUERY_RESET hook is called only if the view is not
-	 * NULL at this point. Otherwise, it means the client has been
-	 * reset even before the query starts, so we should not call this
-	 * hook as no other hook has been called before.
-	 */
-	if (client->inner.view != NULL) {
-		query_ctx_t qctx = { .view = client->inner.view,
-				     .client = client };
-		if (client->query.authzone != NULL) {
-			qctx.zhooks =
-				dns_zone_gethooktable(client->query.authzone);
-		}
-
-		CALL_HOOK_NORETURN(NS_QUERY_RESET, &qctx);
-	}
-
-	/*
 	 * Cancel the fetch if it's running.
 	 */
 	ns_query_cancel(client);
@@ -920,6 +905,18 @@ query_reset(ns_client_t *client, bool everything) {
 
 static void
 query_cleanup(ns_client_t *client) {
+	/*
+	 * Set up a transient qctx so we can call the NS_QUERY_CLEANUP hook;
+	 * this will free resources being held by plugins for this
+	 * query, if any were configured.
+	 */
+	query_ctx_t qctx = { .view = client->inner.view, .client = client };
+	if (client->query.authzone != NULL) {
+		qctx.zhooks = dns_zone_gethooktable(client->query.authzone);
+	}
+
+	CALL_HOOK_NORETURN(NS_QUERY_CLEANUP, &qctx);
+
 	query_reset(client, false);
 }
 

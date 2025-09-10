@@ -385,7 +385,7 @@
 typedef enum {
 	/* hookpoints from query.c */
 	NS_QUERY_SETUP,
-	NS_QUERY_RESET,
+	NS_QUERY_CLEANUP,
 	NS_QUERY_START_BEGIN,
 	NS_QUERY_LOOKUP_BEGIN,
 	NS_QUERY_RESUME_BEGIN,
