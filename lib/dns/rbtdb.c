@@ -6510,13 +6510,22 @@ find_header:
 		if (rbtversion == NULL && trust < header->trust &&
 		    (ACTIVE(header, now) || header_nx))
 		{
-			free_rdataset(rbtdb, rbtdb->common.mctx, newheader);
-			if (addedrdataset != NULL) {
-				bind_rdataset(rbtdb, rbtnode, header, now,
-					      isc_rwlocktype_write,
-					      addedrdataset);
+			result = DNS_R_UNCHANGED;
+			bind_rdataset(rbtdb, rbtnode, header, now,
+				      isc_rwlocktype_write, addedrdataset);
+			if (ACTIVE(header, now) &&
+			    (options & DNS_DBADD_EQUALOK) != 0 &&
+			    dns_rdataslab_equalx(
+				    (unsigned char *)header,
+				    (unsigned char *)newheader,
+				    (unsigned int)(sizeof(*newheader)),
+				    rbtdb->common.rdclass,
+				    (dns_rdatatype_t)header->type))
+			{
+				result = ISC_R_SUCCESS;
 			}
-			return DNS_R_UNCHANGED;
+			free_rdataset(rbtdb, rbtdb->common.mctx, newheader);
+			return result;
 		}
 
 		/*
