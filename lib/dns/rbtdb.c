@@ -2729,14 +2729,24 @@ find_header:
 		if (rbtversion == NULL && trust < header->trust &&
 		    (ACTIVE(header, now) || header_nx))
 		{
-			dns_slabheader_destroy(&newheader);
-			if (addedrdataset != NULL) {
-				dns__rbtdb_bindrdataset(
-					rbtdb, rbtnode, header, now,
-					isc_rwlocktype_write,
-					addedrdataset DNS__DB_FLARG_PASS);
+			result = DNS_R_UNCHANGED;
+			dns__rbtdb_bindrdataset(
+				rbtdb, rbtnode, header, now,
+				isc_rwlocktype_write,
+				addedrdataset DNS__DB_FLARG_PASS);
+			if (ACTIVE(header, now) &&
+			    (options & DNS_DBADD_EQUALOK) != 0 &&
+			    dns_rdataslab_equalx(
+				    (unsigned char *)header,
+				    (unsigned char *)newheader,
+				    (unsigned int)(sizeof(*newheader)),
+				    rbtdb->common.rdclass,
+				    (dns_rdatatype_t)header->type))
+			{
+				result = ISC_R_SUCCESS;
 			}
-			return DNS_R_UNCHANGED;
+			dns_slabheader_destroy(&newheader);
+			return result;
 		}
 
 		/*
