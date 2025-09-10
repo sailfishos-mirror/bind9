@@ -320,7 +320,7 @@ ns__query_callhook_noreturn(uint8_t id, query_ctx_t *qctx,
 	{                                                                   \
 		goto cleanup;                                               \
 	}                                                                   \
-	if ((_qctx)->view != NULL && (_qctx)->view->hooktable != NULL &&    \
+	if ((_qctx)->view->hooktable != NULL &&                             \
 	    ns__query_callhook(_id, _qctx, &result,                         \
 			       (_qctx)->view->hooktable) == NS_HOOK_RETURN) \
 	{                                                                   \
@@ -346,7 +346,7 @@ ns__query_callhook_noreturn(uint8_t id, query_ctx_t *qctx,
 	if ((_qctx)->zhooks != NULL) {                                    \
 		ns__query_callhook_noreturn(_id, _qctx, (_qctx)->zhooks); \
 	}                                                                 \
-	if ((_qctx)->view != NULL && (_qctx)->view->hooktable != NULL) {  \
+	if ((_qctx)->view->hooktable != NULL) {                           \
 		ns__query_callhook_noreturn(_id, _qctx,                   \
 					    (_qctx)->view->hooktable);    \
 	}                                                                 \
@@ -810,13 +810,22 @@ query_reset(ns_client_t *client, bool everything) {
 	 * Set up a transient qctx so we can call the NS_QUERY_RESET hook;
 	 * this will free resources being held by plugins for this
 	 * query, if any were configured.
+	 *
+	 * Note that NS_QUERY_RESET hook is called only if the view is not
+	 * NULL at this point. Otherwise, it means the client has been
+	 * reset even before the query starts, so we should not call this
+	 * hook as no other hook has been called before.
 	 */
-	query_ctx_t qctx = { .view = client->inner.view, .client = client };
-	if (client->query.authzone != NULL) {
-		qctx.zhooks = dns_zone_gethooktable(client->query.authzone);
-	}
+	if (client->inner.view != NULL) {
+		query_ctx_t qctx = { .view = client->inner.view,
+				     .client = client };
+		if (client->query.authzone != NULL) {
+			qctx.zhooks =
+				dns_zone_gethooktable(client->query.authzone);
+		}
 
-	CALL_HOOK_NORETURN(NS_QUERY_RESET, &qctx);
+		CALL_HOOK_NORETURN(NS_QUERY_RESET, &qctx);
+	}
 
 	/*
 	 * Cancel the fetch if it's running.
