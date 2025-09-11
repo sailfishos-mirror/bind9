@@ -677,14 +677,26 @@ static void
 findnoqname(fetchctx_t *fctx, dns_message_t *message, dns_name_t *name,
 	    dns_rdataset_t *rdataset, dns_rdataset_t *sigrdataset);
 
-#define fctx_done_detach(fctxp, result)                                 \
+#define fctx_failure_detach(fctxp, result)                              \
+	REQUIRE(result != ISC_R_SUCCESS);                               \
 	if (fctx__done(*fctxp, result, __func__, __FILE__, __LINE__)) { \
 		fetchctx_detach(fctxp);                                 \
 	}
 
-#define fctx_done_unref(fctx, result)                                 \
+#define fctx_failure_unref(fctx, result)                              \
+	REQUIRE(result != ISC_R_SUCCESS);                             \
 	if (fctx__done(fctx, result, __func__, __FILE__, __LINE__)) { \
 		fetchctx_unref(fctx);                                 \
+	}
+
+#define fctx_success_detach(fctxp)                                             \
+	if (fctx__done(*fctxp, ISC_R_SUCCESS, __func__, __FILE__, __LINE__)) { \
+		fetchctx_detach(fctxp);                                        \
+	}
+
+#define fctx_success_unref(fctx)                                             \
+	if (fctx__done(fctx, ISC_R_SUCCESS, __func__, __FILE__, __LINE__)) { \
+		fetchctx_unref(fctx);                                        \
 	}
 
 #if DNS_RESOLVER_TRACE
@@ -1778,7 +1790,7 @@ resquery_senddone(isc_result_t eresult, isc_region_t *region, void *arg) {
 			   "due to unexpected result; responding",
 			   eresult);
 		fctx_cancelquery(&copy, NULL, false, false);
-		fctx_done_detach(&fctx, eresult);
+		fctx_failure_detach(&fctx, eresult);
 		break;
 	}
 
@@ -2782,7 +2794,7 @@ resquery_connected(isc_result_t eresult, isc_region_t *region, void *arg) {
 				  "responding");
 
 			fctx_cancelquery(&copy, NULL, false, false);
-			fctx_done_detach(&fctx, result);
+			fctx_failure_detach(&fctx, result);
 			break;
 		}
 
@@ -2804,7 +2816,7 @@ resquery_connected(isc_result_t eresult, isc_region_t *region, void *arg) {
 	case ISC_R_SHUTTINGDOWN:
 		FCTXTRACE3("shutdown in resquery_connected()", eresult);
 		fctx_cancelquery(&copy, NULL, true, false);
-		fctx_done_detach(&fctx, eresult);
+		fctx_failure_detach(&fctx, eresult);
 		break;
 
 	case ISC_R_HOSTDOWN:
@@ -2836,7 +2848,7 @@ resquery_connected(isc_result_t eresult, isc_region_t *region, void *arg) {
 			   eresult);
 
 		fctx_cancelquery(&copy, NULL, false, false);
-		fctx_done_detach(&fctx, eresult);
+		fctx_failure_detach(&fctx, eresult);
 		break;
 	}
 
@@ -2896,7 +2908,7 @@ fctx_finddone(void *arg) {
 		FCTXTRACE("fetch failed in finddone(); return "
 			  "ISC_R_FAILURE");
 
-		fctx_done_unref(fctx, ISC_R_FAILURE);
+		fctx_failure_unref(fctx, ISC_R_FAILURE);
 	} else if (want_try) {
 		fctx_try(fctx, true);
 	}
@@ -4079,7 +4091,7 @@ fctx_try(fetchctx_t *fctx, bool retrying) {
 
 done:
 	if (result != ISC_R_SUCCESS) {
-		fctx_done_detach(&fctx, result);
+		fctx_failure_detach(&fctx, result);
 	}
 }
 
@@ -4358,7 +4370,7 @@ cleanup:
 	}
 	if (result != ISC_R_SUCCESS) {
 		/* An error occurred, tear down whole fctx */
-		fctx_done_unref(fctx, fixup_result ? ISC_R_SUCCESS : result);
+		fctx_failure_unref(fctx, fixup_result ? ISC_R_SUCCESS : result);
 	}
 	fetchctx_detach(&fctx);
 }
@@ -4436,7 +4448,7 @@ fctx_expired(void *arg) {
 
 	dns_ede_add(&fctx->edectx, DNS_EDE_NOREACHABLEAUTH, NULL);
 
-	fctx_done_detach(&fctx, DNS_R_SERVFAIL);
+	fctx_failure_detach(&fctx, DNS_R_SERVFAIL);
 }
 
 static void
@@ -4445,7 +4457,7 @@ fctx_shutdown(void *arg) {
 
 	REQUIRE(VALID_FCTX(fctx));
 
-	fctx_done_unref(fctx, ISC_R_SHUTTINGDOWN);
+	fctx_failure_unref(fctx, ISC_R_SHUTTINGDOWN);
 	fetchctx_detach(&fctx);
 }
 
@@ -5602,8 +5614,10 @@ cleanup_unlocked:
 		dns_validator_send(nextval);
 	}
 
-	if (done) {
-		fctx_done_unref(fctx, result);
+	if (done && result == ISC_R_SUCCESS) {
+		fctx_success_unref(fctx);
+	} else if (done) {
+		fctx_failure_unref(fctx, result);
 	}
 
 	/*
@@ -6835,7 +6849,7 @@ cleanup:
 
 	if (result != ISC_R_SUCCESS) {
 		/* An error occurred, tear down whole fctx */
-		fctx_done_unref(fctx, result);
+		fctx_failure_unref(fctx, result);
 	}
 
 	fetchctx_detach(&fctx);
@@ -9002,7 +9016,7 @@ rctx_nextserver(respctx_t *rctx, dns_message_t *message,
 		dcname = dns_fixedname_initname(&founddc);
 
 		if (result != ISC_R_SUCCESS) {
-			fctx_done_detach(&rctx->fctx, DNS_R_SERVFAIL);
+			fctx_failure_detach(&rctx->fctx, DNS_R_SERVFAIL);
 			return;
 		}
 		if (dns_rdatatype_atparent(fctx->type)) {
@@ -9019,7 +9033,7 @@ rctx_nextserver(respctx_t *rctx, dns_message_t *message,
 			findoptions, true, true, &fctx->nameservers, NULL);
 		if (result != ISC_R_SUCCESS) {
 			FCTXTRACE("couldn't find a zonecut");
-			fctx_done_detach(&rctx->fctx, DNS_R_SERVFAIL);
+			fctx_failure_detach(&rctx->fctx, DNS_R_SERVFAIL);
 			return;
 		}
 		if (!dns_name_issubdomain(fname, fctx->domain)) {
@@ -9028,7 +9042,7 @@ rctx_nextserver(respctx_t *rctx, dns_message_t *message,
 			 * QDOMAIN.
 			 */
 			FCTXTRACE("nameservers now above QDOMAIN");
-			fctx_done_detach(&rctx->fctx, DNS_R_SERVFAIL);
+			fctx_failure_detach(&rctx->fctx, DNS_R_SERVFAIL);
 			return;
 		}
 
@@ -9039,7 +9053,7 @@ rctx_nextserver(respctx_t *rctx, dns_message_t *message,
 
 		result = fcount_incr(fctx, true);
 		if (result != ISC_R_SUCCESS) {
-			fctx_done_detach(&rctx->fctx, DNS_R_SERVFAIL);
+			fctx_failure_detach(&rctx->fctx, DNS_R_SERVFAIL);
 			return;
 		}
 		fctx->ns_ttl = fctx->nameservers.ttl;
@@ -9072,7 +9086,7 @@ rctx_resend(respctx_t *rctx, dns_adbaddrinfo_t *addrinfo) {
 	inc_stats(fctx->res, dns_resstatscounter_retry);
 	result = fctx_query(fctx, addrinfo, rctx->retryopts);
 	if (result != ISC_R_SUCCESS) {
-		fctx_done_detach(&rctx->fctx, result);
+		fctx_failure_detach(&rctx->fctx, result);
 	}
 }
 
@@ -9126,7 +9140,7 @@ rctx_chaseds(respctx_t *rctx, dns_message_t *message,
 		if (result == DNS_R_DUPLICATE) {
 			result = DNS_R_SERVFAIL;
 		}
-		fctx_done_detach(&rctx->fctx, result);
+		fctx_failure_detach(&rctx->fctx, result);
 		fetchctx_detach(&fctx);
 		return;
 	}
@@ -9164,7 +9178,7 @@ rctx_done(respctx_t *rctx, isc_result_t result) {
 	{
 		fctx_cancelquery(&query, rctx->finish, rctx->no_response,
 				 false);
-		fctx_done_detach(&rctx->fctx, DNS_R_SERVFAIL);
+		fctx_failure_detach(&rctx->fctx, DNS_R_SERVFAIL);
 		goto detach;
 	}
 #endif /* ifdef ENABLE_AFL */
@@ -9205,11 +9219,12 @@ rctx_done(respctx_t *rctx, isc_result_t result) {
 		 */
 		FCTXTRACE("wait for validator");
 		fctx_cancelqueries(fctx, true, false);
+	} else if (result == ISC_R_SUCCESS) {
+		/* We are done. */
+		fctx_success_detach(&rctx->fctx);
 	} else {
-		/*
-		 * We're done.
-		 */
-		fctx_done_detach(&rctx->fctx, result);
+		/* Done with an error. */
+		fctx_failure_detach(&rctx->fctx, result);
 	}
 
 detach:
