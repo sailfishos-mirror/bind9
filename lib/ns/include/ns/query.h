@@ -229,6 +229,8 @@ struct query_ctx {
 
 	dns_view_t *view; /* client view */
 
+	void *zhooks; /* zone hook table */
+
 	bool allocated; /* qctx needs to be freed when destroying */
 
 	isc_result_t result; /* query result */

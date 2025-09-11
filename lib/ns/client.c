@@ -257,7 +257,7 @@ ns_client_endrequest(ns_client_t *client) {
 #ifdef ENABLE_AFL
 		if (client->manager->sctx->fuzztype == isc_fuzz_resolver) {
 			dns_adb_t *adb = NULL;
-			dns_view_getadb(client->view, &adb);
+			dns_view_getadb(client->inner.view, &adb);
 			if (adb != NULL) {
 				dns_adb_flush(adb);
 				dns_adb_detach(&adb);
@@ -774,7 +774,7 @@ renderend:
 #ifdef HAVE_DNSTAP
 		/*
 		 * Log dnstap data first, because client_sendpkg() may
-		 * leave client->view set to NULL.
+		 * leave client->inner.view set to NULL.
 		 */
 		if (client->inner.view != NULL) {
 			dns_dt_send(client->inner.view, dtmsgtype,
@@ -1843,7 +1843,7 @@ ns_client_setup_view(ns_client_t *client, isc_netaddr_t *netaddr) {
 	/*
 	 * matchingview() returning anything other than DNS_R_WAIT means it's
 	 * not running in async mode, in which case 'result' must be equal to
-	 * 'client->viewmatchresult'.
+	 * 'client->inner.viewmatchresult'.
 	 */
 	INSIST(result == client->inner.viewmatchresult);
 

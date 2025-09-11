@@ -164,7 +164,7 @@ install_hooks(ns_hooktable_t *hooktable, isc_mem_t *mctx,
 	ns_hook_add(hooktable, mctx, NS_QUERY_PREP_RESPONSE_BEGIN,
 		    &filter_prepresp);
 	ns_hook_add(hooktable, mctx, NS_QUERY_DONE_SEND, &filter_donesend);
-	ns_hook_add(hooktable, mctx, NS_QUERY_RESET, &filter_reset);
+	ns_hook_add(hooktable, mctx, NS_QUERY_CLEANUP, &filter_reset);
 }
 
 /**

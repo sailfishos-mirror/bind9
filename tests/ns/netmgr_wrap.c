@@ -84,7 +84,6 @@ isc_nmhandle_detach(isc_nmhandle_t **handlep) {
 	INSIST(i < 32);
 
 	if (atomic_fetch_sub(&client_refs[i], 1) == 1) {
-		dns_view_detach(&client->inner.view);
 		client->inner.state = 4;
 		ns__client_reset_cb(client);
 		ns__client_put_cb(client);

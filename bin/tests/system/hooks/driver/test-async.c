@@ -96,7 +96,7 @@ install_hooks(ns_hooktable_t *hooktable, isc_mem_t *mctx,
 
 	ns_hook_add(hooktable, mctx, NS_QUERY_SETUP, &async_setup);
 	ns_hook_add(hooktable, mctx, NS_QUERY_DONE_BEGIN, &async_donebegin);
-	ns_hook_add(hooktable, mctx, NS_QUERY_RESET, &async_reset);
+	ns_hook_add(hooktable, mctx, NS_QUERY_CLEANUP, &async_reset);
 }
 
 static void
