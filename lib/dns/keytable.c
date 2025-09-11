@@ -91,7 +91,6 @@ static dns_rdatasetmethods_t methods = {
 	NULL,
 	NULL,
 	NULL, /* addglue */
-	NULL, /* equals */
 };
 
 static void

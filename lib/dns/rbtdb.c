@@ -610,9 +610,6 @@ rdataset_getownercase(const dns_rdataset_t *rdataset, dns_name_t *name);
 static isc_result_t
 rdataset_addglue(dns_rdataset_t *rdataset, dns_dbversion_t *version,
 		 dns_message_t *msg);
-static bool
-rdataset_equals(const dns_rdataset_t *rdataset1,
-		const dns_rdataset_t *rdataset2);
 static void
 free_gluetable(rbtdb_version_t *version);
 static isc_result_t
@@ -633,8 +630,7 @@ static dns_rdatasetmethods_t rdataset_methods = { rdataset_disassociate,
 						  rdataset_clearprefetch,
 						  rdataset_setownercase,
 						  rdataset_getownercase,
-						  rdataset_addglue,
-						  rdataset_equals };
+						  rdataset_addglue };
 
 static dns_rdatasetmethods_t slab_methods = {
 	rdataset_disassociate,
@@ -653,7 +649,6 @@ static dns_rdatasetmethods_t slab_methods = {
 	NULL, /* setownercase */
 	NULL, /* getownercase */
 	NULL, /* addglue */
-	NULL, /* equals */
 };
 
 static void
@@ -6510,13 +6505,22 @@ find_header:
 		if (rbtversion == NULL && trust < header->trust &&
 		    (ACTIVE(header, now) || header_nx))
 		{
-			free_rdataset(rbtdb, rbtdb->common.mctx, newheader);
-			if (addedrdataset != NULL) {
-				bind_rdataset(rbtdb, rbtnode, header, now,
-					      isc_rwlocktype_write,
-					      addedrdataset);
+			result = DNS_R_UNCHANGED;
+			bind_rdataset(rbtdb, rbtnode, header, now,
+				      isc_rwlocktype_write, addedrdataset);
+			if (ACTIVE(header, now) &&
+			    (options & DNS_DBADD_EQUALOK) != 0 &&
+			    dns_rdataslab_equalx(
+				    (unsigned char *)header,
+				    (unsigned char *)newheader,
+				    (unsigned int)(sizeof(*newheader)),
+				    rbtdb->common.rdclass,
+				    (dns_rdatatype_t)header->type))
+			{
+				result = ISC_R_SUCCESS;
 			}
-			return DNS_R_UNCHANGED;
+			free_rdataset(rbtdb, rbtdb->common.mctx, newheader);
+			return result;
 		}
 
 		/*
@@ -10396,23 +10400,6 @@ no_glue:
 	goto restart;
 
 	/* UNREACHABLE */
-}
-
-static bool
-rdataset_equals(const dns_rdataset_t *rdataset1,
-		const dns_rdataset_t *rdataset2) {
-	if (rdataset1->rdclass != rdataset2->rdclass ||
-	    rdataset1->type != rdataset2->type)
-	{
-		return false;
-	}
-
-	uint8_t *header1 = (uint8_t *)rdataset1->private3 -
-			   sizeof(rdatasetheader_t);
-	uint8_t *header2 = (uint8_t *)rdataset2->private3 -
-			   sizeof(rdatasetheader_t);
-	return dns_rdataslab_equalx(header1, header2, sizeof(rdatasetheader_t),
-				    rdataset1->rdclass, rdataset2->type);
 }
 
 /*%

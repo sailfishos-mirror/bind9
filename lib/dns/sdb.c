@@ -1440,7 +1440,6 @@ static dns_rdatasetmethods_t sdb_rdataset_methods = {
 	NULL, /* setownercase */
 	NULL, /* getownercase */
 	NULL, /* addglue */
-	NULL, /* equals */
 };
 
 static void

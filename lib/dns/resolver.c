@@ -6331,7 +6331,7 @@ cache_name(fetchctx_t *fctx, dns_name_t *name, dns_message_t *message,
 	bool have_answer = false;
 	isc_result_t result, eresult = ISC_R_SUCCESS;
 	dns_fetchevent_t *event = NULL;
-	unsigned int options;
+	unsigned int options = 0, equalok = 0;
 	isc_task_t *task;
 	bool fail;
 	unsigned int valoptions = 0;
@@ -6548,6 +6548,7 @@ cache_name(fetchctx_t *fctx, dns_name_t *name, dns_message_t *message,
 			}
 			if (!need_validation || !ANSWER(rdataset)) {
 				options = 0;
+				equalok = 0;
 				if (ANSWER(rdataset) &&
 				    rdataset->type != dns_rdatatype_rrsig)
 				{
@@ -6573,10 +6574,23 @@ cache_name(fetchctx_t *fctx, dns_name_t *name, dns_message_t *message,
 				{
 					options |= DNS_DBADD_FORCE;
 				}
+				/*
+				 * If we're validating and passing the added
+				 * rdataset back to the caller, then we ask
+				 * dns_db_addrdataset() to compare the old and
+				 * new rdatasets whenever the result would
+				 * normally have been DNS_R_UNCHANGED, and to
+				 * return ISC_R_SUCCESS if they compare equal.
+				 * This allows us to continue and cache RRSIGs
+				 * in that case.
+				 */
+				if (!need_validation && ardataset != NULL) {
+					equalok = DNS_DBADD_EQUALOK;
+				}
 				addedrdataset = ardataset;
 				result = dns_db_addrdataset(
 					fctx->cache, node, NULL, now, rdataset,
-					options, addedrdataset);
+					options | equalok, addedrdataset);
 				if (result == DNS_R_UNCHANGED) {
 					result = ISC_R_SUCCESS;
 					if (!need_validation &&
@@ -6600,25 +6614,11 @@ cache_name(fetchctx_t *fctx, dns_name_t *name, dns_message_t *message,
 								DNS_R_NCACHENXRRSET;
 						}
 						continue;
-					} else if (!need_validation &&
-						   ardataset != NULL &&
-						   sigrdataset != NULL &&
-						   !dns_rdataset_equals(
-							   rdataset, ardataset))
-					{
-						/*
-						 * The cache wasn't updated
-						 * because something was
-						 * already there. If the
-						 * data was the same as what
-						 * we were trying to add,
-						 * then sigrdataset might
-						 * still be useful, and we
-						 * should carry on caching
-						 * it. Otherwise, move on.
-						 */
+					}
+					if (equalok) {
 						continue;
 					}
+					result = ISC_R_SUCCESS;
 				}
 				if (result != ISC_R_SUCCESS) {
 					break;

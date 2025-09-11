@@ -525,7 +525,6 @@ static dns_rdatasetmethods_t rdataset_methods = {
 	NULL,		   /* setownercase */
 	NULL,		   /* getownercase */
 	NULL,		   /* addglue */
-	NULL,		   /* equals */
 };
 
 isc_result_t
