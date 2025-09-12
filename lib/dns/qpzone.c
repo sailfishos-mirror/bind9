@@ -198,7 +198,9 @@ struct qpznode {
 	atomic_bool wild;
 	atomic_bool delegating;
 	atomic_bool dirty;
-	dns_slabtop_t *data;
+
+	struct cds_list_head types_list;
+	struct cds_list_head *data;
 };
 
 struct qpzonedb {
@@ -631,6 +633,8 @@ static qpznode_t *
 new_qpznode(qpzonedb_t *qpdb, const dns_name_t *name, dns_namespace_t nspace) {
 	qpznode_t *newdata = isc_mem_get(qpdb->common.mctx, sizeof(*newdata));
 	*newdata = (qpznode_t){
+		.types_list = CDS_LIST_HEAD_INIT(newdata->types_list),
+		.data = &newdata->types_list,
 		.methods = &qpznode_methods,
 		.name = DNS_NAME_INITEMPTY,
 		.nspace = nspace,
@@ -848,7 +852,6 @@ clean_multiple_versions(dns_slabtop_t *top, uint32_t least_serial) {
 
 static void
 clean_zone_node(qpznode_t *node, uint32_t least_serial) {
-	dns_slabtop_t *top_prev = NULL;
 	bool still_dirty = false;
 
 	/*
@@ -873,11 +876,7 @@ clean_zone_node(qpznode_t *node, uint32_t least_serial) {
 		check_top_header(top);
 
 		if (top->header == NULL) {
-			if (top_prev != NULL) {
-				top_prev->next = top->next;
-			} else {
-				node->data = top->next;
-			}
+			cds_list_del(&top->types_link);
 			dns_slabtop_destroy(node->mctx, &top);
 		} else {
 			/*
@@ -891,8 +890,6 @@ clean_zone_node(qpznode_t *node, uint32_t least_serial) {
 			 */
 			still_dirty = clean_multiple_versions(top,
 							      least_serial);
-
-			top_prev = top;
 		}
 	}
 	if (!still_dirty) {
@@ -942,7 +939,7 @@ qpznode_release(qpznode_t *node, uint32_t least_serial,
 	}
 
 	/* Handle easy and typical case first. */
-	if (!node->dirty && node->data != NULL) {
+	if (!node->dirty && !cds_list_empty(node->data)) {
 		goto unref;
 	}
 
@@ -1998,16 +1995,14 @@ add(qpzonedb_t *qpdb, qpznode_t *node, const dns_name_t *nodename,
 
 			if (prio_type(newheader->typepair)) {
 				/* This is a priority type, prepend it */
-				newtop->next = node->data;
-				node->data = newtop;
+				cds_list_add(&newtop->types_link, node->data);
 			} else if (priotop != NULL) {
 				/* Append after the priority headers */
-				newtop->next = priotop->next;
-				priotop->next = newtop;
+				cds_list_add(&newtop->types_link,
+					     &priotop->types_link);
 			} else {
 				/* There were no priority headers */
-				newtop->next = node->data;
-				node->data = newtop;
+				cds_list_add(&newtop->types_link, node->data);
 			}
 		}
 	}
@@ -3964,25 +3959,30 @@ rdatasetiter_next(dns_rdatasetiter_t *iterator DNS__DB_FLARG) {
 	qpz_version_t *version = (qpz_version_t *)qrditer->common.version;
 	isc_rwlocktype_t nlocktype = isc_rwlocktype_none;
 	isc_rwlock_t *nlock = qpzone_get_lock(node);
-	dns_slabtop_t *next = NULL;
+	dns_slabtop_t *from = NULL;
 
 	if (qrditer->currenttop == NULL) {
 		return ISC_R_NOMORE;
 	}
-	next = qrditer->currenttop->next;
-	qrditer->currenttop = NULL;
-	qrditer->current = NULL;
 
 	NODE_RDLOCK(nlock, &nlocktype);
+
+	from = cds_list_entry(qrditer->currenttop->types_link.next,
+			      dns_slabtop_t, types_link);
+	qrditer->currenttop = NULL;
+	qrditer->current = NULL;
 
 	/*
 	 * Find the start of the header chain for the next type.
 	 */
-	DNS_SLABTOP_FOREACH(top, next) {
-		qrditer->current = first_existing_header(top, version->serial);
-		if (qrditer->current != NULL) {
-			qrditer->currenttop = top;
-			break;
+	if (from != NULL) {
+		DNS_SLABTOP_FOREACH_FROM(top, node->data, from) {
+			qrditer->current =
+				first_existing_header(top, version->serial);
+			if (qrditer->current != NULL) {
+				qrditer->currenttop = top;
+				break;
+			}
 		}
 	}
 

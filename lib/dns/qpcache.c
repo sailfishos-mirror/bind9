@@ -157,7 +157,8 @@ struct qpcnode {
 	isc_refcount_t references;
 	isc_refcount_t erefs;
 
-	dns_slabtop_t *data;
+	struct cds_list_head types_list;
+	struct cds_list_head *data;
 
 	/*%
 	 * NOTE: The 'dirty' flag is protected by the node lock, so
@@ -561,8 +562,6 @@ clean_cache_headers(dns_slabtop_t *top) {
 
 static void
 clean_cache_node(qpcache_t *qpdb, qpcnode_t *node) {
-	dns_slabtop_t *top_prev = NULL;
-
 	/*
 	 * Caller must be holding the node lock.
 	 */
@@ -584,11 +583,7 @@ clean_cache_node(qpcache_t *qpdb, qpcnode_t *node) {
 		 * If current slabtop is empty, we can clean it up.
 		 */
 		if (top->header == NULL) {
-			if (top_prev != NULL) {
-				top_prev->next = top->next;
-			} else {
-				node->data = top->next;
-			}
+			cds_list_del(&top->types_link);
 
 			if (ISC_LINK_LINKED(top, link)) {
 				ISC_SIEVE_UNLINK(
@@ -596,8 +591,6 @@ clean_cache_node(qpcache_t *qpdb, qpcnode_t *node) {
 					link);
 			}
 			dns_slabtop_destroy(((dns_db_t *)qpdb)->mctx, &top);
-		} else {
-			top_prev = top;
 		}
 	}
 
@@ -750,7 +743,7 @@ qpcnode_release(qpcache_t *qpdb, qpcnode_t *node, isc_rwlocktype_t *nlocktypep,
 	}
 
 	/* Handle easy and typical case first. */
-	if (!node->dirty && node->data != NULL) {
+	if (!node->dirty && !cds_list_empty(node->data)) {
 		goto unref;
 	}
 
@@ -781,7 +774,7 @@ qpcnode_release(qpcache_t *qpdb, qpcnode_t *node, isc_rwlocktype_t *nlocktypep,
 		clean_cache_node(qpdb, node);
 	}
 
-	if (node->data != NULL) {
+	if (!cds_list_empty(node->data)) {
 		goto unref;
 	}
 
@@ -2383,6 +2376,8 @@ static qpcnode_t *
 new_qpcnode(qpcache_t *qpdb, const dns_name_t *name, dns_namespace_t nspace) {
 	qpcnode_t *newdata = isc_mem_get(qpdb->common.mctx, sizeof(*newdata));
 	*newdata = (qpcnode_t){
+		.types_list = CDS_LIST_HEAD_INIT(newdata->types_list),
+		.data = &newdata->types_list,
 		.methods = &qpcnode_methods,
 		.qpdb = qpdb,
 		.name = DNS_NAME_INITEMPTY,
@@ -2888,16 +2883,13 @@ add(qpcache_t *qpdb, qpcnode_t *qpnode, dns_slabheader_t *newheader,
 
 		if (prio_header(newtop)) {
 			/* This is a priority type, prepend it */
-			newtop->next = qpnode->data;
-			qpnode->data = newtop;
+			cds_list_add(&newtop->types_link, qpnode->data);
 		} else if (priotop != NULL) {
 			/* Append after the priority headers */
-			newtop->next = priotop->next;
-			priotop->next = newtop;
+			cds_list_add(&newtop->types_link, &priotop->types_link);
 		} else {
 			/* There were no priority headers */
-			newtop->next = qpnode->data;
-			qpnode->data = newtop;
+			cds_list_add(&newtop->types_link, qpnode->data);
 		}
 
 		if (overmaxtype(qpdb, ntypes)) {
@@ -3387,24 +3379,29 @@ rdatasetiter_next(dns_rdatasetiter_t *it DNS__DB_FLARG) {
 	qpcnode_t *qpnode = (qpcnode_t *)iterator->common.node;
 	isc_rwlocktype_t nlocktype = isc_rwlocktype_none;
 	isc_rwlock_t *nlock = &qpdb->buckets[qpnode->locknum].lock;
-	dns_slabtop_t *next = NULL;
+	dns_slabtop_t *from = NULL;
 
 	if (iterator->current == NULL) {
 		return ISC_R_NOMORE;
 	}
-	next = iterator->current->next;
-	iterator->current = NULL;
 
 	NODE_RDLOCK(nlock, &nlocktype);
 
-	DNS_SLABTOP_FOREACH(top, next) {
-		dns_slabheader_t *header = first_existing_header(top);
+	from = cds_list_entry(iterator->current->types_link.next, dns_slabtop_t,
+			      types_link);
+	iterator->current = NULL;
 
-		if (EXPIREDOK(iterator) ||
-		    (header != NULL && iterator_active(qpdb, iterator, header)))
-		{
-			iterator->current = top;
-			break;
+	if (from != NULL) {
+		DNS_SLABTOP_FOREACH_FROM(top, qpnode->data, from) {
+			dns_slabheader_t *header = first_existing_header(top);
+
+			if (EXPIREDOK(iterator) ||
+			    (header != NULL &&
+			     iterator_active(qpdb, iterator, header)))
+			{
+				iterator->current = top;
+				break;
+			}
 		}
 	}
 

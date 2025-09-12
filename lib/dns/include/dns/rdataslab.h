@@ -64,15 +64,18 @@ struct dns_slabheader_proof {
 	dns_rdatatype_t type;
 };
 
-#define DNS_SLABTOP_FOREACH(elt, first)                                    \
-	for (dns_slabtop_t *elt = first,                                   \
-			   *elt##_next = (elt != NULL) ? elt->next : NULL; \
-	     elt != NULL;                                                  \
-	     elt = elt##_next, elt##_next = (elt != NULL) ? elt->next : NULL)
+#define DNS_SLABTOP_FOREACH(pos, head)                 \
+	dns_slabtop_t *pos = NULL, *pos##_next = NULL; \
+	cds_list_for_each_entry_safe(pos, pos##_next, head, types_link)
+
+#define DNS_SLABTOP_FOREACH_FROM(pos, head, first)      \
+	dns_slabtop_t *pos = first, *pos##_next = NULL; \
+	cds_list_for_each_entry_safe_from(pos, pos##_next, head, types_link)
 
 typedef struct dns_slabtop dns_slabtop_t;
 struct dns_slabtop {
-	dns_slabtop_t	 *next;
+	struct cds_list_head types_link;
+
 	dns_slabheader_t *header;
 	dns_typepair_t	  typepair;
 

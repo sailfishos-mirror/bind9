@@ -30,6 +30,7 @@
 #include <urcu-pointer.h>
 
 #include <urcu/compiler.h>
+#include <urcu/list.h>
 #include <urcu/rculfhash.h>
 #include <urcu/rculist.h>
 #include <urcu/wfstack.h>

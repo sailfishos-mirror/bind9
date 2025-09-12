@@ -1179,6 +1179,7 @@ dns_slabtop_t *
 dns_slabtop_new(isc_mem_t *mctx, dns_typepair_t typepair) {
 	dns_slabtop_t *top = isc_mem_get(mctx, sizeof(*top));
 	*top = (dns_slabtop_t){
+		.types_link = CDS_LIST_HEAD_INIT(top->types_link),
 		.typepair = typepair,
 		.link = ISC_LINK_INITIALIZER,
 	};
