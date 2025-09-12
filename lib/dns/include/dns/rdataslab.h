@@ -75,9 +75,9 @@ struct dns_slabheader_proof {
 typedef struct dns_slabtop dns_slabtop_t;
 struct dns_slabtop {
 	struct cds_list_head types_link;
+	struct cds_list_head headers;
 
-	dns_slabheader_t *header;
-	dns_typepair_t	  typepair;
+	dns_typepair_t typepair;
 
 	/*% Used for SIEVE-LRU (cache) and changed_list (zone) */
 	ISC_LINK(struct dns_slabtop) link;
@@ -117,10 +117,9 @@ struct dns_slabheader {
 	dns_slabtop_t *top;
 
 	/*%
-	 * Points to the header for the next older version of
-	 * this rdataset.
+	 * Link to the other versions of this rdataset.
 	 */
-	struct dns_slabheader *down;
+	struct cds_list_head headers_link;
 
 	/*%
 	 * The database node objects containing this rdataset, if any.

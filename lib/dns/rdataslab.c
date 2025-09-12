@@ -323,6 +323,7 @@ dns_rdataslab_fromrdataset(dns_rdataset_t *rdataset, isc_mem_t *mctx,
 		}
 
 		*new = (dns_slabheader_t){
+			.headers_link = CDS_LIST_HEAD_INIT(new->headers_link),
 			.typepair = typepair,
 			.trust = rdataset->trust,
 			.ttl = rdataset->ttl,
@@ -1180,6 +1181,7 @@ dns_slabtop_new(isc_mem_t *mctx, dns_typepair_t typepair) {
 	dns_slabtop_t *top = isc_mem_get(mctx, sizeof(*top));
 	*top = (dns_slabtop_t){
 		.types_link = CDS_LIST_HEAD_INIT(top->types_link),
+		.headers = CDS_LIST_HEAD_INIT(top->headers),
 		.typepair = typepair,
 		.link = ISC_LINK_INITIALIZER,
 	};
