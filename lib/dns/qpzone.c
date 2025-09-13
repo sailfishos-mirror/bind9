@@ -2769,10 +2769,19 @@ wildcard_blocked(qpz_search_t *search, const dns_name_t *qname,
 	return false;
 }
 
+static bool
+node_active(qpz_search_t *search, qpznode_t *node) {
+	DNS_SLABTOP_FOREACH(top, node->data) {
+		if (first_existing_header(top, search->serial) != NULL) {
+			return true;
+		}
+	}
+	return false;
+}
+
 static isc_result_t
 find_wildcard(qpz_search_t *search, qpznode_t **nodep, const dns_name_t *qname,
 	      dns_namespace_t nspace) {
-	dns_slabheader_t *found = NULL;
 	isc_result_t result = ISC_R_NOTFOUND;
 
 	/*
@@ -2800,17 +2809,7 @@ find_wildcard(qpz_search_t *search, qpznode_t **nodep, const dns_name_t *qname,
 		 * may not need the information, because it simplifies the
 		 * locking and code flow.
 		 */
-		DNS_SLABTOP_FOREACH(top, node->data) {
-			dns_slabheader_t *header = top->header;
-			if (header->serial <= search->serial &&
-			    !IGNORE(header) && EXISTS(header))
-			{
-				found = header;
-				break;
-			}
-		}
-
-		active = (found != NULL);
+		active = node_active(search, node);
 		wild = node->wild;
 		NODE_UNLOCK(nlock, &nlocktype);
 
@@ -2819,6 +2818,7 @@ find_wildcard(qpz_search_t *search, qpznode_t **nodep, const dns_name_t *qname,
 			dns_fixedname_t fwname;
 			dns_name_t *wname = dns_fixedname_initname(&fwname);
 			dns_qpiter_t wit;
+			bool wactive;
 
 			/*
 			 * Construct the wildcard name for this level.
@@ -2840,18 +2840,9 @@ find_wildcard(qpz_search_t *search, qpznode_t **nodep, const dns_name_t *qname,
 				 */
 				nlock = qpzone_get_lock(wnode);
 				NODE_RDLOCK(nlock, &nlocktype);
-				DNS_SLABTOP_FOREACH(top, wnode->data) {
-					dns_slabheader_t *header = top->header;
-					if (header->serial <= search->serial &&
-					    !IGNORE(header) && EXISTS(header))
-					{
-						found = header;
-						break;
-					}
-				}
+				wactive = node_active(search, wnode);
 				NODE_UNLOCK(nlock, &nlocktype);
-				if (found != NULL ||
-				    activeempty(search, &wit, wname))
+				if (wactive || activeempty(search, &wit, wname))
 				{
 					if (wildcard_blocked(search, qname,
 							     wname))
