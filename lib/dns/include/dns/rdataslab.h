@@ -107,33 +107,26 @@ struct dns_slabheader {
 
 	dns_slabheader_proof_t *noqname;
 	dns_slabheader_proof_t *closest;
-	/*%<
-	 * We don't use the LIST macros, because the LIST structure has
-	 * both head and tail pointers, and is doubly linked.
-	 */
 
+	/*%
+	 * Points to the top slabtop structure for the type.
+	 */
 	dns_slabtop_t *top;
 
-	/*%<
-	 * If this is the top header for an rdataset, 'next' points
-	 * to the top header for the next rdataset (i.e., the next type).
-	 *
-	 * Otherwise 'up' points up to the header whose down pointer points at
-	 * this header.
-	 */
-
-	struct dns_slabheader *down;
-	/*%<
+	/*%
 	 * Points to the header for the next older version of
 	 * this rdataset.
 	 */
+	struct dns_slabheader *down;
 
-	dns_dbnode_t *node;
-	/*%<
-	 * The database and database node objects containing
-	 * this rdataset, if any.
+	/*%
+	 * The database node objects containing this rdataset, if any.
 	 */
+	dns_dbnode_t *node;
 
+	/*%
+	 * Cached glue records for an rdataset of type NS (zone only).
+	 */
 	dns_gluelist_t *gluelist;
 
 	/*%
