@@ -74,8 +74,6 @@ rdataset_expire(dns_rdataset_t *rdataset DNS__DB_FLARG);
 static void
 rdataset_clearprefetch(dns_rdataset_t *rdataset);
 static void
-rdataset_setownercase(dns_rdataset_t *rdataset, const dns_name_t *name);
-static void
 rdataset_getownercase(const dns_rdataset_t *rdataset, dns_name_t *name);
 static dns_slabheader_t *
 rdataset_getheader(const dns_rdataset_t *rdataset);
@@ -92,7 +90,6 @@ dns_rdatasetmethods_t dns_rdataslab_rdatasetmethods = {
 	.settrust = rdataset_settrust,
 	.expire = rdataset_expire,
 	.clearprefetch = rdataset_clearprefetch,
-	.setownercase = rdataset_setownercase,
 	.getownercase = rdataset_getownercase,
 	.getheader = rdataset_getheader,
 };
@@ -1144,20 +1141,6 @@ rdataset_clearprefetch(dns_rdataset_t *rdataset) {
 
 	dns_db_locknode(header->node, isc_rwlocktype_write);
 	DNS_SLABHEADER_CLRATTR(header, DNS_SLABHEADERATTR_PREFETCH);
-	dns_db_unlocknode(header->node, isc_rwlocktype_write);
-}
-
-static void
-rdataset_setownercase(dns_rdataset_t *rdataset, const dns_name_t *name) {
-	dns_slabheader_t *header = dns_rdataset_getheader(rdataset);
-
-	/* The case could be set just once for the same header */
-	if (CASESET(header)) {
-		return;
-	}
-
-	dns_db_locknode(header->node, isc_rwlocktype_write);
-	dns_slabheader_setownercase(header, name);
 	dns_db_unlocknode(header->node, isc_rwlocktype_write);
 }
 

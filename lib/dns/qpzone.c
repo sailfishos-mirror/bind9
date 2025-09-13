@@ -4661,6 +4661,8 @@ qpzone_addrdataset(dns_db_t *db, dns_dbnode_t *dbnode,
 
 	newheader = (dns_slabheader_t *)region.base;
 	dns_slabheader_reset(newheader, (dns_dbnode_t *)node);
+	dns_slabheader_setownercase(newheader, name);
+
 	newheader->ttl = rdataset->ttl;
 	if (rdataset->ttl == 0U) {
 		DNS_SLABHEADER_SETATTR(newheader, DNS_SLABHEADERATTR_ZEROTTL);
