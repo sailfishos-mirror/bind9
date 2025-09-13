@@ -474,7 +474,7 @@ first_header(dns_slabtop_t *top) {
 static dns_slabheader_t *
 first_existing_header(dns_slabtop_t *top) {
 	dns_slabheader_t *header = first_header(top);
-	if (EXISTS(top->header)) {
+	if (EXISTS(header)) {
 		return header;
 	}
 	return NULL;
@@ -2933,7 +2933,7 @@ add(qpcache_t *qpdb, qpcnode_t *qpnode, dns_slabheader_t *newheader,
 			dns_slabheader_t *expireheader =
 				first_header(expiretop);
 			if (expireheader != NULL) {
-				mark_ancient(expiretop->header);
+				mark_ancient(expireheader);
 			}
 			/*
 			 * FIXME: In theory, we should mark the RRSIG
