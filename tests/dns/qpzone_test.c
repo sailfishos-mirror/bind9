@@ -16,6 +16,7 @@
 #include <setjmp.h>
 #include <stdarg.h>
 #include <stddef.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -137,7 +138,7 @@ ownercase_test_one(const char *str1, const char *str2) {
 	assert_int_equal(result, ISC_R_SUCCESS);
 
 	/* Store the case from name1 */
-	dns_rdataset_setownercase(&rdataset, name1);
+	dns_slabheader_setownercase(&header, name1);
 
 	assert_true(CASESET(&header));
 

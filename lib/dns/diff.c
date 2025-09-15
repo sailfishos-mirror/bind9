@@ -253,13 +253,6 @@ getownercase(dns_rdataset_t *rdataset, dns_name_t *name) {
 	}
 }
 
-static void
-setownercase(dns_rdataset_t *rdataset, const dns_name_t *name) {
-	if (dns_rdataset_isassociated(rdataset)) {
-		dns_rdataset_setownercase(rdataset, name);
-	}
-}
-
 static const char *
 optotext(dns_diffop_t op) {
 	switch (op) {
@@ -389,6 +382,7 @@ diff_apply(const dns_diff_t *diff, dns_db_t *db, dns_dbversion_t *ver,
 			dns_rdataset_init(&rds);
 			dns_rdataset_init(&ardataset);
 			dns_rdatalist_tordataset(&rdl, &rds);
+			dns_rdataset_setownercase(&rds, name);
 			rds.trust = dns_trust_ultimate;
 
 			/*
@@ -424,11 +418,6 @@ diff_apply(const dns_diff_t *diff, dns_db_t *db, dns_dbversion_t *ver,
 					dns_db_setsigningtime(db, &ardataset,
 							      resign);
 				}
-				if (op == DNS_DIFFOP_ADD ||
-				    op == DNS_DIFFOP_ADDRESIGN)
-				{
-					setownercase(&ardataset, name);
-				}
 				if (op == DNS_DIFFOP_DEL ||
 				    op == DNS_DIFFOP_DELRESIGN)
 				{
@@ -456,11 +445,6 @@ diff_apply(const dns_diff_t *diff, dns_db_t *db, dns_dbversion_t *ver,
 						      "%s/%s: dns_diff_apply: "
 						      "update with no effect",
 						      namebuf, classbuf);
-				}
-				if (op == DNS_DIFFOP_ADD ||
-				    op == DNS_DIFFOP_ADDRESIGN)
-				{
-					setownercase(&ardataset, name);
 				}
 				if (op == DNS_DIFFOP_DEL ||
 				    op == DNS_DIFFOP_DELRESIGN)
