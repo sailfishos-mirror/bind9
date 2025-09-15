@@ -113,7 +113,6 @@ typedef uint16_t	    dns_keytag_t;
 typedef struct dns_keystore dns_keystore_t;
 typedef ISC_LIST(dns_keystore_t) dns_keystorelist_t;
 typedef struct dns_loadctx	   dns_loadctx_t;
-typedef struct dns_loadmgr	   dns_loadmgr_t;
 typedef struct dns_masterrawheader dns_masterrawheader_t;
 typedef uint64_t		   dns_masterstyle_flags_t;
 typedef struct dns_message	   dns_message_t;

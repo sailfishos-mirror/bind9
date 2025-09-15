@@ -60,7 +60,6 @@ struct named_server {
 	char *hostname;	    /*%< User-specified hostname */
 
 	/* Server data structures. */
-	dns_loadmgr_t	  *loadmgr;
 	dns_zonemgr_t	  *zonemgr;
 	dns_viewlist_t	   viewlist;
 	dns_kasplist_t	   kasplist;
