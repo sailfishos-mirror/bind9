@@ -515,6 +515,7 @@ foreach fn, header : {
     'sched_yield': '#include <sched.h>',
 
     # Misc.
+    'chroot': '#include <unistd.h>',
     'clock_gettime': '#include <time.h>',
     'sysctlbyname': '#include <sys/sysctl.h>',
 }
