@@ -130,12 +130,6 @@ cache_create_db(dns_cache_t *cache, dns_db_t **dbp, isc_mem_t **tmctxp,
 	dns_db_setmaxrrperset(db, cache->maxrrperset);
 	dns_db_setmaxtypepername(db, cache->maxtypepername);
 
-	/*
-	 * XXX this is only used by the RBT cache, and can
-	 * be removed when it is.
-	 */
-	dns_db_setloop(db, isc_loop_main());
-
 	*dbp = db;
 	*hmctxp = hmctx;
 	*tmctxp = tmctx;
@@ -628,8 +622,6 @@ dns_cache_dumpstats(dns_cache_t *cache, FILE *fp) {
 		"cache database nodes");
 	fprintf(fp, "%20u %s\n", dns_db_nodecount(cache->db, dns_dbtree_nsec),
 		"cache NSEC auxiliary database nodes");
-	fprintf(fp, "%20" PRIu64 " %s\n", (uint64_t)dns_db_hashsize(cache->db),
-		"cache database hash buckets");
 
 	fprintf(fp, "%20" PRIu64 " %s\n", (uint64_t)isc_mem_inuse(cache->tmctx),
 		"cache tree memory in use");
@@ -689,7 +681,6 @@ dns_cache_renderxml(dns_cache_t *cache, void *writer0) {
 			dns_db_nodecount(cache->db, dns_dbtree_main), writer));
 	TRY0(renderstat("CacheNSECNodes",
 			dns_db_nodecount(cache->db, dns_dbtree_nsec), writer));
-	TRY0(renderstat("CacheBuckets", dns_db_hashsize(cache->db), writer));
 
 	TRY0(renderstat("TreeMemInUse", isc_mem_inuse(cache->tmctx), writer));
 
@@ -758,10 +749,6 @@ dns_cache_renderjson(dns_cache_t *cache, void *cstats0) {
 		dns_db_nodecount(cache->db, dns_dbtree_nsec));
 	CHECKMEM(obj);
 	json_object_object_add(cstats, "CacheNSECNodes", obj);
-
-	obj = json_object_new_int64(dns_db_hashsize(cache->db));
-	CHECKMEM(obj);
-	json_object_object_add(cstats, "CacheBuckets", obj);
 
 	obj = json_object_new_int64(isc_mem_inuse(cache->tmctx));
 	CHECKMEM(obj);

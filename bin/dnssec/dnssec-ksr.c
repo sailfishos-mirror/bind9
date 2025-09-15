@@ -913,23 +913,19 @@ sign_bundle(ksr_ctx_t *ksr, dns_kasp_t *kasp, isc_stdtime_t inception,
 			next_bundle = next_time;
 		}
 
-		for (isc_result_t r = dns_rdatalist_first(&ksk);
-		     r == ISC_R_SUCCESS; r = dns_rdatalist_next(&ksk))
-		{
+		DNS_RDATASET_FOREACH(&ksk) {
 			dns_rdata_t *clone = isc_mem_get(isc_g_mctx,
 							 sizeof(*clone));
 			dns_rdata_init(clone);
-			dns_rdatalist_current(&ksk, clone);
+			dns_rdataset_current(&ksk, clone);
 			ISC_LIST_APPEND(dnskeylist->rdata, clone, link);
 		}
 
-		for (isc_result_t r = dns_rdatalist_first(&zsk);
-		     r == ISC_R_SUCCESS; r = dns_rdatalist_next(&zsk))
-		{
+		DNS_RDATASET_FOREACH(&zsk) {
 			dns_rdata_t *clone = isc_mem_get(isc_g_mctx,
 							 sizeof(*clone));
 			dns_rdata_init(clone);
-			dns_rdatalist_current(&zsk, clone);
+			dns_rdataset_current(&zsk, clone);
 			ISC_LIST_APPEND(dnskeylist->rdata, clone, link);
 		}
 

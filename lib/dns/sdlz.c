@@ -619,16 +619,10 @@ getnodedata(dns_db_t *db, const dns_name_t *name, bool create,
 }
 
 static isc_result_t
-findnodeext(dns_db_t *db, const dns_name_t *name, bool create,
-	    dns_clientinfomethods_t *methods, dns_clientinfo_t *clientinfo,
-	    dns_dbnode_t **nodep DNS__DB_FLARG) {
-	return getnodedata(db, name, create, 0, methods, clientinfo, nodep);
-}
-
-static isc_result_t
 findnode(dns_db_t *db, const dns_name_t *name, bool create,
+	 dns_clientinfomethods_t *methods, dns_clientinfo_t *clientinfo,
 	 dns_dbnode_t **nodep DNS__DB_FLARG) {
-	return getnodedata(db, name, create, 0, NULL, NULL, nodep);
+	return getnodedata(db, name, create, 0, methods, clientinfo, nodep);
 }
 
 static void
@@ -771,11 +765,11 @@ findrdataset(dns_db_t *db, dns_dbnode_t *node, dns_dbversion_t *version,
 }
 
 static isc_result_t
-findext(dns_db_t *db, const dns_name_t *name, dns_dbversion_t *version,
-	dns_rdatatype_t type, unsigned int options, isc_stdtime_t now,
-	dns_dbnode_t **nodep, dns_name_t *foundname,
-	dns_clientinfomethods_t *methods, dns_clientinfo_t *clientinfo,
-	dns_rdataset_t *rdataset, dns_rdataset_t *sigrdataset DNS__DB_FLARG) {
+find(dns_db_t *db, const dns_name_t *name, dns_dbversion_t *version,
+     dns_rdatatype_t type, unsigned int options, isc_stdtime_t now,
+     dns_dbnode_t **nodep, dns_name_t *foundname,
+     dns_clientinfomethods_t *methods, dns_clientinfo_t *clientinfo,
+     dns_rdataset_t *rdataset, dns_rdataset_t *sigrdataset DNS__DB_FLARG) {
 	dns_sdlz_db_t *sdlz = (dns_sdlz_db_t *)db;
 	dns_dbnode_t *node = NULL;
 	dns_fixedname_t fname;
@@ -933,15 +927,6 @@ findext(dns_db_t *db, const dns_name_t *name, dns_dbversion_t *version,
 	}
 
 	return result;
-}
-
-static isc_result_t
-find(dns_db_t *db, const dns_name_t *name, dns_dbversion_t *version,
-     dns_rdatatype_t type, unsigned int options, isc_stdtime_t now,
-     dns_dbnode_t **nodep, dns_name_t *foundname, dns_rdataset_t *rdataset,
-     dns_rdataset_t *sigrdataset DNS__DB_FLARG) {
-	return findext(db, name, version, type, options, now, nodep, foundname,
-		       NULL, NULL, rdataset, sigrdataset DNS__DB_FLARG_PASS);
 }
 
 static isc_result_t
@@ -1107,50 +1092,6 @@ deleterdataset(dns_db_t *db, dns_dbnode_t *node, dns_dbversion_t *version,
 	return result;
 }
 
-static bool
-issecure(dns_db_t *db) {
-	UNUSED(db);
-
-	return false;
-}
-
-static unsigned int
-nodecount(dns_db_t *db, dns_dbtree_t tree) {
-	UNUSED(db);
-	UNUSED(tree);
-
-	return 0;
-}
-
-static void
-setloop(dns_db_t *db, isc_loop_t *loop) {
-	UNUSED(db);
-	UNUSED(loop);
-}
-
-/*
- * getoriginnode() is used by the update code to find the
- * dns_rdatatype_dnskey record for a zone
- */
-static isc_result_t
-getoriginnode(dns_db_t *db, dns_dbnode_t **nodep DNS__DB_FLARG) {
-	dns_sdlz_db_t *sdlz = (dns_sdlz_db_t *)db;
-	isc_result_t result;
-
-	REQUIRE(VALID_SDLZDB(sdlz));
-	if (sdlz->dlzimp->methods->newversion == NULL) {
-		return ISC_R_NOTIMPLEMENTED;
-	}
-
-	result = getnodedata(db, &sdlz->common.origin, false, 0, NULL, NULL,
-			     nodep);
-	if (result != ISC_R_SUCCESS) {
-		sdlz_log(ISC_LOG_ERROR, "sdlz getoriginnode failed: %s",
-			 isc_result_totext(result));
-	}
-	return result;
-}
-
 static dns_dbmethods_t sdlzdb_methods = {
 	.destroy = destroy,
 	.currentversion = currentversion,
@@ -1165,12 +1106,6 @@ static dns_dbmethods_t sdlzdb_methods = {
 	.addrdataset = addrdataset,
 	.subtractrdataset = subtractrdataset,
 	.deleterdataset = deleterdataset,
-	.issecure = issecure,
-	.nodecount = nodecount,
-	.setloop = setloop,
-	.getoriginnode = getoriginnode,
-	.findnodeext = findnodeext,
-	.findext = findext,
 };
 
 /*
@@ -1303,19 +1238,19 @@ static void
 rdataset_clone(dns_rdataset_t *source, dns_rdataset_t *target DNS__DB_FLARG) {
 	dns_dbnode_t *node = source->rdlist.node;
 
-	dns_rdatalist_clone(source, target DNS__DB_FLARG_PASS);
+	dns__rdatalist_clone(source, target DNS__DB_FLARG_PASS);
 	sdlznode_attachnode(node, &target->rdlist.node DNS__DB_FLARG_PASS);
 }
 
 static dns_rdatasetmethods_t rdataset_methods = {
 	.disassociate = disassociate,
-	.first = dns_rdatalist_first,
-	.next = dns_rdatalist_next,
-	.current = dns_rdatalist_current,
+	.first = dns__rdatalist_first,
+	.next = dns__rdatalist_next,
+	.current = dns__rdatalist_current,
 	.clone = rdataset_clone,
-	.count = dns_rdatalist_count,
-	.addnoqname = dns_rdatalist_addnoqname,
-	.getnoqname = dns_rdatalist_getnoqname,
+	.count = dns__rdatalist_count,
+	.addnoqname = dns__rdatalist_addnoqname,
+	.getnoqname = dns__rdatalist_getnoqname,
 };
 
 static void

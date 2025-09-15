@@ -25,7 +25,6 @@
 #include <isc/heap.h>
 #include <isc/hex.h>
 #include <isc/log.h>
-#include <isc/loop.h>
 #include <isc/mem.h>
 #include <isc/mutex.h>
 #include <isc/os.h>
@@ -238,7 +237,6 @@ struct qpzonedb {
 	qpz_version_t *current_version;
 	qpz_version_t *future_version;
 	qpz_versionlist_t open_versions;
-	isc_loop_t *loop;
 	struct rcu_head rcu_head;
 
 	qpz_heap_t *heap; /* Resigning heap */
@@ -515,10 +513,6 @@ free_db_rcu(struct rcu_head *rcu_head) {
 
 	if (qpdb->gluecachestats != NULL) {
 		isc_stats_detach(&qpdb->gluecachestats);
-	}
-
-	if (qpdb->loop != NULL) {
-		isc_loop_detach(&qpdb->loop);
 	}
 
 	isc_rwlock_destroy(&qpdb->lock);
@@ -987,7 +981,7 @@ bindrdataset(qpzonedb_t *qpdb, qpznode_t *node, dns_slabheader_t *header,
 	rdataset->type = DNS_TYPEPAIR_TYPE(header->typepair);
 	rdataset->covers = DNS_TYPEPAIR_COVERS(header->typepair);
 	rdataset->ttl = header->ttl;
-	rdataset->trust = header->trust;
+	rdataset->trust = atomic_load(&header->trust);
 
 	if (OPTOUT(header)) {
 		rdataset->attributes.optout = true;
@@ -2143,7 +2137,7 @@ loading_addrdataset(void *arg, const dns_name_t *name,
 	dns_slabheader_reset(newheader, (dns_dbnode_t *)node);
 
 	newheader->ttl = rdataset->ttl;
-	newheader->trust = rdataset->trust;
+	atomic_store(&newheader->trust, rdataset->trust);
 	newheader->serial = 1;
 
 	dns_slabheader_setownercase(newheader, name);
@@ -2511,6 +2505,8 @@ findnodeintree(qpzonedb_t *qpdb, const dns_name_t *name, bool create,
 
 static isc_result_t
 qpzone_findnode(dns_db_t *db, const dns_name_t *name, bool create,
+		dns_clientinfomethods_t *methods ISC_ATTR_UNUSED,
+		dns_clientinfo_t *clientinfo ISC_ATTR_UNUSED,
 		dns_dbnode_t **nodep DNS__DB_FLARG) {
 	qpzonedb_t *qpdb = (qpzonedb_t *)db;
 
@@ -3275,7 +3271,10 @@ static isc_result_t
 qpzone_find(dns_db_t *db, const dns_name_t *name, dns_dbversion_t *version,
 	    dns_rdatatype_t type, unsigned int options,
 	    isc_stdtime_t now ISC_ATTR_UNUSED, dns_dbnode_t **nodep,
-	    dns_name_t *foundname, dns_rdataset_t *rdataset,
+	    dns_name_t *foundname,
+	    dns_clientinfomethods_t *methods ISC_ATTR_UNUSED,
+	    dns_clientinfo_t *clientinfo ISC_ATTR_UNUSED,
+	    dns_rdataset_t *rdataset,
 	    dns_rdataset_t *sigrdataset DNS__DB_FLARG) {
 	isc_result_t result;
 	qpzonedb_t *qpdb = (qpzonedb_t *)db;
@@ -3872,24 +3871,6 @@ nodecount(dns_db_t *db, dns_dbtree_t tree ISC_ATTR_UNUSED) {
 	return mu.leaves;
 }
 
-static void
-setloop(dns_db_t *db, isc_loop_t *loop) {
-	qpzonedb_t *qpdb = NULL;
-
-	qpdb = (qpzonedb_t *)db;
-
-	REQUIRE(VALID_QPZONE(qpdb));
-
-	RWLOCK(&qpdb->lock, isc_rwlocktype_write);
-	if (qpdb->loop != NULL) {
-		isc_loop_detach(&qpdb->loop);
-	}
-	if (loop != NULL) {
-		isc_loop_attach(loop, &qpdb->loop);
-	}
-	RWUNLOCK(&qpdb->lock, isc_rwlocktype_write);
-}
-
 static isc_result_t
 getoriginnode(dns_db_t *db, dns_dbnode_t **nodep DNS__DB_FLARG) {
 	qpzonedb_t *qpdb = (qpzonedb_t *)db;
@@ -3903,20 +3884,6 @@ getoriginnode(dns_db_t *db, dns_dbnode_t **nodep DNS__DB_FLARG) {
 	*nodep = (dns_dbnode_t *)qpdb->origin;
 
 	return ISC_R_SUCCESS;
-}
-
-static void
-locknode(dns_dbnode_t *dbnode, isc_rwlocktype_t type) {
-	qpznode_t *node = (qpznode_t *)dbnode;
-
-	RWLOCK(qpzone_get_lock(node), type);
-}
-
-static void
-unlocknode(dns_dbnode_t *dbnode, isc_rwlocktype_t type) {
-	qpznode_t *node = (qpznode_t *)dbnode;
-
-	RWUNLOCK(qpzone_get_lock(node), type);
 }
 
 static void
@@ -4941,18 +4908,6 @@ qpzone_deleterdataset(dns_db_t *db, dns_dbnode_t *dbnode,
 	return result;
 }
 
-static isc_result_t
-nodefullname(dns_dbnode_t *node, dns_name_t *name) {
-	REQUIRE(node != NULL);
-	REQUIRE(name != NULL);
-
-	qpznode_t *qpnode = (qpznode_t *)node;
-
-	dns_name_copy(&qpnode->name, name);
-
-	return ISC_R_SUCCESS;
-}
-
 static dns_glue_t *
 new_glue(isc_mem_t *mctx, const dns_name_t *name) {
 	dns_glue_t *glue = isc_mem_get(mctx, sizeof(*glue));
@@ -5016,7 +4971,7 @@ glue_nsdname_cb(void *arg, const dns_name_t *name, dns_rdatatype_t qtype,
 
 	result = qpzone_find(ctx->db, name, ctx->version, dns_rdatatype_a,
 			     DNS_DBFIND_GLUEOK, 0, (dns_dbnode_t **)&node_a,
-			     name_a, &rdataset_a,
+			     name_a, NULL, NULL, &rdataset_a,
 			     &sigrdataset_a DNS__DB_FLARG_PASS);
 	if (result == DNS_R_GLUE) {
 		glue = new_glue(ctx->db->mctx, name_a);
@@ -5035,7 +4990,7 @@ glue_nsdname_cb(void *arg, const dns_name_t *name, dns_rdatatype_t qtype,
 
 	result = qpzone_find(ctx->db, name, ctx->version, dns_rdatatype_aaaa,
 			     DNS_DBFIND_GLUEOK, 0, (dns_dbnode_t **)&node_aaaa,
-			     name_aaaa, &rdataset_aaaa,
+			     name_aaaa, NULL, NULL, &rdataset_aaaa,
 			     &sigrdataset_aaaa DNS__DB_FLARG_PASS);
 	if (result == DNS_R_GLUE) {
 		if (glue == NULL) {
@@ -5308,7 +5263,6 @@ static dns_dbmethods_t qpdb_zonemethods = {
 	.deleterdataset = qpzone_deleterdataset,
 	.issecure = issecure,
 	.nodecount = nodecount,
-	.setloop = setloop,
 	.getoriginnode = getoriginnode,
 	.getnsec3parameters = getnsec3parameters,
 	.findnsec3node = qpzone_findnsec3node,
@@ -5322,11 +5276,8 @@ static dns_dbmethods_t qpdb_zonemethods = {
 };
 
 static dns_dbnode_methods_t qpznode_methods = (dns_dbnode_methods_t){
-	.nodefullname = nodefullname,
 	.attachnode = qpzone_attachnode,
 	.detachnode = qpzone_detachnode,
-	.locknode = locknode,
-	.unlocknode = unlocknode,
 	.deletedata = deletedata,
 };
 

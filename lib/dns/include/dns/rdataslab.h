@@ -83,13 +83,13 @@ struct dns_slabtop {
 };
 
 struct dns_slabheader {
-	_Atomic(uint16_t) attributes;
+	_Atomic(uint16_t)    attributes;
+	_Atomic(dns_trust_t) trust;
 
 	/*%
 	 * Locked by the owning node's lock.
 	 */
-	dns_trust_t trust;
-	uint32_t    serial;
+	uint32_t serial;
 	union {
 		isc_stdtime_t expire;
 		dns_ttl_t     ttl;

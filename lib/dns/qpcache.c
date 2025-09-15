@@ -305,10 +305,6 @@ qpcnode_attachnode(dns_dbnode_t *source, dns_dbnode_t **targetp DNS__DB_FLARG);
 static void
 qpcnode_detachnode(dns_dbnode_t **nodep DNS__DB_FLARG);
 static void
-qpcnode_locknode(dns_dbnode_t *node, isc_rwlocktype_t type);
-static void
-qpcnode_unlocknode(dns_dbnode_t *node, isc_rwlocktype_t type);
-static void
 qpcnode_deletedata(dns_dbnode_t *node, void *data);
 static void
 qpcnode_expiredata(dns_dbnode_t *node, void *data);
@@ -316,8 +312,6 @@ qpcnode_expiredata(dns_dbnode_t *node, void *data);
 static dns_dbnode_methods_t qpcnode_methods = (dns_dbnode_methods_t){
 	.attachnode = qpcnode_attachnode,
 	.detachnode = qpcnode_detachnode,
-	.locknode = qpcnode_locknode,
-	.unlocknode = qpcnode_unlocknode,
 	.deletedata = qpcnode_deletedata,
 	.expiredata = qpcnode_expiredata,
 };
@@ -1045,7 +1039,7 @@ bindrdataset(qpcache_t *qpdb, qpcnode_t *node, dns_slabheader_t *header,
 		rdataset->covers = DNS_TYPEPAIR_COVERS(header->typepair);
 	}
 	rdataset->ttl = !ZEROTTL(header) ? header->expire - now : 0;
-	rdataset->trust = header->trust;
+	rdataset->trust = atomic_load(&header->trust);
 	rdataset->resign = 0;
 
 	if (NEGATIVE(header)) {
@@ -1313,7 +1307,7 @@ check_zonecut(qpcnode_t *node, void *arg DNS__DB_FLARG) {
 		}
 	}
 
-	if (found != NULL && (!DNS_TRUST_PENDING(found->trust) ||
+	if (found != NULL && (!DNS_TRUST_PENDING(atomic_load(&found->trust)) ||
 			      (search->options & DNS_DBFIND_PENDINGOK) != 0))
 	{
 		/*
@@ -1506,14 +1500,19 @@ find_coveringnsec(qpc_search_t *search, const dns_name_t *name,
 	return result;
 }
 
-#define MISSING_ANSWER(found, options)                     \
-	((found) == NULL ||                                \
-	 (DNS_TRUST_ADDITIONAL((found)->trust) &&          \
-	  (((options) & DNS_DBFIND_ADDITIONALOK) == 0)) || \
-	 ((found)->trust == dns_trust_glue &&              \
-	  (((options) & DNS_DBFIND_GLUEOK) == 0)) ||       \
-	 (DNS_TRUST_PENDING((found)->trust) &&             \
-	  (((options) & DNS_DBFIND_PENDINGOK) == 0)))
+static inline bool
+missing_answer(dns_slabheader_t *found, unsigned int options) {
+	if (found == NULL) {
+		return true;
+	}
+
+	dns_trust_t trust = atomic_load(&found->trust);
+	return (DNS_TRUST_ADDITIONAL(trust) &&
+		(options & DNS_DBFIND_ADDITIONALOK) == 0) ||
+	       (DNS_TRUST_GLUE(trust) && (options & DNS_DBFIND_GLUEOK) == 0) ||
+	       (DNS_TRUST_PENDING(trust) &&
+		(options & DNS_DBFIND_PENDINGOK) == 0);
+}
 
 static void
 qpc_search_init(qpc_search_t *search, qpcache_t *db, unsigned int options,
@@ -1542,6 +1541,8 @@ static isc_result_t
 qpcache_find(dns_db_t *db, const dns_name_t *name, dns_dbversion_t *version,
 	     dns_rdatatype_t type, unsigned int options, isc_stdtime_t __now,
 	     dns_dbnode_t **nodep, dns_name_t *foundname,
+	     dns_clientinfomethods_t *methods ISC_ATTR_UNUSED,
+	     dns_clientinfo_t *clientinfo ISC_ATTR_UNUSED,
 	     dns_rdataset_t *rdataset,
 	     dns_rdataset_t *sigrdataset DNS__DB_FLARG) {
 	qpcnode_t *node = NULL;
@@ -1696,7 +1697,7 @@ qpcache_find(dns_db_t *db, const dns_name_t *name, dns_dbversion_t *version,
 		empty_node = false;
 
 		if (header->noqname != NULL &&
-		    header->trust == dns_trust_secure)
+		    atomic_load(&header->trust) == dns_trust_secure)
 		{
 			found_noqname = true;
 		}
@@ -1708,15 +1709,14 @@ qpcache_find(dns_db_t *db, const dns_name_t *name, dns_dbversion_t *version,
 		bool match = false;
 		if (related_headers(header, typepair, sigpair, &found,
 				    &foundsig, &match) &&
-		    !MISSING_ANSWER(found, options))
+		    !missing_answer(found, options))
 		{
 			/*
 			 * We can't exit early until we have an answer with
-			 * sufficient trust level, see MISSING_ANSWER() macro
-			 * for details, because we might need NS or NSEC
+			 * sufficient trust level - see missing_answer()
+			 * for details - because we might need NS or NSEC
 			 * records.
 			 */
-
 			break;
 		}
 
@@ -1806,7 +1806,7 @@ qpcache_find(dns_db_t *db, const dns_name_t *name, dns_dbversion_t *version,
 	/*
 	 * If we didn't find what we were looking for...
 	 */
-	if (MISSING_ANSWER(found, options)) {
+	if (missing_answer(found, options)) {
 		/*
 		 * Return covering NODATA NSEC record.
 		 */
@@ -2420,6 +2420,8 @@ new_qpcnode(qpcache_t *qpdb, const dns_name_t *name, dns_namespace_t nspace) {
 
 static isc_result_t
 qpcache_findnode(dns_db_t *db, const dns_name_t *name, bool create,
+		 dns_clientinfomethods_t *methods ISC_ATTR_UNUSED,
+		 dns_clientinfo_t *clientinfo ISC_ATTR_UNUSED,
 		 dns_dbnode_t **nodep DNS__DB_FLARG) {
 	qpcache_t *qpdb = (qpcache_t *)db;
 	qpcnode_t *node = NULL;
@@ -2744,7 +2746,8 @@ add(qpcache_t *qpdb, qpcnode_t *qpnode, dns_slabheader_t *newheader,
 		 * data will supersede it below. Unclear what the best
 		 * policy is here.
 		 */
-		if (trust < oldheader->trust &&
+		dns_trust_t oldtrust = atomic_load(&oldheader->trust);
+		if (trust < oldtrust &&
 		    (ACTIVE(oldheader, now) || !EXISTS(oldheader)))
 		{
 			qpcache_hit(qpdb, oldheader);
@@ -2777,7 +2780,7 @@ add(qpcache_t *qpdb, qpcnode_t *qpnode, dns_slabheader_t *newheader,
 		if (ACTIVE(oldheader, now) &&
 		    oldheader->typepair == DNS_TYPEPAIR(dns_rdatatype_ns) &&
 		    EXISTS(oldheader) && EXISTS(newheader) &&
-		    oldheader->trust >= newheader->trust &&
+		    newheader->trust < oldtrust &&
 		    oldheader->expire < newheader->expire &&
 		    dns_rdataslab_equalx(
 			    oldheader, newheader, qpdb->common.rdclass,
@@ -2811,14 +2814,14 @@ add(qpcache_t *qpdb, qpcnode_t *qpnode, dns_slabheader_t *newheader,
 		}
 
 		/*
-		 * If we will be replacing a NS RRset force its TTL
+		 * If we will be replacing an NS RRset, force its TTL
 		 * to be no more than the current NS RRset's TTL.  This
 		 * ensures the delegations that are withdrawn are honoured.
 		 */
 		if (ACTIVE(oldheader, now) &&
 		    oldheader->typepair == DNS_TYPEPAIR(dns_rdatatype_ns) &&
 		    EXISTS(oldheader) && EXISTS(newheader) &&
-		    oldheader->trust <= newheader->trust)
+		    newheader->trust > oldtrust)
 		{
 			if (newheader->expire > oldheader->expire) {
 				if (ZEROTTL(oldheader)) {
@@ -2837,7 +2840,7 @@ add(qpcache_t *qpdb, qpcnode_t *qpnode, dns_slabheader_t *newheader,
 		     oldheader->typepair ==
 			     DNS_SIGTYPEPAIR(dns_rdatatype_ds)) &&
 		    EXISTS(oldheader) && EXISTS(newheader) &&
-		    oldheader->trust >= newheader->trust &&
+		    newheader->trust < oldtrust &&
 		    oldheader->expire < newheader->expire &&
 		    dns_rdataslab_equal(oldheader, newheader))
 		{
@@ -3253,22 +3256,6 @@ nodecount(dns_db_t *db, dns_dbtree_t tree) {
 	TREE_UNLOCK(&qpdb->tree_lock, &tlocktype);
 
 	return mu.leaves;
-}
-
-static void
-qpcnode_locknode(dns_dbnode_t *node, isc_rwlocktype_t type) {
-	qpcnode_t *qpnode = (qpcnode_t *)node;
-	qpcache_t *qpdb = qpnode->qpdb;
-
-	RWLOCK(&qpdb->buckets[qpnode->locknum].lock, type);
-}
-
-static void
-qpcnode_unlocknode(dns_dbnode_t *node, isc_rwlocktype_t type) {
-	qpcnode_t *qpnode = (qpcnode_t *)node;
-	qpcache_t *qpdb = qpnode->qpdb;
-
-	RWUNLOCK(&qpdb->buckets[qpnode->locknum].lock, type);
 }
 
 isc_result_t

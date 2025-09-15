@@ -126,31 +126,6 @@ closeversion(dns_db_t *db, dns_dbversion_t **versionp,
 }
 
 static isc_result_t
-findnode(dns_db_t *db, const dns_name_t *name, bool create,
-	 dns_dbnode_t **nodep DNS__DB_FLARG) {
-	sampledb_t *sampledb = (sampledb_t *)db;
-
-	REQUIRE(VALID_SAMPLEDB(sampledb));
-
-	return dns__db_findnode(sampledb->db, name, create,
-				nodep DNS__DB_FLARG_PASS);
-}
-
-static isc_result_t
-find(dns_db_t *db, const dns_name_t *name, dns_dbversion_t *version,
-     dns_rdatatype_t type, unsigned int options, isc_stdtime_t now,
-     dns_dbnode_t **nodep, dns_name_t *foundname, dns_rdataset_t *rdataset,
-     dns_rdataset_t *sigrdataset DNS__DB_FLARG) {
-	sampledb_t *sampledb = (sampledb_t *)db;
-
-	REQUIRE(VALID_SAMPLEDB(sampledb));
-
-	return dns__db_find(sampledb->db, name, version, type, options, now,
-			    nodep, foundname, rdataset,
-			    sigrdataset DNS__DB_FLARG_PASS);
-}
-
-static isc_result_t
 findzonecut(dns_db_t *db, const dns_name_t *name, unsigned int options,
 	    isc_stdtime_t now, dns_dbnode_t **nodep, dns_name_t *foundname,
 	    dns_name_t *dcname, dns_rdataset_t *rdataset,
@@ -214,9 +189,8 @@ addrdataset(dns_db_t *db, dns_dbnode_t *node, dns_dbversion_t *version,
 	CHECK(dns__db_addrdataset(sampledb->db, node, version, now, rdataset,
 				  options, addedrdataset DNS__DB_FLARG_PASS));
 	if (dns_rdatatype_isaddr(rdataset->type)) {
-		CHECK(dns_db_nodefullname(node, dns_fixedname_name(&name)));
-		CHECK(syncptrs(sampledb->inst, dns_fixedname_name(&name),
-			       rdataset, DNS_DIFFOP_ADD));
+		CHECK(syncptrs(sampledb->inst, &node->name, rdataset,
+			       DNS_DIFFOP_ADD));
 	}
 
 cleanup:
@@ -242,9 +216,8 @@ subtractrdataset(dns_db_t *db, dns_dbnode_t *node, dns_dbversion_t *version,
 	}
 
 	if (dns_rdatatype_isaddr(rdataset->type)) {
-		CHECK(dns_db_nodefullname(node, dns_fixedname_name(&name)));
-		CHECK(syncptrs(sampledb->inst, dns_fixedname_name(&name),
-			       rdataset, DNS_DIFFOP_DEL));
+		CHECK(syncptrs(sampledb->inst, &node->name, rdataset,
+			       DNS_DIFFOP_DEL));
 	}
 
 cleanup:
@@ -282,15 +255,6 @@ nodecount(dns_db_t *db, dns_dbtree_t tree) {
 	REQUIRE(VALID_SAMPLEDB(sampledb));
 
 	return dns_db_nodecount(sampledb->db, tree);
-}
-
-static void
-setloop(dns_db_t *db, isc_loop_t *loop) {
-	sampledb_t *sampledb = (sampledb_t *)db;
-
-	REQUIRE(VALID_SAMPLEDB(sampledb));
-
-	dns_db_setloop(sampledb->db, loop);
 }
 
 static isc_result_t
@@ -354,30 +318,30 @@ getrrsetstats(dns_db_t *db) {
 }
 
 static isc_result_t
-findnodeext(dns_db_t *db, const dns_name_t *name, bool create,
-	    dns_clientinfomethods_t *methods, dns_clientinfo_t *clientinfo,
-	    dns_dbnode_t **nodep DNS__DB_FLARG) {
+findnode(dns_db_t *db, const dns_name_t *name, bool create,
+	 dns_clientinfomethods_t *methods, dns_clientinfo_t *clientinfo,
+	 dns_dbnode_t **nodep DNS__DB_FLARG) {
 	sampledb_t *sampledb = (sampledb_t *)db;
 
 	REQUIRE(VALID_SAMPLEDB(sampledb));
 
-	return dns__db_findnodeext(sampledb->db, name, create, methods,
-				   clientinfo, nodep DNS__DB_FLARG_PASS);
+	return dns__db_findnode(sampledb->db, name, create, methods, clientinfo,
+				nodep DNS__DB_FLARG_PASS);
 }
 
 static isc_result_t
-findext(dns_db_t *db, const dns_name_t *name, dns_dbversion_t *version,
-	dns_rdatatype_t type, unsigned int options, isc_stdtime_t now,
-	dns_dbnode_t **nodep, dns_name_t *foundname,
-	dns_clientinfomethods_t *methods, dns_clientinfo_t *clientinfo,
-	dns_rdataset_t *rdataset, dns_rdataset_t *sigrdataset DNS__DB_FLARG) {
+find(dns_db_t *db, const dns_name_t *name, dns_dbversion_t *version,
+     dns_rdatatype_t type, unsigned int options, isc_stdtime_t now,
+     dns_dbnode_t **nodep, dns_name_t *foundname,
+     dns_clientinfomethods_t *methods, dns_clientinfo_t *clientinfo,
+     dns_rdataset_t *rdataset, dns_rdataset_t *sigrdataset DNS__DB_FLARG) {
 	sampledb_t *sampledb = (sampledb_t *)db;
 
 	REQUIRE(VALID_SAMPLEDB(sampledb));
 
-	return dns__db_findext(sampledb->db, name, version, type, options, now,
-			       nodep, foundname, methods, clientinfo, rdataset,
-			       sigrdataset DNS__DB_FLARG_PASS);
+	return dns__db_find(sampledb->db, name, version, type, options, now,
+			    nodep, foundname, methods, clientinfo, rdataset,
+			    sigrdataset DNS__DB_FLARG_PASS);
 }
 
 static isc_result_t
@@ -399,8 +363,6 @@ static dns_dbmethods_t sampledb_methods = {
 	.newversion = newversion,
 	.attachversion = attachversion,
 	.closeversion = closeversion,
-	.findnode = findnode,
-	.find = find,
 	.findzonecut = findzonecut,
 	.createiterator = createiterator,
 	.findrdataset = findrdataset,
@@ -410,15 +372,14 @@ static dns_dbmethods_t sampledb_methods = {
 	.deleterdataset = deleterdataset,
 	.issecure = issecure,
 	.nodecount = nodecount,
-	.setloop = setloop,
 	.getoriginnode = getoriginnode,
 	.getnsec3parameters = getnsec3parameters,
 	.findnsec3node = findnsec3node,
 	.setsigningtime = setsigningtime,
 	.getsigningtime = getsigningtime,
 	.getrrsetstats = getrrsetstats,
-	.findnodeext = findnodeext,
-	.findext = findext,
+	.findnode = findnode,
+	.find = find,
 	.setcachestats = setcachestats,
 };
 
