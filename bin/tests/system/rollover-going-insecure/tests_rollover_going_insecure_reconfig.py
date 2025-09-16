@@ -26,9 +26,9 @@ from rollover.common import (
 
 
 @pytest.fixture(scope="module", autouse=True)
-def reconfigure_policy(ns6, templates):
+def after_servers_start(ns6, templates):
     templates.render("ns6/named.conf", {"policy": "insecure"})
-    ns6.reconfigure()
+    ns6.reconfigure()  # move from "unsigning" to "insecure"
 
 
 @pytest.mark.parametrize(

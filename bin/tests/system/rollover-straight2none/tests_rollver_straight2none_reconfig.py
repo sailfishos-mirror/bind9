@@ -25,7 +25,7 @@ from rollover.common import (
 
 
 @pytest.fixture(scope="module", autouse=True)
-def reconfigure_policy(ns6, templates):
+def after_servers_start(ns6, templates):
     isctest.kasp.wait_keymgr_done(ns6, "going-straight-to-none.kasp")
     isctest.kasp.wait_keymgr_done(ns6, "going-straight-to-none-dynamic.kasp")
 
