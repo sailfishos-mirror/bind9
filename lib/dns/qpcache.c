@@ -126,11 +126,10 @@ struct qpcnode {
 
 	qpcache_t *qpdb;
 
-	uint8_t			: 0;
-	unsigned int delegating : 1;
-	unsigned int nspace	: 2; /*%< range is 0..3 */
-	unsigned int havensec	: 1;
-	uint8_t			: 0;
+	uint8_t		      : 0;
+	unsigned int nspace   : 2; /*%< range is 0..3 */
+	unsigned int havensec : 1;
+	uint8_t		      : 0;
 
 	/*
 	 * 'erefs' counts external references held by a caller: for
@@ -3074,7 +3073,6 @@ qpcache_addrdataset(dns_db_t *db, dns_dbnode_t *node, dns_dbversion_t *version,
 	isc_region_t region;
 	dns_slabheader_t *newheader = NULL;
 	isc_result_t result;
-	bool delegating = false;
 	bool newnsec = false;
 	isc_rwlocktype_t tlocktype = isc_rwlocktype_none;
 	isc_rwlocktype_t nlocktype = isc_rwlocktype_none;
@@ -3144,15 +3142,6 @@ qpcache_addrdataset(dns_db_t *db, dns_dbnode_t *node, dns_dbversion_t *version,
 	nlock = &qpdb->buckets[qpnode->locknum].lock;
 
 	/*
-	 * If we're adding a delegation type (which would be an NS or DNAME
-	 * for a zone, but only DNAME counts for a cache), we need to set
-	 * the callback bit on the node.
-	 */
-	if (rdataset->type == dns_rdatatype_dname) {
-		delegating = true;
-	}
-
-	/*
 	 * Add to the auxiliary NSEC tree if we're adding an NSEC record.
 	 */
 	if (rdataset->type == dns_rdatatype_nsec) {
@@ -3167,7 +3156,7 @@ qpcache_addrdataset(dns_db_t *db, dns_dbnode_t *node, dns_dbversion_t *version,
 	 * If we're adding a delegation type or adding to the auxiliary
 	 * NSEC tree, hold an exclusive lock on the tree.
 	 */
-	if (delegating || newnsec) {
+	if (newnsec) {
 		TREE_WRLOCK(&qpdb->tree_lock, &tlocktype);
 	}
 
@@ -3199,10 +3188,6 @@ qpcache_addrdataset(dns_db_t *db, dns_dbnode_t *node, dns_dbversion_t *version,
 		DNS_SLABHEADER_SETATTR(newheader, DNS_SLABHEADERATTR_STATCOUNT);
 		update_rrsetstats(qpdb->rrsetstats, newheader->typepair,
 				  newheader->attributes, true);
-
-		if (delegating) {
-			qpnode->delegating = 1;
-		}
 	} else {
 		dns_slabheader_destroy(&newheader);
 	}
