@@ -216,17 +216,16 @@ isc_nm_listenudp(uint32_t workers, isc_sockaddr_t *iface, isc_nm_recv_cb_t cb,
 		return ISC_R_SHUTTINGDOWN;
 	}
 
-	if (workers == 0) {
-		workers = isc__netmgr->nloops;
-	}
-	REQUIRE(workers <= isc__netmgr->nloops);
-
 	sock = isc_mempool_get(worker->nmsocket_pool);
 	isc__nmsocket_init(sock, worker, isc_nm_udplistener, iface, NULL);
 
-	sock->nchildren = (workers == ISC_NM_LISTEN_ALL)
-				  ? (uint32_t)isc__netmgr->nloops
-				  : workers;
+	if (workers == ISC_NM_LISTEN_ALL) {
+		sock->nchildren = (uint32_t)isc__netmgr->nloops;
+	} else {
+		sock->nchildren = workers;
+	}
+	REQUIRE(sock->nchildren <= isc__netmgr->nloops);
+
 	sock->children = isc_mem_cget(worker->mctx, sock->nchildren,
 				      sizeof(sock->children[0]));
 
