@@ -4839,13 +4839,15 @@ configure_view(dns_view_t *view, dns_viewlist_t *viewlist, cfg_obj_t *config,
 				      dns_cache_getname(nsc->cache));
 			nsc = NULL;
 		} else {
-			if (oldcache) {
-				ISC_LIST_UNLINK(*oldcachelist, nsc, link);
-				ISC_LIST_APPEND(*cachelist, nsc, link);
-				nsc->primaryview = view;
-			}
-			dns_cache_attach(nsc->cache, &cache);
 			shared_cache = true;
+			dns_cache_attach(nsc->cache, &cache);
+			if (oldcache) {
+				/*
+				 * We need to re-use the cache, but we don't
+				 * want to mutate the old production list.
+				 */
+				nsc = NULL;
+			}
 		}
 	} else if (strcmp(cachename, view->name) == 0) {
 		result = dns_viewlist_find(&named_g_server->viewlist, cachename,
