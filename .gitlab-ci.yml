@@ -1644,6 +1644,29 @@ sign:
   rules:
     - *rule_tag
 
+# Job staging the signed tarballs
+
+staging:
+  <<: *signer_ssh_job
+  variables:
+    RELEASE_TARBALL: bind-${CI_COMMIT_TAG}-release.tar.gz
+    SSH_SCRIPT_RUNNER_PRE: |-
+      mv "${RELEASE_TARBALL}" "/tmp/${RELEASE_TARBALL}"
+    SSH_SCRIPT_CLIENT: |-
+      scp "/tmp/${RELEASE_TARBALL}" "${STAGING_USER_UPLOAD}@${STAGING_HOST}:${STAGING_DIR}"
+      ssh "${STAGING_USER_ACTIONS}@${STAGING_HOST}" "unpack ${CI_COMMIT_TAG}"
+    SSH_SCRIPT_RUNNER_POST: |-
+      rm -f "/tmp/${RELEASE_TARBALL}"
+  artifacts:
+    paths:
+      - staging-${CI_COMMIT_TAG}.log
+    expire_in: "1 month"
+  needs:
+    - job: sign
+      artifacts: true
+  rules:
+    - if: '$CI_COMMIT_TAG != null'
+
 # Job creating the release announcement MR in Printing Press
 
 prepare-release-announcement:
