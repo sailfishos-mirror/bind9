@@ -32,7 +32,7 @@ def bootstrap():
 
 
 @pytest.fixture(scope="module", autouse=True)
-def setup_filters():
+def after_servers_start():
     prime_cache("fd92:7065:b8e:ffff::2")
     prime_cache("fd92:7065:b8e:ffff::3")
 

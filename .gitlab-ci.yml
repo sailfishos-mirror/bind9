@@ -641,7 +641,7 @@ vulture:
   <<: *python_triggering_rules
   needs: []
   script:
-    - vulture --exclude "*ans.py,conftest.py,isctest" --ignore-names "bootstrap,pytestmark,reconfigure_policy,setup_filters" bin/tests/system/
+    - vulture --exclude "*ans.py,conftest.py,isctest" --ignore-names "after_servers_start,bootstrap,pytestmark" bin/tests/system/
 
 ci-variables:
   <<: *precheck_job

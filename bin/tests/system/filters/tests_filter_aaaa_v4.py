@@ -33,7 +33,7 @@ def bootstrap():
 
 
 @pytest.fixture(scope="module", autouse=True)
-def setup_filters():
+def after_servers_start():
     prime_cache("10.53.0.2")
     prime_cache("10.53.0.3")
 
