@@ -14,12 +14,9 @@
 #include <openssl/crypto.h>
 #include <openssl/err.h>
 #include <openssl/evp.h>
+#include <openssl/provider.h>
 #include <openssl/rand.h>
 #include <openssl/ssl.h>
-
-#if OPENSSL_VERSION_NUMBER >= 0x30000000L
-#include <openssl/provider.h>
-#endif /* OPENSSL_VERSION_NUMBER >= 0x30000000L */
 
 #include <isc/crypto.h>
 #include <isc/log.h>
@@ -29,18 +26,8 @@
 
 static isc_mem_t *isc__crypto_mctx = NULL;
 
-#if OPENSSL_VERSION_NUMBER >= 0x30000000L
 static OSSL_PROVIDER *base = NULL, *fips = NULL;
-#endif /* OPENSSL_VERSION_NUMBER >= 0x30000000L */
 
-const EVP_MD *isc__crypto_md5 = NULL;
-const EVP_MD *isc__crypto_sha1 = NULL;
-const EVP_MD *isc__crypto_sha224 = NULL;
-const EVP_MD *isc__crypto_sha256 = NULL;
-const EVP_MD *isc__crypto_sha384 = NULL;
-const EVP_MD *isc__crypto_sha512 = NULL;
-
-#if OPENSSL_VERSION_NUMBER >= 0x30000000L
 #define md_register_algorithm(alg, algname)                            \
 	{                                                              \
 		REQUIRE(isc__crypto_##alg == NULL);                    \
@@ -50,23 +37,13 @@ const EVP_MD *isc__crypto_sha512 = NULL;
 		}                                                      \
 	}
 
-#define md_unregister_algorithm(alg)                             \
-	{                                                        \
-		if (isc__crypto_##alg != NULL) {                 \
-			EVP_MD_free(UNCONST(isc__crypto_##alg)); \
-			isc__crypto_##alg = NULL;                \
-		}                                                \
+#define md_unregister_algorithm(alg)                    \
+	{                                               \
+		if (isc__crypto_##alg != NULL) {        \
+			EVP_MD_free(isc__crypto_##alg); \
+			isc__crypto_##alg = NULL;       \
+		}                                       \
 	}
-#else /* OPENSSL_VERSION_NUMBER >= 0x30000000L */
-#define md_register_algorithm(alg, algname)      \
-	{                                        \
-		isc__crypto_##alg = EVP_##alg(); \
-		if (isc__crypto_##alg == NULL) { \
-			ERR_clear_error();       \
-		}                                \
-	}
-#define md_unregister_algorithm(alg)
-#endif /* OPENSSL_VERSION_NUMBER >= 0x30000000L */
 
 static isc_result_t
 register_algorithms(void) {
@@ -95,12 +72,6 @@ unregister_algorithms(void) {
 
 #undef md_unregister_algorithm
 #undef md_register_algorithm
-
-#if !defined(LIBRESSL_VERSION_NUMBER) && OPENSSL_VERSION_NUMBER >= 0x30000000L
-/*
- * This was crippled with LibreSSL, so just skip it:
- * https://cvsweb.openbsd.org/src/lib/libcrypto/Attic/mem.c
- */
 
 #if ISC_MEM_TRACKLINES
 /*
@@ -165,9 +136,6 @@ isc__crypto_free_ex(void *ptr, const char *file, int line) {
 
 #endif /* ISC_MEM_TRACKLINES */
 
-#endif /* !defined(LIBRESSL_VERSION_NUMBER) */
-
-#if defined(HAVE_EVP_DEFAULT_PROPERTIES_ENABLE_FIPS)
 bool
 isc_crypto_fips_mode(void) {
 	return EVP_default_properties_is_fips_enabled(NULL) != 0;
@@ -208,40 +176,6 @@ isc_crypto_fips_enable(void) {
 
 	return ISC_R_SUCCESS;
 }
-#elif defined(HAVE_FIPS_MODE)
-bool
-isc_crypto_fips_mode(void) {
-	return FIPS_mode() != 0;
-}
-
-isc_result_t
-isc_crypto_fips_enable(void) {
-	if (isc_crypto_fips_mode()) {
-		return ISC_R_SUCCESS;
-	}
-
-	if (FIPS_mode_set(1) == 0) {
-		return isc_tlserr2result(ISC_LOGCATEGORY_GENERAL,
-					 ISC_LOGMODULE_CRYPTO, "FIPS_mode_set",
-					 ISC_R_CRYPTOFAILURE);
-	}
-
-	unregister_algorithms();
-	register_algorithms();
-
-	return ISC_R_SUCCESS;
-}
-#else
-bool
-isc_crypto_fips_mode(void) {
-	return false;
-}
-
-isc_result_t
-isc_crypto_fips_enable(void) {
-	return ISC_R_NOTIMPLEMENTED;
-}
-#endif
 
 void
 isc__crypto_setdestroycheck(bool check) {
@@ -250,13 +184,16 @@ isc__crypto_setdestroycheck(bool check) {
 
 void
 isc__crypto_initialize(void) {
-	uint64_t opts = OPENSSL_INIT_LOAD_CONFIG;
+	/*
+	 * We call OPENSSL_cleanup() manually, in a correct order, thus disable
+	 * the automatic atexit() handler.
+	 */
+	uint64_t opts = OPENSSL_INIT_LOAD_CONFIG | OPENSSL_INIT_NO_ATEXIT;
 
 	isc_mem_create("OpenSSL", &isc__crypto_mctx);
 	isc_mem_setdebugging(isc__crypto_mctx, 0);
 	isc_mem_setdestroycheck(isc__crypto_mctx, false);
 
-#if !defined(LIBRESSL_VERSION_NUMBER) && OPENSSL_VERSION_NUMBER >= 0x30000000L
 	/*
 	 * CRYPTO_set_mem_(_ex)_functions() returns 1 on success or 0 on
 	 * failure, which means OpenSSL already allocated some memory.  There's
@@ -265,16 +202,6 @@ isc__crypto_initialize(void) {
 	(void)CRYPTO_set_mem_functions(isc__crypto_malloc_ex,
 				       isc__crypto_realloc_ex,
 				       isc__crypto_free_ex);
-#endif /* !defined(LIBRESSL_VERSION_NUMBER) && OPENSSL_VERSION_NUMBER >= \
-	  0x30000000L  */
-
-#if defined(OPENSSL_INIT_NO_ATEXIT)
-	/*
-	 * We call OPENSSL_cleanup() manually, in a correct order, thus disable
-	 * the automatic atexit() handler.
-	 */
-	opts |= OPENSSL_INIT_NO_ATEXIT;
-#endif
 
 	RUNTIME_CHECK(OPENSSL_init_ssl(opts, NULL) == 1);
 
@@ -302,7 +229,6 @@ void
 isc__crypto_shutdown(void) {
 	unregister_algorithms();
 
-#if OPENSSL_VERSION_NUMBER >= 0x30000000L
 	if (base != NULL) {
 		OSSL_PROVIDER_unload(base);
 	}
@@ -310,7 +236,6 @@ isc__crypto_shutdown(void) {
 	if (fips != NULL) {
 		OSSL_PROVIDER_unload(fips);
 	}
-#endif /* OPENSSL_VERSION_NUMBER >= 0x30000000L */
 
 	OPENSSL_cleanup();
 
