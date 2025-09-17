@@ -394,8 +394,22 @@ ISC_RUN_TEST_IMPL(qpmulti) {
 	isc_log_destroy(&dns_lctx);
 }
 
+ISC_RUN_TEST_IMPL(qpmulti_memusage) {
+	dns_qpmulti_t *qpm = NULL;
+	dns_qp_memusage_t mu;
+
+	dns_qpmulti_create(mctx, &test_methods, NULL, &qpm);
+
+	mu = dns_qpmulti_memusage(qpm);
+	assert_int_equal(mu.leaves, 0);
+	assert_int_equal(mu.used, 0);
+
+	dns_qpmulti_destroy(&qpm);
+}
+
 ISC_TEST_LIST_START
 ISC_TEST_ENTRY(qpmulti)
+ISC_TEST_ENTRY(qpmulti_memusage)
 ISC_TEST_LIST_END
 
 ISC_TEST_MAIN
