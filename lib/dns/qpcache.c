@@ -252,7 +252,6 @@ struct qpcache {
 
 	/* Locked by tree_lock. */
 	dns_qp_t *tree;
-	dns_qp_t *nsec;
 
 	isc_mem_t *hmctx; /* Memory context for the heaps */
 
@@ -407,12 +406,11 @@ static dns_dbiteratormethods_t dbiterator_methods = {
 };
 
 /*
- * Note that the QP cache database only needs a single QP iterator, because
- * unlike the QP zone database, NSEC3 records are cached in the main tree.
- *
- * If we ever implement synth-from-dnssec using NSEC3 records, we'll need
- * to have a separate tree for NSEC3 records, and to copy in the more complex
- * iterator implementation from qpzone.c.
+ * In the cache, NSEC3 records are currently stored in the NORMAL
+ * namespace.  If we ever implement synth-from-dnssec using NSEC3 records,
+ * they'll need be moved into the NSEC3 namespace for efficiency, and
+ * the iterator implementation will need to be more complex, as in
+ * qpzone.
  */
 typedef struct qpc_dbit {
 	dns_dbiterator_t common;
@@ -629,7 +627,7 @@ delete_node(qpcache_t *qpdb, qpcnode_t *node) {
 			 * Delete the corresponding node from the auxiliary NSEC
 			 * tree before deleting from the main tree.
 			 */
-			result = dns_qp_deletename(qpdb->nsec, &node->name,
+			result = dns_qp_deletename(qpdb->tree, &node->name,
 						   DNS_DBNAMESPACE_NSEC, NULL,
 						   NULL);
 			if (result != ISC_R_SUCCESS) {
@@ -645,7 +643,7 @@ delete_node(qpcache_t *qpdb, qpcnode_t *node) {
 					   node->nspace, NULL, NULL);
 		break;
 	case DNS_DBNAMESPACE_NSEC:
-		result = dns_qp_deletename(qpdb->nsec, &node->name,
+		result = dns_qp_deletename(qpdb->tree, &node->name,
 					   node->nspace, NULL, NULL);
 		break;
 	}
@@ -1427,9 +1425,9 @@ find_coveringnsec(qpc_search_t *search, const dns_name_t *name,
 	dns_slabheader_t *found = NULL, *foundsig = NULL;
 
 	/*
-	 * Look for the node in the auxilary tree.
+	 * Look for the node in the auxiliary NSEC namespace.
 	 */
-	result = dns_qp_lookup(search->qpdb->nsec, name, DNS_DBNAMESPACE_NSEC,
+	result = dns_qp_lookup(search->qpdb->tree, name, DNS_DBNAMESPACE_NSEC,
 			       NULL, &iter, NULL, (void **)&node, NULL);
 	/*
 	 * When DNS_R_PARTIALMATCH or ISC_R_NOTFOUND is returned from
@@ -1453,7 +1451,7 @@ find_coveringnsec(qpc_search_t *search, const dns_name_t *name,
 	}
 
 	/*
-	 * Lookup the predecessor in the main tree.
+	 * Lookup the predecessor in the normal namespace.
 	 */
 	node = NULL;
 	result = dns_qp_getname(search->qpdb->tree, predecessor,
@@ -2269,23 +2267,8 @@ static void
 qpcache__destroy(qpcache_t *qpdb) {
 	unsigned int i;
 	char buf[DNS_NAME_FORMATSIZE];
-	dns_qp_t **treep = NULL;
 
-	for (;;) {
-		/*
-		 * pick the next tree to (start to) destroy
-		 */
-		treep = &qpdb->tree;
-		if (*treep == NULL) {
-			treep = &qpdb->nsec;
-			if (*treep == NULL) {
-				break;
-			}
-		}
-
-		dns_qp_destroy(treep);
-		INSIST(*treep == NULL);
-	}
+	dns_qp_destroy(&qpdb->tree);
 
 	if (dns_name_dynamic(&qpdb->common.origin)) {
 		dns_name_format(&qpdb->common.origin, buf, sizeof(buf));
@@ -3147,13 +3130,13 @@ qpcache_addrdataset(dns_db_t *db, dns_dbnode_t *node, dns_dbversion_t *version,
 	if (newnsec && !qpnode->havensec) {
 		qpcnode_t *nsecnode = NULL;
 
-		result = dns_qp_getname(qpdb->nsec, name, DNS_DBNAMESPACE_NSEC,
+		result = dns_qp_getname(qpdb->tree, name, DNS_DBNAMESPACE_NSEC,
 					(void **)&nsecnode, NULL);
 		if (result != ISC_R_SUCCESS) {
 			INSIST(nsecnode == NULL);
 			nsecnode = new_qpcnode(qpdb, name,
 					       DNS_DBNAMESPACE_NSEC);
-			result = dns_qp_insert(qpdb->nsec, nsecnode, 0);
+			result = dns_qp_insert(qpdb->tree, nsecnode, 0);
 			INSIST(result == ISC_R_SUCCESS);
 			qpcnode_detach(&nsecnode);
 		}
@@ -3235,7 +3218,7 @@ qpcache_deleterdataset(dns_db_t *db, dns_dbnode_t *node,
 }
 
 static unsigned int
-nodecount(dns_db_t *db, dns_dbtree_t tree) {
+nodecount(dns_db_t *db) {
 	qpcache_t *qpdb = (qpcache_t *)db;
 	dns_qp_memusage_t mu;
 	isc_rwlocktype_t tlocktype = isc_rwlocktype_none;
@@ -3243,16 +3226,7 @@ nodecount(dns_db_t *db, dns_dbtree_t tree) {
 	REQUIRE(VALID_QPDB(qpdb));
 
 	TREE_RDLOCK(&qpdb->tree_lock, &tlocktype);
-	switch (tree) {
-	case dns_dbtree_main:
-		mu = dns_qp_memusage(qpdb->tree);
-		break;
-	case dns_dbtree_nsec:
-		mu = dns_qp_memusage(qpdb->nsec);
-		break;
-	default:
-		UNREACHABLE();
-	}
+	mu = dns_qp_memusage(qpdb->tree);
 	TREE_UNLOCK(&qpdb->tree_lock, &tlocktype);
 
 	return mu.leaves;
@@ -3324,10 +3298,9 @@ dns__qpcache_create(isc_mem_t *mctx, const dns_name_t *origin,
 	dns_name_dup(origin, mctx, &qpdb->common.origin);
 
 	/*
-	 * Make the qp tries.
+	 * Make the qp trie.
 	 */
 	dns_qp_create(mctx, &qpmethods, qpdb, &qpdb->tree);
-	dns_qp_create(mctx, &qpmethods, qpdb, &qpdb->nsec);
 
 	qpdb->common.magic = DNS_DB_MAGIC;
 	qpdb->common.impmagic = QPDB_MAGIC;
@@ -3520,9 +3493,9 @@ resume_iteration(qpc_dbit_t *qpdbiter, bool continuing) {
 	TREE_RDLOCK(&qpdb->tree_lock, &qpdbiter->tree_locked);
 
 	/*
-	 * If we're being called from dbiterator_next or _prev,
-	 * then we may need to reinitialize the iterator to the current
-	 * name. The tree could have changed while it was unlocked,
+	 * If we're being called from dbiterator_next, we may need
+	 * to reinitialize the iterator to the current name. The
+	 * tree could have changed while it was unlocked, which
 	 * would make the iterator traversal inconsistent.
 	 *
 	 * As long as the iterator is holding a reference to
@@ -3586,11 +3559,17 @@ dbiterator_first(dns_dbiterator_t *iterator DNS__DB_FLARG) {
 	result = dns_qpiter_next(&qpdbiter->iter, NULL,
 				 (void **)&qpdbiter->node, NULL);
 
-	if (result == ISC_R_SUCCESS) {
+	if (result == ISC_R_SUCCESS &&
+	    qpdbiter->node->nspace == DNS_DBNAMESPACE_NORMAL)
+	{
 		dns_name_copy(&qpdbiter->node->name, qpdbiter->name);
 		reference_iter_node(qpdbiter DNS__DB_FLARG_PASS);
+	} else if (result == ISC_R_SUCCESS) {
+		result = ISC_R_NOMORE;
+		qpdbiter->node = NULL;
 	} else {
-		INSIST(result == ISC_R_NOMORE); /* The tree is empty. */
+		/* The tree is empty. */
+		INSIST(result == ISC_R_NOMORE);
 		qpdbiter->node = NULL;
 	}
 
@@ -3604,39 +3583,8 @@ dbiterator_first(dns_dbiterator_t *iterator DNS__DB_FLARG) {
 }
 
 static isc_result_t
-dbiterator_last(dns_dbiterator_t *iterator DNS__DB_FLARG) {
-	isc_result_t result;
-	qpc_dbit_t *qpdbiter = (qpc_dbit_t *)iterator;
-	qpcache_t *qpdb = (qpcache_t *)iterator->db;
-
-	if (qpdbiter->result != ISC_R_SUCCESS &&
-	    qpdbiter->result != ISC_R_NOTFOUND &&
-	    qpdbiter->result != DNS_R_PARTIALMATCH &&
-	    qpdbiter->result != ISC_R_NOMORE)
-	{
-		return qpdbiter->result;
-	}
-
-	if (qpdbiter->paused) {
-		resume_iteration(qpdbiter, false);
-	}
-
-	dereference_iter_node(qpdbiter DNS__DB_FLARG_PASS);
-
-	dns_qpiter_init(qpdb->tree, &qpdbiter->iter);
-	result = dns_qpiter_prev(&qpdbiter->iter, NULL,
-				 (void **)&qpdbiter->node, NULL);
-
-	if (result == ISC_R_SUCCESS) {
-		dns_name_copy(&qpdbiter->node->name, qpdbiter->name);
-		reference_iter_node(qpdbiter DNS__DB_FLARG_PASS);
-	} else {
-		INSIST(result == ISC_R_NOMORE); /* The tree is empty. */
-		qpdbiter->node = NULL;
-	}
-
-	qpdbiter->result = result;
-	return result;
+dbiterator_last(dns_dbiterator_t *iterator ISC_ATTR_UNUSED DNS__DB_FLARG) {
+	return ISC_R_NOTIMPLEMENTED;
 }
 
 static isc_result_t
@@ -3677,35 +3625,8 @@ dbiterator_seek(dns_dbiterator_t *iterator,
 }
 
 static isc_result_t
-dbiterator_prev(dns_dbiterator_t *iterator DNS__DB_FLARG) {
-	isc_result_t result;
-	qpc_dbit_t *qpdbiter = (qpc_dbit_t *)iterator;
-
-	REQUIRE(qpdbiter->node != NULL);
-
-	if (qpdbiter->result != ISC_R_SUCCESS) {
-		return qpdbiter->result;
-	}
-
-	if (qpdbiter->paused) {
-		resume_iteration(qpdbiter, true);
-	}
-
-	dereference_iter_node(qpdbiter DNS__DB_FLARG_PASS);
-
-	result = dns_qpiter_prev(&qpdbiter->iter, NULL,
-				 (void **)&qpdbiter->node, NULL);
-
-	if (result == ISC_R_SUCCESS) {
-		dns_name_copy(&qpdbiter->node->name, qpdbiter->name);
-		reference_iter_node(qpdbiter DNS__DB_FLARG_PASS);
-	} else {
-		INSIST(result == ISC_R_NOMORE);
-		qpdbiter->node = NULL;
-	}
-
-	qpdbiter->result = result;
-	return result;
+dbiterator_prev(dns_dbiterator_t *iterator ISC_ATTR_UNUSED DNS__DB_FLARG) {
+	return ISC_R_NOTIMPLEMENTED;
 }
 
 static isc_result_t
@@ -3728,9 +3649,14 @@ dbiterator_next(dns_dbiterator_t *iterator DNS__DB_FLARG) {
 	result = dns_qpiter_next(&qpdbiter->iter, NULL,
 				 (void **)&qpdbiter->node, NULL);
 
-	if (result == ISC_R_SUCCESS) {
+	if (result == ISC_R_SUCCESS &&
+	    qpdbiter->node->nspace == DNS_DBNAMESPACE_NORMAL)
+	{
 		dns_name_copy(&qpdbiter->node->name, qpdbiter->name);
 		reference_iter_node(qpdbiter DNS__DB_FLARG_PASS);
+	} else if (result == ISC_R_SUCCESS) {
+		result = ISC_R_NOMORE;
+		qpdbiter->node = NULL;
 	} else {
 		INSIST(result == ISC_R_NOMORE);
 		qpdbiter->node = NULL;

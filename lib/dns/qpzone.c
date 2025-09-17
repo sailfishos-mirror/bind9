@@ -2880,7 +2880,7 @@ find_wildcard(qpz_search_t *search, qpznode_t **nodep, const dns_name_t *qname,
 }
 
 /*
- * Find node of the NSEC/NSEC3 record that is 'name'.
+ * Find node of the NSEC/NSEC3 record preceding 'name'.
  */
 static isc_result_t
 previous_closest_nsec(dns_rdatatype_t type, qpz_search_t *search,
@@ -2903,8 +2903,8 @@ previous_closest_nsec(dns_rdatatype_t type, qpz_search_t *search,
 	for (;;) {
 		if (*firstp) {
 			/*
-			 * Construct the name of the second node to check.
-			 * It is the first node sought in the NSEC tree.
+			 * This is the first attempt to find 'name' in the
+			 * NSEC namespace.
 			 */
 			*firstp = false;
 			result = dns_qp_lookup(&qpr, name, DNS_DBNAMESPACE_NSEC,
@@ -2912,27 +2912,31 @@ previous_closest_nsec(dns_rdatatype_t type, qpz_search_t *search,
 			INSIST(result != ISC_R_NOTFOUND);
 			if (result == ISC_R_SUCCESS) {
 				/*
-				 * Since this was the first loop, finding the
-				 * name in the NSEC tree implies that the first
-				 * node checked in the main tree had an
-				 * unacceptable NSEC record.
-				 * Try the previous node in the NSEC tree.
+				 * If we find an exact match in the NSEC
+				 * namespace on our first attempt, it
+				 * implies that the corresponding node in
+				 * the normal namespace had an unacceptable
+				 * NSEC record; we want the previous node
+				 * in the NSEC tree.
 				 */
 				result = dns_qpiter_prev(nit, name, NULL, NULL);
 			} else if (result == DNS_R_PARTIALMATCH) {
 				/*
-				 * The iterator is already where we want it.
+				 * This was a partial match, so the
+				 * iterator is already at the previous
+				 * node in the NSEC namespace, which is
+				 * what we want.
 				 */
 				dns_qpiter_current(nit, name, NULL, NULL);
 				result = ISC_R_SUCCESS;
 			}
 		} else {
 			/*
-			 * This is a second or later trip through the auxiliary
-			 * tree for the name of a third or earlier NSEC node in
-			 * the main tree.  Previous trips through the NSEC tree
-			 * must have found nodes in the main tree with NSEC
-			 * records.  Perhaps they lacked signature records.
+			 * We've taken at least two steps back through the
+			 * NSEC namespace. The previous steps must have
+			 * found nodes with NSEC records, but they didn't
+			 * work; perhaps they lacked signature records.
+			 * Keep searching.
 			 */
 			result = dns_qpiter_prev(nit, name, NULL, NULL);
 		}
@@ -2949,9 +2953,10 @@ previous_closest_nsec(dns_rdatatype_t type, qpz_search_t *search,
 		}
 
 		/*
-		 * There should always be a node in the main tree with the
-		 * same name as the node in the auxiliary NSEC tree, except for
-		 * nodes in the auxiliary tree that are awaiting deletion.
+		 * There should always be a node in the normal namespace
+		 * with the same name as the node in the NSEC namespace,
+		 * except when nodes in the NSEC namespace are awaiting
+		 * deletion.
 		 */
 		if (result != DNS_R_PARTIALMATCH && result != ISC_R_NOTFOUND) {
 			isc_log_write(DNS_LOGCATEGORY_DATABASE,
@@ -2968,8 +2973,8 @@ previous_closest_nsec(dns_rdatatype_t type, qpz_search_t *search,
 }
 
 /*
- * Find the NSEC/NSEC3 which is or before the current point on the
- * search chain.  For NSEC3 records only NSEC3 records that match the
+ * Find the NSEC/NSEC3 which is at or before the name being sought.
+ * For NSEC3 records only NSEC3 records that match the
  * current NSEC3PARAM record are considered.
  */
 static isc_result_t
@@ -2992,8 +2997,12 @@ find_closest_nsec(qpz_search_t *search, dns_dbnode_t **nodep,
 	bool need_sig = secure;
 
 	/*
-	 * Use the auxiliary tree only starting with the second node in the
-	 * hope that the original node will be right much of the time.
+	 * When a lookup is unsuccessful, the QP iterator will already
+	 * be pointing at the node preceding the searched-for name in
+	 * the normal namespace. We'll check there first, assuming it will
+	 * be right much of the time. If we don't find an NSEC there,
+	 * then we start using the auxiliary NSEC namespace to find
+	 * the next predecessor.
 	 */
 	result = dns_qpiter_current(&search->iter, name, (void **)&node, NULL);
 	if (result != ISC_R_SUCCESS) {
@@ -3858,11 +3867,9 @@ qpzone_detachnode(dns_dbnode_t **nodep DNS__DB_FLARG) {
 }
 
 static unsigned int
-nodecount(dns_db_t *db, dns_dbtree_t tree ISC_ATTR_UNUSED) {
-	qpzonedb_t *qpdb = NULL;
+nodecount(dns_db_t *db) {
+	qpzonedb_t *qpdb = qpdb = (qpzonedb_t *)db;
 	dns_qp_memusage_t mu;
-
-	qpdb = (qpzonedb_t *)db;
 
 	REQUIRE(VALID_QPZONE(qpdb));
 
