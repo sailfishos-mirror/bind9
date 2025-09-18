@@ -244,18 +244,73 @@ stages:
 
 ### Job Templates
 
+.rule_mr_code: &rule_mr_code
+  - if: '$CI_MERGE_REQUEST_DIFF_BASE_SHA != null'
+    changes:
+      - '**/*.c'
+      - '**/*.h'
+      - '**/meson.build'
+
+.rule_mr_shell: &rule_mr_shell
+  - if: '$CI_MERGE_REQUEST_DIFF_BASE_SHA != null'
+    changes:
+      - '**/*.sh'
+      - '**/*.sh.in'
+      - 'bin/tests/system/org.isc.bind.system'
+      - 'bin/tests/system/custom-test-driver'
+
+.rule_mr_python: &rule_mr_python
+  - if: '$CI_MERGE_REQUEST_DIFF_BASE_SHA != null'
+    changes:
+      - '**/*.py'
+
+.rule_mr_manual: &rule_mr_manual
+  - if: '$CI_MERGE_REQUEST_DIFF_BASE_SHA != null'
+    when: manual  # only run on MR if requested
+    allow_failure: true  # don't block the pipeline or the pipeline result
+
+.rule_tag: &rule_tag
+  - if: '$CI_COMMIT_TAG != null'
+
+.rule_source_other_than_mr: &rule_source_other_than_mr
+  - if: '$CI_PIPELINE_SOURCE =~ /^(api|pipeline|schedule|trigger|web)$/'
+
+.rule_source_all: &rule_source_all
+  - if: '$CI_PIPELINE_SOURCE =~ /^(api|merge_request_event|pipeline|schedule|trigger|web)$/'
+
 .api-pipelines-schedules-tags-triggers-web-triggering-rules: &api_pipelines_schedules_tags_triggers_web_triggering_rules
   rules:
-    - if: '$CI_PIPELINE_SOURCE =~ /^(api|pipeline|schedule|trigger|web)$/'
-    - if: '$CI_COMMIT_TAG != null'
+    - *rule_tag
+    - *rule_source_other_than_mr
 
 .default-triggering-rules_list: &default_triggering_rules_list
-  - if: '$CI_PIPELINE_SOURCE =~ /^(api|merge_request_event|pipeline|schedule|trigger|web)$/'
-  - if: '$CI_COMMIT_TAG != null'
+  - *rule_tag
+  - *rule_source_all
 
 .default-triggering-rules: &default_triggering_rules
   rules:
     - *default_triggering_rules_list
+
+.code-triggering-rules: &code_triggering_rules
+  rules:
+    - *rule_mr_code
+    - *rule_mr_manual
+    - *rule_tag
+    - *rule_source_other_than_mr
+
+.shell-triggering-rules: &shell_triggering_rules
+  rules:
+    - *rule_mr_shell
+    - *rule_mr_manual
+    - *rule_tag
+    - *rule_source_other_than_mr
+
+.python-triggering-rules: &python_triggering_rules
+  rules:
+    - *rule_mr_python
+    - *rule_mr_manual
+    - *rule_tag
+    - *rule_source_other_than_mr
 
 .precheck: &precheck_job
   <<: *default_triggering_rules
@@ -352,7 +407,7 @@ stages:
     - *check_readline_setup
     - make -j${BUILD_PARALLEL_JOBS:-1} -k all V=1
     - test -z "${RUN_MAKE_INSTALL}" || make DESTDIR="${INSTALL_PATH}" install
-    - test -z "${RUN_MAKE_INSTALL}" || DESTDIR="${INSTALL_PATH}" sh util/check-make-install
+    - test -z "${RUN_MAKE_INSTALL}" || DESTDIR="${INSTALL_PATH}" sh util/check-make-install.sh
     - if [[ "${CFLAGS}" == *"-fsanitize=address"* ]]; then ( ! grep -F AddressSanitizer config.log ); fi
     - test -z "${CROSS_COMPILATION}" || grep -F -A 1 "checking whether we are cross compiling" config.log | grep -q "result.*yes"
     - test -z "${CROSS_COMPILATION}" || file lib/dns/gen | grep -F -q "ELF 64-bit LSB"
@@ -382,8 +437,17 @@ stages:
   stage: performance
   rules:
     - if: '$CI_MERGE_REQUEST_DIFF_BASE_SHA != null'
+      changes:
+        - '**/*.c'
+        - '**/*.h'
       variables:
         BASELINE: '$CI_MERGE_REQUEST_DIFF_BASE_SHA'
+    - &shotgun_rule_mr_manual
+      if: '$CI_MERGE_REQUEST_DIFF_BASE_SHA != null'
+      variables:
+        BASELINE: '$CI_MERGE_REQUEST_DIFF_BASE_SHA'
+      when: manual  # don't run on each MR unless requested
+      allow_failure: true
     - &shotgun_rule_tag
       if: '$CI_COMMIT_TAG != null'
       variables:
@@ -523,6 +587,7 @@ stages:
     - find doc/man/ -maxdepth 1 -name "*.[0-9]" -exec mandoc -T lint "{}" \; | ( ! grep -v -e "skipping paragraph macro. sp after" -e "unknown font, skipping request. ft C" -e "input text line longer than 80 bytes" )
 
 .respdiff: &respdiff_job
+  <<: *code_triggering_rules
   stage: system
   before_script:
     - autoreconf -fi
@@ -567,6 +632,7 @@ misc:
 
 black:
   <<: *precheck_job
+  <<: *python_triggering_rules
   needs: []
   script:
     - black $(git ls-files '*.py')
@@ -580,6 +646,7 @@ black:
 
 vulture:
   <<: *precheck_job
+  <<: *python_triggering_rules
   needs: []
   script:
     - vulture --exclude "*/ans*/ans.py,conftest.py,get_algorithms.py,isctest" --ignore-names "pytestmark" bin/tests/system/
@@ -613,6 +680,16 @@ ci-orphaned-anchors:
 
 clang-format:
   <<: *precheck_job
+  rules:
+    - if: '$CI_MERGE_REQUEST_DIFF_BASE_SHA != null'
+      changes:
+        - '**/*.c'
+        - '**/*.h'
+        - '**/.clang-format'
+        - '**/.clang-format.headers'
+    - *rule_mr_manual
+    - *rule_tag
+    - *rule_source_other_than_mr
   needs: []
   script:
     - if [ -r .clang-format ]; then "${CLANG_FORMAT}" -i -style=file $(git ls-files '*.c' '*.h'); fi
@@ -626,9 +703,18 @@ clang-format:
 
 coccinelle:
   <<: *precheck_job
+  rules:
+    - if: '$CI_MERGE_REQUEST_DIFF_BASE_SHA != null'
+      changes:
+        - '**/*.c'
+        - '**/*.h'
+        - 'cocci/**'
+    - *rule_mr_manual
+    - *rule_tag
+    - *rule_source_other_than_mr
   needs: []
   script:
-    - util/check-cocci
+    - util/check-cocci.sh
     - if test "$(git status --porcelain | grep -Ev '\?\?' | wc -l)" -gt "0"; then git status --short; exit 1; fi
 
 doctest:
@@ -646,6 +732,7 @@ doctest:
 
 pylint:
   <<: *precheck_job
+  <<: *python_triggering_rules
   needs: []
   variables:
     PYTHONPATH: "${CI_PROJECT_DIR}/bin/tests/system"
@@ -665,6 +752,7 @@ reuse:
 
 shfmt:
   <<: *precheck_job
+  <<: *shell_triggering_rules
   needs: []
   script:
     - shfmt -w -i 2 -ci -bn . $(find . -name "*.sh.in")
@@ -687,12 +775,14 @@ danger:
 
 checkbashisms:
   <<: *precheck_job
+  <<: *shell_triggering_rules
   needs: []
   script:
     - checkbashisms $(find . -path './.git' -prune -o -type f -exec sh -c 'head -n 1 "{}" | grep -qsF "#!/bin/sh"' \; -print)
 
 mypy:
   <<: *precheck_job
+  <<: *python_triggering_rules
   script:
     - mypy "bin/tests/system/isctest/"
 
@@ -1638,7 +1728,6 @@ coverity:
 
 respdiff:
   <<: *respdiff_job
-  <<: *default_triggering_rules
   <<: *base_image
   variables:
     CC: gcc
@@ -1650,7 +1739,6 @@ respdiff:
 
 respdiff:asan:
   <<: *respdiff_job
-  <<: *default_triggering_rules
   <<: *base_image
   variables:
     CC: gcc
@@ -1664,7 +1752,6 @@ respdiff:asan:
 
 respdiff:tsan:
   <<: *respdiff_job
-  <<: *default_triggering_rules
   <<: *tsan_debian_trixie_amd64_image
   variables:
     CC: "${CLANG}"
@@ -1683,7 +1770,6 @@ respdiff:tsan:
 
 respdiff-third-party:
   <<: *respdiff_job
-  <<: *default_triggering_rules
   <<: *base_image
   variables:
     CC: gcc
@@ -1696,7 +1782,6 @@ respdiff-third-party:
 .respdiff-recent-named: &respdiff_recent_named
   <<: *respdiff_job
   <<: *base_image
-  <<: *default_triggering_rules
   needs:
     - job: ci-variables
       artifacts: true
@@ -1739,12 +1824,8 @@ shotgun:dot:
   variables:
     SHOTGUN_SCENARIO: dot
     SHOTGUN_TRAFFIC_MULTIPLIER: 4
-  rules: &shotgun_rules_manual_mr
-    - if: '$CI_MERGE_REQUEST_DIFF_BASE_SHA != null'
-      variables:
-        BASELINE: '$CI_MERGE_REQUEST_DIFF_BASE_SHA'
-      when: manual  # don't run on each MR unless requested
-      allow_failure: true
+  rules:
+    - *shotgun_rule_mr_manual
     - *shotgun_rule_tag
     - *shotgun_rule_other
 
@@ -1754,7 +1835,10 @@ shotgun:doh-get:
     SHOTGUN_SCENARIO: doh-get
     SHOTGUN_TRAFFIC_MULTIPLIER: 2
     SHOTGUN_EVAL_THRESHOLD_LATENCY_PCTL_MAX: 0.4  # bump from the default due to increased tail-end jitter
-  rules: *shotgun_rules_manual_mr
+  rules:
+    - *shotgun_rule_mr_manual
+    - *shotgun_rule_tag
+    - *shotgun_rule_other
 
 generate-stress-test-configs:
   <<: *base_image
@@ -1771,6 +1855,16 @@ generate-stress-test-configs:
 stress-test-child-pipeline:
   <<: *default_triggering_rules
   stage: performance
+  rules:
+    - if: '$CI_MERGE_REQUEST_DIFF_BASE_SHA != null'
+      changes:
+        - '**/*.c'
+        - '**/*.h'
+    - if: '$CI_MERGE_REQUEST_DIFF_BASE_SHA != null'
+      when: manual  # don't run on each MR unless requested
+      allow_failure: true
+    - if: '$CI_COMMIT_TAG != null'
+    - if: '$CI_PIPELINE_SOURCE =~ /^(api|pipeline|schedule|trigger|web)$/'
   trigger:
     include:
       - artifact: stress-test-configs.yml
