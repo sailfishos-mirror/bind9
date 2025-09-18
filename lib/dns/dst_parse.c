@@ -184,7 +184,8 @@ check_rsa(const dst_private_t *priv, bool external) {
 	unsigned int mask;
 
 	if (external) {
-		return (priv->nelements == 0) ? 0 : -1;
+		return (priv->nelements == 0) ? ISC_R_SUCCESS
+					      : DST_R_INVALIDPRIVATEKEY;
 	}
 
 	for (i = 0; i < RSA_NTAGS; i++) {
@@ -198,7 +199,7 @@ check_rsa(const dst_private_t *priv, bool external) {
 			}
 		}
 		if (i == RSA_NTAGS) {
-			return -1;
+			return DST_R_INVALIDPRIVATEKEY;
 		}
 		have[i] = true;
 	}
@@ -218,7 +219,7 @@ check_rsa(const dst_private_t *priv, bool external) {
 		     have[TAG_RSA_EXPONENT2 & mask] &&
 		     have[TAG_RSA_COEFFICIENT & mask];
 	}
-	return ok ? 0 : -1;
+	return ok ? ISC_R_SUCCESS : DST_R_INVALIDPRIVATEKEY;
 }
 
 static int
@@ -229,7 +230,8 @@ check_ecdsa(const dst_private_t *priv, bool external) {
 	unsigned int mask;
 
 	if (external) {
-		return (priv->nelements == 0) ? 0 : -1;
+		return (priv->nelements == 0) ? ISC_R_SUCCESS
+					      : DST_R_INVALIDPRIVATEKEY;
 	}
 
 	for (i = 0; i < ECDSA_NTAGS; i++) {
@@ -242,7 +244,7 @@ check_ecdsa(const dst_private_t *priv, bool external) {
 			}
 		}
 		if (i == ECDSA_NTAGS) {
-			return -1;
+			return DST_R_INVALIDPRIVATEKEY;
 		}
 		have[i] = true;
 	}
@@ -251,10 +253,10 @@ check_ecdsa(const dst_private_t *priv, bool external) {
 
 	ok = have[TAG_ECDSA_LABEL & mask] || have[TAG_ECDSA_PRIVATEKEY & mask];
 
-	return ok ? 0 : -1;
+	return ok ? ISC_R_SUCCESS : DST_R_INVALIDPRIVATEKEY;
 }
 
-static int
+static isc_result_t
 check_eddsa(const dst_private_t *priv, bool external) {
 	int i, j;
 	bool have[EDDSA_NTAGS];
@@ -262,7 +264,8 @@ check_eddsa(const dst_private_t *priv, bool external) {
 	unsigned int mask;
 
 	if (external) {
-		return (priv->nelements == 0) ? 0 : -1;
+		return (priv->nelements == 0) ? ISC_R_SUCCESS
+					      : DST_R_INVALIDPRIVATEKEY;
 	}
 
 	for (i = 0; i < EDDSA_NTAGS; i++) {
@@ -275,7 +278,7 @@ check_eddsa(const dst_private_t *priv, bool external) {
 			}
 		}
 		if (i == EDDSA_NTAGS) {
-			return -1;
+			return DST_R_INVALIDPRIVATEKEY;
 		}
 		have[i] = true;
 	}
@@ -284,10 +287,10 @@ check_eddsa(const dst_private_t *priv, bool external) {
 
 	ok = have[TAG_EDDSA_LABEL & mask] || have[TAG_EDDSA_PRIVATEKEY & mask];
 
-	return ok ? 0 : -1;
+	return ok ? ISC_R_SUCCESS : DST_R_INVALIDPRIVATEKEY;
 }
 
-static int
+static isc_result_t
 check_hmac_md5(const dst_private_t *priv, bool old) {
 	int i, j;
 
@@ -299,9 +302,9 @@ check_hmac_md5(const dst_private_t *priv, bool old) {
 		if (old && priv->nelements == OLD_HMACMD5_NTAGS &&
 		    priv->elements[0].tag == TAG_HMACMD5_KEY)
 		{
-			return 0;
+			return ISC_R_SUCCESS;
 		}
-		return -1;
+		return DST_R_INVALIDPRIVATEKEY;
 	}
 	/*
 	 * We must be new format at this point.
@@ -313,18 +316,18 @@ check_hmac_md5(const dst_private_t *priv, bool old) {
 			}
 		}
 		if (j == priv->nelements) {
-			return -1;
+			return DST_R_INVALIDPRIVATEKEY;
 		}
 	}
 	return 0;
 }
 
-static int
+static isc_result_t
 check_hmac_sha(const dst_private_t *priv, unsigned int ntags,
 	       unsigned int alg) {
 	unsigned int i, j;
 	if (priv->nelements != ntags) {
-		return -1;
+		return DST_R_INVALIDPRIVATEKEY;
 	}
 	for (i = 0; i < ntags; i++) {
 		for (j = 0; j < priv->nelements; j++) {
@@ -333,13 +336,13 @@ check_hmac_sha(const dst_private_t *priv, unsigned int ntags,
 			}
 		}
 		if (j == priv->nelements) {
-			return -1;
+			return DST_R_INVALIDPRIVATEKEY;
 		}
 	}
-	return 0;
+	return ISC_R_SUCCESS;
 }
 
-static int
+static isc_result_t
 check_data(const dst_private_t *priv, const unsigned int alg, bool old,
 	   bool external) {
 	switch (alg) {
@@ -394,7 +397,7 @@ dst__privstruct_free(dst_private_t *priv, isc_mem_t *mctx) {
 isc_result_t
 dst__privstruct_parse(dst_key_t *key, unsigned int alg, isc_lex_t *lex,
 		      isc_mem_t *mctx, dst_private_t *priv) {
-	int n = 0, major, minor, check;
+	int n = 0, major, minor;
 	isc_buffer_t b;
 	isc_token_t token;
 	unsigned char *data = NULL;
@@ -569,14 +572,7 @@ done:
 		goto cleanup;
 	}
 
-	check = check_data(priv, alg, true, external);
-	if (check < 0) {
-		result = DST_R_INVALIDPRIVATEKEY;
-		goto cleanup;
-	} else if (check != ISC_R_SUCCESS) {
-		result = check;
-		goto cleanup;
-	}
+	CHECK(check_data(priv, alg, true, external));
 
 	key->external = external;
 
