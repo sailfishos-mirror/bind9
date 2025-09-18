@@ -57,6 +57,7 @@ doc_opt = get_option('doc')
 doh_opt = get_option('doh')
 fips_opt = get_option('fips')
 fuzz_opt = get_option('fuzzing')
+fuzz_backend_opt = get_option('fuzzing-backend')
 geoip_opt = get_option('geoip')
 gssapi_opt = get_option('gssapi')
 idn_opt = get_option('idn')
@@ -406,17 +407,19 @@ endif
 config.set_quoted('FUZZDIR', meson.project_source_root() / 'fuzz')
 
 fuzz_link_args = []
-if fuzz_opt != 'none'
-    if get_option('b_lundef') != false
-        warning('fuzzing will fail to build properly without -Db_lundef=false')
-    endif
+if fuzz_opt.enabled()
+    if fuzz_backed_opt != 'none'
+        if get_option('b_lundef') != false
+            warning('fuzzing will fail to build properly without -Db_lundef=false')
+        endif
 
-    if fuzz_opt == 'afl'
-    elif fuzz_opt == 'libfuzzer'
-        config.set('FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION', 1)
-        fuzz_link_args += '-fsanitize=fuzzer,address,undefined'
-        add_project_link_arguments('-fsanitize=address,undefined', language: 'c')
-        add_project_arguments('-fsanitize=fuzzer-no-link,address,undefined', language: 'c')
+        if fuzz_opt == 'afl'
+        elif fuzz_opt == 'libfuzzer'
+            config.set('FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION', 1)
+            fuzz_link_args += '-fsanitize=fuzzer,address,undefined'
+            add_project_link_arguments('-fsanitize=address,undefined', language: 'c')
+            add_project_arguments('-fsanitize=fuzzer-no-link,address,undefined', language: 'c')
+        endif
     endif
 endif
 
