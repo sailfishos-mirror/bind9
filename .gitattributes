@@ -29,7 +29,7 @@ dangerfile.py			 export-ignore
 /tests/bench/names.csv		 export-ignore
 /util/**			 export-ignore
 /util/bindkeys.pl		-export-ignore
-/util/check-make-install.in	-export-ignore
+/util/check-make-install.sh.in	-export-ignore
 /util/dtrace.sh			-export-ignore
 /util/meson.build		-export-ignore
 /util/meson-system-test-init.sh	-export-ignore
