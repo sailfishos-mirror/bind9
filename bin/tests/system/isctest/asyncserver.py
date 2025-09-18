@@ -554,6 +554,37 @@ class IgnoreAllQueries(ResponseHandler):
         yield ResponseDrop()
 
 
+class QnameHandler(ResponseHandler):
+    """
+    Base class used for deriving custom QNAME handlers.
+
+    The derived class must specify a list of `qnames` that it wants to handle.
+    Queries for exactly these QNAMEs will then be passed to the
+    `get_response()` method in the derived class.
+    """
+
+    @property
+    @abc.abstractmethod
+    def qnames(self) -> List[str]:
+        """
+        A list of QNAMEs handled by this class.
+        """
+        raise NotImplementedError
+
+    def __init__(self) -> None:
+        self._qnames: List[dns.name.Name] = [dns.name.from_text(d) for d in self.qnames]
+
+    def __str__(self) -> str:
+        return f"{self.__class__.__name__}(QNAMEs: {', '.join(self.qnames)})"
+
+    def match(self, qctx: QueryContext) -> bool:
+        """
+        Handle queries whose QNAME matches any of the QNAMEs handled by this
+        class.
+        """
+        return qctx.qname in self._qnames
+
+
 class DomainHandler(ResponseHandler):
     """
     Base class used for deriving custom domain handlers.
