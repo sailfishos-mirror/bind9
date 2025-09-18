@@ -727,9 +727,9 @@ signset(dns_diff_t *del, dns_diff_t *add, dns_dbnode_t *node, dns_name_t *name,
 			 */
 			bool have_pre_sig = false;
 			uint32_t pre;
-			isc_result_t ret = dst_key_getnum(
-				key->key, DST_NUM_PREDECESSOR, &pre);
-			if (ret == ISC_R_SUCCESS) {
+			result = dst_key_getnum(key->key, DST_NUM_PREDECESSOR,
+						&pre);
+			if (result == ISC_R_SUCCESS) {
 				/*
 				 * This key has a predecessor, look for the
 				 * corresponding key in the keylist. The
@@ -749,10 +749,10 @@ signset(dns_diff_t *del, dns_diff_t *add, dns_dbnode_t *node, dns_name_t *name,
 					{
 						continue;
 					}
-					ret = dst_key_getnum(curr->key,
-							     DST_NUM_SUCCESSOR,
-							     &suc);
-					if (ret != ISC_R_SUCCESS ||
+					result = dst_key_getnum(
+						curr->key, DST_NUM_SUCCESSOR,
+						&suc);
+					if (result != ISC_R_SUCCESS ||
 					    dst_key_id(key->key) != suc)
 					{
 						continue;

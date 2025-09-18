@@ -1572,7 +1572,7 @@ dns_message_parse(dns_message_t *msg, isc_buffer_t *source,
 		  unsigned int options) {
 	isc_region_t r;
 	dns_decompress_t dctx;
-	isc_result_t ret;
+	isc_result_t result;
 	uint16_t tmpflags;
 	isc_buffer_t origsource;
 	bool seen_problem;
@@ -1627,54 +1627,54 @@ dns_message_parse(dns_message_t *msg, isc_buffer_t *source,
 		return early_check_ret;
 	}
 
-	ret = getquestions(source, msg, dctx, options);
+	result = getquestions(source, msg, dctx, options);
 
-	if (ret == ISC_R_UNEXPECTEDEND && ignore_tc) {
+	if (result == ISC_R_UNEXPECTEDEND && ignore_tc) {
 		goto truncated;
 	}
-	if (ret == DNS_R_RECOVERABLE) {
+	if (result == DNS_R_RECOVERABLE) {
 		seen_problem = true;
-		ret = ISC_R_SUCCESS;
+		result = ISC_R_SUCCESS;
 	}
-	if (ret != ISC_R_SUCCESS) {
-		return ret;
+	if (result != ISC_R_SUCCESS) {
+		return result;
 	}
 	msg->question_ok = 1;
 
-	ret = getsection(source, msg, dctx, DNS_SECTION_ANSWER, options);
-	if (ret == ISC_R_UNEXPECTEDEND && ignore_tc) {
+	result = getsection(source, msg, dctx, DNS_SECTION_ANSWER, options);
+	if (result == ISC_R_UNEXPECTEDEND && ignore_tc) {
 		goto truncated;
 	}
-	if (ret == DNS_R_RECOVERABLE) {
+	if (result == DNS_R_RECOVERABLE) {
 		seen_problem = true;
-		ret = ISC_R_SUCCESS;
+		result = ISC_R_SUCCESS;
 	}
-	if (ret != ISC_R_SUCCESS) {
-		return ret;
+	if (result != ISC_R_SUCCESS) {
+		return result;
 	}
 
-	ret = getsection(source, msg, dctx, DNS_SECTION_AUTHORITY, options);
-	if (ret == ISC_R_UNEXPECTEDEND && ignore_tc) {
+	result = getsection(source, msg, dctx, DNS_SECTION_AUTHORITY, options);
+	if (result == ISC_R_UNEXPECTEDEND && ignore_tc) {
 		goto truncated;
 	}
-	if (ret == DNS_R_RECOVERABLE) {
+	if (result == DNS_R_RECOVERABLE) {
 		seen_problem = true;
-		ret = ISC_R_SUCCESS;
+		result = ISC_R_SUCCESS;
 	}
-	if (ret != ISC_R_SUCCESS) {
-		return ret;
+	if (result != ISC_R_SUCCESS) {
+		return result;
 	}
 
-	ret = getsection(source, msg, dctx, DNS_SECTION_ADDITIONAL, options);
-	if (ret == ISC_R_UNEXPECTEDEND && ignore_tc) {
+	result = getsection(source, msg, dctx, DNS_SECTION_ADDITIONAL, options);
+	if (result == ISC_R_UNEXPECTEDEND && ignore_tc) {
 		goto truncated;
 	}
-	if (ret == DNS_R_RECOVERABLE) {
+	if (result == DNS_R_RECOVERABLE) {
 		seen_problem = true;
-		ret = ISC_R_SUCCESS;
+		result = ISC_R_SUCCESS;
 	}
-	if (ret != ISC_R_SUCCESS) {
-		return ret;
+	if (result != ISC_R_SUCCESS) {
+		return result;
 	}
 
 	isc_buffer_remainingregion(source, &r);
@@ -1687,7 +1687,7 @@ dns_message_parse(dns_message_t *msg, isc_buffer_t *source,
 
 truncated:
 
-	if (ret == ISC_R_UNEXPECTEDEND && ignore_tc) {
+	if (result == ISC_R_UNEXPECTEDEND && ignore_tc) {
 		return DNS_R_RECOVERABLE;
 	}
 	if (seen_problem) {
