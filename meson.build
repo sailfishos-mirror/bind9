@@ -13,20 +13,20 @@ project(
     'bind',
     ['c'],
     version: '9.21.15-dev',
-    meson_version: '>=0.61',
+    meson_version: '>=1.3.0',
     license: 'MPL-2.0',
-    default_options: [
-        'b_asneeded=true',
-        'b_pch=false',
-        'b_pie=true',
-        'c_std=gnu11',
-        'default_library=shared',
-        'localstatedir=/var',
-        'strip=false',
-        'warning_level=2',
-        'werror=false',
-        'wrap_mode=nodownload',
-    ],
+    default_options: {
+        'b_asneeded': true,
+        'b_pch': false,
+        'b_pie': true,
+        'c_std': 'gnu11',
+        'default_library': 'shared',
+        'localstatedir': '/var',
+        'strip': false,
+        'warning_level': '2',
+        'werror': false,
+        'wrap_mode': 'nodownload',
+    },
 )
 
 fs = import('fs')
@@ -51,7 +51,7 @@ meson_lto = get_option('b_lto')
 trace_logging = get_option('trace-logging')
 rcu_flavor = get_option('rcu-flavor')
 
-cmocka_opt = get_option('cmocka')
+cmocka_opt = get_option('cmocka').enable_auto_if(developer_mode)
 dnstap_opt = get_option('dnstap')
 doc_opt = get_option('doc')
 doh_opt = get_option('doh')
@@ -71,15 +71,11 @@ oss_fuzz_args_opt = get_option('oss-fuzz-args')
 stats_json_opt = get_option('stats-json')
 stats_xml_opt = get_option('stats-xml')
 tracing_opt = get_option('tracing')
-zlib_opt = get_option('zlib')
+zlib_opt = get_option('zlib').enable_auto_if(developer_mode)
 
-if meson.version().version_compare('>=1.1.0')
-    build_options = meson.build_options()
-    if build_options == ''
-        build_options = 'default'
-    endif
-else
-    build_options = 'unprobed'
+build_options = meson.build_options()
+if build_options == ''
+    build_options = 'default'
 endif
 
 ### External commands
@@ -342,43 +338,28 @@ foreach fn : [
     endif
 endforeach
 
-# meson_version (>=1.3.0) : required in cc.has_function
 if cc.has_function('__builtin_clzg')
     config.set('HAVE_BUILTIN_CLZG', true)
-elif not (
-    cc.has_function('__builtin_clz')
-    and cc.has_function('__builtin_clzl')
-    and cc.has_function('__builtin_clzll')
-)
-    error(
-        '__builtin_clzg or __builtin_clz* functions are required, please fix your toolchain',
-    )
+else
+    cc.has_function('__builtin_clz', required: true)
+    cc.has_function('__builtin_clzl', required: true)
+    cc.has_function('__builtin_clzll', required: true)
 endif
 
-# meson_version (>=1.3.0) : required in cc.has_function
 if cc.has_function('__builtin_ctzg')
     config.set('HAVE_BUILTIN_CTZG', true)
-elif not (
-    cc.has_function('__builtin_ctz')
-    and cc.has_function('__builtin_ctzl')
-    and cc.has_function('__builtin_ctzll')
-)
-    error(
-        '__builtin_ctzg or __builtin_ctz* functions are required, please fix your toolchain',
-    )
+else
+    cc.has_function('__builtin_ctz', required: true)
+    cc.has_function('__builtin_ctzl', required: true)
+    cc.has_function('__builtin_ctzll', required: true)
 endif
 
-# meson_version (>=1.3.0) : required in cc.has_function
 if cc.has_function('__builtin_popcountg')
     config.set('HAVE_BUILTIN_POPCOUNTG', true)
-elif not (
-    cc.has_function('__builtin_popcount')
-    and cc.has_function('__builtin_popcountl')
-    and cc.has_function('__builtin_popcountll')
-)
-    error(
-        '__builtin_popcountg or __builtin_popcount* functions are required, please fix your toolchain',
-    )
+else
+    cc.has_function('__builtin_popcount', required: true)
+    cc.has_function('__builtin_popcountl', required: true)
+    cc.has_function('__builtin_popcountll', required: true)
 endif
 
 foreach attr : ['malloc', 'returns_nonnull']
@@ -574,7 +555,6 @@ config.set10('ENABLE_LEAK_DETECTION', leak_opt.enabled())
 
 ## Query Tracing
 
-# meson_version (>=1.1.0) : enable_if in feature object
 query_trace_opt = 'query' in trace_logging
 single_trace_opt = 'single' in trace_logging
 if query_trace_opt or developer_mode
@@ -857,10 +837,9 @@ endif
 
 ## zlib
 
-# meson_version (>=1.1.0) : enable_if in feature object
 zlib_dep = null_dep
-if zlib_opt.allowed() or developer_mode
-    zlib_dep = dependency('zlib', required: zlib_opt.enabled() or developer_mode)
+if zlib_opt.allowed()
+    zlib_dep = dependency('zlib', required: zlib_opt.enabled())
     if zlib_dep.found()
         config.set('HAVE_ZLIB', 1)
     endif
@@ -878,14 +857,8 @@ endif
 ## cmocka
 cmocka_dep = null_dep
 
-# meson_version (>=1.1.0) : enable_if in feature object
-if cmocka_opt.allowed() or developer_mode
-    cmocka_dep = dependency(
-        'cmocka',
-        version: '>=1.1.3',
-        required: cmocka_opt.enabled() or developer_mode,
-    )
-
+if cmocka_opt.allowed()
+    cmocka_dep = dependency('cmocka', version: '>=1.1.3', required: cmocka_opt.enabled())
     if cmocka_dep.found()
         config.set('HAVE_CMOCKA', 1)
     endif
@@ -1843,15 +1816,12 @@ if doc_opt.allowed()
             sphinx_build.full_path(),
         )
 
-        # meson_version (>=0.63) : multiline f-string
-        rst_epilog_tmpl = '''.. |rndc_conf| replace:: ``@0@/rndc.conf``
-.. |rndc_key| replace:: ``@0@/rndc.key``
-.. |named_conf| replace:: ``@0@/named.key``
-.. |named_pid| replace:: ``@1@/named.key``
-.. |session_key| replace:: ``@1@/session.key``
+        rst_epilog = f'''.. |rndc_conf| replace:: ``@sysconfdir@/rndc.conf``
+.. |rndc_key| replace:: ``@sysconfdir@/rndc.key``
+.. |named_conf| replace:: ``@sysconfdir@/named.key``
+.. |named_pid| replace:: ``@runstatedir@/named.key``
+.. |session_key| replace:: ``@runstatedir@/session.key``
 '''
-
-        rst_epilog = rst_epilog_tmpl.format(sysconfdir, runstatedir)
 
         sphinx_common_options = [
             '-W',
