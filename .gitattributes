@@ -9,5 +9,5 @@
 /doc/dev			 export-ignore
 /util/**			 export-ignore
 /util/bindkeys.pl		-export-ignore
-/util/check-make-install.in	-export-ignore
+/util/check-make-install.sh.in	-export-ignore
 /util/dtrace.sh		-export-ignore

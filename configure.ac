@@ -1669,7 +1669,7 @@ AC_CONFIG_FILES([fuzz/Makefile])
 
 # Misc
 
-AC_CONFIG_FILES([util/check-make-install])
+AC_CONFIG_FILES([util/check-make-install.sh])
 
 #
 # Do it
