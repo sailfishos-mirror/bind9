@@ -42,7 +42,6 @@ endif
 ### Build Options
 developer_mode = get_option('developer').enabled()
 
-c_std = get_option('c_std')
 lundef = get_option('b_lundef')
 optimization = get_option('optimization')
 sanitizer = get_option('b_sanitize')
@@ -1503,8 +1502,6 @@ executable(
 
 )
 
-named_c_args = []
-named_link_args = []
 named_deps = []
 
 if named_lto_opt == 'off'
