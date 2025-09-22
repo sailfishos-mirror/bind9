@@ -138,46 +138,58 @@ typedef enum dst_algorithm {
 #define DST_TYPE_TEMPLATE 0x10000000
 
 /* Key timing metadata definitions */
-#define DST_TIME_CREATED     0
-#define DST_TIME_PUBLISH     1
-#define DST_TIME_ACTIVATE    2
-#define DST_TIME_REVOKE	     3
-#define DST_TIME_INACTIVE    4
-#define DST_TIME_DELETE	     5
-#define DST_TIME_DSPUBLISH   6
-#define DST_TIME_SYNCPUBLISH 7
-#define DST_TIME_SYNCDELETE  8
-#define DST_TIME_DNSKEY	     9
-#define DST_TIME_ZRRSIG	     10
-#define DST_TIME_KRRSIG	     11
-#define DST_TIME_DS	     12
-#define DST_TIME_DSDELETE    13
-#define DST_TIME_SIGPUBLISH  14
-#define DST_TIME_SIGDELETE   15
-#define DST_MAX_TIMES	     15
+enum {
+	DST_TIME_CREATED = 0,
+	DST_TIME_PUBLISH = 1,
+	DST_TIME_ACTIVATE = 2,
+	DST_TIME_REVOKE = 3,
+	DST_TIME_INACTIVE = 4,
+	DST_TIME_DELETE = 5,
+	DST_TIME_DSPUBLISH = 6,
+	DST_TIME_SYNCPUBLISH = 7,
+	DST_TIME_SYNCDELETE = 8,
+	DST_TIME_DNSKEY = 9,
+	DST_TIME_ZRRSIG = 10,
+	DST_TIME_KRRSIG = 11,
+	DST_TIME_DS = 12,
+	DST_TIME_DSDELETE = 13,
+	DST_TIME_SIGPUBLISH = 14,
+	DST_TIME_SIGDELETE = 15,
+
+	DST_MAX_TIMES = 16 /* MUST BE LAST */
+};
 
 /* Numeric metadata definitions */
-#define DST_NUM_PREDECESSOR 0
-#define DST_NUM_SUCCESSOR   1
-#define DST_NUM_MAXTTL	    2
-#define DST_NUM_ROLLPERIOD  3
-#define DST_NUM_LIFETIME    4
-#define DST_NUM_DSPUBCOUNT  5
-#define DST_NUM_DSDELCOUNT  6
-#define DST_MAX_NUMERIC	    6
+enum {
+	DST_NUM_PREDECESSOR = 0,
+	DST_NUM_SUCCESSOR = 1,
+	DST_NUM_MAXTTL = 2,
+	DST_NUM_ROLLPERIOD = 3,
+	DST_NUM_LIFETIME = 4,
+	DST_NUM_DSPUBCOUNT = 5,
+	DST_NUM_DSDELCOUNT = 6,
+
+	DST_MAX_NUMERIC = 7 /* MUST BE LAST */
+};
 
 /* Boolean metadata definitions */
-#define DST_BOOL_KSK	0
-#define DST_BOOL_ZSK	1
-#define DST_MAX_BOOLEAN 1
+enum {
+	DST_BOOL_KSK = 0,
+	DST_BOOL_ZSK = 1,
+
+	DST_MAX_BOOLEAN = 2 /* MUST BE LAST */
+};
 
 /* Key state metadata definitions */
-#define DST_KEY_DNSKEY	  0
-#define DST_KEY_ZRRSIG	  1
-#define DST_KEY_KRRSIG	  2
-#define DST_KEY_DS	  3
-#define DST_KEY_GOAL	  4
-#define DST_MAX_KEYSTATES 4
+enum {
+	DST_KEY_DNSKEY = 0,
+	DST_KEY_ZRRSIG = 1,
+	DST_KEY_KRRSIG = 2,
+	DST_KEY_DS = 3,
+	DST_KEY_GOAL = 4,
+
+	DST_MAX_KEYSTATES = 5 /* MUST BE LAST */
+};
 
 /*
  * Current format version number of the private key parser.
@@ -834,7 +846,7 @@ dst_key_getbool(const dst_key_t *key, int type, bool *valuep);
  *
  * Requires:
  *	"key" is a valid key.
- *	"type" is no larger than DST_MAX_BOOLEAN
+ *	"type" is smaller than DST_MAX_BOOLEAN
  *	"valuep" is not null.
  */
 
@@ -845,7 +857,7 @@ dst_key_setbool(dst_key_t *key, int type, bool value);
  *
  * Requires:
  *	"key" is a valid key.
- *	"type" is no larger than DST_MAX_BOOLEAN
+ *	"type" is smaller than DST_MAX_BOOLEAN
  */
 
 void
@@ -855,7 +867,7 @@ dst_key_unsetbool(dst_key_t *key, int type);
  *
  * Requires:
  *	"key" is a valid key.
- *	"type" is no larger than DST_MAX_BOOLEAN
+ *	"type" is smaller than DST_MAX_BOOLEAN
  */
 
 isc_result_t
@@ -865,7 +877,7 @@ dst_key_getnum(const dst_key_t *key, int type, uint32_t *valuep);
  *
  * Requires:
  *	"key" is a valid key.
- *	"type" is no larger than DST_MAX_NUMERIC
+ *	"type" is smaller than DST_MAX_NUMERIC
  *	"valuep" is not null.
  */
 
@@ -876,7 +888,7 @@ dst_key_setnum(dst_key_t *key, int type, uint32_t value);
  *
  * Requires:
  *	"key" is a valid key.
- *	"type" is no larger than DST_MAX_NUMERIC
+ *	"type" is smaller than DST_MAX_NUMERIC
  */
 
 void
@@ -886,7 +898,7 @@ dst_key_unsetnum(dst_key_t *key, int type);
  *
  * Requires:
  *	"key" is a valid key.
- *	"type" is no larger than DST_MAX_NUMERIC
+ *	"type" is smaller than DST_MAX_NUMERIC
  */
 
 isc_result_t
@@ -896,7 +908,7 @@ dst_key_gettime(const dst_key_t *key, int type, isc_stdtime_t *timep);
  *
  * Requires:
  *	"key" is a valid key.
- *	"type" is no larger than DST_MAX_TIMES
+ *	"type" is smaller than DST_MAX_TIMES
  *	"timep" is not null.
  */
 
@@ -907,7 +919,7 @@ dst_key_settime(dst_key_t *key, int type, isc_stdtime_t when);
  *
  * Requires:
  *	"key" is a valid key.
- *	"type" is no larger than DST_MAX_TIMES
+ *	"type" is smaller than DST_MAX_TIMES
  */
 
 void
@@ -917,7 +929,7 @@ dst_key_unsettime(dst_key_t *key, int type);
  *
  * Requires:
  *	"key" is a valid key.
- *	"type" is no larger than DST_MAX_TIMES
+ *	"type" is smaller than DST_MAX_TIMES
  */
 
 isc_result_t
@@ -927,7 +939,7 @@ dst_key_getstate(const dst_key_t *key, int type, dst_key_state_t *statep);
  *
  * Requires:
  *	"key" is a valid key.
- *	"type" is no larger than DST_MAX_KEYSTATES
+ *	"type" is smaller than DST_MAX_KEYSTATES
  *	"statep" is not null.
  */
 
@@ -939,7 +951,7 @@ dst_key_setstate(dst_key_t *key, int type, dst_key_state_t state);
  * Requires:
  *	"key" is a valid key.
  *	"state" is a valid state.
- *	"type" is no larger than DST_MAX_KEYSTATES
+ *	"type" is smaller than DST_MAX_KEYSTATES
  */
 
 void
@@ -949,7 +961,7 @@ dst_key_unsetstate(dst_key_t *key, int type);
  *
  * Requires:
  *	"key" is a valid key.
- *	"type" is no larger than DST_MAX_KEYSTATES
+ *	"type" is smaller than DST_MAX_KEYSTATES
  */
 
 isc_result_t

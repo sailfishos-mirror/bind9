@@ -52,16 +52,33 @@
 #define PRIVATE_KEY_STR "Private-key-format:"
 #define ALGORITHM_STR	"Algorithm:"
 
-#define TIMING_NTAGS (DST_MAX_TIMES + 1)
-static const char *timetags[TIMING_NTAGS] = {
-	"Created:", "Publish:",	  "Activate:",	  "Revoke:",	 "Inactive:",
-	"Delete:",  "DSPublish:", "SyncPublish:", "SyncDelete:", NULL,
-	NULL,	    NULL,	  NULL,		  NULL,		 NULL
+static const char *timetags[DST_MAX_TIMES] = {
+	[DST_TIME_CREATED] = "Created:",
+	[DST_TIME_PUBLISH] = "Publish:",
+	[DST_TIME_ACTIVATE] = "Activate:",
+	[DST_TIME_REVOKE] = "Revoke:",
+	[DST_TIME_INACTIVE] = "Inactive:",
+	[DST_TIME_DELETE] = "Delete:",
+	[DST_TIME_DSPUBLISH] = "DSPublish:",
+	[DST_TIME_SYNCPUBLISH] = "SyncPublish:",
+	[DST_TIME_SYNCDELETE] = "SyncDelete:",
+	[DST_TIME_DNSKEY] = NULL,
+	[DST_TIME_ZRRSIG] = NULL,
+	[DST_TIME_KRRSIG] = NULL,
+	[DST_TIME_DS] = NULL,
+	[DST_TIME_DSDELETE] = NULL,
+	[DST_TIME_SIGPUBLISH] = NULL,
+	[DST_TIME_SIGDELETE] = NULL,
 };
 
-#define NUMERIC_NTAGS (DST_MAX_NUMERIC + 1)
-static const char *numerictags[NUMERIC_NTAGS] = {
-	"Predecessor:", "Successor:", "MaxTTL:", "RollPeriod:", NULL, NULL, NULL
+static const char *numerictags[DST_MAX_NUMERIC] = {
+	[DST_NUM_PREDECESSOR] = "Predecessor:",
+	[DST_NUM_SUCCESSOR] = "Successor:",
+	[DST_NUM_MAXTTL] = "MaxTTL:",
+	[DST_NUM_ROLLPERIOD] = "RollPeriod:",
+	[DST_NUM_LIFETIME] = NULL,
+	[DST_NUM_DSPUBCOUNT] = NULL,
+	[DST_NUM_DSDELCOUNT] = NULL,
 };
 
 struct parse_map {
@@ -151,12 +168,12 @@ find_metadata(const char *s, const char *tags[], int ntags) {
 
 static int
 find_timedata(const char *s) {
-	return find_metadata(s, timetags, TIMING_NTAGS);
+	return find_metadata(s, timetags, DST_MAX_TIMES);
 }
 
 static int
 find_numericdata(const char *s) {
-	return find_metadata(s, numerictags, NUMERIC_NTAGS);
+	return find_metadata(s, numerictags, DST_MAX_NUMERIC);
 }
 
 static int
@@ -491,7 +508,7 @@ dst__privstruct_parse(dst_key_t *key, unsigned int alg, isc_lex_t *lex,
 		/* Numeric metadata */
 		tag = find_numericdata(DST_AS_STR(token));
 		if (tag >= 0) {
-			INSIST(tag < NUMERIC_NTAGS);
+			INSIST(tag < DST_MAX_NUMERIC);
 
 			NEXTTOKEN(lex, opt | ISC_LEXOPT_NUMBER, &token);
 			if (token.type != isc_tokentype_number) {
@@ -506,7 +523,7 @@ dst__privstruct_parse(dst_key_t *key, unsigned int alg, isc_lex_t *lex,
 		/* Timing metadata */
 		tag = find_timedata(DST_AS_STR(token));
 		if (tag >= 0) {
-			INSIST(tag < TIMING_NTAGS);
+			INSIST(tag < DST_MAX_TIMES);
 
 			NEXTTOKEN(lex, opt, &token);
 			if (token.type != isc_tokentype_string) {
@@ -729,7 +746,7 @@ dst__privstruct_writefile(const dst_key_t *key, const dst_private_t *priv,
 
 	/* Add the metadata tags */
 	if (major > 1 || (major == 1 && minor >= 3)) {
-		for (i = 0; i < NUMERIC_NTAGS; i++) {
+		for (i = 0; i < DST_MAX_NUMERIC; i++) {
 			result = dst_key_getnum(key, i, &value);
 			if (result != ISC_R_SUCCESS) {
 				continue;
@@ -738,7 +755,7 @@ dst__privstruct_writefile(const dst_key_t *key, const dst_private_t *priv,
 				fprintf(fp, "%s %u\n", numerictags[i], value);
 			}
 		}
-		for (i = 0; i < TIMING_NTAGS; i++) {
+		for (i = 0; i < DST_MAX_TIMES; i++) {
 			result = dst_key_gettime(key, i, &when);
 			if (result != ISC_R_SUCCESS) {
 				continue;
