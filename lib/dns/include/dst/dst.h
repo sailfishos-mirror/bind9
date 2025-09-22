@@ -1221,7 +1221,6 @@ dst_algorithm_totext(dst_algorithm_t alg, isc_buffer_t *target);
  *\li   ISC_R_NOSPACE                   target buffer is too small
  */
 
-#define DST_ALGORITHM_FORMATSIZE 20
 void
 dst_algorithm_format(dst_algorithm_t dst_alg, char *data, unsigned int length);
 /*%<
