@@ -1216,6 +1216,11 @@ check_stale_header(dns_slabheader_t *header, qpc_search_t *search) {
 	return true;
 }
 
+static bool
+check_header(dns_slabheader_t *header, qpc_search_t *search) {
+	return header == NULL || check_stale_header(header, search);
+}
+
 /*
  * Return true if we've found headers for both 'type' and RRSIG('type'),
  * or (optionally, if 'negtype' is nonzero) if we've found a single
@@ -1301,11 +1306,7 @@ check_zonecut(qpcnode_t *node, void *arg DNS__DB_FLARG) {
 	 */
 	DNS_SLABTOP_FOREACH(top, node->data) {
 		dns_slabheader_t *header = first_header(top);
-		if (header == NULL) {
-			continue;
-		}
-
-		if (check_stale_header(header, search)) {
+		if (check_header(header, search)) {
 			continue;
 		}
 
@@ -1368,11 +1369,7 @@ find_deepest_zonecut(qpc_search_t *search, qpcnode_t *node,
 		 */
 		DNS_SLABTOP_FOREACH(top, node->data) {
 			dns_slabheader_t *header = first_header(top);
-			if (header == NULL) {
-				continue;
-			}
-
-			if (check_stale_header(header, search)) {
+			if (check_header(header, search)) {
 				continue;
 			}
 
@@ -1476,11 +1473,7 @@ find_coveringnsec(qpc_search_t *search, const dns_name_t *name,
 	NODE_RDLOCK(nlock, &nlocktype);
 	DNS_SLABTOP_FOREACH(top, node->data) {
 		dns_slabheader_t *header = first_header(top);
-		if (header == NULL) {
-			continue;
-		}
-
-		if (check_stale_header(header, search)) {
+		if (check_header(header, search)) {
 			continue;
 		}
 
@@ -1687,11 +1680,7 @@ qpcache_find(dns_db_t *db, const dns_name_t *name, dns_dbversion_t *version,
 	empty_node = true;
 	DNS_SLABTOP_FOREACH(top, node->data) {
 		dns_slabheader_t *header = first_header(top);
-		if (header == NULL) {
-			continue;
-		}
-
-		if (check_stale_header(header, &search)) {
+		if (check_header(header, &search)) {
 			continue;
 		}
 
@@ -2130,11 +2119,7 @@ qpcache_findrdataset(dns_db_t *db, dns_dbnode_t *node, dns_dbversion_t *version,
 
 	DNS_SLABTOP_FOREACH(top, qpnode->data) {
 		dns_slabheader_t *header = first_header(top);
-		if (header == NULL) {
-			continue;
-		}
-
-		if (check_stale_header(header, &search)) {
+		if (check_header(header, &search)) {
 			continue;
 		}
 
