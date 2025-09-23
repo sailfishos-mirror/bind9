@@ -99,6 +99,12 @@ zone "badalg.secure.example" {
 	allow-update { any; };
 };
 
+zone "zonecut.ent.secure.example" {
+	type primary;
+	file "zonecut.ent.secure.example.db.signed";
+	allow-update { any; };
+};
+
 zone "bogus.example" {
 	type primary;
 	file "bogus.example.db.signed";

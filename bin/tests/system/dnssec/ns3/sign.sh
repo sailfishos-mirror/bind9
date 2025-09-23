@@ -98,6 +98,18 @@ cat "$infile" "$keyname.key" >"$zonefile"
 
 "$SIGNER" -z -o "$zone" "$zonefile" >/dev/null
 
+# A zone that will be treated as insecure as the DEFAULT_ALGORITHM is
+# disabled for ent.secure.example.
+zone=zonecut.ent.secure.example.
+infile=zonecut.ent.secure.example.db.in
+zonefile=zonecut.ent.secure.example.db
+
+keyname=$("$KEYGEN" -q -a "$DEFAULT_ALGORITHM" -b "$DEFAULT_BITS" "$zone")
+
+cat "$infile" "$keyname.key" >"$zonefile"
+
+"$SIGNER" -z -o "$zone" "$zonefile" >/dev/null
+
 #
 zone=secure.example.
 infile=secure.example.db.in

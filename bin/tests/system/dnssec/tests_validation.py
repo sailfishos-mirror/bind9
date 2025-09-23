@@ -1327,6 +1327,25 @@ def test_unknown_algorithms():
             res.extended_errors()[0].code == edns.EDECode.UNSUPPORTED_DNSKEY_ALGORITHM
         )
 
+    # check that zone contents are still secure despite disable-algorithms
+    # on query name (name below zone name).
+    msg = isctest.query.create("z.secure.example", "A")
+    res = isctest.query.tcp(msg, "10.53.0.4")
+    isctest.check.rr_count_eq(res.answer, 2)
+    isctest.check.noerror(res)
+    isctest.check.adflag(res)
+
+    # check that zone contents are trated insecure (name above zone name).
+    msg = isctest.query.create("zonecut.ent.secure.example", "A")
+    res = isctest.query.tcp(msg, "10.53.0.4")
+    isctest.check.rr_count_eq(res.answer, 2)
+    isctest.check.noerror(res)
+    isctest.check.noadflag(res)
+    if hasattr(res, "extended_errors"):
+        assert (
+            res.extended_errors()[0].code == edns.EDECode.UNSUPPORTED_DNSKEY_ALGORITHM
+        )
+
     # check that DS records are still treated as secure at the
     # disable-algorithm name
     msg = isctest.query.create("badalg.secure.example", "DS")
