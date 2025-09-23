@@ -1288,6 +1288,20 @@ both_headers(dns_slabheader_t *header, dns_rdatatype_t type,
 	return done;
 }
 
+static void
+find_headers(qpcnode_t *node, qpc_search_t *search, dns_rdatatype_t type,
+	     dns_slabheader_t **found, dns_slabheader_t **foundsig) {
+	DNS_SLABTOP_FOREACH(top, node->data) {
+		dns_slabheader_t *header = first_header(top);
+		if (check_header(header, search)) {
+			continue;
+		}
+		if (both_headers(header, type, found, foundsig)) {
+			break;
+		}
+	}
+}
+
 static isc_result_t
 check_zonecut(qpcnode_t *node, void *arg DNS__DB_FLARG) {
 	qpc_search_t *search = arg;
@@ -1304,18 +1318,7 @@ check_zonecut(qpcnode_t *node, void *arg DNS__DB_FLARG) {
 	/*
 	 * Look for a DNAME or RRSIG DNAME rdataset.
 	 */
-	DNS_SLABTOP_FOREACH(top, node->data) {
-		dns_slabheader_t *header = first_header(top);
-		if (check_header(header, search)) {
-			continue;
-		}
-
-		if (both_headers(header, dns_rdatatype_dname, &found,
-				 &foundsig))
-		{
-			break;
-		}
-	}
+	find_headers(node, search, dns_rdatatype_dname, &found, &foundsig);
 
 	if (found != NULL && (!DNS_TRUST_PENDING(atomic_load(&found->trust)) ||
 			      (search->options & DNS_DBFIND_PENDINGOK) != 0))
@@ -1367,18 +1370,7 @@ find_deepest_zonecut(qpc_search_t *search, qpcnode_t *node,
 		/*
 		 * Look for NS and RRSIG NS rdatasets.
 		 */
-		DNS_SLABTOP_FOREACH(top, node->data) {
-			dns_slabheader_t *header = first_header(top);
-			if (check_header(header, search)) {
-				continue;
-			}
-
-			if (both_headers(header, dns_rdatatype_ns, &found,
-					 &foundsig))
-			{
-				break;
-			}
-		}
+		find_headers(node, search, dns_rdatatype_ns, &found, &foundsig);
 
 		if (found != NULL) {
 			/*
@@ -1471,17 +1463,8 @@ find_coveringnsec(qpc_search_t *search, const dns_name_t *name,
 
 	nlock = &search->qpdb->buckets[node->locknum].lock;
 	NODE_RDLOCK(nlock, &nlocktype);
-	DNS_SLABTOP_FOREACH(top, node->data) {
-		dns_slabheader_t *header = first_header(top);
-		if (check_header(header, search)) {
-			continue;
-		}
 
-		if (both_headers(header, dns_rdatatype_nsec, &found, &foundsig))
-		{
-			break;
-		}
-	}
+	find_headers(node, search, dns_rdatatype_nsec, &found, &foundsig);
 
 	if (found != NULL) {
 		if (nodep != NULL) {
@@ -1944,33 +1927,7 @@ seek_ns_headers(qpc_search_t *search, qpcnode_t *node, dns_dbnode_t **nodep,
 
 	NODE_RDLOCK(nlock, &nlocktype);
 
-	DNS_SLABTOP_FOREACH(top, node->data) {
-		bool ns = top->typepair == DNS_TYPEPAIR(dns_rdatatype_ns) ||
-			  top->typepair == DNS_SIGTYPEPAIR(dns_rdatatype_ns);
-		dns_slabheader_t *header = first_header(top);
-		if (header == NULL) {
-			continue;
-		}
-
-		if (check_stale_header(header, search)) {
-			if (ns) {
-				/*
-				 * We found a cached NS, but was either
-				 * ancient or it was stale and serve-stale
-				 * is disabled, so this node can't be used
-				 * as a zone cut we know about. Instead we
-				 * bail out and call find_deepest_zonecut()
-				 * below.
-				 */
-				break;
-			}
-			continue;
-		}
-
-		if (both_headers(header, dns_rdatatype_ns, &found, &foundsig)) {
-			break;
-		}
-	}
+	find_headers(node, search, dns_rdatatype_ns, &found, &foundsig);
 
 	if (found == NULL) {
 		isc_result_t result;
