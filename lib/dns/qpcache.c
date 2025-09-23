@@ -452,7 +452,7 @@ cleanup_deadnodes_cb(void *arg);
  * Cache-eviction routines.
  */
 
-static void
+static size_t
 expireheader(dns_slabheader_t *header, isc_rwlocktype_t *nlocktypep,
 	     isc_rwlocktype_t *tlocktypep, dns_expire_t reason DNS__DB_FLARG);
 
@@ -506,10 +506,8 @@ expire_lru_headers(qpcache_t *qpdb, uint32_t idx, size_t requested,
 
 		dns_slabheader_t *header = first_header(top);
 
-		expired += rdataset_size(header);
-
-		expireheader(header, nlocktypep, tlocktypep,
-			     dns_expire_lru DNS__DB_FLARG_PASS);
+		expired += expireheader(header, nlocktypep, tlocktypep,
+					dns_expire_lru DNS__DB_FLARG_PASS);
 	} while (expired < requested);
 }
 
@@ -925,9 +923,10 @@ mark_ancient(dns_slabheader_t *header) {
 /*
  * Caller must hold the node (write) lock.
  */
-static void
+static size_t
 expireheader(dns_slabheader_t *header, isc_rwlocktype_t *nlocktypep,
 	     isc_rwlocktype_t *tlocktypep, dns_expire_t reason DNS__DB_FLARG) {
+	size_t expired = rdataset_size(header);
 	mark_ancient(header);
 
 	if (isc_refcount_current(&HEADERNODE(header)->erefs) == 0) {
@@ -944,7 +943,7 @@ expireheader(dns_slabheader_t *header, isc_rwlocktype_t *nlocktypep,
 				tlocktypep DNS__DB_FLARG_PASS);
 
 		if (qpdb->cachestats == NULL) {
-			return;
+			return expired;
 		}
 
 		switch (reason) {
@@ -960,6 +959,8 @@ expireheader(dns_slabheader_t *header, isc_rwlocktype_t *nlocktypep,
 			break;
 		}
 	}
+
+	return expired;
 }
 
 static void
@@ -2245,8 +2246,8 @@ qpcnode_expiredata(dns_dbnode_t *node, void *data) {
 
 	isc_rwlock_t *nlock = &qpdb->buckets[qpnode->locknum].lock;
 	NODE_WRLOCK(nlock, &nlocktype);
-	expireheader(header, &nlocktype, &tlocktype,
-		     dns_expire_flush DNS__DB_FILELINE);
+	(void)expireheader(header, &nlocktype, &tlocktype,
+			   dns_expire_flush DNS__DB_FILELINE);
 	NODE_UNLOCK(nlock, &nlocktype);
 	INSIST(tlocktype == isc_rwlocktype_none);
 }
@@ -3795,8 +3796,8 @@ expire_ttl_headers(qpcache_t *qpdb, unsigned int locknum,
 			return;
 		}
 
-		expireheader(header, nlocktypep, tlocktypep,
-			     dns_expire_ttl DNS__DB_FLARG_PASS);
+		(void)expireheader(header, nlocktypep, tlocktypep,
+				   dns_expire_ttl DNS__DB_FLARG_PASS);
 	}
 }
 
