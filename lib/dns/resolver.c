@@ -687,7 +687,7 @@ findnoqname(fetchctx_t *fctx, dns_message_t *message, dns_name_t *name,
 	rcu_read_lock();                                                \
 	if (fctx__done(*fctxp, result, __func__, __FILE__, __LINE__)) { \
 		fetchctx_detach(fctxp);                                 \
-	};                                                              \
+	}                                                               \
 	rcu_read_unlock()
 
 #define fctx_failure_unref(fctx, result)                              \
@@ -695,35 +695,39 @@ findnoqname(fetchctx_t *fctx, dns_message_t *message, dns_name_t *name,
 	rcu_read_lock();                                              \
 	if (fctx__done(fctx, result, __func__, __FILE__, __LINE__)) { \
 		fetchctx_unref(fctx);                                 \
-	};                                                            \
+	}                                                             \
 	rcu_read_unlock()
 
 #define fctx_success_detach(fctxp)                                             \
 	rcu_read_lock();                                                       \
 	if (fctx__done(*fctxp, ISC_R_SUCCESS, __func__, __FILE__, __LINE__)) { \
 		fetchctx_detach(fctxp);                                        \
-	};                                                                     \
+	}                                                                      \
 	rcu_read_unlock()
 
 #define fctx_success_unref(fctx)                                             \
 	rcu_read_lock();                                                     \
 	if (fctx__done(fctx, ISC_R_SUCCESS, __func__, __FILE__, __LINE__)) { \
 		fetchctx_unref(fctx);                                        \
-	};                                                                   \
+	}                                                                    \
 	rcu_read_unlock()
 
 static bool
-fetchctx_attach(fetchctx_t *fctx, fetchctx_t **fctxp) {
-	if (urcu_ref_get_unless_zero(&fctx->ref)) {
-		*fctxp = fctx;
-		return true;
-	}
-	return false;
+fetchctx_ref_unless_zero(fetchctx_t *fctx) {
+	return urcu_ref_get_unless_zero(&fctx->ref);
 }
 
-static bool
+static void
+fetchctx_attach(fetchctx_t *fctx, fetchctx_t **fctxp) {
+	bool ref = fetchctx_ref_unless_zero(fctx);
+	INSIST(ref == true);
+	*fctxp = fctx;
+}
+
+static void
 fetchctx_ref(fetchctx_t *fctx) {
-	return urcu_ref_get_unless_zero(&fctx->ref);
+	bool ref = fetchctx_ref_unless_zero(fctx);
+	INSIST(ref == true);
 }
 
 static void
@@ -10004,7 +10008,7 @@ get_attached_fctx(dns_resolver_t *res, isc_loop_t *loop, const dns_name_t *name,
 		LOCK(&fctx->lock);
 	}
 
-	if (!fetchctx_ref(fctx)) {
+	if (!fetchctx_ref_unless_zero(fctx)) {
 		UNLOCK(&fctx->lock);
 		fctx = NULL;
 		goto create;
