@@ -198,7 +198,9 @@ struct qpznode {
 	atomic_bool wild;
 	atomic_bool delegating;
 	atomic_bool dirty;
-	dns_slabtop_t *data;
+
+	struct cds_list_head types_list;
+	struct cds_list_head *data;
 };
 
 struct qpzonedb {
@@ -631,6 +633,8 @@ static qpznode_t *
 new_qpznode(qpzonedb_t *qpdb, const dns_name_t *name, dns_namespace_t nspace) {
 	qpznode_t *newdata = isc_mem_get(qpdb->common.mctx, sizeof(*newdata));
 	*newdata = (qpznode_t){
+		.types_list = CDS_LIST_HEAD_INIT(newdata->types_list),
+		.data = &newdata->types_list,
 		.methods = &qpznode_methods,
 		.name = DNS_NAME_INITEMPTY,
 		.nspace = nspace,
@@ -801,16 +805,48 @@ qpznode_acquire(qpznode_t *node DNS__DB_FLARG) {
 	qpznode_erefs_increment(node DNS__DB_FLARG_PASS);
 }
 
+static dns_slabheader_t *
+first_header(dns_slabtop_t *top) {
+	dns_slabheader_t *header = NULL;
+	cds_list_for_each_entry(header, &top->headers, headers_link) {
+		return header;
+	}
+	return NULL;
+}
+
+static dns_slabheader_t *
+next_header(dns_slabheader_t *header) {
+	return cds_list_entry((header)->headers_link.next, dns_slabheader_t,
+			      headers_link);
+}
+
+static dns_slabheader_t *
+first_existing_header(dns_slabtop_t *top, uint32_t serial) {
+	dns_slabheader_t *header = NULL;
+	cds_list_for_each_entry(header, &top->headers, headers_link) {
+		if (header->serial <= serial && !IGNORE(header)) {
+			if (EXISTS(header)) {
+				return header;
+			}
+			break;
+		}
+	}
+	return NULL;
+}
+
 static void
 clean_multiple_headers(dns_slabtop_t *top) {
-	dns_slabheader_t *parent = top->header;
-	dns_slabheader_t *header = NULL, *header_down = NULL;
+	dns_slabheader_t *parent = first_header(top);
+	if (parent == NULL) {
+		return;
+	}
 
-	for (header = parent->down; header != NULL; header = header_down) {
-		header_down = header->down;
+	dns_slabheader_t *header = next_header(parent), *header_next = NULL;
+	cds_list_for_each_entry_safe_from(header, header_next, &top->headers,
+					  headers_link) {
 		INSIST(header->serial <= parent->serial);
 		if (header->serial == parent->serial || IGNORE(header)) {
-			parent->down = header->down;
+			cds_list_del(&header->headers_link);
 			dns_slabheader_destroy(&header);
 		} else {
 			parent = header;
@@ -820,23 +856,26 @@ clean_multiple_headers(dns_slabtop_t *top) {
 
 static void
 check_top_header(dns_slabtop_t *top) {
-	dns_slabheader_t *header = top->header;
-	if (IGNORE(header)) {
-		top->header = header->down;
+	dns_slabheader_t *header = first_header(top);
+	if (header != NULL && IGNORE(header)) {
+		cds_list_del(&header->headers_link);
 		dns_slabheader_destroy(&header);
 	}
 }
 
 static bool
 clean_multiple_versions(dns_slabtop_t *top, uint32_t least_serial) {
-	dns_slabheader_t *parent = top->header;
-	dns_slabheader_t *header = NULL, *header_down = NULL;
-	bool multiple = false;
+	dns_slabheader_t *parent = first_header(top);
+	if (parent == NULL) {
+		return false;
+	}
 
-	for (header = parent->down; header != NULL; header = header_down) {
-		header_down = header->down;
+	bool multiple = false;
+	dns_slabheader_t *header = next_header(parent), *header_next = NULL;
+	cds_list_for_each_entry_safe_from(header, header_next, &top->headers,
+					  headers_link) {
 		if (header->serial < least_serial) {
-			parent->down = header->down;
+			cds_list_del(&header->headers_link);
 			dns_slabheader_destroy(&header);
 		} else {
 			multiple = true;
@@ -848,7 +887,6 @@ clean_multiple_versions(dns_slabtop_t *top, uint32_t least_serial) {
 
 static void
 clean_zone_node(qpznode_t *node, uint32_t least_serial) {
-	dns_slabtop_t *top_prev = NULL;
 	bool still_dirty = false;
 
 	/*
@@ -857,8 +895,6 @@ clean_zone_node(qpznode_t *node, uint32_t least_serial) {
 	REQUIRE(least_serial != 0);
 
 	DNS_SLABTOP_FOREACH(top, node->data) {
-		INSIST(top->header != NULL);
-
 		/*
 		 * First, we clean up any instances of multiple rdatasets
 		 * with the same serial number, or that have the IGNORE
@@ -872,12 +908,8 @@ clean_zone_node(qpznode_t *node, uint32_t least_serial) {
 		 */
 		check_top_header(top);
 
-		if (top->header == NULL) {
-			if (top_prev != NULL) {
-				top_prev->next = top->next;
-			} else {
-				node->data = top->next;
-			}
+		if (first_header(top) == NULL) {
+			cds_list_del(&top->types_link);
 			dns_slabtop_destroy(node->mctx, &top);
 		} else {
 			/*
@@ -891,8 +923,6 @@ clean_zone_node(qpznode_t *node, uint32_t least_serial) {
 			 */
 			still_dirty = clean_multiple_versions(top,
 							      least_serial);
-
-			top_prev = top;
 		}
 	}
 	if (!still_dirty) {
@@ -942,7 +972,7 @@ qpznode_release(qpznode_t *node, uint32_t least_serial,
 	}
 
 	/* Handle easy and typical case first. */
-	if (!node->dirty && node->data != NULL) {
+	if (!node->dirty && !cds_list_empty(node->data)) {
 		goto unref;
 	}
 
@@ -1014,28 +1044,6 @@ bindrdataset(qpzonedb_t *qpdb, qpznode_t *node, dns_slabheader_t *header,
 	} else {
 		rdataset->resign = 0;
 	}
-}
-
-static dns_slabheader_t *
-first_header(dns_slabtop_t *top, uint32_t serial) {
-	for (dns_slabheader_t *header = top->header; header != NULL;
-	     header = header->down)
-	{
-		if (header->serial <= serial && !IGNORE(header)) {
-			return header;
-		}
-	}
-
-	return NULL;
-}
-
-static dns_slabheader_t *
-first_existing_header(dns_slabtop_t *top, uint32_t serial) {
-	dns_slabheader_t *header = first_header(top, serial);
-	if (header != NULL && EXISTS(header)) {
-		return header;
-	}
-	return NULL;
 }
 
 static void
@@ -1296,17 +1304,8 @@ rollback_node(qpznode_t *node, uint32_t serial) {
 	 * will be cleaned up; until that time, they will be ignored.
 	 */
 	DNS_SLABTOP_FOREACH(top, node->data) {
-		dns_slabheader_t *header = top->header;
-
-		if (header->serial == serial) {
-			DNS_SLABHEADER_SETATTR(header,
-					       DNS_SLABHEADERATTR_IGNORE);
-			make_dirty = true;
-		}
-
-		for (header = header->down; header != NULL;
-		     header = header->down)
-		{
+		dns_slabheader_t *header = NULL;
+		cds_list_for_each_entry(header, &top->headers, headers_link) {
 			if (header->serial == serial) {
 				DNS_SLABHEADER_SETATTR(
 					header, DNS_SLABHEADERATTR_IGNORE);
@@ -1825,12 +1824,14 @@ add(qpzonedb_t *qpdb, qpznode_t *node, const dns_name_t *nodename,
 	 * IGNORE rdatasets between the top of the chain and the first real
 	 * data.  We skip over them.
 	 */
-	dns_slabheader_t *header = NULL, *header_prev = NULL;
+	dns_slabheader_t *header = NULL;
 	if (foundtop != NULL) {
-		header = foundtop->header;
-		while (header != NULL && IGNORE(header)) {
-			header_prev = header;
-			header = header->down;
+		dns_slabheader_t *tmp = NULL;
+		cds_list_for_each_entry(tmp, &top->headers, headers_link) {
+			if (!IGNORE(tmp)) {
+				header = tmp;
+				break;
+			}
 		}
 	}
 
@@ -1898,11 +1899,10 @@ add(qpzonedb_t *qpdb, qpznode_t *node, const dns_name_t *nodename,
 			}
 		}
 
-		INSIST(version->serial >= foundtop->header->serial);
+		INSIST(version->serial >= header->serial);
 		INSIST(foundtop->typepair == newheader->typepair);
 
 		if (loading) {
-			newheader->down = NULL;
 			if (RESIGN(newheader)) {
 				resigninsert(newheader);
 				/* resigndelete not needed here */
@@ -1915,7 +1915,9 @@ add(qpzonedb_t *qpdb, qpznode_t *node, const dns_name_t *nodename,
 			 * loading, we MUST clean up 'header' now.
 			 */
 			newheader->top = foundtop;
-			foundtop->header = newheader;
+			cds_list_del(&header->headers_link);
+			cds_list_add(&newheader->headers_link,
+				     &foundtop->headers);
 			maybe_update_recordsandsize(false, version, header,
 						    nodename->length);
 
@@ -1927,14 +1929,9 @@ add(qpzonedb_t *qpdb, qpznode_t *node, const dns_name_t *nodename,
 					     header DNS__DB_FLARG_PASS);
 			}
 
-			if (header_prev != NULL) {
-				header_prev->down = newheader;
-			} else {
-				foundtop->header = newheader;
-			}
-
 			newheader->top = foundtop;
-			newheader->down = header;
+			cds_list_add(&newheader->headers_link,
+				     &foundtop->headers);
 
 			node->dirty = true;
 			if (changed != NULL) {
@@ -1970,10 +1967,11 @@ add(qpzonedb_t *qpdb, qpznode_t *node, const dns_name_t *nodename,
 			 * we INSIST on it.
 			 */
 			INSIST(!loading);
-			INSIST(version->serial >= foundtop->header->serial);
+
 			newheader->top = foundtop;
-			newheader->down = foundtop->header;
-			foundtop->header = newheader;
+			cds_list_add(&newheader->headers_link,
+				     &foundtop->headers);
+
 			if (changed != NULL) {
 				changed->dirty = true;
 			}
@@ -1994,20 +1992,19 @@ add(qpzonedb_t *qpdb, qpznode_t *node, const dns_name_t *nodename,
 				node->mctx, newheader->typepair);
 
 			newheader->top = newtop;
-			newtop->header = newheader;
+			cds_list_add(&newheader->headers_link,
+				     &newtop->headers);
 
 			if (prio_type(newheader->typepair)) {
 				/* This is a priority type, prepend it */
-				newtop->next = node->data;
-				node->data = newtop;
+				cds_list_add(&newtop->types_link, node->data);
 			} else if (priotop != NULL) {
 				/* Append after the priority headers */
-				newtop->next = priotop->next;
-				priotop->next = newtop;
+				cds_list_add(&newtop->types_link,
+					     &priotop->types_link);
 			} else {
 				/* There were no priority headers */
-				newtop->next = node->data;
-				node->data = newtop;
+				cds_list_add(&newtop->types_link, node->data);
 			}
 		}
 	}
@@ -2135,7 +2132,6 @@ loading_addrdataset(void *arg, const dns_name_t *name,
 
 	newheader = (dns_slabheader_t *)region.base;
 	dns_slabheader_reset(newheader, (dns_dbnode_t *)node);
-
 	newheader->ttl = rdataset->ttl;
 	atomic_store(&newheader->trust, rdataset->trust);
 	newheader->serial = 1;
@@ -3964,25 +3960,30 @@ rdatasetiter_next(dns_rdatasetiter_t *iterator DNS__DB_FLARG) {
 	qpz_version_t *version = (qpz_version_t *)qrditer->common.version;
 	isc_rwlocktype_t nlocktype = isc_rwlocktype_none;
 	isc_rwlock_t *nlock = qpzone_get_lock(node);
-	dns_slabtop_t *next = NULL;
+	dns_slabtop_t *from = NULL;
 
 	if (qrditer->currenttop == NULL) {
 		return ISC_R_NOMORE;
 	}
-	next = qrditer->currenttop->next;
-	qrditer->currenttop = NULL;
-	qrditer->current = NULL;
 
 	NODE_RDLOCK(nlock, &nlocktype);
+
+	from = cds_list_entry(qrditer->currenttop->types_link.next,
+			      dns_slabtop_t, types_link);
+	qrditer->currenttop = NULL;
+	qrditer->current = NULL;
 
 	/*
 	 * Find the start of the header chain for the next type.
 	 */
-	DNS_SLABTOP_FOREACH(top, next) {
-		qrditer->current = first_existing_header(top, version->serial);
-		if (qrditer->current != NULL) {
-			qrditer->currenttop = top;
-			break;
+	if (from != NULL) {
+		DNS_SLABTOP_FOREACH_FROM(top, node->data, from) {
+			qrditer->current =
+				first_existing_header(top, version->serial);
+			if (qrditer->current != NULL) {
+				qrditer->currenttop = top;
+				break;
+			}
 		}
 	}
 
@@ -4766,9 +4767,12 @@ qpzone_subtractrdataset(dns_db_t *db, dns_dbnode_t *dbnode,
 	 */
 	dns_slabheader_t *header = NULL;
 	if (foundtop != NULL) {
-		header = foundtop->header;
-		while (header != NULL && IGNORE(header)) {
-			header = header->down;
+		dns_slabheader_t *tmp = NULL;
+		cds_list_for_each_entry(tmp, &foundtop->headers, headers_link) {
+			if (!IGNORE(tmp)) {
+				header = tmp;
+				break;
+			}
 		}
 	}
 	if (header != NULL && EXISTS(header)) {
@@ -4834,13 +4838,11 @@ qpzone_subtractrdataset(dns_db_t *db, dns_dbnode_t *dbnode,
 		/*
 		 * If we're here, we want to link newheader at the top.
 		 */
-		INSIST(version->serial >= foundtop->header->serial);
 		maybe_update_recordsandsize(false, version, header,
 					    nodename->length);
 
 		newheader->top = foundtop;
-		newheader->down = foundtop->header;
-		foundtop->header = newheader;
+		cds_list_add(&newheader->headers_link, &foundtop->headers);
 
 		node->dirty = true;
 		changed->dirty = true;
@@ -5291,12 +5293,13 @@ static dns_dbnode_methods_t qpznode_methods = (dns_dbnode_methods_t){
 static void
 destroy_qpznode(qpznode_t *node) {
 	DNS_SLABTOP_FOREACH(top, node->data) {
-		dns_slabheader_t *down = NULL, *down_next = NULL;
-		for (down = top->header; down != NULL; down = down_next) {
-			down_next = down->down;
-			dns_slabheader_destroy(&down);
+		dns_slabheader_t *header = NULL, *header_next = NULL;
+		cds_list_for_each_entry_safe(header, header_next, &top->headers,
+					     headers_link)
+		{
+			cds_list_del(&header->headers_link);
+			dns_slabheader_destroy(&header);
 		}
-		top->header = NULL;
 
 		dns_slabtop_destroy(node->mctx, &top);
 	}
