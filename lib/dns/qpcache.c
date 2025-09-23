@@ -502,12 +502,22 @@ expire_lru_headers(qpcache_t *qpdb, uint32_t idx, size_t requested,
 			return;
 		}
 
+		dns_slabtop_t *related = top->related;
+
 		ISC_SIEVE_UNLINK(qpdb->buckets[idx].sieve, top, link);
 
 		dns_slabheader_t *header = first_header(top);
-
 		expired += expireheader(header, nlocktypep, tlocktypep,
 					dns_expire_lru DNS__DB_FLARG_PASS);
+
+		if (related != NULL) {
+			header = first_header(related);
+
+			expired +=
+				expireheader(header, nlocktypep, tlocktypep,
+					     dns_expire_lru DNS__DB_FLARG_PASS);
+		}
+
 	} while (expired < requested);
 }
 
@@ -598,6 +608,11 @@ clean_cache_node(qpcache_t *qpdb, qpcnode_t *node) {
 		 * If current slabtop is empty, we can clean it up.
 		 */
 		if (header == NULL) {
+			if (top->related != NULL) {
+				top->related->related = NULL;
+				top->related = NULL;
+			}
+
 			cds_list_del(&top->types_link);
 
 			if (ISC_LINK_LINKED(top, link)) {
@@ -927,6 +942,7 @@ static size_t
 expireheader(dns_slabheader_t *header, isc_rwlocktype_t *nlocktypep,
 	     isc_rwlocktype_t *tlocktypep, dns_expire_t reason DNS__DB_FLARG) {
 	size_t expired = rdataset_size(header);
+
 	mark_ancient(header);
 
 	if (isc_refcount_current(&HEADERNODE(header)->erefs) == 0) {
@@ -2182,14 +2198,23 @@ qpcnode_expiredata(dns_dbnode_t *node, void *data) {
 	qpcnode_t *qpnode = (qpcnode_t *)node;
 	qpcache_t *qpdb = (qpcache_t *)qpnode->qpdb;
 
+	dns_slabtop_t *related = NULL;
 	dns_slabheader_t *header = data;
 	isc_rwlocktype_t nlocktype = isc_rwlocktype_none;
 	isc_rwlocktype_t tlocktype = isc_rwlocktype_none;
 
 	isc_rwlock_t *nlock = &qpdb->buckets[qpnode->locknum].lock;
 	NODE_WRLOCK(nlock, &nlocktype);
+	related = header->top->related;
+
 	(void)expireheader(header, &nlocktype, &tlocktype,
 			   dns_expire_flush DNS__DB_FILELINE);
+	if (related != NULL) {
+		header = first_header(related);
+		(void)expireheader(header, &nlocktype, &tlocktype,
+				   dns_expire_flush DNS__DB_FILELINE);
+	}
+
 	NODE_UNLOCK(nlock, &nlocktype);
 	INSIST(tlocktype == isc_rwlocktype_none);
 }
