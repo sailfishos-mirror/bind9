@@ -1234,7 +1234,8 @@ check_stale_header(dns_slabheader_t *header, qpc_search_t *search) {
 
 static bool
 check_header(dns_slabheader_t *header, qpc_search_t *search) {
-	return header == NULL || check_stale_header(header, search);
+	return header == NULL || check_stale_header(header, search) ||
+	       !EXISTS(header) || ANCIENT(header);
 }
 
 /*
@@ -1243,78 +1244,121 @@ check_header(dns_slabheader_t *header, qpc_search_t *search) {
  * negative header covering either 'negtype' or ANY.
  */
 static bool
-related_headers(dns_slabheader_t *header, dns_typepair_t typepair,
-		dns_typepair_t sigpair, dns_slabheader_t **foundp,
-		dns_slabheader_t **foundsigp, bool *matchp) {
-	if (!EXISTS(header) || ANCIENT(header)) {
-		return false;
+related_headers(dns_slabheader_t *header, dns_slabheader_t *sigheader,
+		dns_typepair_t typepair, dns_slabheader_t **foundp,
+		dns_slabheader_t **foundsigp) {
+	if (header != NULL) {
+		REQUIRE(DNS_TYPEPAIR_TYPE(header->typepair) !=
+			dns_rdatatype_rrsig);
+		REQUIRE(DNS_TYPEPAIR_COVERS(header->typepair) ==
+			dns_rdatatype_none);
+	}
+	if (sigheader != NULL) {
+		REQUIRE(DNS_TYPEPAIR_TYPE(sigheader->typepair) ==
+			dns_rdatatype_rrsig);
+		REQUIRE(DNS_TYPEPAIR_COVERS(sigheader->typepair) !=
+				dns_rdatatype_none ||
+			NEGATIVE(sigheader));
 	}
 
-	if (header->typepair == typepair && NEGATIVE(header)) {
-		/*
-		 * In theory, the RRSIG(type) should not exist, but in reality,
-		 * both the LRU and TTL based cleaning can delete one, but not
-		 * the other.  The INSIST below should be restored when we add
-		 * a more strict synchronization between the type and its
-		 * signature.
-		 */
-		/* INSIST(*foundsigp == NULL); */
-		*foundp = header;
-		SET_IF_NOT_NULL(matchp, true);
-		return true;
-	} else if (header->typepair == typepair) {
-		*foundp = header;
-		SET_IF_NOT_NULL(matchp, true);
-		if (*foundsigp != NULL) {
-			return true;
-		}
-	} else if (header->typepair == sigpair) {
-		INSIST(!NEGATIVE(header));
-		*foundsigp = header;
-		SET_IF_NOT_NULL(matchp, true);
-		if (*foundp != NULL) {
-			return true;
-		}
-	} else if (header->typepair == dns_typepair_any) {
+	/*
+	 * Nothing exists if there's a NEGATIVE(dns_typepair_any).
+	 */
+	if (header != NULL && header->typepair == dns_typepair_any) {
 		INSIST(NEGATIVE(header));
+		INSIST(sigheader == NULL);
 		*foundp = header;
 		*foundsigp = NULL;
-		SET_IF_NOT_NULL(matchp, true);
 		return true;
+	}
+
+	/*
+	 * Use the sigheader if we are looking for RRSIG.
+	 */
+	if (DNS_TYPEPAIR_TYPE(typepair) == dns_rdatatype_rrsig) {
+		if (sigheader == NULL) {
+			return false;
+		}
+
+		REQUIRE(EXISTS(sigheader) && !ANCIENT(sigheader));
+		if (sigheader->typepair == typepair) {
+			*foundp = sigheader;
+			*foundsigp = NULL;
+			return true;
+		}
+		return false;
+	} else {
+		if (header == NULL) {
+			return false;
+		}
+
+		REQUIRE(EXISTS(header) && !ANCIENT(header));
+		REQUIRE(!NEGATIVE(header) || sigheader == NULL);
+
+		if (header->typepair == typepair) {
+			*foundp = header;
+			*foundsigp = sigheader;
+			return true;
+		}
 	}
 
 	return false;
 }
 
-/*
- * Return true if we've found headers for both 'type' and RRSIG('type').
- */
-static bool
-both_headers(dns_slabheader_t *header, dns_rdatatype_t type,
-	     dns_slabheader_t **foundp, dns_slabheader_t **foundsigp) {
-	dns_typepair_t typepair = DNS_TYPEPAIR_VALUE(type, 0);
-	dns_typepair_t sigpair = DNS_SIGTYPEPAIR(type);
-
-	bool done = related_headers(header, typepair, sigpair, foundp,
-				    foundsigp, NULL);
-	if (done && NEGATIVE(*foundp)) {
-		*foundp = NULL;
-	}
-
-	return done;
-}
-
 static void
 find_headers(qpcnode_t *node, qpc_search_t *search, dns_rdatatype_t type,
-	     dns_slabheader_t **found, dns_slabheader_t **foundsig) {
+	     dns_slabheader_t **foundp, dns_slabheader_t **foundsigp) {
 	DNS_SLABTOP_FOREACH(top, node->data) {
-		dns_slabheader_t *header = first_header(top);
-		if (check_header(header, search)) {
+		dns_slabheader_t *header = NULL, *sigheader = NULL;
+		dns_slabtop_t *related = top->related;
+
+		if (top->typepair == dns_typepair_any) {
+			INSIST(top->related == NULL);
+			header = first_header(top);
+			INSIST(NEGATIVE(header));
+			if (check_header(header, search)) {
+				/*
+				 * NEGATIVE(ANY), but it is no longer valid.
+				 */
+				header = NULL;
+				continue;
+			}
+			*foundp = NULL;
+			*foundsigp = NULL;
+			return;
+		}
+
+		if (top->typepair == DNS_TYPEPAIR(type)) {
+			header = first_header(top);
+			if (related != NULL) {
+				sigheader = first_header(related);
+			}
+		} else if (top->typepair == DNS_SIGTYPEPAIR(type)) {
+			sigheader = first_header(top);
+			if (related != NULL) {
+				header = first_header(related);
+			}
+		} else {
+			/* Not our type; continue with next slabtop */
 			continue;
 		}
-		if (both_headers(header, type, found, foundsig)) {
-			break;
+
+		if (check_header(header, search)) {
+			header = NULL;
 		}
+		if (check_header(sigheader, search)) {
+			sigheader = NULL;
+		}
+
+		/*
+		 * This function only sets positive headers.
+		 */
+		if (header != NULL && !NEGATIVE(header)) {
+			*foundp = header;
+			*foundsigp = sigheader;
+		}
+
+		return;
 	}
 }
 
@@ -1555,10 +1599,10 @@ qpcache_find(dns_db_t *db, const dns_name_t *name, dns_dbversion_t *version,
 	isc_rwlock_t *nlock = NULL;
 	isc_rwlocktype_t tlocktype = isc_rwlocktype_none;
 	isc_rwlocktype_t nlocktype = isc_rwlocktype_none;
-	dns_slabheader_t *found = NULL, *nsheader = NULL;
-	dns_slabheader_t *foundsig = NULL, *nssig = NULL, *cnamesig = NULL;
+	dns_slabheader_t *found = NULL, *foundsig = NULL;
+	dns_slabheader_t *nsheader = NULL, *nssig = NULL;
 	dns_slabheader_t *nsecheader = NULL, *nsecsig = NULL;
-	dns_typepair_t typepair, sigpair;
+	dns_typepair_t typepair;
 
 	if (type == dns_rdatatype_none) {
 		/* We can't search negative cache directly */
@@ -1670,20 +1714,35 @@ qpcache_find(dns_db_t *db, const dns_name_t *name, dns_dbversion_t *version,
 	found = NULL;
 	foundsig = NULL;
 	typepair = DNS_TYPEPAIR(type);
-	sigpair = (type != dns_rdatatype_rrsig) ? DNS_SIGTYPEPAIR(type) : 0;
 	nsheader = NULL;
 	nsecheader = NULL;
 	nssig = NULL;
 	nsecsig = NULL;
-	cnamesig = NULL;
 	empty_node = true;
+
 	DNS_SLABTOP_FOREACH(top, node->data) {
-		dns_slabheader_t *header = first_header(top);
-		if (check_header(header, &search)) {
-			continue;
+		dns_slabheader_t *header = NULL, *sigheader = NULL;
+		if (DNS_TYPEPAIR_TYPE(top->typepair) == dns_rdatatype_rrsig) {
+			sigheader = first_header(top);
+			if (top->related != NULL) {
+				header = first_header(top->related);
+			}
+		} else {
+			header = first_header(top);
+			if (top->related != NULL) {
+				sigheader = first_header(top->related);
+			}
 		}
 
-		if (!EXISTS(header) || ANCIENT(header)) {
+		if (check_header(header, &search)) {
+			header = NULL;
+		}
+
+		if (check_header(sigheader, &search)) {
+			sigheader = NULL;
+		}
+
+		if (header == NULL && sigheader == NULL) {
 			continue;
 		}
 
@@ -1693,20 +1752,22 @@ qpcache_find(dns_db_t *db, const dns_name_t *name, dns_dbversion_t *version,
 		 */
 		empty_node = false;
 
-		if (header->noqname != NULL &&
+		if (header != NULL && header->noqname != NULL &&
 		    atomic_load(&header->trust) == dns_trust_secure)
 		{
 			found_noqname = true;
 		}
 
-		if (!NEGATIVE(header)) {
+		if (header != NULL && !NEGATIVE(header)) {
 			all_negative = false;
 		}
 
-		bool match = false;
-		if (related_headers(header, typepair, sigpair, &found,
-				    &foundsig, &match) &&
-		    !missing_answer(found, options))
+		if (sigheader != NULL && !NEGATIVE(sigheader)) {
+			all_negative = false;
+		}
+
+		if (related_headers(header, sigheader, typepair, &found,
+				    &foundsig))
 		{
 			/*
 			 * We can't exit early until we have an answer with
@@ -1714,63 +1775,42 @@ qpcache_find(dns_db_t *db, const dns_name_t *name, dns_dbversion_t *version,
 			 * for details - because we might need NS or NSEC
 			 * records.
 			 */
+			if (missing_answer(found, options)) {
+				continue;
+			}
+
+			/* We found something, continue with next header */
 			break;
 		}
 
-		if (match) {
-			/* We found something, continue with next header */
-			continue;
-		}
-
-		if (NEGATIVE(header)) {
+		if (header == NULL || NEGATIVE(header)) {
 			/*
-			 * FIXME: As of now, we are not interested in
-			 * the negative headers.  This could be
-			 * improved and we can bail out early if we've
-			 * seen all the types below (positive or
-			 * negative), but the code is not yet ready
-			 * for this.
+			 * We are not interested in the negative headers for the
+			 * auxiliary types, only for the main type we are
+			 * looking for.
 			 */
 			continue;
 		}
 
 		switch (top->typepair) {
 		case dns_rdatatype_cname:
-			if (!cname_ok) {
-				break;
-			}
-
-			found = header;
-			if (cnamesig != NULL) {
-				/* We already have CNAME signature */
-				foundsig = cnamesig;
-			} else {
-				/* Look for CNAME signature instead */
-				sigpair = DNS_SIGTYPEPAIR(dns_rdatatype_cname);
-				foundsig = NULL;
-			}
-			break;
 		case DNS_SIGTYPEPAIR(dns_rdatatype_cname):
-			if (!cname_ok) {
-				break;
+			if (cname_ok) {
+				found = header;
+				foundsig = sigheader;
 			}
+			break;
 
-			cnamesig = header;
-			break;
 		case dns_rdatatype_ns:
-			/* Remember the NS rdataset */
-			nsheader = header;
-			break;
 		case DNS_SIGTYPEPAIR(dns_rdatatype_ns):
-			/* ...and its signature */
-			nssig = header;
+			nsheader = header;
+			nssig = sigheader;
 			break;
 
 		case dns_rdatatype_nsec:
-			nsecheader = header;
-			break;
 		case DNS_SIGTYPEPAIR(dns_rdatatype_nsec):
-			nsecsig = header;
+			nsecheader = header;
+			nsecsig = sigheader;
 			break;
 
 		default:
@@ -1779,6 +1819,10 @@ qpcache_find(dns_db_t *db, const dns_name_t *name, dns_dbversion_t *version,
 				found = header;
 				break;
 			}
+		}
+
+		if (!missing_answer(found, options)) {
+			break;
 		}
 	}
 
@@ -2091,16 +2135,37 @@ qpcache_findrdataset(dns_db_t *db, dns_dbnode_t *node, dns_dbversion_t *version,
 						: dns_typepair_none;
 
 	DNS_SLABTOP_FOREACH(top, qpnode->data) {
-		dns_slabheader_t *header = first_header(top);
-		if (check_header(header, &search)) {
+		dns_slabheader_t *header = NULL, *sigheader = NULL;
+
+		if (top->typepair != typepair && top->typepair != sigpair &&
+		    top->typepair != dns_typepair_any)
+		{
 			continue;
 		}
 
-		if (related_headers(header, typepair, sigpair, &found,
-				    &foundsig, NULL))
-		{
-			break;
+		if (DNS_TYPEPAIR_TYPE(top->typepair) == dns_rdatatype_rrsig) {
+			sigheader = first_header(top);
+			if (top->related != NULL) {
+				header = first_header(top->related);
+			}
+		} else {
+			header = first_header(top);
+			if (top->related != NULL) {
+				sigheader = first_header(top->related);
+			}
 		}
+
+		if (check_header(header, &search)) {
+			header = NULL;
+		}
+
+		if (check_header(sigheader, &search)) {
+			sigheader = NULL;
+		}
+
+		(void)related_headers(header, sigheader, typepair, &found,
+				      &foundsig);
+		break;
 	}
 
 	if (found != NULL) {
