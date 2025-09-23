@@ -79,6 +79,8 @@ struct dns_slabtop {
 
 	dns_typepair_t typepair;
 
+	dns_slabtop_t *related;
+
 	/*% Used for SIEVE-LRU (cache) and changed_list (zone) */
 	ISC_LINK(struct dns_slabtop) link;
 	/*% Used for SIEVE-LRU */

@@ -2561,12 +2561,11 @@ add(qpcache_t *qpdb, qpcnode_t *qpnode, dns_slabheader_t *newheader,
     unsigned int options, dns_rdataset_t *addedrdataset, isc_stdtime_t now,
     isc_rwlocktype_t nlocktype, isc_rwlocktype_t tlocktype DNS__DB_FLARG) {
 	dns_slabtop_t *priotop = NULL, *expiretop = NULL;
-	dns_slabheader_t *oldheader = NULL, *oldsigheader = NULL;
+	dns_slabtop_t *oldtop = NULL, *related = NULL;
 	dns_trust_t trust;
 	uint32_t ntypes = 0;
 	dns_rdatatype_t rdtype = DNS_TYPEPAIR_TYPE(newheader->typepair);
 	dns_rdatatype_t covers = DNS_TYPEPAIR_COVERS(newheader->typepair);
-	dns_typepair_t sigpair = dns_typepair_none;
 
 	REQUIRE(rdtype != dns_rdatatype_none);
 	if (dns_rdatatype_issig(rdtype)) {
@@ -2583,16 +2582,6 @@ add(qpcache_t *qpdb, qpcnode_t *qpnode, dns_slabheader_t *newheader,
 		trust = dns_trust_ultimate;
 	} else {
 		trust = newheader->trust;
-	}
-
-	if (EXISTS(newheader) && NEGATIVE(newheader) &&
-	    !dns_rdatatype_issig(rdtype))
-	{
-		/*
-		 * Look for any RRSIGs of the given type in the main search
-		 * loop so they can be also marked ancient later.
-		 */
-		sigpair = DNS_SIGTYPEPAIR(rdtype);
 	}
 
 	DNS_SLABTOP_FOREACH(top, qpnode->data) {
@@ -2659,17 +2648,27 @@ add(qpcache_t *qpdb, qpcnode_t *qpnode, dns_slabheader_t *newheader,
 		}
 
 		if (top->typepair == newheader->typepair) {
-			INSIST(oldheader == NULL);
-			oldheader = first_header(top);
+			INSIST(oldtop == NULL);
+			oldtop = top;
 		}
 
-		if (sigpair != dns_rdatatype_none && top->typepair == sigpair) {
-			INSIST(oldsigheader == NULL);
-			oldsigheader = first_header(top);
+		if (rdtype == dns_rdatatype_rrsig) {
+			if (DNS_TYPEPAIR_TYPE(top->typepair) == covers) {
+				INSIST(related == NULL);
+				related = top;
+			}
+		} else {
+			if (top->typepair == DNS_SIGTYPEPAIR(rdtype)) {
+				INSIST(related == NULL);
+				related = top;
+			}
 		}
 	}
 
-	if (oldheader != NULL) {
+	if (oldtop != NULL) {
+		dns_slabheader_t *oldheader = first_header(oldtop);
+		INSIST(oldheader != NULL);
+
 		/*
 		 * Deleting an already non-existent rdataset has no effect.
 		 */
@@ -2696,7 +2695,7 @@ add(qpcache_t *qpdb, qpcnode_t *qpnode, dns_slabheader_t *newheader,
 			    (options & DNS_DBADD_EQUALOK) != 0 &&
 			    dns_rdataslab_equalx(
 				    oldheader, newheader, qpdb->common.rdclass,
-				    DNS_TYPEPAIR_TYPE(oldheader->typepair)))
+				    DNS_TYPEPAIR_TYPE(oldtop->typepair)))
 			{
 				/*
 				 * Updated by caller to ISC_R_SUCCESS after
@@ -2716,13 +2715,13 @@ add(qpcache_t *qpdb, qpcnode_t *qpnode, dns_slabheader_t *newheader,
 		 * further down.
 		 */
 		if (ACTIVE(oldheader, now) &&
-		    oldheader->typepair == DNS_TYPEPAIR(dns_rdatatype_ns) &&
+		    oldtop->typepair == DNS_TYPEPAIR(dns_rdatatype_ns) &&
 		    EXISTS(oldheader) && EXISTS(newheader) &&
 		    newheader->trust < oldtrust &&
 		    oldheader->expire < newheader->expire &&
-		    dns_rdataslab_equalx(
-			    oldheader, newheader, qpdb->common.rdclass,
-			    DNS_TYPEPAIR_TYPE(oldheader->typepair)))
+		    dns_rdataslab_equalx(oldheader, newheader,
+					 qpdb->common.rdclass,
+					 DNS_TYPEPAIR_TYPE(oldtop->typepair)))
 		{
 			if (oldheader->noqname == NULL &&
 			    newheader->noqname != NULL)
@@ -2757,7 +2756,7 @@ add(qpcache_t *qpdb, qpcnode_t *qpnode, dns_slabheader_t *newheader,
 		 * ensures the delegations that are withdrawn are honoured.
 		 */
 		if (ACTIVE(oldheader, now) &&
-		    oldheader->typepair == DNS_TYPEPAIR(dns_rdatatype_ns) &&
+		    oldtop->typepair == DNS_TYPEPAIR(dns_rdatatype_ns) &&
 		    EXISTS(oldheader) && EXISTS(newheader) &&
 		    newheader->trust > oldtrust)
 		{
@@ -2772,11 +2771,10 @@ add(qpcache_t *qpdb, qpcnode_t *qpnode, dns_slabheader_t *newheader,
 		}
 		if (ACTIVE(oldheader, now) &&
 		    (options & DNS_DBADD_PREFETCH) == 0 &&
-		    (oldheader->typepair == DNS_TYPEPAIR(dns_rdatatype_a) ||
-		     oldheader->typepair == DNS_TYPEPAIR(dns_rdatatype_aaaa) ||
-		     oldheader->typepair == DNS_TYPEPAIR(dns_rdatatype_ds) ||
-		     oldheader->typepair ==
-			     DNS_SIGTYPEPAIR(dns_rdatatype_ds)) &&
+		    (oldtop->typepair == DNS_TYPEPAIR(dns_rdatatype_a) ||
+		     oldtop->typepair == DNS_TYPEPAIR(dns_rdatatype_aaaa) ||
+		     oldtop->typepair == DNS_TYPEPAIR(dns_rdatatype_ds) ||
+		     oldtop->typepair == DNS_SIGTYPEPAIR(dns_rdatatype_ds)) &&
 		    EXISTS(oldheader) && EXISTS(newheader) &&
 		    newheader->trust < oldtrust &&
 		    oldheader->expire < newheader->expire &&
@@ -2820,8 +2818,15 @@ add(qpcache_t *qpdb, qpcnode_t *qpnode, dns_slabheader_t *newheader,
 			     &tlocktype DNS__DB_FLARG_PASS);
 
 		mark_ancient(oldheader);
-		if (oldsigheader != NULL) {
-			mark_ancient(oldsigheader);
+
+		if (EXISTS(newheader) && NEGATIVE(newheader) &&
+		    !dns_rdatatype_issig(rdtype))
+		{
+			if (oldtop->related != NULL) {
+				dns_slabheader_t *oldsigheader =
+					first_header(oldtop->related);
+				mark_ancient(oldsigheader);
+			}
 		}
 	} else if (!EXISTS(newheader)) {
 		/*
@@ -2833,12 +2838,6 @@ add(qpcache_t *qpdb, qpcnode_t *qpnode, dns_slabheader_t *newheader,
 		/* No rdatasets of the given type exist at the node. */
 		dns_slabtop_t *newtop = dns_slabtop_new(
 			((dns_db_t *)qpdb)->mctx, newheader->typepair);
-		newheader->top = newtop;
-
-		cds_list_add(&newheader->headers_link, &newtop->headers);
-
-		qpcache_miss(qpdb, newheader, &nlocktype,
-			     &tlocktype DNS__DB_FLARG_PASS);
 
 		if (prio_header(newtop)) {
 			/* This is a priority type, prepend it */
@@ -2850,6 +2849,18 @@ add(qpcache_t *qpdb, qpcnode_t *qpnode, dns_slabheader_t *newheader,
 			/* There were no priority headers */
 			cds_list_add(&newtop->types_link, qpnode->data);
 		}
+
+		if (related != NULL) {
+			INSIST(related->related == NULL);
+			related->related = newtop;
+			newtop->related = related;
+		}
+
+		newheader->top = newtop;
+		cds_list_add(&newheader->headers_link, &newtop->headers);
+
+		qpcache_miss(qpdb, newheader, &nlocktype,
+			     &tlocktype DNS__DB_FLARG_PASS);
 
 		if (overmaxtype(qpdb, ntypes)) {
 			if (expiretop == NULL) {
@@ -2864,17 +2875,10 @@ add(qpcache_t *qpdb, qpcnode_t *qpnode, dns_slabheader_t *newheader,
 				expiretop = newtop;
 			}
 
-			dns_slabheader_t *expireheader =
-				first_header(expiretop);
-			if (expireheader != NULL) {
-				mark_ancient(expireheader);
+			mark_ancient(first_header(expiretop));
+			if (expiretop->related != NULL) {
+				mark_ancient(first_header(expiretop->related));
 			}
-			/*
-			 * FIXME: In theory, we should mark the RRSIG
-			 * and the header at the same time, but there is
-			 * no direct link between those two headers, so
-			 * we would have to check the whole list again.
-			 */
 		}
 	}
 
