@@ -231,7 +231,7 @@ parse_filter_aaaa_on(const cfg_obj_t *param_obj, const char *param_name,
 }
 
 static isc_result_t
-check_syntax(cfg_obj_t *fmap, const void *cfg, isc_mem_t *mctx, void *actx) {
+check_syntax(cfg_obj_t *fmap, const void *cfg, isc_mem_t *mctx, void *aclctx) {
 	isc_result_t result = ISC_R_SUCCESS;
 	const cfg_obj_t *aclobj = NULL;
 	dns_acl_t *acl = NULL;
@@ -243,7 +243,7 @@ check_syntax(cfg_obj_t *fmap, const void *cfg, isc_mem_t *mctx, void *actx) {
 	}
 
 	CHECK(cfg_acl_fromconfig(aclobj, (const cfg_obj_t *)cfg,
-				 (cfg_aclconfctx_t *)actx, mctx, 0, &acl));
+				 (cfg_aclconfctx_t *)aclctx, mctx, 0, &acl));
 
 	CHECK(parse_filter_aaaa_on(fmap, "filter-aaaa-on-v4", &f4));
 	CHECK(parse_filter_aaaa_on(fmap, "filter-aaaa-on-v6", &f6));
@@ -273,7 +273,7 @@ cleanup:
 static isc_result_t
 parse_parameters(filter_instance_t *inst, const char *parameters,
 		 const void *cfg, const char *cfg_file, unsigned long cfg_line,
-		 isc_mem_t *mctx, void *actx) {
+		 isc_mem_t *mctx, void *aclctx) {
 	isc_result_t result = ISC_R_SUCCESS;
 	cfg_parser_t *parser = NULL;
 	cfg_obj_t *param_obj = NULL;
@@ -287,7 +287,7 @@ parse_parameters(filter_instance_t *inst, const char *parameters,
 	CHECK(cfg_parse_buffer(parser, &b, cfg_file, cfg_line,
 			       &cfg_type_parameters, 0, &param_obj));
 
-	CHECK(check_syntax(param_obj, cfg, mctx, actx));
+	CHECK(check_syntax(param_obj, cfg, mctx, aclctx));
 
 	CHECK(parse_filter_aaaa_on(param_obj, "filter-aaaa-on-v4",
 				   &inst->v4_aaaa));
@@ -297,7 +297,7 @@ parse_parameters(filter_instance_t *inst, const char *parameters,
 	result = cfg_map_get(param_obj, "filter-aaaa", &obj);
 	if (result == ISC_R_SUCCESS) {
 		CHECK(cfg_acl_fromconfig(obj, (const cfg_obj_t *)cfg,
-					 (cfg_aclconfctx_t *)actx, mctx, 0,
+					 (cfg_aclconfctx_t *)aclctx, mctx, 0,
 					 &inst->aaaa_acl));
 	} else {
 		CHECK(dns_acl_any(mctx, &inst->aaaa_acl));
@@ -328,7 +328,7 @@ cleanup:
  */
 isc_result_t
 plugin_register(const char *parameters, const void *cfg, const char *cfg_file,
-		unsigned long cfg_line, isc_mem_t *mctx, void *actx,
+		unsigned long cfg_line, isc_mem_t *mctx, void *aclctx,
 		ns_hooktable_t *hooktable, ns_hooksource_t source,
 		void **instp) {
 	filter_instance_t *inst = NULL;
@@ -348,7 +348,7 @@ plugin_register(const char *parameters, const void *cfg, const char *cfg_file,
 
 	if (parameters != NULL) {
 		CHECK(parse_parameters(inst, parameters, cfg, cfg_file,
-				       cfg_line, mctx, actx));
+				       cfg_line, mctx, aclctx));
 	}
 
 	isc_ht_init(&inst->ht, mctx, 1, ISC_HT_CASE_SENSITIVE);
@@ -371,7 +371,7 @@ cleanup:
 
 isc_result_t
 plugin_check(const char *parameters, const void *cfg, const char *cfg_file,
-	     unsigned long cfg_line, isc_mem_t *mctx, void *actx) {
+	     unsigned long cfg_line, isc_mem_t *mctx, void *aclctx) {
 	isc_result_t result = ISC_R_SUCCESS;
 	cfg_parser_t *parser = NULL;
 	cfg_obj_t *param_obj = NULL;
@@ -384,7 +384,7 @@ plugin_check(const char *parameters, const void *cfg, const char *cfg_file,
 	CHECK(cfg_parse_buffer(parser, &b, cfg_file, cfg_line,
 			       &cfg_type_parameters, 0, &param_obj));
 
-	CHECK(check_syntax(param_obj, cfg, mctx, actx));
+	CHECK(check_syntax(param_obj, cfg, mctx, aclctx));
 
 cleanup:
 	if (param_obj != NULL) {

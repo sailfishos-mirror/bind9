@@ -224,7 +224,7 @@ unload_plugin(ns_plugin_t **pluginp) {
 isc_result_t
 ns_plugin_register(const char *modpath, const char *parameters, const void *cfg,
 		   const char *cfg_file, unsigned long cfg_line,
-		   isc_mem_t *mctx, void *actx, ns_hook_data_t *hookdata) {
+		   isc_mem_t *mctx, void *aclctx, ns_hook_data_t *hookdata) {
 	isc_result_t result;
 	ns_plugin_t *plugin = NULL;
 
@@ -241,8 +241,8 @@ ns_plugin_register(const char *modpath, const char *parameters, const void *cfg,
 
 	INSIST(hookdata->source != NS_HOOKSOURCE_UNDEFINED);
 	CHECK(plugin->register_func(parameters, cfg, cfg_file, cfg_line, mctx,
-				    actx, hookdata->hooktable, hookdata->source,
-				    &plugin->inst));
+				    aclctx, hookdata->hooktable,
+				    hookdata->source, &plugin->inst));
 
 	ISC_LIST_APPEND(*hookdata->plugins, plugin, link);
 
@@ -257,14 +257,14 @@ cleanup:
 isc_result_t
 ns_plugin_check(const char *modpath, const char *parameters, const void *cfg,
 		const char *cfg_file, unsigned long cfg_line, isc_mem_t *mctx,
-		void *actx) {
+		void *aclctx) {
 	isc_result_t result;
 	ns_plugin_t *plugin = NULL;
 
 	CHECK(load_plugin(mctx, modpath, &plugin));
 
 	result = plugin->check_func(parameters, cfg, cfg_file, cfg_line, mctx,
-				    actx);
+				    aclctx);
 
 cleanup:
 	if (plugin != NULL) {

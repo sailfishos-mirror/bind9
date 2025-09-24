@@ -452,8 +452,9 @@ exists(const cfg_obj_t *obj, const char *name, int value, isc_symtab_t *symtab,
 }
 
 static isc_result_t
-checkacl(const char *aclname, cfg_aclconfctx_t *actx, const cfg_obj_t *zconfig,
-	 const cfg_obj_t *voptions, const cfg_obj_t *config, isc_mem_t *mctx) {
+checkacl(const char *aclname, cfg_aclconfctx_t *aclctx,
+	 const cfg_obj_t *zconfig, const cfg_obj_t *voptions,
+	 const cfg_obj_t *config, isc_mem_t *mctx) {
 	isc_result_t result = ISC_R_SUCCESS;
 	const cfg_obj_t *aclobj = NULL;
 	const cfg_obj_t *options;
@@ -476,7 +477,7 @@ checkacl(const char *aclname, cfg_aclconfctx_t *actx, const cfg_obj_t *zconfig,
 	if (aclobj == NULL) {
 		return ISC_R_SUCCESS;
 	}
-	result = cfg_acl_fromconfig(aclobj, config, actx, mctx, 0, &acl);
+	result = cfg_acl_fromconfig(aclobj, config, aclctx, mctx, 0, &acl);
 	if (acl != NULL) {
 		dns_acl_detach(&acl);
 	}
@@ -527,7 +528,7 @@ checkacl(const char *aclname, cfg_aclconfctx_t *actx, const cfg_obj_t *zconfig,
 }
 
 static isc_result_t
-check_viewacls(cfg_aclconfctx_t *actx, const cfg_obj_t *voptions,
+check_viewacls(cfg_aclconfctx_t *aclctx, const cfg_obj_t *voptions,
 	       const cfg_obj_t *config, isc_mem_t *mctx) {
 	isc_result_t result = ISC_R_SUCCESS, tresult;
 	int i = 0;
@@ -541,7 +542,7 @@ check_viewacls(cfg_aclconfctx_t *actx, const cfg_obj_t *voptions,
 	};
 
 	while (acls[i] != NULL) {
-		tresult = checkacl(acls[i++], actx, NULL, voptions, config,
+		tresult = checkacl(acls[i++], aclctx, NULL, voptions, config,
 				   mctx);
 		if (tresult != ISC_R_SUCCESS) {
 			result = tresult;
@@ -560,7 +561,7 @@ dns64_error(const cfg_obj_t *obj, isc_netaddr_t *netaddr,
 }
 
 static isc_result_t
-check_dns64(cfg_aclconfctx_t *actx, const cfg_obj_t *voptions,
+check_dns64(cfg_aclconfctx_t *aclctx, const cfg_obj_t *voptions,
 	    const cfg_obj_t *config, isc_mem_t *mctx) {
 	isc_result_t result = ISC_R_SUCCESS;
 	const cfg_obj_t *dns64 = NULL;
@@ -621,8 +622,8 @@ check_dns64(cfg_aclconfctx_t *actx, const cfg_obj_t *voptions,
 				dns_acl_t *acl = NULL;
 				isc_result_t tresult;
 
-				tresult = cfg_acl_fromconfig(obj, config, actx,
-							     mctx, 0, &acl);
+				tresult = cfg_acl_fromconfig(
+					obj, config, aclctx, mctx, 0, &acl);
 				if (acl != NULL) {
 					dns_acl_detach(&acl);
 				}
@@ -684,7 +685,7 @@ check_dns64(cfg_aclconfctx_t *actx, const cfg_obj_t *voptions,
 	} while (0)
 
 static isc_result_t
-check_ratelimit(cfg_aclconfctx_t *actx, const cfg_obj_t *voptions,
+check_ratelimit(cfg_aclconfctx_t *aclctx, const cfg_obj_t *voptions,
 		const cfg_obj_t *config, isc_mem_t *mctx) {
 	isc_result_t result = ISC_R_SUCCESS;
 	isc_result_t mresult;
@@ -787,7 +788,8 @@ check_ratelimit(cfg_aclconfctx_t *actx, const cfg_obj_t *voptions,
 		dns_acl_t *acl = NULL;
 		isc_result_t tresult;
 
-		tresult = cfg_acl_fromconfig(obj, config, actx, mctx, 0, &acl);
+		tresult = cfg_acl_fromconfig(obj, config, aclctx, mctx, 0,
+					     &acl);
 		if (acl != NULL) {
 			dns_acl_detach(&acl);
 		}
@@ -858,7 +860,7 @@ check_fetchlimit(const cfg_obj_t *voptions, const cfg_obj_t *config) {
  * warning if they're inconsistent with the "recursion" option.
  */
 static isc_result_t
-check_recursionacls(cfg_aclconfctx_t *actx, const cfg_obj_t *voptions,
+check_recursionacls(cfg_aclconfctx_t *aclctx, const cfg_obj_t *voptions,
 		    const char *viewname, const cfg_obj_t *config,
 		    isc_mem_t *mctx) {
 	const cfg_obj_t *options, *aclobj, *obj = NULL;
@@ -910,7 +912,7 @@ check_recursionacls(cfg_aclconfctx_t *actx, const cfg_obj_t *voptions,
 			continue;
 		}
 
-		tresult = cfg_acl_fromconfig(aclobj, config, actx, mctx, 0,
+		tresult = cfg_acl_fromconfig(aclobj, config, aclctx, mctx, 0,
 					     &acl);
 
 		if (tresult != ISC_R_SUCCESS) {
@@ -1010,7 +1012,7 @@ find_maplist(const cfg_obj_t *config, const char *listname, const char *name) {
 
 static isc_result_t
 check_listener(const cfg_obj_t *listener, const cfg_obj_t *config,
-	       cfg_aclconfctx_t *actx, isc_mem_t *mctx) {
+	       cfg_aclconfctx_t *aclctx, isc_mem_t *mctx) {
 	isc_result_t tresult, result = ISC_R_SUCCESS;
 	const cfg_obj_t *ltup = NULL;
 	const cfg_obj_t *tlsobj = NULL, *httpobj = NULL;
@@ -1112,7 +1114,7 @@ check_listener(const cfg_obj_t *listener, const cfg_obj_t *config,
 	}
 
 	tresult = cfg_acl_fromconfig(cfg_tuple_get(listener, "acl"), config,
-				     actx, mctx, 0, &acl);
+				     aclctx, mctx, 0, &acl);
 	if (result == ISC_R_SUCCESS) {
 		result = tresult;
 	}
@@ -1126,12 +1128,12 @@ check_listener(const cfg_obj_t *listener, const cfg_obj_t *config,
 
 static isc_result_t
 check_listeners(const cfg_obj_t *list, const cfg_obj_t *config,
-		cfg_aclconfctx_t *actx, isc_mem_t *mctx) {
+		cfg_aclconfctx_t *aclctx, isc_mem_t *mctx) {
 	isc_result_t tresult, result = ISC_R_SUCCESS;
 
 	CFG_LIST_FOREACH(list, elt) {
 		const cfg_obj_t *obj = cfg_listelt_value(elt);
-		tresult = check_listener(obj, config, actx, mctx);
+		tresult = check_listener(obj, config, aclctx, mctx);
 		if (result == ISC_R_SUCCESS) {
 			result = tresult;
 		}
@@ -1172,7 +1174,7 @@ check_options(const cfg_obj_t *options, const cfg_obj_t *config,
 	uint32_t lifetime = 3600;
 	dns_keystorelist_t kslist;
 	const char *ccalg = "siphash24";
-	cfg_aclconfctx_t *actx = NULL;
+	cfg_aclconfctx_t *aclctx = NULL;
 	static const char *sources[] = {
 		"query-source",
 		"query-source-v6",
@@ -1946,14 +1948,15 @@ check_options(const cfg_obj_t *options, const cfg_obj_t *config,
 		}
 	}
 
-	cfg_aclconfctx_create(mctx, &actx);
+	cfg_aclconfctx_create(mctx, &aclctx);
 
 	obj = NULL;
 	(void)cfg_map_get(options, "sig0checks-quota-exempt", &obj);
 	if (obj != NULL) {
 		dns_acl_t *acl = NULL;
 
-		tresult = cfg_acl_fromconfig(obj, config, actx, mctx, 0, &acl);
+		tresult = cfg_acl_fromconfig(obj, config, aclctx, mctx, 0,
+					     &acl);
 		if (acl != NULL) {
 			dns_acl_detach(&acl);
 		}
@@ -1966,7 +1969,7 @@ check_options(const cfg_obj_t *options, const cfg_obj_t *config,
 	(void)cfg_map_get(options, "listen-on", &obj);
 	if (obj != NULL) {
 		INSIST(config != NULL);
-		tresult = check_listeners(obj, config, actx, mctx);
+		tresult = check_listeners(obj, config, aclctx, mctx);
 		if (result == ISC_R_SUCCESS) {
 			result = tresult;
 		}
@@ -1976,7 +1979,7 @@ check_options(const cfg_obj_t *options, const cfg_obj_t *config,
 	(void)cfg_map_get(options, "listen-on-v6", &obj);
 	if (obj != NULL) {
 		INSIST(config != NULL);
-		tresult = check_listeners(obj, config, actx, mctx);
+		tresult = check_listeners(obj, config, aclctx, mctx);
 		if (result == ISC_R_SUCCESS) {
 			result = tresult;
 		}
@@ -1996,8 +1999,8 @@ check_options(const cfg_obj_t *options, const cfg_obj_t *config,
 		}
 	}
 
-	if (actx != NULL) {
-		cfg_aclconfctx_detach(&actx);
+	if (aclctx != NULL) {
+		cfg_aclconfctx_detach(&aclctx);
 	}
 
 	return result;
@@ -2768,7 +2771,7 @@ check_mirror_zone_notify(const cfg_obj_t *zoptions, const char *znamestr) {
  */
 static bool
 check_recursion(const cfg_obj_t *config, const cfg_obj_t *voptions,
-		const cfg_obj_t *goptions, cfg_aclconfctx_t *actx,
+		const cfg_obj_t *goptions, cfg_aclconfctx_t *aclctx,
 		isc_mem_t *mctx) {
 	dns_acl_t *acl = NULL;
 	const cfg_obj_t *obj;
@@ -2804,7 +2807,7 @@ check_recursion(const cfg_obj_t *config, const cfg_obj_t *voptions,
 		result = cfg_map_get(goptions, "allow-recursion", &obj);
 	}
 	if (result == ISC_R_SUCCESS) {
-		result = cfg_acl_fromconfig(obj, config, actx, mctx, 0, &acl);
+		result = cfg_acl_fromconfig(obj, config, aclctx, mctx, 0, &acl);
 		if (result != ISC_R_SUCCESS) {
 			goto cleanup;
 		}
@@ -3057,7 +3060,7 @@ check:
  */
 struct check_one_plugin_data {
 	isc_mem_t *mctx;
-	cfg_aclconfctx_t *actx;
+	cfg_aclconfctx_t *aclctx;
 	isc_result_t *check_result;
 };
 
@@ -3070,13 +3073,13 @@ struct check_one_plugin_data {
  */
 static isc_result_t
 check_one_plugin(const cfg_obj_t *config, const cfg_obj_t *obj,
-		 cfg_aclconfctx_t *actx, const char *plugin_path,
+		 cfg_aclconfctx_t *aclctx, const char *plugin_path,
 		 const char *parameters, void *callback_data) {
 	struct check_one_plugin_data *data = callback_data;
 	char full_path[PATH_MAX];
 	isc_result_t result = ISC_R_SUCCESS;
 
-	UNUSED(actx);
+	UNUSED(aclctx);
 
 	result = ns_plugin_expandpath(plugin_path, full_path,
 				      sizeof(full_path));
@@ -3090,7 +3093,7 @@ check_one_plugin(const cfg_obj_t *config, const cfg_obj_t *obj,
 
 	result = ns_plugin_check(full_path, parameters, config,
 				 cfg_obj_file(obj), cfg_obj_line(obj),
-				 data->mctx, data->actx);
+				 data->mctx, data->aclctx);
 	if (result != ISC_R_SUCCESS) {
 		cfg_obj_log(obj, ISC_LOG_ERROR, "%s: plugin check failed: %s",
 			    full_path, isc_result_totext(result));
@@ -3102,15 +3105,15 @@ check_one_plugin(const cfg_obj_t *config, const cfg_obj_t *obj,
 
 static isc_result_t
 check_plugins(const cfg_obj_t *plugins, const cfg_obj_t *config,
-	      cfg_aclconfctx_t *actx, isc_mem_t *mctx) {
+	      cfg_aclconfctx_t *aclctx, isc_mem_t *mctx) {
 	isc_result_t result = ISC_R_SUCCESS;
 	struct check_one_plugin_data check_one_plugin_data = {
 		.mctx = mctx,
-		.actx = actx,
+		.aclctx = aclctx,
 		.check_result = &result,
 	};
 
-	(void)cfg_pluginlist_foreach(config, plugins, actx, check_one_plugin,
+	(void)cfg_pluginlist_foreach(config, plugins, aclctx, check_one_plugin,
 				     &check_one_plugin_data);
 
 	return result;
@@ -3152,7 +3155,7 @@ isccfg_check_zoneconf(const cfg_obj_t *zconfig, const cfg_obj_t *voptions,
 		      isc_symtab_t *files, isc_symtab_t *keydirs,
 		      isc_symtab_t *inview, const char *viewname,
 		      dns_rdataclass_t defclass, unsigned int flags,
-		      cfg_aclconfctx_t *actx, isc_mem_t *mctx) {
+		      cfg_aclconfctx_t *aclctx, isc_mem_t *mctx) {
 	const char *znamestr = NULL;
 	const char *typestr = NULL;
 	const char *target = NULL;
@@ -3524,7 +3527,7 @@ isccfg_check_zoneconf(const cfg_obj_t *zconfig, const cfg_obj_t *voptions,
 	 * Check that ACLs expand correctly.
 	 */
 	for (i = 0; i < ARRAY_SIZE(acls); i++) {
-		tresult = checkacl(acls[i], actx, zconfig, voptions, config,
+		tresult = checkacl(acls[i], aclctx, zconfig, voptions, config,
 				   mctx);
 		if (tresult != ISC_R_SUCCESS) {
 			result = tresult;
@@ -3672,7 +3675,7 @@ isccfg_check_zoneconf(const cfg_obj_t *zconfig, const cfg_obj_t *voptions,
 	 * contradicts the purpose of the former.
 	 */
 	if (ztype == CFG_ZONE_MIRROR &&
-	    !check_recursion(config, voptions, goptions, actx, mctx))
+	    !check_recursion(config, voptions, goptions, aclctx, mctx))
 	{
 		cfg_obj_log(zoptions, ISC_LOG_ERROR,
 			    "zone '%s': mirror zones cannot be used if "
@@ -3720,8 +3723,8 @@ isccfg_check_zoneconf(const cfg_obj_t *zconfig, const cfg_obj_t *voptions,
 			ddns = true;
 		} else if (au != NULL) {
 			dns_acl_t *acl = NULL;
-			tresult = cfg_acl_fromconfig(au, config, actx, mctx, 0,
-						     &acl);
+			tresult = cfg_acl_fromconfig(au, config, aclctx, mctx,
+						     0, &acl);
 			if (tresult != ISC_R_SUCCESS) {
 				cfg_obj_log(au, ISC_LOG_ERROR,
 					    "acl expansion failed: %s",
@@ -4126,7 +4129,7 @@ isccfg_check_zoneconf(const cfg_obj_t *zconfig, const cfg_obj_t *voptions,
 		const cfg_obj_t *plugins = NULL;
 
 		(void)cfg_map_get(zoptions, "plugin", &plugins);
-		tresult = check_plugins(plugins, config, actx, mctx);
+		tresult = check_plugins(plugins, config, aclctx, mctx);
 		if (tresult != ISC_R_SUCCESS) {
 			result = tresult;
 		}
@@ -5432,7 +5435,7 @@ check_viewconf(const cfg_obj_t *config, const cfg_obj_t *voptions,
 	isc_symtab_t *symtab = NULL;
 	isc_result_t result = ISC_R_SUCCESS;
 	isc_result_t tresult = ISC_R_SUCCESS;
-	cfg_aclconfctx_t *actx = NULL;
+	cfg_aclconfctx_t *aclctx = NULL;
 	const cfg_obj_t *obj = NULL;
 	const cfg_obj_t *options = NULL;
 	const cfg_obj_t *opts = NULL;
@@ -5461,7 +5464,7 @@ check_viewconf(const cfg_obj_t *config, const cfg_obj_t *voptions,
 	 */
 	isc_symtab_create(mctx, freekey, mctx, false, &symtab);
 
-	cfg_aclconfctx_create(mctx, &actx);
+	cfg_aclconfctx_create(mctx, &aclctx);
 
 	if (voptions != NULL) {
 		(void)cfg_map_get(voptions, "zone", &zones);
@@ -5474,7 +5477,7 @@ check_viewconf(const cfg_obj_t *config, const cfg_obj_t *voptions,
 
 		tresult = isccfg_check_zoneconf(
 			zone, voptions, config, symtab, files, keydirs, inview,
-			viewname, vclass, flags, actx, mctx);
+			viewname, vclass, flags, aclctx, mctx);
 		if (tresult != ISC_R_SUCCESS) {
 			result = ISC_R_FAILURE;
 		}
@@ -5704,22 +5707,22 @@ check_viewconf(const cfg_obj_t *config, const cfg_obj_t *voptions,
 		result = tresult;
 	}
 
-	tresult = check_viewacls(actx, voptions, config, mctx);
+	tresult = check_viewacls(aclctx, voptions, config, mctx);
 	if (tresult != ISC_R_SUCCESS) {
 		result = tresult;
 	}
 
-	tresult = check_recursionacls(actx, voptions, viewname, config, mctx);
+	tresult = check_recursionacls(aclctx, voptions, viewname, config, mctx);
 	if (tresult != ISC_R_SUCCESS) {
 		result = tresult;
 	}
 
-	tresult = check_dns64(actx, voptions, config, mctx);
+	tresult = check_dns64(aclctx, voptions, config, mctx);
 	if (tresult != ISC_R_SUCCESS) {
 		result = tresult;
 	}
 
-	tresult = check_ratelimit(actx, voptions, config, mctx);
+	tresult = check_ratelimit(aclctx, voptions, config, mctx);
 	if (tresult != ISC_R_SUCCESS) {
 		result = tresult;
 	}
@@ -5738,7 +5741,7 @@ check_viewconf(const cfg_obj_t *config, const cfg_obj_t *voptions,
 			(void)cfg_map_get(config, "plugin", &plugins);
 		}
 
-		tresult = check_plugins(plugins, config, actx, mctx);
+		tresult = check_plugins(plugins, config, aclctx, mctx);
 		if (tresult != ISC_R_SUCCESS) {
 			result = tresult;
 		}
@@ -5748,8 +5751,8 @@ cleanup:
 	if (symtab != NULL) {
 		isc_symtab_destroy(&symtab);
 	}
-	if (actx != NULL) {
-		cfg_aclconfctx_detach(&actx);
+	if (aclctx != NULL) {
+		cfg_aclconfctx_detach(&aclctx);
 	}
 
 	return result;
@@ -5884,7 +5887,7 @@ check_controlskeys(const cfg_obj_t *control, const cfg_obj_t *keylist) {
 static isc_result_t
 check_controls(const cfg_obj_t *config, isc_mem_t *mctx) {
 	isc_result_t result = ISC_R_SUCCESS, tresult;
-	cfg_aclconfctx_t *actx = NULL;
+	cfg_aclconfctx_t *aclctx = NULL;
 	const cfg_obj_t *allow = NULL;
 	const cfg_obj_t *control = NULL;
 	const cfg_obj_t *controls = NULL;
@@ -5904,7 +5907,7 @@ check_controls(const cfg_obj_t *config, isc_mem_t *mctx) {
 
 	(void)cfg_map_get(config, "key", &keylist);
 
-	cfg_aclconfctx_create(mctx, &actx);
+	cfg_aclconfctx_create(mctx, &aclctx);
 
 	isc_symtab_create(mctx, freekey, mctx, true, &symtab);
 
@@ -5924,8 +5927,8 @@ check_controls(const cfg_obj_t *config, isc_mem_t *mctx) {
 
 			control = cfg_listelt_value(element2);
 			allow = cfg_tuple_get(control, "allow");
-			tresult = cfg_acl_fromconfig(allow, config, actx, mctx,
-						     0, &acl);
+			tresult = cfg_acl_fromconfig(allow, config, aclctx,
+						     mctx, 0, &acl);
 			if (acl != NULL) {
 				dns_acl_detach(&acl);
 			}
@@ -5960,7 +5963,7 @@ check_controls(const cfg_obj_t *config, isc_mem_t *mctx) {
 		}
 	}
 
-	cfg_aclconfctx_detach(&actx);
+	cfg_aclconfctx_detach(&aclctx);
 	if (symtab != NULL) {
 		isc_symtab_destroy(&symtab);
 	}

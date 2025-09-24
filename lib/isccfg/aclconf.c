@@ -36,25 +36,25 @@ static const char *geoip_dbnames[] = {
 #endif /* if defined(HAVE_GEOIP2) */
 
 isc_result_t
-cfg_aclconfctx_create(isc_mem_t *mctx, cfg_aclconfctx_t **ret) {
-	cfg_aclconfctx_t *actx;
+cfg_aclconfctx_create(isc_mem_t *mctx, cfg_aclconfctx_t **aclctxp) {
+	cfg_aclconfctx_t *aclctx;
 
 	REQUIRE(mctx != NULL);
-	REQUIRE(ret != NULL && *ret == NULL);
+	REQUIRE(aclctxp != NULL && *aclctxp == NULL);
 
-	actx = isc_mem_get(mctx, sizeof(*actx));
+	aclctx = isc_mem_get(mctx, sizeof(*aclctx));
 
-	isc_refcount_init(&actx->references, 1);
+	isc_refcount_init(&aclctx->references, 1);
 
-	actx->mctx = NULL;
-	isc_mem_attach(mctx, &actx->mctx);
-	ISC_LIST_INIT(actx->named_acl_cache);
+	aclctx->mctx = NULL;
+	isc_mem_attach(mctx, &aclctx->mctx);
+	ISC_LIST_INIT(aclctx->named_acl_cache);
 
 #if defined(HAVE_GEOIP2)
-	actx->geoip = NULL;
+	aclctx->geoip = NULL;
 #endif /* if defined(HAVE_GEOIP2) */
 
-	*ret = actx;
+	*aclctxp = aclctx;
 	return ISC_R_SUCCESS;
 }
 
@@ -68,20 +68,20 @@ cfg_aclconfctx_attach(cfg_aclconfctx_t *src, cfg_aclconfctx_t **dest) {
 }
 
 void
-cfg_aclconfctx_detach(cfg_aclconfctx_t **actxp) {
-	REQUIRE(actxp != NULL && *actxp != NULL);
+cfg_aclconfctx_detach(cfg_aclconfctx_t **aclctxp) {
+	REQUIRE(aclctxp != NULL && *aclctxp != NULL);
 
-	cfg_aclconfctx_t *actx = *actxp;
-	*actxp = NULL;
+	cfg_aclconfctx_t *aclctx = *aclctxp;
+	*aclctxp = NULL;
 
-	if (isc_refcount_decrement(&actx->references) == 1) {
-		isc_refcount_destroy(&actx->references);
-		ISC_LIST_FOREACH(actx->named_acl_cache, dacl, nextincache) {
-			ISC_LIST_UNLINK(actx->named_acl_cache, dacl,
+	if (isc_refcount_decrement(&aclctx->references) == 1) {
+		isc_refcount_destroy(&aclctx->references);
+		ISC_LIST_FOREACH(aclctx->named_acl_cache, dacl, nextincache) {
+			ISC_LIST_UNLINK(aclctx->named_acl_cache, dacl,
 					nextincache);
 			dns_acl_detach(&dacl);
 		}
-		isc_mem_putanddetach(&actx->mctx, actx, sizeof(*actx));
+		isc_mem_putanddetach(&aclctx->mctx, aclctx, sizeof(*aclctx));
 	}
 }
 

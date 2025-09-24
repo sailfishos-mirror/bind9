@@ -3945,7 +3945,7 @@ cleanup:
 
 isc_result_t
 cfg_pluginlist_foreach(const cfg_obj_t *config, const cfg_obj_t *list,
-		       cfg_aclconfctx_t *actx, pluginlist_cb_t *callback,
+		       cfg_aclconfctx_t *aclctx, pluginlist_cb_t *callback,
 		       void *callback_data) {
 	isc_result_t result = ISC_R_SUCCESS;
 
@@ -3976,7 +3976,7 @@ cfg_pluginlist_foreach(const cfg_obj_t *config, const cfg_obj_t *list,
 			parameters = cfg_obj_asstring(obj);
 		}
 
-		result = callback(config, obj, actx, library, parameters,
+		result = callback(config, obj, aclctx, library, parameters,
 				  callback_data);
 		if (result != ISC_R_SUCCESS) {
 			break;

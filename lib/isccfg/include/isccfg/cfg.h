@@ -589,7 +589,7 @@ cfg_map_nextclause(const cfg_type_t *map, const void **clauses,
 		   unsigned int *idx);
 
 typedef isc_result_t(pluginlist_cb_t)(
-	const cfg_obj_t *config, const cfg_obj_t *obj, cfg_aclconfctx_t *actx,
+	const cfg_obj_t *config, const cfg_obj_t *obj, cfg_aclconfctx_t *aclctx,
 	const char *plugin_path, const char *parameters, void *callback_data);
 /*%<
  * Function prototype for the callback used with cfg_pluginlist_foreach().
@@ -606,7 +606,7 @@ typedef isc_result_t(pluginlist_cb_t)(
 
 isc_result_t
 cfg_pluginlist_foreach(const cfg_obj_t *config, const cfg_obj_t *list,
-		       cfg_aclconfctx_t *actx, pluginlist_cb_t *callback,
+		       cfg_aclconfctx_t *aclctx, pluginlist_cb_t *callback,
 		       void *callback_data);
 /*%<
  * For every "plugin" stanza present in 'list' (which in turn is a part of

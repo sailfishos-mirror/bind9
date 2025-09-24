@@ -74,7 +74,7 @@ typedef enum {
 static isc_result_t
 configure_zone_acl(const cfg_obj_t *zconfig, const cfg_obj_t *vconfig,
 		   const cfg_obj_t *config, acl_type_t acltype,
-		   cfg_aclconfctx_t *actx, dns_zone_t *zone,
+		   cfg_aclconfctx_t *aclctx, dns_zone_t *zone,
 		   void (*setzacl)(dns_zone_t *, dns_acl_t *),
 		   void (*clearzacl)(dns_zone_t *)) {
 	isc_result_t result;
@@ -176,7 +176,8 @@ configure_zone_acl(const cfg_obj_t *zconfig, const cfg_obj_t *vconfig,
 	}
 
 parse_acl:
-	result = cfg_acl_fromconfig(aclobj, config, actx, isc_g_mctx, 0, &acl);
+	result = cfg_acl_fromconfig(aclobj, config, aclctx, isc_g_mctx, 0,
+				    &acl);
 	if (result != ISC_R_SUCCESS) {
 		return result;
 	}
@@ -870,7 +871,7 @@ process_notifytype(dns_notifytype_t ntype, dns_zonetype_t ztype,
 
 isc_result_t
 named_zone_configure(const cfg_obj_t *config, const cfg_obj_t *vconfig,
-		     const cfg_obj_t *zconfig, cfg_aclconfctx_t *ac,
+		     const cfg_obj_t *zconfig, cfg_aclconfctx_t *aclctx,
 		     dns_kasplist_t *kasplist, dns_zone_t *zone,
 		     dns_zone_t *raw) {
 	isc_result_t result;
@@ -1102,19 +1103,20 @@ named_zone_configure(const cfg_obj_t *config, const cfg_obj_t *vconfig,
 	 */
 	if (ztype == dns_zone_secondary || ztype == dns_zone_mirror) {
 		CHECK(configure_zone_acl(zconfig, vconfig, config, allow_notify,
-					 ac, mayberaw, dns_zone_setnotifyacl,
+					 aclctx, mayberaw,
+					 dns_zone_setnotifyacl,
 					 dns_zone_clearnotifyacl));
 	}
 
 	/*
 	 * XXXAG This probably does not make sense for stubs.
 	 */
-	CHECK(configure_zone_acl(zconfig, vconfig, config, allow_query, ac,
+	CHECK(configure_zone_acl(zconfig, vconfig, config, allow_query, aclctx,
 				 zone, dns_zone_setqueryacl,
 				 dns_zone_clearqueryacl));
 
-	CHECK(configure_zone_acl(zconfig, vconfig, config, allow_query_on, ac,
-				 zone, dns_zone_setqueryonacl,
+	CHECK(configure_zone_acl(zconfig, vconfig, config, allow_query_on,
+				 aclctx, zone, dns_zone_setqueryonacl,
 				 dns_zone_clearqueryonacl));
 
 	obj = NULL;
@@ -1286,7 +1288,7 @@ named_zone_configure(const cfg_obj_t *config, const cfg_obj_t *vconfig,
 		dns_zone_setisself(zone, isself, NULL);
 
 		CHECK(configure_zone_acl(
-			zconfig, vconfig, config, allow_transfer, ac, zone,
+			zconfig, vconfig, config, allow_transfer, aclctx, zone,
 			dns_zone_setxfracl, dns_zone_clearxfracl));
 
 		obj = NULL;
@@ -1540,7 +1542,8 @@ named_zone_configure(const cfg_obj_t *config, const cfg_obj_t *vconfig,
 		dns_acl_t *updateacl;
 
 		CHECK(configure_zone_acl(zconfig, vconfig, config, allow_update,
-					 ac, mayberaw, dns_zone_setupdateacl,
+					 aclctx, mayberaw,
+					 dns_zone_setupdateacl,
 					 dns_zone_clearupdateacl));
 
 		updateacl = dns_zone_getupdateacl(mayberaw);
@@ -1618,8 +1621,8 @@ named_zone_configure(const cfg_obj_t *config, const cfg_obj_t *vconfig,
 
 	if (ztype == dns_zone_secondary || ztype == dns_zone_mirror) {
 		CHECK(configure_zone_acl(zconfig, vconfig, config,
-					 allow_update_forwarding, ac, mayberaw,
-					 dns_zone_setforwardacl,
+					 allow_update_forwarding, aclctx,
+					 mayberaw, dns_zone_setforwardacl,
 					 dns_zone_clearforwardacl));
 	}
 
@@ -2102,7 +2105,7 @@ named_zone_templateopts(const cfg_obj_t *config, const cfg_obj_t *zoptions) {
 isc_result_t
 named_zone_loadplugins(dns_zone_t *zone, const cfg_obj_t *config,
 		       const cfg_obj_t *toptions, const cfg_obj_t *zoptions,
-		       cfg_aclconfctx_t *actx) {
+		       cfg_aclconfctx_t *aclctx) {
 	isc_result_t result = ISC_R_SUCCESS;
 	const cfg_obj_t *zpluginlist = NULL;
 	const cfg_obj_t *tpluginlist = NULL;
@@ -2136,14 +2139,14 @@ named_zone_loadplugins(dns_zone_t *zone, const cfg_obj_t *config,
 		ns_plugins_create(zmctx, &hookdata.plugins);
 		dns_zone_setplugins(zone, hookdata.plugins, ns_plugins_free);
 
-		result = cfg_pluginlist_foreach(config, tpluginlist, actx,
+		result = cfg_pluginlist_foreach(config, tpluginlist, aclctx,
 						named_register_one_plugin,
 						&hookdata);
 		if (result != ISC_R_SUCCESS) {
 			return result;
 		}
 
-		result = cfg_pluginlist_foreach(config, zpluginlist, actx,
+		result = cfg_pluginlist_foreach(config, zpluginlist, aclctx,
 						named_register_one_plugin,
 						&hookdata);
 	}
