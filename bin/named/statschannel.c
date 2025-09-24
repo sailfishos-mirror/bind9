@@ -3621,7 +3621,7 @@ destroy_listener(void *arg) {
 static isc_result_t
 add_listener(named_server_t *server, named_statschannel_t **listenerp,
 	     const cfg_obj_t *listen_params, const cfg_obj_t *config,
-	     isc_sockaddr_t *addr, cfg_aclconfctx_t *aclconfctx,
+	     isc_sockaddr_t *addr, cfg_aclconfctx_t *aclctx,
 	     const char *socktext) {
 #if !defined(HAVE_LIBXML2) && !defined(HAVE_JSON_C)
 	UNUSED(server);
@@ -3629,7 +3629,7 @@ add_listener(named_server_t *server, named_statschannel_t **listenerp,
 	UNUSED(listen_params);
 	UNUSED(config);
 	UNUSED(addr);
-	UNUSED(aclconfctx);
+	UNUSED(aclctx);
 	UNUSED(socktext);
 
 	return ISC_R_NOTIMPLEMENTED;
@@ -3648,7 +3648,7 @@ add_listener(named_server_t *server, named_statschannel_t **listenerp,
 
 	allow = cfg_tuple_get(listen_params, "allow");
 	if (allow != NULL && cfg_obj_islist(allow)) {
-		result = cfg_acl_fromconfig(allow, config, aclconfctx,
+		result = cfg_acl_fromconfig(allow, config, aclctx,
 					    listener->mctx, 0, &new_acl);
 	} else {
 		result = dns_acl_any(listener->mctx, &new_acl);
@@ -3751,7 +3751,7 @@ cleanup:
 static void
 update_listener(named_server_t *server, named_statschannel_t **listenerp,
 		const cfg_obj_t *listen_params, const cfg_obj_t *config,
-		isc_sockaddr_t *addr, cfg_aclconfctx_t *aclconfctx,
+		isc_sockaddr_t *addr, cfg_aclconfctx_t *aclctx,
 		const char *socktext) {
 	named_statschannel_t *listener = NULL;
 	const cfg_obj_t *allow = NULL;
@@ -3775,7 +3775,7 @@ update_listener(named_server_t *server, named_statschannel_t **listenerp,
 	 */
 	allow = cfg_tuple_get(listen_params, "allow");
 	if (allow != NULL && cfg_obj_islist(allow)) {
-		result = cfg_acl_fromconfig(allow, config, aclconfctx,
+		result = cfg_acl_fromconfig(allow, config, aclctx,
 					    listener->mctx, 0, &new_acl);
 	} else {
 		result = dns_acl_any(listener->mctx, &new_acl);
@@ -3801,7 +3801,7 @@ update_listener(named_server_t *server, named_statschannel_t **listenerp,
 
 isc_result_t
 named_statschannels_configure(named_server_t *server, const cfg_obj_t *config,
-			      cfg_aclconfctx_t *aclconfctx) {
+			      cfg_aclconfctx_t *aclctx) {
 	named_statschannellist_t new_listeners;
 	const cfg_obj_t *statschannellist = NULL;
 	char socktext[ISC_SOCKADDR_FORMATSIZE];
@@ -3882,7 +3882,7 @@ named_statschannels_configure(named_server_t *server, const cfg_obj_t *config,
 
 				update_listener(server, &listener,
 						listen_params, config, &addr,
-						aclconfctx, socktext);
+						aclctx, socktext);
 
 				if (listener != NULL) {
 					/*
@@ -3899,7 +3899,7 @@ named_statschannels_configure(named_server_t *server, const cfg_obj_t *config,
 
 					r = add_listener(server, &listener,
 							 listen_params, config,
-							 &addr, aclconfctx,
+							 &addr, aclctx,
 							 socktext);
 					if (r != ISC_R_SUCCESS) {
 						cfg_obj_log(

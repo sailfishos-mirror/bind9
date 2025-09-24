@@ -28,7 +28,7 @@
 
 isc_result_t
 named_statschannels_configure(named_server_t *server, const cfg_obj_t *config,
-			      cfg_aclconfctx_t *aclconfctx);
+			      cfg_aclconfctx_t *aclctx);
 /*%<
  * [Re]configure the statistics channels.
  *

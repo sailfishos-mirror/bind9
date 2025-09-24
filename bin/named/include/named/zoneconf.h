@@ -24,7 +24,7 @@
 
 isc_result_t
 named_zone_configure(const cfg_obj_t *config, const cfg_obj_t *vconfig,
-		     const cfg_obj_t *zconfig, cfg_aclconfctx_t *ac,
+		     const cfg_obj_t *zconfig, cfg_aclconfctx_t *aclctx,
 		     dns_kasplist_t *kasplist, dns_zone_t *zone,
 		     dns_zone_t *raw);
 /*%<
@@ -35,7 +35,7 @@ named_zone_configure(const cfg_obj_t *config, const cfg_obj_t *vconfig,
  * at zone creation time.
  *
  * Require:
- * \li	'ac' to point to an initialized cfg_aclconfctx_t.
+ * \li	'aclctx' to point to an initialized cfg_aclconfctx_t.
  * \li	'kasplist' to be initialized.
  * \li	'zone' to be initialized.
  */
@@ -85,7 +85,7 @@ named_zone_templateopts(const cfg_obj_t *config, const cfg_obj_t *zoptions);
 isc_result_t
 named_zone_loadplugins(dns_zone_t *zone, const cfg_obj_t *config,
 		       const cfg_obj_t *toptions, const cfg_obj_t *zoptions,
-		       cfg_aclconfctx_t *actx);
+		       cfg_aclconfctx_t *aclctx);
 /*%<
  * Load plugins that should run for this specific zone. Take care of cleaning
  * up any pre-existing plugins first, if the zone is re-used.
@@ -96,5 +96,5 @@ named_zone_loadplugins(dns_zone_t *zone, const cfg_obj_t *config,
  * \li	'zoptions' to be a valid zone configuration tree
  * \li	'toptions' to be NULL or valid template configuration tree
  * \li	'zoptions' to be NULL or a valid zone configuration tree
- * \li  'actx' to be NULL (confcheck case only) or a valid acl conf ctx
+ * \li  'aclctx' to be NULL (confcheck case only) or a valid acl conf ctx
  */

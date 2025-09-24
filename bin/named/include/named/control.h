@@ -93,12 +93,12 @@ named_controls_destroy(named_controls_t **ctrlsp);
 
 isc_result_t
 named_controls_configure(named_controls_t *controls, const cfg_obj_t *config,
-			 cfg_aclconfctx_t *aclconfctx);
+			 cfg_aclconfctx_t *aclctx);
 /*%<
  * Configure zero or more command channels into 'controls'
  * as defined in the configuration parse tree 'config'.
  * The channels will evaluate ACLs in the context of
- * 'aclconfctx'.
+ * 'aclctx'.
  */
 
 void

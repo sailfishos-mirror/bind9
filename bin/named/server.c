@@ -312,7 +312,7 @@ typedef struct ns_cfgctx {
 	cfg_obj_t *config;
 	cfg_obj_t *vconfig;
 	cfg_obj_t *nzf_config;
-	cfg_aclconfctx_t *actx;
+	cfg_aclconfctx_t *aclctx;
 } ns_cfgctx_t;
 
 /*%
@@ -472,13 +472,13 @@ listenelt_http(const cfg_obj_t *http, const uint16_t family, bool tls,
 
 static isc_result_t
 listenelt_fromconfig(const cfg_obj_t *listener, const cfg_obj_t *config,
-		     cfg_aclconfctx_t *actx, isc_mem_t *mctx, uint16_t family,
+		     cfg_aclconfctx_t *aclctx, isc_mem_t *mctx, uint16_t family,
 		     isc_tlsctx_cache_t *tlsctx_cache, ns_listenelt_t **target);
 
 static isc_result_t
 listenlist_fromconfig(const cfg_obj_t *listenlist, const cfg_obj_t *config,
-		      cfg_aclconfctx_t *actx, isc_mem_t *mctx, uint16_t family,
-		      isc_tlsctx_cache_t *tlsctx_cache,
+		      cfg_aclconfctx_t *aclctx, isc_mem_t *mctx,
+		      uint16_t family, isc_tlsctx_cache_t *tlsctx_cache,
 		      ns_listenlist_t **target);
 
 static isc_result_t
@@ -503,7 +503,7 @@ configure_zone_setviewcommit(isc_result_t result, const cfg_obj_t *zconfig,
 
 static isc_result_t
 configure_newzones(dns_view_t *view, cfg_obj_t *config, cfg_obj_t *vconfig,
-		   cfg_aclconfctx_t *actx, dns_kasplist_t *kasplist);
+		   cfg_aclconfctx_t *aclctx, dns_kasplist_t *kasplist);
 
 static const cfg_obj_t *
 find_maplist(const cfg_obj_t *config, const char *listname, const char *name);
@@ -556,7 +556,7 @@ load_nzf(dns_view_t *view, ns_cfgctx_t *nzcfg);
 static isc_result_t
 configure_view_acl(const cfg_obj_t *vconfig, const cfg_obj_t *config,
 		   const cfg_obj_t *gconfig, const char *aclname,
-		   const char *acltuplename, cfg_aclconfctx_t *actx,
+		   const char *acltuplename, cfg_aclconfctx_t *aclctx,
 		   isc_mem_t *mctx, dns_acl_t **aclp) {
 	isc_result_t result;
 	const cfg_obj_t *maps[4];
@@ -602,7 +602,7 @@ configure_view_acl(const cfg_obj_t *vconfig, const cfg_obj_t *config,
 		aclobj = cfg_tuple_get(aclobj, acltuplename);
 	}
 
-	result = cfg_acl_fromconfig(aclobj, config, actx, mctx, 0, aclp);
+	result = cfg_acl_fromconfig(aclobj, config, aclctx, mctx, 0, aclp);
 
 	return result;
 }
@@ -2494,7 +2494,7 @@ catz_addmodzone_cb(void *arg) {
 	dns_view_thaw(cz->view);
 	result = configure_zone(cfg->config, zoneobj, cfg->vconfig, cz->view,
 				&cz->cbd->server->viewlist,
-				&cz->cbd->server->kasplist, cfg->actx, true,
+				&cz->cbd->server->kasplist, cfg->aclctx, true,
 				false, true, cz->mod);
 	dns_view_freeze(cz->view);
 	isc_loopmgr_resume();
@@ -2769,7 +2769,7 @@ catz_reconfigure(dns_catz_entry_t *entry, void *arg1, void *arg2) {
 
 	result = configure_zone(data->config, zoneobj, cfg->vconfig, view,
 				&data->cbd->server->viewlist,
-				&data->cbd->server->kasplist, cfg->actx, true,
+				&data->cbd->server->kasplist, cfg->aclctx, true,
 				false, true, true);
 	if (result != ISC_R_SUCCESS) {
 		isc_log_write(NAMED_LOGCATEGORY_GENERAL, NAMED_LOGMODULE_SERVER,
@@ -2987,7 +2987,7 @@ cleanup:
 
 static isc_result_t
 configure_rrl(dns_view_t *view, const cfg_obj_t *config, const cfg_obj_t *map,
-	      cfg_aclconfctx_t *actx) {
+	      cfg_aclconfctx_t *aclctx) {
 	const cfg_obj_t *obj;
 	dns_rrl_t *rrl;
 	isc_result_t result;
@@ -3098,7 +3098,7 @@ configure_rrl(dns_view_t *view, const cfg_obj_t *config, const cfg_obj_t *map,
 	obj = NULL;
 	result = cfg_map_get(map, "exempt-clients", &obj);
 	if (result == ISC_R_SUCCESS) {
-		result = cfg_acl_fromconfig(obj, config, actx, isc_g_mctx, 0,
+		result = cfg_acl_fromconfig(obj, config, aclctx, isc_g_mctx, 0,
 					    &rrl->exempt);
 		CHECK_RRL(result == ISC_R_SUCCESS, "invalid %s%s",
 			  "address match list", "");
@@ -3715,7 +3715,7 @@ create_mapped_acl(void) {
 
 isc_result_t
 named_register_one_plugin(const cfg_obj_t *config, const cfg_obj_t *obj,
-			  cfg_aclconfctx_t *actx, const char *plugin_path,
+			  cfg_aclconfctx_t *aclctx, const char *plugin_path,
 			  const char *parameters, void *callback_data) {
 	char full_path[PATH_MAX];
 	isc_result_t result;
@@ -3734,7 +3734,7 @@ named_register_one_plugin(const cfg_obj_t *config, const cfg_obj_t *obj,
 
 	result = ns_plugin_register(full_path, parameters, config,
 				    cfg_obj_file(obj), cfg_obj_line(obj),
-				    isc_g_mctx, actx, hookdata);
+				    isc_g_mctx, aclctx, hookdata);
 	if (result != ISC_R_SUCCESS) {
 		isc_log_write(NAMED_LOGCATEGORY_GENERAL, NAMED_LOGMODULE_SERVER,
 			      ISC_LOG_ERROR,
@@ -3795,8 +3795,9 @@ configure_view(dns_view_t *view, dns_viewlist_t *viewlist, cfg_obj_t *config,
 	       cfg_obj_t *vconfig, named_cachelist_t *cachelist,
 	       named_cachelist_t *oldcachelist, dns_kasplist_t *kasplist,
 	       const cfg_obj_t *bindkeys, isc_mem_t *mctx,
-	       cfg_aclconfctx_t *actx, isc_tlsctx_cache_t *tlsctx_client_cache,
-	       bool need_hints, bool first_time) {
+	       cfg_aclconfctx_t *aclctx,
+	       isc_tlsctx_cache_t *tlsctx_client_cache, bool need_hints,
+	       bool first_time) {
 	const cfg_obj_t *maps[4];
 	const cfg_obj_t *cfgmaps[3];
 	const cfg_obj_t *optionmaps[3];
@@ -3938,7 +3939,7 @@ configure_view(dns_view_t *view, dns_viewlist_t *viewlist, cfg_obj_t *config,
 	CFG_LIST_FOREACH(zonelist, element) {
 		const cfg_obj_t *zconfig = cfg_listelt_value(element);
 		CHECK(configure_zone(config, zconfig, vconfig, view, viewlist,
-				     kasplist, actx, false, old_rpz_ok, false,
+				     kasplist, aclctx, false, old_rpz_ok, false,
 				     false));
 		zone_element_latest = element;
 	}
@@ -3974,7 +3975,7 @@ configure_view(dns_view_t *view, dns_viewlist_t *viewlist, cfg_obj_t *config,
 	 * from the newzone file for zones that were added during previous
 	 * runs.
 	 */
-	CHECK(configure_newzones(view, config, vconfig, actx, kasplist));
+	CHECK(configure_newzones(view, config, vconfig, aclctx, kasplist));
 
 	/*
 	 * Create Dynamically Loadable Zone driver.
@@ -4178,7 +4179,7 @@ configure_view(dns_view_t *view, dns_viewlist_t *viewlist, cfg_obj_t *config,
 			obj = NULL;
 			(void)cfg_map_get(map, "clients", &obj);
 			if (obj != NULL) {
-				result = cfg_acl_fromconfig(obj, config, actx,
+				result = cfg_acl_fromconfig(obj, config, aclctx,
 							    mctx, 0, &clients);
 				if (result != ISC_R_SUCCESS) {
 					goto cleanup;
@@ -4187,7 +4188,7 @@ configure_view(dns_view_t *view, dns_viewlist_t *viewlist, cfg_obj_t *config,
 			obj = NULL;
 			(void)cfg_map_get(map, "mapped", &obj);
 			if (obj != NULL) {
-				result = cfg_acl_fromconfig(obj, config, actx,
+				result = cfg_acl_fromconfig(obj, config, aclctx,
 							    mctx, 0, &mapped);
 				if (result != ISC_R_SUCCESS) {
 					goto cleanup;
@@ -4196,7 +4197,7 @@ configure_view(dns_view_t *view, dns_viewlist_t *viewlist, cfg_obj_t *config,
 			obj = NULL;
 			(void)cfg_map_get(map, "exclude", &obj);
 			if (obj != NULL) {
-				result = cfg_acl_fromconfig(obj, config, actx,
+				result = cfg_acl_fromconfig(obj, config, aclctx,
 							    mctx, 0, &excluded);
 				if (result != ISC_R_SUCCESS) {
 					goto cleanup;
@@ -4862,9 +4863,9 @@ configure_view(dns_view_t *view, dns_viewlist_t *viewlist, cfg_obj_t *config,
 	 * can be retrieved.)
 	 */
 	CHECK(configure_view_acl(vconfig, config, NULL, "match-clients", NULL,
-				 actx, isc_g_mctx, &view->matchclients));
+				 aclctx, isc_g_mctx, &view->matchclients));
 	CHECK(configure_view_acl(vconfig, config, NULL, "match-destinations",
-				 NULL, actx, isc_g_mctx,
+				 NULL, aclctx, isc_g_mctx,
 				 &view->matchdestinations));
 
 	/*
@@ -4969,25 +4970,25 @@ configure_view(dns_view_t *view, dns_viewlist_t *viewlist, cfg_obj_t *config,
 
 	/* named.conf only */
 	CHECK(configure_view_acl(vconfig, config, NULL, "allow-query", NULL,
-				 actx, isc_g_mctx, &view->queryacl));
+				 aclctx, isc_g_mctx, &view->queryacl));
 
 	/* named.conf only */
 	CHECK(configure_view_acl(vconfig, config, NULL, "allow-query-cache",
-				 NULL, actx, isc_g_mctx, &view->cacheacl));
+				 NULL, aclctx, isc_g_mctx, &view->cacheacl));
 	/* named.conf only */
 	CHECK(configure_view_acl(vconfig, config, NULL, "allow-query-cache-on",
-				 NULL, actx, isc_g_mctx, &view->cacheonacl));
+				 NULL, aclctx, isc_g_mctx, &view->cacheonacl));
 
 	CHECK(configure_view_acl(vconfig, config, named_g_defaultconfig,
-				 "allow-query-on", NULL, actx, isc_g_mctx,
+				 "allow-query-on", NULL, aclctx, isc_g_mctx,
 				 &view->queryonacl));
 
 	CHECK(configure_view_acl(vconfig, config, named_g_defaultconfig,
-				 "allow-proxy", NULL, actx, isc_g_mctx,
+				 "allow-proxy", NULL, aclctx, isc_g_mctx,
 				 &view->proxyacl));
 
 	CHECK(configure_view_acl(vconfig, config, named_g_defaultconfig,
-				 "allow-proxy-on", NULL, actx, isc_g_mctx,
+				 "allow-proxy-on", NULL, aclctx, isc_g_mctx,
 				 &view->proxyonacl));
 
 	if (strcmp(view->name, "_bind") != 0 &&
@@ -4995,11 +4996,11 @@ configure_view(dns_view_t *view, dns_viewlist_t *viewlist, cfg_obj_t *config,
 	{
 		/* named.conf only */
 		CHECK(configure_view_acl(vconfig, config, NULL,
-					 "allow-recursion", NULL, actx,
+					 "allow-recursion", NULL, aclctx,
 					 isc_g_mctx, &view->recursionacl));
 		/* named.conf only */
 		CHECK(configure_view_acl(vconfig, config, NULL,
-					 "allow-recursion-on", NULL, actx,
+					 "allow-recursion-on", NULL, aclctx,
 					 isc_g_mctx, &view->recursiononacl));
 	}
 
@@ -5062,29 +5063,29 @@ configure_view(dns_view_t *view, dns_viewlist_t *viewlist, cfg_obj_t *config,
 			/* global default only */
 			CHECK(configure_view_acl(
 				NULL, NULL, named_g_defaultconfig,
-				"allow-recursion", NULL, actx, isc_g_mctx,
+				"allow-recursion", NULL, aclctx, isc_g_mctx,
 				&view->recursionacl));
 		}
 		if (view->recursiononacl == NULL) {
 			/* global default only */
 			CHECK(configure_view_acl(
 				NULL, NULL, named_g_defaultconfig,
-				"allow-recursion-on", NULL, actx, isc_g_mctx,
+				"allow-recursion-on", NULL, aclctx, isc_g_mctx,
 				&view->recursiononacl));
 		}
 		if (view->cacheacl == NULL) {
 			/* global default only */
 			CHECK(configure_view_acl(
 				NULL, NULL, named_g_defaultconfig,
-				"allow-query-cache", NULL, actx, isc_g_mctx,
+				"allow-query-cache", NULL, aclctx, isc_g_mctx,
 				&view->cacheacl));
 		}
 		if (view->cacheonacl == NULL) {
 			/* global default only */
 			CHECK(configure_view_acl(
 				NULL, NULL, named_g_defaultconfig,
-				"allow-query-cache-on", NULL, actx, isc_g_mctx,
-				&view->cacheonacl));
+				"allow-query-cache-on", NULL, aclctx,
+				isc_g_mctx, &view->cacheonacl));
 		}
 	} else {
 		/*
@@ -5106,8 +5107,8 @@ configure_view(dns_view_t *view, dns_viewlist_t *viewlist, cfg_obj_t *config,
 	if (view->queryacl == NULL) {
 		/* global default only */
 		CHECK(configure_view_acl(NULL, NULL, named_g_defaultconfig,
-					 "allow-query", NULL, actx, isc_g_mctx,
-					 &view->queryacl));
+					 "allow-query", NULL, aclctx,
+					 isc_g_mctx, &view->queryacl));
 	}
 
 	/*
@@ -5116,7 +5117,7 @@ configure_view(dns_view_t *view, dns_viewlist_t *viewlist, cfg_obj_t *config,
 	 * and is needed by some broken clients.
 	 */
 	CHECK(configure_view_acl(vconfig, config, named_g_defaultconfig,
-				 "no-case-compress", NULL, actx, isc_g_mctx,
+				 "no-case-compress", NULL, aclctx, isc_g_mctx,
 				 &view->nocasecompress));
 
 	/*
@@ -5132,7 +5133,7 @@ configure_view(dns_view_t *view, dns_viewlist_t *viewlist, cfg_obj_t *config,
 	 * Filter setting on addresses in the answer section.
 	 */
 	CHECK(configure_view_acl(vconfig, config, named_g_defaultconfig,
-				 "deny-answer-addresses", "acl", actx,
+				 "deny-answer-addresses", "acl", aclctx,
 				 isc_g_mctx, &view->denyansweracl));
 	CHECK(configure_view_nametable(vconfig, config, "deny-answer-addresses",
 				       "except-from", isc_g_mctx,
@@ -5156,13 +5157,13 @@ configure_view(dns_view_t *view, dns_viewlist_t *viewlist, cfg_obj_t *config,
 	 */
 	if (view->updateacl == NULL) {
 		CHECK(configure_view_acl(NULL, NULL, named_g_defaultconfig,
-					 "allow-update", NULL, actx, isc_g_mctx,
-					 &view->updateacl));
+					 "allow-update", NULL, aclctx,
+					 isc_g_mctx, &view->updateacl));
 	}
 	if (view->upfwdacl == NULL) {
 		CHECK(configure_view_acl(NULL, NULL, named_g_defaultconfig,
-					 "allow-update-forwarding", NULL, actx,
-					 isc_g_mctx, &view->upfwdacl));
+					 "allow-update-forwarding", NULL,
+					 aclctx, isc_g_mctx, &view->upfwdacl));
 	}
 
 	/*
@@ -5171,13 +5172,13 @@ configure_view(dns_view_t *view, dns_viewlist_t *viewlist, cfg_obj_t *config,
 	 */
 	if (view->transferacl == NULL) {
 		CHECK(configure_view_acl(vconfig, config, named_g_defaultconfig,
-					 "allow-transfer", NULL, actx,
+					 "allow-transfer", NULL, aclctx,
 					 isc_g_mctx, &view->transferacl));
 	}
 	if (view->notifyacl == NULL) {
 		CHECK(configure_view_acl(vconfig, config, named_g_defaultconfig,
-					 "allow-notify", NULL, actx, isc_g_mctx,
-					 &view->notifyacl));
+					 "allow-notify", NULL, aclctx,
+					 isc_g_mctx, &view->notifyacl));
 	}
 
 	obj = NULL;
@@ -5217,7 +5218,7 @@ configure_view(dns_view_t *view, dns_viewlist_t *viewlist, cfg_obj_t *config,
 			padding = 512U;
 		}
 		view->padding = (uint16_t)padding;
-		CHECK(cfg_acl_fromconfig(aclobj, config, actx, isc_g_mctx, 0,
+		CHECK(cfg_acl_fromconfig(aclobj, config, aclctx, isc_g_mctx, 0,
 					 &view->pad_acl));
 	}
 
@@ -5431,7 +5432,7 @@ configure_view(dns_view_t *view, dns_viewlist_t *viewlist, cfg_obj_t *config,
 		view->plugins = hookdata.plugins;
 		view->plugins_free = ns_plugins_free;
 
-		CHECK(cfg_pluginlist_foreach(config, plugin_list, actx,
+		CHECK(cfg_pluginlist_foreach(config, plugin_list, aclctx,
 					     named_register_one_plugin,
 					     &hookdata));
 	}
@@ -5688,7 +5689,7 @@ configure_view(dns_view_t *view, dns_viewlist_t *viewlist, cfg_obj_t *config,
 	obj = NULL;
 	result = named_config_get(maps, "rate-limit", &obj);
 	if (result == ISC_R_SUCCESS) {
-		result = configure_rrl(view, config, obj, actx);
+		result = configure_rrl(view, config, obj, aclctx);
 		if (result != ISC_R_SUCCESS) {
 			goto cleanup;
 		}
@@ -6256,7 +6257,7 @@ static isc_result_t
 configure_zone(const cfg_obj_t *config, const cfg_obj_t *zconfig,
 	       const cfg_obj_t *vconfig, dns_view_t *view,
 	       dns_viewlist_t *viewlist, dns_kasplist_t *kasplist,
-	       cfg_aclconfctx_t *actx, bool added, bool old_rpz_ok,
+	       cfg_aclconfctx_t *aclctx, bool added, bool old_rpz_ok,
 	       bool is_catz_member, bool modify) {
 	dns_view_t *pview = NULL; /* Production view */
 	dns_zone_t *zone = NULL;  /* New or reused zone */
@@ -6456,7 +6457,7 @@ configure_zone(const cfg_obj_t *config, const cfg_obj_t *zconfig,
 						     zone));
 			dns_zone_setstats(zone, named_g_server->zonestats);
 		}
-		CHECK(named_zone_configure(config, vconfig, zconfig, actx,
+		CHECK(named_zone_configure(config, vconfig, zconfig, aclctx,
 					   kasplist, zone, NULL));
 		dns_zone_attach(zone, &view->redirect);
 		goto cleanup;
@@ -6632,7 +6633,7 @@ configure_zone(const cfg_obj_t *config, const cfg_obj_t *zconfig,
 	/*
 	 * Configure the zone.
 	 */
-	CHECK(named_zone_configure(config, vconfig, zconfig, actx, kasplist,
+	CHECK(named_zone_configure(config, vconfig, zconfig, aclctx, kasplist,
 				   zone, raw));
 
 	/*
@@ -6663,7 +6664,8 @@ configure_zone(const cfg_obj_t *config, const cfg_obj_t *zconfig,
 		dns_zone_rekey(zone, fullsign, false);
 	}
 
-	result = named_zone_loadplugins(zone, config, toptions, zoptions, actx);
+	result = named_zone_loadplugins(zone, config, toptions, zoptions,
+					aclctx);
 
 cleanup:
 	if (zone != NULL) {
@@ -7333,7 +7335,7 @@ cleanup:
 
 static isc_result_t
 setup_newzones(dns_view_t *view, cfg_obj_t *config, cfg_obj_t *vconfig,
-	       cfg_parser_t *config_parser, cfg_aclconfctx_t *actx) {
+	       cfg_parser_t *config_parser, cfg_aclconfctx_t *aclctx) {
 	isc_result_t result = ISC_R_SUCCESS;
 	bool allow = false;
 	ns_cfgctx_t *nzcfg = NULL;
@@ -7442,12 +7444,12 @@ setup_newzones(dns_view_t *view, cfg_obj_t *config, cfg_obj_t *vconfig,
 	isc_mem_attach(view->mctx, &nzcfg->mctx);
 	cfg_parser_attach(config_parser, &nzcfg->conf_parser);
 	cfg_parser_attach(named_g_addparser, &nzcfg->add_parser);
-	cfg_aclconfctx_attach(actx, &nzcfg->actx);
+	cfg_aclconfctx_attach(aclctx, &nzcfg->aclctx);
 
 	result = dns_view_setnewzones(view, true, nzcfg, newzone_cfgctx_destroy,
 				      mapsize);
 	if (result != ISC_R_SUCCESS) {
-		cfg_aclconfctx_detach(&nzcfg->actx);
+		cfg_aclconfctx_detach(&nzcfg->aclctx);
 		cfg_parser_destroy(&nzcfg->conf_parser);
 		cfg_parser_destroy(&nzcfg->add_parser);
 		isc_mem_putanddetach(&nzcfg->mctx, nzcfg, sizeof(*nzcfg));
@@ -7508,7 +7510,7 @@ configure_zone_setviewcommit(isc_result_t result, const cfg_obj_t *zconfig,
 
 static isc_result_t
 configure_newzones(dns_view_t *view, cfg_obj_t *config, cfg_obj_t *vconfig,
-		   cfg_aclconfctx_t *actx, dns_kasplist_t *kasplist) {
+		   cfg_aclconfctx_t *aclctx, dns_kasplist_t *kasplist) {
 	isc_result_t result;
 	ns_cfgctx_t *nzctx = NULL;
 	const cfg_obj_t *zonelist = NULL;
@@ -7528,8 +7530,8 @@ configure_newzones(dns_view_t *view, cfg_obj_t *config, cfg_obj_t *vconfig,
 	CFG_LIST_FOREACH(zonelist, element) {
 		const cfg_obj_t *zconfig = cfg_listelt_value(element);
 		CHECK(configure_zone(config, zconfig, vconfig, view,
-				     &named_g_server->viewlist, kasplist, actx,
-				     true, false, false, false));
+				     &named_g_server->viewlist, kasplist,
+				     aclctx, true, false, false, false));
 	}
 
 	result = ISC_R_SUCCESS;
@@ -7622,13 +7624,13 @@ cleanup:
 typedef isc_result_t (*newzone_cfg_cb_t)(const cfg_obj_t *zconfig,
 					 cfg_obj_t *config, cfg_obj_t *vconfig,
 					 dns_view_t *view,
-					 cfg_aclconfctx_t *actx,
+					 cfg_aclconfctx_t *aclctx,
 					 dns_kasplist_t *kasplist);
 
 /*%
  * For each zone found in a NZD opened by the caller, create an object
  * representing its configuration and invoke "callback" with the created
- * object, "config", "vconfig", "mctx", "view" and "actx" as arguments (all
+ * object, "config", "vconfig", "mctx", "view" and "aclctx" as arguments (all
  * these are non-global variables required to invoke configure_zone()).
  * Immediately interrupt processing if an error is encountered while
  * transforming NZD data into a zone configuration object or if "callback"
@@ -7639,7 +7641,7 @@ typedef isc_result_t (*newzone_cfg_cb_t)(const cfg_obj_t *zconfig,
 static isc_result_t
 for_all_newzone_cfgs(newzone_cfg_cb_t callback, cfg_obj_t *config,
 		     cfg_obj_t *vconfig, dns_view_t *view,
-		     cfg_aclconfctx_t *actx, dns_kasplist_t *kasplist,
+		     cfg_aclconfctx_t *aclctx, dns_kasplist_t *kasplist,
 		     MDB_txn *txn, MDB_dbi dbi) {
 	const cfg_obj_t *zconfig, *zlist;
 	isc_result_t result = ISC_R_SUCCESS;
@@ -7682,7 +7684,7 @@ for_all_newzone_cfgs(newzone_cfg_cb_t callback, cfg_obj_t *config,
 		/*
 		 * Invoke callback.
 		 */
-		result = callback(zconfig, config, vconfig, view, actx,
+		result = callback(zconfig, config, vconfig, view, aclctx,
 				  kasplist);
 		if (result != ISC_R_SUCCESS) {
 			break;
@@ -7710,10 +7712,10 @@ for_all_newzone_cfgs(newzone_cfg_cb_t callback, cfg_obj_t *config,
  */
 static isc_result_t
 configure_newzone(const cfg_obj_t *zconfig, cfg_obj_t *config,
-		  cfg_obj_t *vconfig, dns_view_t *view, cfg_aclconfctx_t *actx,
-		  dns_kasplist_t *kasplist) {
+		  cfg_obj_t *vconfig, dns_view_t *view,
+		  cfg_aclconfctx_t *aclctx, dns_kasplist_t *kasplist) {
 	return configure_zone(config, zconfig, vconfig, view,
-			      &named_g_server->viewlist, kasplist, actx, true,
+			      &named_g_server->viewlist, kasplist, aclctx, true,
 			      false, false, false);
 }
 
@@ -7723,10 +7725,10 @@ configure_newzone(const cfg_obj_t *zconfig, cfg_obj_t *config,
 static isc_result_t
 configure_newzone_revert(const cfg_obj_t *zconfig, cfg_obj_t *config,
 			 cfg_obj_t *vconfig, dns_view_t *view,
-			 cfg_aclconfctx_t *actx, dns_kasplist_t *kasplist) {
+			 cfg_aclconfctx_t *aclctx, dns_kasplist_t *kasplist) {
 	UNUSED(config);
 	UNUSED(vconfig);
-	UNUSED(actx);
+	UNUSED(aclctx);
 	UNUSED(kasplist);
 
 	configure_zone_setviewcommit(ISC_R_FAILURE, zconfig, view);
@@ -7736,7 +7738,7 @@ configure_newzone_revert(const cfg_obj_t *zconfig, cfg_obj_t *config,
 
 static isc_result_t
 configure_newzones(dns_view_t *view, cfg_obj_t *config, cfg_obj_t *vconfig,
-		   cfg_aclconfctx_t *actx, dns_kasplist_t *kasplist) {
+		   cfg_aclconfctx_t *aclctx, dns_kasplist_t *kasplist) {
 	isc_result_t result;
 	MDB_txn *txn = NULL;
 	MDB_dbi dbi;
@@ -7760,7 +7762,7 @@ configure_newzones(dns_view_t *view, cfg_obj_t *config, cfg_obj_t *vconfig,
 		      view->new_zone_db, view->name);
 
 	result = for_all_newzone_cfgs(configure_newzone, config, vconfig, view,
-				      actx, kasplist, txn, dbi);
+				      aclctx, kasplist, txn, dbi);
 	if (result != ISC_R_SUCCESS) {
 		/*
 		 * An error was encountered while attempting to configure zones
@@ -7771,7 +7773,7 @@ configure_newzones(dns_view_t *view, cfg_obj_t *config, cfg_obj_t *vconfig,
 		 * terms of trying to make things right.
 		 */
 		(void)for_all_newzone_cfgs(configure_newzone_revert, config,
-					   vconfig, view, actx, kasplist, txn,
+					   vconfig, view, aclctx, kasplist, txn,
 					   dbi);
 	}
 
@@ -7852,8 +7854,8 @@ cleanup:
 		      ISC_LOG_DEBUG(1), "apply_configuration: %s", __func__);
 
 static isc_result_t
-create_views(cfg_obj_t *config, cfg_parser_t *parser,
-	     cfg_aclconfctx_t *aclconfctx, dns_viewlist_t *viewlist) {
+create_views(cfg_obj_t *config, cfg_parser_t *parser, cfg_aclconfctx_t *aclctx,
+	     dns_viewlist_t *viewlist) {
 	isc_result_t result = ISC_R_SUCCESS;
 	const cfg_obj_t *views = NULL;
 
@@ -7870,8 +7872,7 @@ create_views(cfg_obj_t *config, cfg_parser_t *parser,
 		}
 		INSIST(view != NULL);
 
-		result = setup_newzones(view, config, vconfig, parser,
-					aclconfctx);
+		result = setup_newzones(view, config, vconfig, parser, aclctx);
 		dns_view_detach(&view);
 
 		if (result != ISC_R_SUCCESS) {
@@ -7892,7 +7893,7 @@ create_views(cfg_obj_t *config, cfg_parser_t *parser,
 		}
 		INSIST(view != NULL);
 
-		result = setup_newzones(view, config, NULL, parser, aclconfctx);
+		result = setup_newzones(view, config, NULL, parser, aclctx);
 
 		dns_view_detach(&view);
 	}
@@ -7902,7 +7903,7 @@ create_views(cfg_obj_t *config, cfg_parser_t *parser,
 
 static isc_result_t
 configure_views(cfg_obj_t *config, const cfg_obj_t *bindkeys,
-		cfg_aclconfctx_t *aclconfctx,
+		cfg_aclconfctx_t *aclctx,
 		isc_tlsctx_cache_t *tlsctx_client_cache,
 		dns_viewlist_t *viewlist, named_cachelist_t *cachelist,
 		dns_kasplist_t *kasplist, named_server_t *server,
@@ -7930,7 +7931,7 @@ configure_views(cfg_obj_t *config, const cfg_obj_t *bindkeys,
 
 		result = configure_view(view, viewlist, config, vconfig,
 					cachelist, &server->cachelist, kasplist,
-					bindkeys, isc_g_mctx, aclconfctx,
+					bindkeys, isc_g_mctx, aclctx,
 					tlsctx_client_cache, true, first_time);
 		if (result != ISC_R_SUCCESS) {
 			dns_view_detach(&view);
@@ -7952,8 +7953,8 @@ configure_views(cfg_obj_t *config, const cfg_obj_t *bindkeys,
 		}
 		result = configure_view(view, viewlist, config, NULL, cachelist,
 					&server->cachelist, kasplist, bindkeys,
-					isc_g_mctx, aclconfctx,
-					tlsctx_client_cache, true, first_time);
+					isc_g_mctx, aclctx, tlsctx_client_cache,
+					true, first_time);
 		if (result != ISC_R_SUCCESS) {
 			dns_view_detach(&view);
 			return result;
@@ -7979,7 +7980,7 @@ configure_views(cfg_obj_t *config, const cfg_obj_t *bindkeys,
 
 		result = configure_view(view, viewlist, config, vconfig,
 					cachelist, &server->cachelist, kasplist,
-					bindkeys, isc_g_mctx, aclconfctx,
+					bindkeys, isc_g_mctx, aclctx,
 					tlsctx_client_cache, false, first_time);
 		if (result != ISC_R_SUCCESS) {
 			dns_view_detach(&view);
@@ -8144,7 +8145,7 @@ apply_configuration(cfg_parser_t *configparser, cfg_obj_t *config,
 	bool exclusive = true;
 	dns_aclenv_t *env =
 		ns_interfacemgr_getaclenv(named_g_server->interfacemgr);
-	cfg_aclconfctx_t *tmpaclconfctx, *aclconfctx = NULL;
+	cfg_aclconfctx_t *tmpaclctx, *aclctx = NULL;
 	isc_tlsctx_cache_t *tlsctx_client_cache = NULL;
 
 	isc_log_write(NAMED_LOGCATEGORY_GENERAL, NAMED_LOGMODULE_SERVER,
@@ -8174,9 +8175,9 @@ apply_configuration(cfg_parser_t *configparser, cfg_obj_t *config,
 	maps[i] = NULL;
 
 	/* Create the ACL configuration context */
-	result = cfg_aclconfctx_create(isc_g_mctx, &aclconfctx);
+	result = cfg_aclconfctx_create(isc_g_mctx, &aclctx);
 	if (result != ISC_R_SUCCESS) {
-		goto cleanup_aclconfctx;
+		goto cleanup_aclctx;
 	}
 
 	result = configure_keystores(config, &keystorelist);
@@ -8189,7 +8190,7 @@ apply_configuration(cfg_parser_t *configparser, cfg_obj_t *config,
 		goto cleanup_kasplist;
 	}
 
-	result = create_views(config, configparser, aclconfctx, &viewlist);
+	result = create_views(config, configparser, aclctx, &viewlist);
 	if (result != ISC_R_SUCCESS) {
 		goto cleanup_viewlist;
 	}
@@ -8308,7 +8309,7 @@ apply_configuration(cfg_parser_t *configparser, cfg_obj_t *config,
 		char *dir = UNCONST(cfg_obj_asstring(obj));
 		named_geoip_load(dir);
 	}
-	aclconfctx->geoip = named_g_geoip;
+	aclctx->geoip = named_g_geoip;
 #endif /* HAVE_GEOIP2 */
 
 	/*
@@ -8346,7 +8347,7 @@ apply_configuration(cfg_parser_t *configparser, cfg_obj_t *config,
 	result = named_config_get(maps, "sig0checks-quota-exempt", &obj);
 	if (result == ISC_R_SUCCESS) {
 		result = cfg_acl_fromconfig(
-			obj, config, aclconfctx, isc_g_mctx, 0,
+			obj, config, aclctx, isc_g_mctx, 0,
 			&server->sctx->sig0checksquota_exempt);
 		INSIST(result == ISC_R_SUCCESS);
 	}
@@ -8356,7 +8357,7 @@ apply_configuration(cfg_parser_t *configparser, cfg_obj_t *config,
 	 * no default.
 	 */
 	result = configure_view_acl(NULL, config, NULL, "blackhole", NULL,
-				    aclconfctx, isc_g_mctx,
+				    aclctx, isc_g_mctx,
 				    &server->sctx->blackholeacl);
 	if (result != ISC_R_SUCCESS) {
 		goto cleanup_bindkeys_parser;
@@ -8658,7 +8659,7 @@ apply_configuration(cfg_parser_t *configparser, cfg_obj_t *config,
 			goto cleanup_portsets;
 		}
 		result = listenlist_fromconfig(
-			clistenon, config, aclconfctx, isc_g_mctx, AF_INET,
+			clistenon, config, aclctx, isc_g_mctx, AF_INET,
 			server->tlsctx_server_cache, &listenon);
 		if (result != ISC_R_SUCCESS) {
 			goto cleanup_portsets;
@@ -8682,7 +8683,7 @@ apply_configuration(cfg_parser_t *configparser, cfg_obj_t *config,
 			goto cleanup_portsets;
 		}
 		result = listenlist_fromconfig(
-			clistenon, config, aclconfctx, isc_g_mctx, AF_INET6,
+			clistenon, config, aclctx, isc_g_mctx, AF_INET6,
 			server->tlsctx_server_cache, &listenon);
 		if (result != ISC_R_SUCCESS) {
 			goto cleanup_portsets;
@@ -8804,9 +8805,9 @@ apply_configuration(cfg_parser_t *configparser, cfg_obj_t *config,
 	 */
 	(void)configure_session_key(maps, server, isc_g_mctx, first_time);
 
-	result = configure_views(config, bindkeys, aclconfctx,
-				 tlsctx_client_cache, &viewlist, &cachelist,
-				 &kasplist, server, first_time);
+	result = configure_views(config, bindkeys, aclctx, tlsctx_client_cache,
+				 &viewlist, &cachelist, &kasplist, server,
+				 first_time);
 	if (result != ISC_R_SUCCESS) {
 		goto cleanup_cachelist;
 	}
@@ -9202,9 +9203,9 @@ apply_configuration(cfg_parser_t *configparser, cfg_obj_t *config,
 	/*
 	 * Swap server aclconfctx
 	 */
-	tmpaclconfctx = server->aclconfctx;
-	server->aclconfctx = aclconfctx;
-	aclconfctx = tmpaclconfctx;
+	tmpaclctx = server->aclctx;
+	server->aclctx = aclctx;
+	aclctx = tmpaclctx;
 
 	/*
 	 * Swap client TLS context
@@ -9234,7 +9235,7 @@ apply_configuration(cfg_parser_t *configparser, cfg_obj_t *config,
 
 	/* Configure the statistics channel(s) */
 	result = named_statschannels_configure(named_g_server, config,
-					       server->aclconfctx);
+					       server->aclctx);
 	if (result != ISC_R_SUCCESS) {
 		isc_log_write(NAMED_LOGCATEGORY_GENERAL, NAMED_LOGMODULE_SERVER,
 			      ISC_LOG_ERROR,
@@ -9247,7 +9248,7 @@ apply_configuration(cfg_parser_t *configparser, cfg_obj_t *config,
 	 * Bind the control port(s).
 	 */
 	result = named_controls_configure(named_g_server->controls, config,
-					  server->aclconfctx);
+					  server->aclctx);
 	if (result != ISC_R_SUCCESS) {
 		isc_log_write(NAMED_LOGCATEGORY_GENERAL, NAMED_LOGMODULE_SERVER,
 			      ISC_LOG_ERROR, "binding control channel(s): %s",
@@ -9332,9 +9333,9 @@ cleanup_keystorelist:
 		dns_keystore_detach(&keystore);
 	}
 
-cleanup_aclconfctx:
-	if (aclconfctx != NULL) {
-		cfg_aclconfctx_detach(&aclconfctx);
+cleanup_aclctx:
+	if (aclctx != NULL) {
+		cfg_aclconfctx_detach(&aclctx);
 	}
 
 	isc_log_write(NAMED_LOGCATEGORY_GENERAL, NAMED_LOGMODULE_SERVER,
@@ -9606,8 +9607,8 @@ shutdown_server(void *arg) {
 
 	cleanup_session_key(server, server->mctx);
 
-	if (server->aclconfctx != NULL) {
-		cfg_aclconfctx_detach(&server->aclconfctx);
+	if (server->aclctx != NULL) {
+		cfg_aclconfctx_detach(&server->aclctx);
 	}
 
 	cfg_obj_destroy(named_g_parser, &named_g_defaultconfig);
@@ -10722,8 +10723,8 @@ named_server_setortoggle(named_server_t *server, const char *optname,
 
 static isc_result_t
 listenlist_fromconfig(const cfg_obj_t *listenlist, const cfg_obj_t *config,
-		      cfg_aclconfctx_t *actx, isc_mem_t *mctx, uint16_t family,
-		      isc_tlsctx_cache_t *tlsctx_cache,
+		      cfg_aclconfctx_t *aclctx, isc_mem_t *mctx,
+		      uint16_t family, isc_tlsctx_cache_t *tlsctx_cache,
 		      ns_listenlist_t **target) {
 	isc_result_t result;
 	ns_listenlist_t *dlist = NULL;
@@ -10738,7 +10739,7 @@ listenlist_fromconfig(const cfg_obj_t *listenlist, const cfg_obj_t *config,
 	CFG_LIST_FOREACH(listenlist, element) {
 		ns_listenelt_t *delt = NULL;
 		const cfg_obj_t *listener = cfg_listelt_value(element);
-		result = listenelt_fromconfig(listener, config, actx, mctx,
+		result = listenelt_fromconfig(listener, config, aclctx, mctx,
 					      family, tlsctx_cache, &delt);
 		if (result != ISC_R_SUCCESS) {
 			goto cleanup;
@@ -10784,7 +10785,7 @@ find_maplist(const cfg_obj_t *config, const char *listname, const char *name) {
  */
 static isc_result_t
 listenelt_fromconfig(const cfg_obj_t *listener, const cfg_obj_t *config,
-		     cfg_aclconfctx_t *actx, isc_mem_t *mctx, uint16_t family,
+		     cfg_aclconfctx_t *aclctx, isc_mem_t *mctx, uint16_t family,
 		     isc_tlsctx_cache_t *tlsctx_cache,
 		     ns_listenelt_t **target) {
 	isc_result_t result;
@@ -11022,7 +11023,7 @@ listenelt_fromconfig(const cfg_obj_t *listener, const cfg_obj_t *config,
 	}
 
 	result = cfg_acl_fromconfig(cfg_tuple_get(listener, "acl"), config,
-				    actx, mctx, family, &delt->acl);
+				    aclctx, mctx, family, &delt->acl);
 	if (result != ISC_R_SUCCESS) {
 		ns_listenelt_destroy(delt);
 		return result;
@@ -13297,7 +13298,7 @@ do_addzone(named_server_t *server, ns_cfgctx_t *cfg, dns_view_t *view,
 	result = isccfg_check_zoneconf(zoneobj, voptions, cfg->config, NULL,
 				       NULL, NULL, NULL, view->name,
 				       view->rdclass, BIND_CHECK_PLUGINS,
-				       cfg->actx, cfg->mctx);
+				       cfg->aclctx, cfg->mctx);
 	if (result != ISC_R_SUCCESS) {
 		isc_loopmgr_resume();
 		goto cleanup;
@@ -13306,8 +13307,8 @@ do_addzone(named_server_t *server, ns_cfgctx_t *cfg, dns_view_t *view,
 	/* Mark view unfrozen and configure zone */
 	dns_view_thaw(view);
 	result = configure_zone(cfg->config, zoneobj, cfg->vconfig, view,
-				&server->viewlist, &server->kasplist, cfg->actx,
-				true, false, false, false);
+				&server->viewlist, &server->kasplist,
+				cfg->aclctx, true, false, false, false);
 	dns_view_freeze(view);
 
 	isc_loopmgr_resume();
@@ -13495,7 +13496,7 @@ do_modzone(named_server_t *server, ns_cfgctx_t *cfg, dns_view_t *view,
 	result = isccfg_check_zoneconf(zoneobj, voptions, cfg->config, NULL,
 				       NULL, NULL, NULL, view->name,
 				       view->rdclass, BIND_CHECK_PLUGINS,
-				       cfg->actx, cfg->mctx);
+				       cfg->aclctx, cfg->mctx);
 	if (result != ISC_R_SUCCESS) {
 		isc_loopmgr_resume();
 		goto cleanup;
@@ -13504,8 +13505,8 @@ do_modzone(named_server_t *server, ns_cfgctx_t *cfg, dns_view_t *view,
 	/* Reconfigure the zone */
 	dns_view_thaw(view);
 	result = configure_zone(cfg->config, zoneobj, cfg->vconfig, view,
-				&server->viewlist, &server->kasplist, cfg->actx,
-				true, false, false, true);
+				&server->viewlist, &server->kasplist,
+				cfg->aclctx, true, false, false, true);
 	dns_view_freeze(view);
 
 	isc_loopmgr_resume();
@@ -14256,8 +14257,8 @@ newzone_cfgctx_destroy(void **cfgp) {
 		cfg_parser_destroy(&cfg->add_parser);
 	}
 
-	if (cfg->actx != NULL) {
-		cfg_aclconfctx_detach(&cfg->actx);
+	if (cfg->aclctx != NULL) {
+		cfg_aclconfctx_detach(&cfg->aclctx);
 	}
 
 	isc_mem_putanddetach(&cfg->mctx, cfg, sizeof(*cfg));

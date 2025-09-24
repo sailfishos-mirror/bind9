@@ -621,7 +621,7 @@ typedef struct hookasync_data {
  * this is actually called; otherwise tests would fail due to memory leak.
  */
 static void
-destroy_hookactx(ns_hookasync_t **ctxp) {
+destroy_hookaclctx(ns_hookasync_t **ctxp) {
 	ns_hookasync_t *ctx = *ctxp;
 
 	*ctxp = NULL;
@@ -630,7 +630,7 @@ destroy_hookactx(ns_hookasync_t **ctxp) {
 
 /* 'cancel' callback of hook recursion ctx. */
 static void
-cancel_hookactx(ns_hookasync_t *ctx) {
+cancel_hookaclctx(ns_hookasync_t *ctx) {
 	/* Mark the hook data so the test can confirm this is called. */
 	((hookasync_data_t *)ctx->private)->canceled = true;
 }
@@ -662,8 +662,8 @@ test_hookasync(query_ctx_t *qctx, isc_mem_t *mctx, void *arg, isc_loop_t *loop,
 	asdata->rev = rev;
 
 	*ctx = (ns_hookasync_t){
-		.destroy = destroy_hookactx,
-		.cancel = cancel_hookactx,
+		.destroy = destroy_hookaclctx,
+		.cancel = cancel_hookaclctx,
 		.private = asdata,
 	};
 	isc_mem_attach(mctx, &ctx->mctx);
@@ -931,7 +931,7 @@ run_hookasync_test(const ns__query_hookasync_test_params_t *test) {
 		asdata.rev->cb(asdata.rev);
 
 		/* Confirm necessary cleanup has been performed. */
-		INSIST(qctx->client->query.hookactx == NULL);
+		INSIST(qctx->client->query.hookaclctx == NULL);
 		INSIST(qctx->client->inner.state == NS_CLIENTSTATE_WORKING);
 		INSIST(ns_stats_get_counter(
 			       qctx->client->manager->sctx->nsstats,
@@ -947,7 +947,7 @@ run_hookasync_test(const ns__query_hookasync_test_params_t *test) {
 			INSIST(asdata.lasthookpoint == test->hookpoint2);
 		}
 	} else {
-		INSIST(qctx->client->query.hookactx == NULL);
+		INSIST(qctx->client->query.hookaclctx == NULL);
 	}
 
 	/*
@@ -1246,7 +1246,7 @@ typedef struct hookasync_e2e_data {
 
 /* Cancel callback.  Just need to be defined, it doesn't have to do anything. */
 static void
-cancel_e2ehookactx(ns_hookasync_t *ctx) {
+cancel_e2ehookaclctx(ns_hookasync_t *ctx) {
 	UNUSED(ctx);
 }
 
@@ -1277,8 +1277,8 @@ test_hookasync_e2e(query_ctx_t *qctx, isc_mem_t *mctx, void *arg,
 	asdata->rev = rev;
 
 	*ctx = (ns_hookasync_t){
-		.destroy = destroy_hookactx,
-		.cancel = cancel_e2ehookactx,
+		.destroy = destroy_hookaclctx,
+		.cancel = cancel_e2ehookaclctx,
 		.private = asdata,
 	};
 	isc_mem_attach(mctx, &ctx->mctx);

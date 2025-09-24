@@ -112,7 +112,7 @@ syncplugin__parse_rcode(const cfg_obj_t *syncplugincfg, uint8_t *rcode) {
 
 isc_result_t
 plugin_register(const char *parameters, const void *cfg, const char *cfgfile,
-		unsigned long cfgline, isc_mem_t *mctx, void *actx,
+		unsigned long cfgline, isc_mem_t *mctx, void *aclctx,
 		ns_hooktable_t *hooktable, ns_hooksource_t source,
 		void **instp) {
 	isc_result_t result;
@@ -125,7 +125,7 @@ plugin_register(const char *parameters, const void *cfg, const char *cfgfile,
 	char *sourcestr = NULL;
 
 	UNUSED(cfg);
-	UNUSED(actx);
+	UNUSED(aclctx);
 	UNUSED(source);
 
 	inst = isc_mem_get(mctx, sizeof(*inst));
@@ -186,13 +186,13 @@ cleanup:
 
 isc_result_t
 plugin_check(const char *parameters, const void *cfg, const char *cfgfile,
-	     unsigned long cfgline, isc_mem_t *mctx, void *actx) {
+	     unsigned long cfgline, isc_mem_t *mctx, void *aclctx) {
 	UNUSED(parameters);
 	UNUSED(cfg);
 	UNUSED(cfgfile);
 	UNUSED(cfgline);
 	UNUSED(mctx);
-	UNUSED(actx);
+	UNUSED(aclctx);
 
 	return ISC_R_SUCCESS;
 }

@@ -34,13 +34,13 @@ typedef struct cfg_aclconfctx {
  ***/
 
 isc_result_t
-cfg_aclconfctx_create(isc_mem_t *mctx, cfg_aclconfctx_t **ret);
+cfg_aclconfctx_create(isc_mem_t *mctx, cfg_aclconfctx_t **aclctxp);
 /*
  * Creates and initializes an ACL configuration context.
  */
 
 void
-cfg_aclconfctx_detach(cfg_aclconfctx_t **actxp);
+cfg_aclconfctx_detach(cfg_aclconfctx_t **aclctxp);
 /*
  * Removes a reference to an ACL configuration context; when references
  * reaches zero, clears the contents and deallocate the structure.

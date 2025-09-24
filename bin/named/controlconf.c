@@ -901,7 +901,7 @@ get_key_info(const cfg_obj_t *config, const cfg_obj_t *control,
 static void
 update_listener(named_controls_t *cp, controllistener_t **listenerp,
 		const cfg_obj_t *control, const cfg_obj_t *config,
-		isc_sockaddr_t *addr, cfg_aclconfctx_t *aclconfctx,
+		isc_sockaddr_t *addr, cfg_aclconfctx_t *aclctx,
 		const char *socktext, isc_socktype_t type) {
 	controllistener_t *listener = NULL;
 	const cfg_obj_t *allow = NULL;
@@ -988,7 +988,7 @@ update_listener(named_controls_t *cp, controllistener_t **listenerp,
 	 */
 	if (control != NULL && type == isc_socktype_tcp) {
 		allow = cfg_tuple_get(control, "allow");
-		result = cfg_acl_fromconfig(allow, config, aclconfctx,
+		result = cfg_acl_fromconfig(allow, config, aclctx,
 					    listener->mctx, 0, &new_acl);
 	} else {
 		result = dns_acl_any(listener->mctx, &new_acl);
@@ -1027,7 +1027,7 @@ update_listener(named_controls_t *cp, controllistener_t **listenerp,
 static void
 add_listener(named_controls_t *cp, controllistener_t **listenerp,
 	     const cfg_obj_t *control, const cfg_obj_t *config,
-	     isc_sockaddr_t *addr, cfg_aclconfctx_t *aclconfctx,
+	     isc_sockaddr_t *addr, cfg_aclconfctx_t *aclctx,
 	     const char *socktext, isc_socktype_t type) {
 	isc_mem_t *mctx = cp->server->mctx;
 	controllistener_t *listener = NULL;
@@ -1061,7 +1061,7 @@ add_listener(named_controls_t *cp, controllistener_t **listenerp,
 		const cfg_obj_t *readonly = NULL;
 
 		allow = cfg_tuple_get(control, "allow");
-		CHECK(cfg_acl_fromconfig(allow, config, aclconfctx, mctx, 0,
+		CHECK(cfg_acl_fromconfig(allow, config, aclctx, mctx, 0,
 					 &new_acl));
 
 		readonly = cfg_tuple_get(control, "read-only");
@@ -1134,7 +1134,7 @@ shuttingdown:
 
 isc_result_t
 named_controls_configure(named_controls_t *cp, const cfg_obj_t *config,
-			 cfg_aclconfctx_t *aclconfctx) {
+			 cfg_aclconfctx_t *aclctx) {
 	controllistener_t *listener = NULL;
 	controllistenerlist_t new_listeners;
 	const cfg_obj_t *controlslist = NULL;
@@ -1205,7 +1205,7 @@ named_controls_configure(named_controls_t *cp, const cfg_obj_t *config,
 					      socktext);
 
 				update_listener(cp, &listener, control, config,
-						&addr, aclconfctx, socktext,
+						&addr, aclctx, socktext,
 						isc_socktype_tcp);
 
 				if (listener != NULL) {
@@ -1220,7 +1220,7 @@ named_controls_configure(named_controls_t *cp, const cfg_obj_t *config,
 					 * This is a new listener.
 					 */
 					add_listener(cp, &listener, control,
-						     config, &addr, aclconfctx,
+						     config, &addr, aclctx,
 						     socktext,
 						     isc_socktype_tcp);
 				}
