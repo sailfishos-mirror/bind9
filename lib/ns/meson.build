@@ -9,7 +9,8 @@
 # See the COPYRIGHT file distributed with this work for additional
 # information regarding copyright ownership.
 
-probe_src = [dtrace_header.process('probes.d'), files('query.c')]
+probe_hdr = dtrace_header.process('probes-ns.d')
+probe_src = [probe_hdr, files('query.c')]
 
 if config.get('HAVE_DTRACE')
     ns_probe_objects += static_library(
@@ -25,17 +26,20 @@ endif
 
 ns_srcset.add(
     when: 'HAVE_DTRACE',
-    if_true: custom_target(
-        'ns-probe',
-        input: [files('probes.d'), ns_probe_objects],
-        output: 'ns-probes.o',
-        command: [
-            dtrace,
-            '-G',
-            '-o', '@OUTPUT@',
-            '-s', '@INPUT@',
-        ],
-    ),
+    if_true: [
+        custom_target(
+            'ns-probe',
+            input: [files('probes-ns.d'), ns_probe_objects],
+            output: 'ns-probes.o',
+            command: [
+                dtrace,
+                '-G',
+                '-o', '@OUTPUT@',
+                '-s', '@INPUT@',
+            ],
+        ),
+        probe_hdr,
+    ],
     if_false: probe_src,
 )
 

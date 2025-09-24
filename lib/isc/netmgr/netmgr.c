@@ -44,8 +44,8 @@
 #include <isc/uv.h>
 
 #include "../loop_p.h"
+#include "../openssl_shim.h"
 #include "netmgr-int.h"
-#include "openssl_shim.h"
 
 isc__netmgr_t *isc__netmgr = NULL;
 

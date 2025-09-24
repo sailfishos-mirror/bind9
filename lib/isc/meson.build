@@ -11,7 +11,8 @@
 
 probe_src = []
 
-probe_src += [dtrace_header.process('probes.d'), files('job.c')]
+probe_hdr = dtrace_header.process('probes-isc.d')
+probe_src += [probe_hdr, files('job.c')]
 if config.get('USE_PTHREAD_RWLOCK') != 1
     probe_src += files('rwlock.c')
 endif
@@ -47,17 +48,20 @@ endif
 
 isc_srcset.add(
     when: 'HAVE_DTRACE',
-    if_true: custom_target(
-        'isc-probe',
-        input: [files('probes.d'), isc_probe_objects],
-        output: 'isc-probes.o',
-        command: [
-            dtrace,
-            '-G',
-            '-o', '@OUTPUT@',
-            '-s', '@INPUT@',
-        ],
-    ),
+    if_true: [
+        custom_target(
+            'isc-probe',
+            input: [files('probes-isc.d'), isc_probe_objects],
+            output: 'isc-probes.o',
+            command: [
+                dtrace,
+                '-G',
+                '-o', '@OUTPUT@',
+                '-s', '@INPUT@',
+            ],
+        ),
+        probe_hdr,
+    ],
     if_false: probe_src,
 )
 

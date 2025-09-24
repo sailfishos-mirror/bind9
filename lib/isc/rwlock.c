@@ -62,7 +62,7 @@
 #include <isc/tid.h>
 #include <isc/util.h>
 
-#include "probes.h"
+#include "probes-isc.h"
 
 static atomic_uint_fast16_t isc__crwlock_workers = 128;
 

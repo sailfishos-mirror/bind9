@@ -75,7 +75,7 @@
 #include <ns/stats.h>
 #include <ns/xfrout.h>
 
-#include "probes.h"
+#include "probes-ns.h"
 
 #if 0
 /*

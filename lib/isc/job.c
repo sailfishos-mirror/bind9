@@ -34,7 +34,7 @@
 
 #include "job_p.h"
 #include "loop_p.h"
-#include "probes.h"
+#include "probes-isc.h"
 
 /*
  * Public: #include <isc/job.h>
