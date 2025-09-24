@@ -435,25 +435,25 @@ stages:
 .shotgun: &shotgun_job
   <<: *base_image
   stage: performance
-  rules:
-    - if: '$CI_MERGE_REQUEST_DIFF_BASE_SHA != null'
-      changes:
-        - '**/*.c'
-        - '**/*.h'
-      variables:
-        BASELINE: '$CI_MERGE_REQUEST_DIFF_BASE_SHA'
+  rules:  # FIXME disabled shotgun jobs temporarily due to infra issue
+    # - if: '$CI_MERGE_REQUEST_DIFF_BASE_SHA != null'
+    #   changes:
+    #     - '**/*.c'
+    #     - '**/*.h'
+    #   variables:
+    #     BASELINE: '$CI_MERGE_REQUEST_DIFF_BASE_SHA'
     - &shotgun_rule_mr_manual
       if: '$CI_MERGE_REQUEST_DIFF_BASE_SHA != null'
       variables:
         BASELINE: '$CI_MERGE_REQUEST_DIFF_BASE_SHA'
       when: manual  # don't run on each MR unless requested
       allow_failure: true
-    - &shotgun_rule_tag
-      if: '$CI_COMMIT_TAG != null'
-      variables:
-        SHOTGUN_ROUNDS: 3
-    - &shotgun_rule_other
-      if: '$CI_PIPELINE_SOURCE =~ /^(api|pipeline|schedule|trigger|web)$/'
+    # - &shotgun_rule_tag
+    #   if: '$CI_COMMIT_TAG != null'
+    #   variables:
+    #     SHOTGUN_ROUNDS: 3
+    # - &shotgun_rule_other
+    #   if: '$CI_PIPELINE_SOURCE =~ /^(api|pipeline|schedule|trigger|web)$/'
   # when using data from a single run, the overall instability of the results
   # causes quite high false positive rate, rerun the test to attemp to reduce those
   retry: 1
@@ -1824,10 +1824,10 @@ shotgun:dot:
   variables:
     SHOTGUN_SCENARIO: dot
     SHOTGUN_TRAFFIC_MULTIPLIER: 4
-  rules:
+  rules:  # FIXME disabled shotgun jobs temporarily due to infra issue
     - *shotgun_rule_mr_manual
-    - *shotgun_rule_tag
-    - *shotgun_rule_other
+  #   - *shotgun_rule_tag
+  #   - *shotgun_rule_other
 
 shotgun:doh-get:
   <<: *shotgun_job
@@ -1835,10 +1835,10 @@ shotgun:doh-get:
     SHOTGUN_SCENARIO: doh-get
     SHOTGUN_TRAFFIC_MULTIPLIER: 2
     SHOTGUN_EVAL_THRESHOLD_LATENCY_PCTL_MAX: 0.4  # bump from the default due to increased tail-end jitter
-  rules:
+  rules:  # FIXME disabled shotgun jobs temporarily due to infra issue
     - *shotgun_rule_mr_manual
-    - *shotgun_rule_tag
-    - *shotgun_rule_other
+  #   - *shotgun_rule_tag
+  #   - *shotgun_rule_other
 
 generate-stress-test-configs:
   <<: *base_image
