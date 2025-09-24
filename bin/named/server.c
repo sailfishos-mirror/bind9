@@ -503,7 +503,7 @@ configure_zone_setviewcommit(isc_result_t result, const cfg_obj_t *zconfig,
 
 static isc_result_t
 configure_newzones(dns_view_t *view, cfg_obj_t *config, cfg_obj_t *vconfig,
-		   cfg_aclconfctx_t *actx);
+		   cfg_aclconfctx_t *actx, dns_kasplist_t *kasplist);
 
 static const cfg_obj_t *
 find_maplist(const cfg_obj_t *config, const char *listname, const char *name);
@@ -2986,7 +2986,8 @@ cleanup:
 	} while (0)
 
 static isc_result_t
-configure_rrl(dns_view_t *view, const cfg_obj_t *config, const cfg_obj_t *map) {
+configure_rrl(dns_view_t *view, const cfg_obj_t *config, const cfg_obj_t *map,
+	      cfg_aclconfctx_t *actx) {
 	const cfg_obj_t *obj;
 	dns_rrl_t *rrl;
 	isc_result_t result;
@@ -3097,8 +3098,8 @@ configure_rrl(dns_view_t *view, const cfg_obj_t *config, const cfg_obj_t *map) {
 	obj = NULL;
 	result = cfg_map_get(map, "exempt-clients", &obj);
 	if (result == ISC_R_SUCCESS) {
-		result = cfg_acl_fromconfig(obj, config, named_g_aclconfctx,
-					    isc_g_mctx, 0, &rrl->exempt);
+		result = cfg_acl_fromconfig(obj, config, actx, isc_g_mctx, 0,
+					    &rrl->exempt);
 		CHECK_RRL(result == ISC_R_SUCCESS, "invalid %s%s",
 			  "address match list", "");
 	}
@@ -3714,8 +3715,8 @@ create_mapped_acl(void) {
 
 isc_result_t
 named_register_one_plugin(const cfg_obj_t *config, const cfg_obj_t *obj,
-			  const char *plugin_path, const char *parameters,
-			  void *callback_data) {
+			  cfg_aclconfctx_t *actx, const char *plugin_path,
+			  const char *parameters, void *callback_data) {
 	char full_path[PATH_MAX];
 	isc_result_t result;
 	ns_hook_data_t *hookdata = callback_data;
@@ -3733,7 +3734,7 @@ named_register_one_plugin(const cfg_obj_t *config, const cfg_obj_t *obj,
 
 	result = ns_plugin_register(full_path, parameters, config,
 				    cfg_obj_file(obj), cfg_obj_line(obj),
-				    isc_g_mctx, named_g_aclconfctx, hookdata);
+				    isc_g_mctx, actx, hookdata);
 	if (result != ISC_R_SUCCESS) {
 		isc_log_write(NAMED_LOGCATEGORY_GENERAL, NAMED_LOGMODULE_SERVER,
 			      ISC_LOG_ERROR,
@@ -3794,7 +3795,8 @@ configure_view(dns_view_t *view, dns_viewlist_t *viewlist, cfg_obj_t *config,
 	       cfg_obj_t *vconfig, named_cachelist_t *cachelist,
 	       named_cachelist_t *oldcachelist, dns_kasplist_t *kasplist,
 	       const cfg_obj_t *bindkeys, isc_mem_t *mctx,
-	       cfg_aclconfctx_t *actx, bool need_hints, bool first_time) {
+	       cfg_aclconfctx_t *actx, isc_tlsctx_cache_t *tlsctx_client_cache,
+	       bool need_hints, bool first_time) {
 	const cfg_obj_t *maps[4];
 	const cfg_obj_t *cfgmaps[3];
 	const cfg_obj_t *optionmaps[3];
@@ -3972,7 +3974,7 @@ configure_view(dns_view_t *view, dns_viewlist_t *viewlist, cfg_obj_t *config,
 	 * from the newzone file for zones that were added during previous
 	 * runs.
 	 */
-	CHECK(configure_newzones(view, config, vconfig, actx));
+	CHECK(configure_newzones(view, config, vconfig, actx, kasplist));
 
 	/*
 	 * Create Dynamically Loadable Zone driver.
@@ -4505,8 +4507,7 @@ configure_view(dns_view_t *view, dns_viewlist_t *viewlist, cfg_obj_t *config,
 		goto cleanup;
 	}
 
-	CHECK(dns_view_createresolver(view, resopts,
-				      named_g_server->tlsctx_client_cache,
+	CHECK(dns_view_createresolver(view, resopts, tlsctx_client_cache,
 				      dispatch4, dispatch6));
 
 	if (resstats == NULL) {
@@ -5430,7 +5431,7 @@ configure_view(dns_view_t *view, dns_viewlist_t *viewlist, cfg_obj_t *config,
 		view->plugins = hookdata.plugins;
 		view->plugins_free = ns_plugins_free;
 
-		CHECK(cfg_pluginlist_foreach(config, plugin_list,
+		CHECK(cfg_pluginlist_foreach(config, plugin_list, actx,
 					     named_register_one_plugin,
 					     &hookdata));
 	}
@@ -5687,7 +5688,7 @@ configure_view(dns_view_t *view, dns_viewlist_t *viewlist, cfg_obj_t *config,
 	obj = NULL;
 	result = named_config_get(maps, "rate-limit", &obj);
 	if (result == ISC_R_SUCCESS) {
-		result = configure_rrl(view, config, obj);
+		result = configure_rrl(view, config, obj, actx);
 		if (result != ISC_R_SUCCESS) {
 			goto cleanup;
 		}
@@ -6255,7 +6256,7 @@ static isc_result_t
 configure_zone(const cfg_obj_t *config, const cfg_obj_t *zconfig,
 	       const cfg_obj_t *vconfig, dns_view_t *view,
 	       dns_viewlist_t *viewlist, dns_kasplist_t *kasplist,
-	       cfg_aclconfctx_t *aclconf, bool added, bool old_rpz_ok,
+	       cfg_aclconfctx_t *actx, bool added, bool old_rpz_ok,
 	       bool is_catz_member, bool modify) {
 	dns_view_t *pview = NULL; /* Production view */
 	dns_zone_t *zone = NULL;  /* New or reused zone */
@@ -6455,7 +6456,7 @@ configure_zone(const cfg_obj_t *config, const cfg_obj_t *zconfig,
 						     zone));
 			dns_zone_setstats(zone, named_g_server->zonestats);
 		}
-		CHECK(named_zone_configure(config, vconfig, zconfig, aclconf,
+		CHECK(named_zone_configure(config, vconfig, zconfig, actx,
 					   kasplist, zone, NULL));
 		dns_zone_attach(zone, &view->redirect);
 		goto cleanup;
@@ -6631,7 +6632,7 @@ configure_zone(const cfg_obj_t *config, const cfg_obj_t *zconfig,
 	/*
 	 * Configure the zone.
 	 */
-	CHECK(named_zone_configure(config, vconfig, zconfig, aclconf, kasplist,
+	CHECK(named_zone_configure(config, vconfig, zconfig, actx, kasplist,
 				   zone, raw));
 
 	/*
@@ -6662,7 +6663,7 @@ configure_zone(const cfg_obj_t *config, const cfg_obj_t *zconfig,
 		dns_zone_rekey(zone, fullsign, false);
 	}
 
-	result = named_zone_loadplugins(zone, config, toptions, zoptions);
+	result = named_zone_loadplugins(zone, config, toptions, zoptions, actx);
 
 cleanup:
 	if (zone != NULL) {
@@ -7507,7 +7508,7 @@ configure_zone_setviewcommit(isc_result_t result, const cfg_obj_t *zconfig,
 
 static isc_result_t
 configure_newzones(dns_view_t *view, cfg_obj_t *config, cfg_obj_t *vconfig,
-		   cfg_aclconfctx_t *actx) {
+		   cfg_aclconfctx_t *actx, dns_kasplist_t *kasplist) {
 	isc_result_t result;
 	ns_cfgctx_t *nzctx = NULL;
 	const cfg_obj_t *zonelist = NULL;
@@ -7527,9 +7528,8 @@ configure_newzones(dns_view_t *view, cfg_obj_t *config, cfg_obj_t *vconfig,
 	CFG_LIST_FOREACH(zonelist, element) {
 		const cfg_obj_t *zconfig = cfg_listelt_value(element);
 		CHECK(configure_zone(config, zconfig, vconfig, view,
-				     &named_g_server->viewlist,
-				     &named_g_server->kasplist, actx, true,
-				     false, false, false));
+				     &named_g_server->viewlist, kasplist, actx,
+				     true, false, false, false));
 	}
 
 	result = ISC_R_SUCCESS;
@@ -7622,7 +7622,8 @@ cleanup:
 typedef isc_result_t (*newzone_cfg_cb_t)(const cfg_obj_t *zconfig,
 					 cfg_obj_t *config, cfg_obj_t *vconfig,
 					 dns_view_t *view,
-					 cfg_aclconfctx_t *actx);
+					 cfg_aclconfctx_t *actx,
+					 dns_kasplist_t *kasplist);
 
 /*%
  * For each zone found in a NZD opened by the caller, create an object
@@ -7638,7 +7639,8 @@ typedef isc_result_t (*newzone_cfg_cb_t)(const cfg_obj_t *zconfig,
 static isc_result_t
 for_all_newzone_cfgs(newzone_cfg_cb_t callback, cfg_obj_t *config,
 		     cfg_obj_t *vconfig, dns_view_t *view,
-		     cfg_aclconfctx_t *actx, MDB_txn *txn, MDB_dbi dbi) {
+		     cfg_aclconfctx_t *actx, dns_kasplist_t *kasplist,
+		     MDB_txn *txn, MDB_dbi dbi) {
 	const cfg_obj_t *zconfig, *zlist;
 	isc_result_t result = ISC_R_SUCCESS;
 	cfg_obj_t *zconfigobj = NULL;
@@ -7680,7 +7682,8 @@ for_all_newzone_cfgs(newzone_cfg_cb_t callback, cfg_obj_t *config,
 		/*
 		 * Invoke callback.
 		 */
-		result = callback(zconfig, config, vconfig, view, actx);
+		result = callback(zconfig, config, vconfig, view, actx,
+				  kasplist);
 		if (result != ISC_R_SUCCESS) {
 			break;
 		}
@@ -7707,11 +7710,11 @@ for_all_newzone_cfgs(newzone_cfg_cb_t callback, cfg_obj_t *config,
  */
 static isc_result_t
 configure_newzone(const cfg_obj_t *zconfig, cfg_obj_t *config,
-		  cfg_obj_t *vconfig, dns_view_t *view,
-		  cfg_aclconfctx_t *actx) {
-	return configure_zone(
-		config, zconfig, vconfig, view, &named_g_server->viewlist,
-		&named_g_server->kasplist, actx, true, false, false, false);
+		  cfg_obj_t *vconfig, dns_view_t *view, cfg_aclconfctx_t *actx,
+		  dns_kasplist_t *kasplist) {
+	return configure_zone(config, zconfig, vconfig, view,
+			      &named_g_server->viewlist, kasplist, actx, true,
+			      false, false, false);
 }
 
 /*%
@@ -7720,10 +7723,11 @@ configure_newzone(const cfg_obj_t *zconfig, cfg_obj_t *config,
 static isc_result_t
 configure_newzone_revert(const cfg_obj_t *zconfig, cfg_obj_t *config,
 			 cfg_obj_t *vconfig, dns_view_t *view,
-			 cfg_aclconfctx_t *actx) {
+			 cfg_aclconfctx_t *actx, dns_kasplist_t *kasplist) {
 	UNUSED(config);
 	UNUSED(vconfig);
 	UNUSED(actx);
+	UNUSED(kasplist);
 
 	configure_zone_setviewcommit(ISC_R_FAILURE, zconfig, view);
 
@@ -7732,7 +7736,7 @@ configure_newzone_revert(const cfg_obj_t *zconfig, cfg_obj_t *config,
 
 static isc_result_t
 configure_newzones(dns_view_t *view, cfg_obj_t *config, cfg_obj_t *vconfig,
-		   cfg_aclconfctx_t *actx) {
+		   cfg_aclconfctx_t *actx, dns_kasplist_t *kasplist) {
 	isc_result_t result;
 	MDB_txn *txn = NULL;
 	MDB_dbi dbi;
@@ -7756,7 +7760,7 @@ configure_newzones(dns_view_t *view, cfg_obj_t *config, cfg_obj_t *vconfig,
 		      view->new_zone_db, view->name);
 
 	result = for_all_newzone_cfgs(configure_newzone, config, vconfig, view,
-				      actx, txn, dbi);
+				      actx, kasplist, txn, dbi);
 	if (result != ISC_R_SUCCESS) {
 		/*
 		 * An error was encountered while attempting to configure zones
@@ -7767,7 +7771,8 @@ configure_newzones(dns_view_t *view, cfg_obj_t *config, cfg_obj_t *vconfig,
 		 * terms of trying to make things right.
 		 */
 		(void)for_all_newzone_cfgs(configure_newzone_revert, config,
-					   vconfig, view, actx, txn, dbi);
+					   vconfig, view, actx, kasplist, txn,
+					   dbi);
 	}
 
 	(void)nzd_close(&txn, false);
@@ -7842,23 +7847,276 @@ cleanup:
 
 #endif /* HAVE_LMDB */
 
+#define APPLY_CONFIGURATION_SUBROUTINE_LOG                               \
+	isc_log_write(NAMED_LOGCATEGORY_GENERAL, NAMED_LOGMODULE_SERVER, \
+		      ISC_LOG_DEBUG(1), "apply_configuration: %s", __func__);
+
+static isc_result_t
+create_views(cfg_obj_t *config, cfg_parser_t *parser,
+	     cfg_aclconfctx_t *aclconfctx, dns_viewlist_t *viewlist) {
+	isc_result_t result = ISC_R_SUCCESS;
+	const cfg_obj_t *views = NULL;
+
+	APPLY_CONFIGURATION_SUBROUTINE_LOG;
+
+	(void)cfg_map_get(config, "view", &views);
+	CFG_LIST_FOREACH(views, element) {
+		cfg_obj_t *vconfig = cfg_listelt_value(element);
+		dns_view_t *view = NULL;
+
+		result = create_view(vconfig, viewlist, &view);
+		if (result != ISC_R_SUCCESS) {
+			return result;
+		}
+		INSIST(view != NULL);
+
+		result = setup_newzones(view, config, vconfig, parser,
+					aclconfctx);
+		dns_view_detach(&view);
+
+		if (result != ISC_R_SUCCESS) {
+			return result;
+		}
+	}
+
+	/*
+	 * If there were no explicit views then we do the default
+	 * view here.
+	 */
+	if (views == NULL) {
+		dns_view_t *view = NULL;
+
+		result = create_view(NULL, viewlist, &view);
+		if (result != ISC_R_SUCCESS) {
+			return result;
+		}
+		INSIST(view != NULL);
+
+		result = setup_newzones(view, config, NULL, parser, aclconfctx);
+
+		dns_view_detach(&view);
+	}
+
+	return result;
+}
+
+static isc_result_t
+configure_views(cfg_obj_t *config, const cfg_obj_t *bindkeys,
+		cfg_aclconfctx_t *aclconfctx,
+		isc_tlsctx_cache_t *tlsctx_client_cache,
+		dns_viewlist_t *viewlist, named_cachelist_t *cachelist,
+		dns_kasplist_t *kasplist, named_server_t *server,
+		bool first_time) {
+	isc_result_t result = ISC_R_SUCCESS;
+	const cfg_obj_t *views = NULL;
+	dns_viewlist_t tmpviewlist;
+
+	APPLY_CONFIGURATION_SUBROUTINE_LOG;
+
+	/*
+	 * Configure and freeze all explicit views.  Explicit
+	 * views that have zones were already created at parsing
+	 * time, but views with no zones must be created here.
+	 */
+	(void)cfg_map_get(config, "view", &views);
+	CFG_LIST_FOREACH(views, element) {
+		cfg_obj_t *vconfig = cfg_listelt_value(element);
+		dns_view_t *view = NULL;
+
+		result = find_view(vconfig, viewlist, &view);
+		if (result != ISC_R_SUCCESS) {
+			return result;
+		}
+
+		result = configure_view(view, viewlist, config, vconfig,
+					cachelist, &server->cachelist, kasplist,
+					bindkeys, isc_g_mctx, aclconfctx,
+					tlsctx_client_cache, true, first_time);
+		if (result != ISC_R_SUCCESS) {
+			dns_view_detach(&view);
+			return result;
+		}
+		dns_view_freeze(view);
+		dns_view_detach(&view);
+	}
+
+	/*
+	 * Make sure we have a default view if and only if there
+	 * were no explicit views.
+	 */
+	if (views == NULL) {
+		dns_view_t *view = NULL;
+		result = find_view(NULL, viewlist, &view);
+		if (result != ISC_R_SUCCESS) {
+			return result;
+		}
+		result = configure_view(view, viewlist, config, NULL, cachelist,
+					&server->cachelist, kasplist, bindkeys,
+					isc_g_mctx, aclconfctx,
+					tlsctx_client_cache, true, first_time);
+		if (result != ISC_R_SUCCESS) {
+			dns_view_detach(&view);
+			return result;
+		}
+		dns_view_freeze(view);
+		dns_view_detach(&view);
+	}
+
+	/*
+	 * Create (or recreate) the built-in views.
+	 */
+	views = NULL;
+	RUNTIME_CHECK(cfg_map_get(named_g_defaultconfig, "view", &views) ==
+		      ISC_R_SUCCESS);
+	CFG_LIST_FOREACH(views, element) {
+		cfg_obj_t *vconfig = cfg_listelt_value(element);
+		dns_view_t *view = NULL;
+
+		result = create_view(vconfig, viewlist, &view);
+		if (result != ISC_R_SUCCESS) {
+			return result;
+		}
+
+		result = configure_view(view, viewlist, config, vconfig,
+					cachelist, &server->cachelist, kasplist,
+					bindkeys, isc_g_mctx, aclconfctx,
+					tlsctx_client_cache, false, first_time);
+		if (result != ISC_R_SUCCESS) {
+			dns_view_detach(&view);
+			return result;
+		}
+		dns_view_freeze(view);
+		dns_view_detach(&view);
+	}
+
+	/*
+	 * Commit any dns_zone_setview() calls on all zones in the new
+	 * view.
+	 */
+	ISC_LIST_FOREACH(*viewlist, view, link) {
+		dns_view_setviewcommit(view);
+	}
+
+	/*
+	 * Save the new view list. The old "production" one will be cleared by
+	 * the caller
+	 */
+	tmpviewlist = server->viewlist;
+	server->viewlist = *viewlist;
+	*viewlist = tmpviewlist;
+
+	/* Make the view list available to each of the views */
+	ISC_LIST_FOREACH(server->viewlist, view, link) {
+		view->viewlist = &server->viewlist;
+	}
+
+	return result;
+}
+
+static isc_result_t
+configure_keystores(const cfg_obj_t *config, dns_keystorelist_t *keystorelist) {
+	isc_result_t result = ISC_R_SUCCESS;
+	const cfg_obj_t *keystores = NULL;
+
+	APPLY_CONFIGURATION_SUBROUTINE_LOG;
+
+	/*
+	 * Create the built-in key store ("key-directory").
+	 */
+	result = cfg_keystore_fromconfig(NULL, isc_g_mctx, keystorelist, NULL);
+	if (result != ISC_R_SUCCESS) {
+		return result;
+	}
+
+	/*
+	 * Create the DNSSEC key stores.
+	 */
+	keystores = NULL;
+	(void)cfg_map_get(config, "key-store", &keystores);
+	CFG_LIST_FOREACH(keystores, element) {
+		cfg_obj_t *kconfig = cfg_listelt_value(element);
+
+		result = cfg_keystore_fromconfig(kconfig, isc_g_mctx,
+						 keystorelist, NULL);
+		if (result != ISC_R_SUCCESS) {
+			return result;
+		}
+	}
+
+	return result;
+}
+
+static isc_result_t
+configure_kasplist(const cfg_obj_t *config, dns_kasplist_t *kasplist,
+		   dns_keystorelist_t *keystorelist) {
+	isc_result_t result = ISC_R_SUCCESS;
+	dns_kasp_t *default_kasp = NULL;
+	const cfg_obj_t *kasps = NULL;
+
+	APPLY_CONFIGURATION_SUBROUTINE_LOG;
+
+	/*
+	 * Create the built-in kasp policies ("default", "insecure").
+	 */
+	(void)cfg_map_get(named_g_defaultconfig, "dnssec-policy", &kasps);
+	CFG_LIST_FOREACH(kasps, element) {
+		cfg_obj_t *kconfig = cfg_listelt_value(element);
+		dns_kasp_t *kasp = NULL;
+
+		result = cfg_kasp_fromconfig(kconfig, default_kasp, true,
+					     isc_g_mctx, keystorelist, kasplist,
+					     &kasp);
+		if (result != ISC_R_SUCCESS) {
+			return result;
+		}
+		INSIST(kasp != NULL);
+		dns_kasp_freeze(kasp);
+
+		/* Insist that the first built-in policy is the default one. */
+		if (default_kasp == NULL) {
+			INSIST(strcmp(dns_kasp_getname(kasp), "default") == 0);
+			dns_kasp_attach(kasp, &default_kasp);
+		}
+
+		dns_kasp_detach(&kasp);
+	}
+	INSIST(default_kasp != NULL);
+
+	/*
+	 * Create the DNSSEC key and signing policies (KASP).
+	 */
+	kasps = NULL;
+	(void)cfg_map_get(config, "dnssec-policy", &kasps);
+	CFG_LIST_FOREACH(kasps, element) {
+		cfg_obj_t *kconfig = cfg_listelt_value(element);
+		dns_kasp_t *kasp = NULL;
+
+		result = cfg_kasp_fromconfig(kconfig, default_kasp, true,
+					     isc_g_mctx, keystorelist, kasplist,
+					     &kasp);
+		if (result != ISC_R_SUCCESS) {
+			return result;
+		}
+		INSIST(kasp != NULL);
+		dns_kasp_freeze(kasp);
+		dns_kasp_detach(&kasp);
+	}
+	dns_kasp_detach(&default_kasp);
+
+	return result;
+}
+
 static isc_result_t
 apply_configuration(cfg_parser_t *configparser, cfg_obj_t *config,
 		    named_server_t *server, bool first_time) {
 	cfg_obj_t *bindkeys = NULL;
 	cfg_parser_t *bindkeys_parser = NULL;
-	const cfg_obj_t *builtin_views = NULL;
 	const cfg_obj_t *maps[3];
 	const cfg_obj_t *obj = NULL;
 	const cfg_obj_t *options = NULL;
-	const cfg_obj_t *kasps = NULL;
-	const cfg_obj_t *keystores = NULL;
-	dns_kasp_t *default_kasp = NULL;
 	dns_kasplist_t tmpkasplist, kasplist;
 	dns_keystorelist_t tmpkeystorelist, keystorelist;
-	const cfg_obj_t *views = NULL;
-	dns_viewlist_t tmpviewlist;
-	dns_viewlist_t viewlist, builtin_viewlist;
+	dns_viewlist_t viewlist;
 	in_port_t listen_port, udpport_low, udpport_high;
 	int i, backlog;
 	isc_interval_t interval;
@@ -7883,6 +8141,8 @@ apply_configuration(cfg_parser_t *configparser, cfg_obj_t *config,
 	bool exclusive = true;
 	dns_aclenv_t *env =
 		ns_interfacemgr_getaclenv(named_g_server->interfacemgr);
+	cfg_aclconfctx_t *tmpaclconfctx, *aclconfctx = NULL;
+	isc_tlsctx_cache_t *tlsctx_client_cache = NULL;
 
 	isc_log_write(NAMED_LOGCATEGORY_GENERAL, NAMED_LOGMODULE_SERVER,
 		      ISC_LOG_DEBUG(1), "apply_configuration");
@@ -7895,21 +8155,47 @@ apply_configuration(cfg_parser_t *configparser, cfg_obj_t *config,
 	ISC_LIST_INIT(kasplist);
 	ISC_LIST_INIT(keystorelist);
 	ISC_LIST_INIT(viewlist);
-	ISC_LIST_INIT(builtin_viewlist);
 	ISC_LIST_INIT(cachelist);
 	ISC_LIST_INIT(altsecrets);
 
-	/* Ensure exclusive access to configuration data. */
-	isc_loopmgr_pause();
+	/*
+	 * Fill in the maps array, used for resolving defaults.
+	 */
+	i = 0;
+	options = NULL;
+	result = cfg_map_get(config, "options", &options);
+	if (result == ISC_R_SUCCESS) {
+		maps[i++] = options;
+	}
+	maps[i++] = named_g_defaultoptions;
+	maps[i] = NULL;
 
 	/* Create the ACL configuration context */
-	if (named_g_aclconfctx != NULL) {
-		cfg_aclconfctx_detach(&named_g_aclconfctx);
-	}
-	result = cfg_aclconfctx_create(isc_g_mctx, &named_g_aclconfctx);
+	result = cfg_aclconfctx_create(isc_g_mctx, &aclconfctx);
 	if (result != ISC_R_SUCCESS) {
-		goto cleanup_exclusive;
+		goto cleanup_aclconfctx;
 	}
+
+	result = configure_keystores(config, &keystorelist);
+	if (result != ISC_R_SUCCESS) {
+		goto cleanup_keystorelist;
+	}
+
+	result = configure_kasplist(config, &kasplist, &keystorelist);
+	if (result != ISC_R_SUCCESS) {
+		goto cleanup_kasplist;
+	}
+
+	result = create_views(config, configparser, aclconfctx, &viewlist);
+	if (result != ISC_R_SUCCESS) {
+		goto cleanup_viewlist;
+	}
+
+	/* Create a new client TLS context cache */
+	isc_tlsctx_cache_create(isc_g_mctx, &tlsctx_client_cache);
+
+	/* Ensure exclusive access to configuration data. */
+	isc_loopmgr_pause();
 
 	/*
 	 * Shut down all dyndb instances.
@@ -7929,33 +8215,12 @@ apply_configuration(cfg_parser_t *configparser, cfg_obj_t *config,
 		}
 	}
 
-	/* Let's recreate the TLS context cache */
+	/* Let's recreate the server TLS context cache */
 	if (server->tlsctx_server_cache != NULL) {
 		isc_tlsctx_cache_detach(&server->tlsctx_server_cache);
 	}
 
 	isc_tlsctx_cache_create(isc_g_mctx, &server->tlsctx_server_cache);
-
-	if (server->tlsctx_client_cache != NULL) {
-		isc_tlsctx_cache_detach(&server->tlsctx_client_cache);
-	}
-
-	isc_tlsctx_cache_create(isc_g_mctx, &server->tlsctx_client_cache);
-
-	dns_zonemgr_set_tlsctx_cache(server->zonemgr,
-				     server->tlsctx_client_cache);
-
-	/*
-	 * Fill in the maps array, used for resolving defaults.
-	 */
-	i = 0;
-	options = NULL;
-	result = cfg_map_get(config, "options", &options);
-	if (result == ISC_R_SUCCESS) {
-		maps[i++] = options;
-	}
-	maps[i++] = named_g_defaultoptions;
-	maps[i] = NULL;
 
 #if HAVE_LIBNGHTTP2
 	obj = NULL;
@@ -8040,7 +8305,7 @@ apply_configuration(cfg_parser_t *configparser, cfg_obj_t *config,
 		char *dir = UNCONST(cfg_obj_asstring(obj));
 		named_geoip_load(dir);
 	}
-	named_g_aclconfctx->geoip = named_g_geoip;
+	aclconfctx->geoip = named_g_geoip;
 #endif /* HAVE_GEOIP2 */
 
 	/*
@@ -8078,7 +8343,7 @@ apply_configuration(cfg_parser_t *configparser, cfg_obj_t *config,
 	result = named_config_get(maps, "sig0checks-quota-exempt", &obj);
 	if (result == ISC_R_SUCCESS) {
 		result = cfg_acl_fromconfig(
-			obj, config, named_g_aclconfctx, isc_g_mctx, 0,
+			obj, config, aclconfctx, isc_g_mctx, 0,
 			&server->sctx->sig0checksquota_exempt);
 		INSIST(result == ISC_R_SUCCESS);
 	}
@@ -8088,7 +8353,7 @@ apply_configuration(cfg_parser_t *configparser, cfg_obj_t *config,
 	 * no default.
 	 */
 	result = configure_view_acl(NULL, config, NULL, "blackhole", NULL,
-				    named_g_aclconfctx, isc_g_mctx,
+				    aclconfctx, isc_g_mctx,
 				    &server->sctx->blackholeacl);
 	if (result != ISC_R_SUCCESS) {
 		goto cleanup_bindkeys_parser;
@@ -8390,8 +8655,8 @@ apply_configuration(cfg_parser_t *configparser, cfg_obj_t *config,
 			goto cleanup_portsets;
 		}
 		result = listenlist_fromconfig(
-			clistenon, config, named_g_aclconfctx, isc_g_mctx,
-			AF_INET, server->tlsctx_server_cache, &listenon);
+			clistenon, config, aclconfctx, isc_g_mctx, AF_INET,
+			server->tlsctx_server_cache, &listenon);
 		if (result != ISC_R_SUCCESS) {
 			goto cleanup_portsets;
 		}
@@ -8414,8 +8679,8 @@ apply_configuration(cfg_parser_t *configparser, cfg_obj_t *config,
 			goto cleanup_portsets;
 		}
 		result = listenlist_fromconfig(
-			clistenon, config, named_g_aclconfctx, isc_g_mctx,
-			AF_INET6, server->tlsctx_server_cache, &listenon);
+			clistenon, config, aclconfctx, isc_g_mctx, AF_INET6,
+			server->tlsctx_server_cache, &listenon);
 		if (result != ISC_R_SUCCESS) {
 			goto cleanup_portsets;
 		}
@@ -8431,6 +8696,12 @@ apply_configuration(cfg_parser_t *configparser, cfg_obj_t *config,
 		 * Rescan the interface list to pick up changes in the
 		 * listen-on option. This requires the loopmgr to be
 		 * temporarily resumed.
+		 *
+		 * The reason we're doing this the first time (instead of having
+		 * only one scan later) is because we're are dropping root
+		 * privileges shortly after and FreeBSD doesn't have Linux
+		 * capabilities so can't listen to a privileged port without
+		 * being root.
 		 */
 		isc_loopmgr_resume();
 		result = ns_interfacemgr_scan(server->interfacemgr, true, true);
@@ -8530,230 +8801,11 @@ apply_configuration(cfg_parser_t *configparser, cfg_obj_t *config,
 	 */
 	(void)configure_session_key(maps, server, isc_g_mctx, first_time);
 
-	/*
-	 * Create the built-in key store ("key-directory").
-	 */
-	result = cfg_keystore_fromconfig(NULL, isc_g_mctx, &keystorelist, NULL);
+	result = configure_views(config, bindkeys, aclconfctx,
+				 tlsctx_client_cache, &viewlist, &cachelist,
+				 &kasplist, server, first_time);
 	if (result != ISC_R_SUCCESS) {
-		goto cleanup_keystorelist;
-	}
-
-	/*
-	 * Create the DNSSEC key stores.
-	 */
-	keystores = NULL;
-	(void)cfg_map_get(config, "key-store", &keystores);
-	CFG_LIST_FOREACH(keystores, element) {
-		cfg_obj_t *kconfig = cfg_listelt_value(element);
-
-		result = cfg_keystore_fromconfig(kconfig, isc_g_mctx,
-						 &keystorelist, NULL);
-		if (result != ISC_R_SUCCESS) {
-			goto cleanup_keystorelist;
-		}
-	}
-
-	/*
-	 * Create the built-in kasp policies ("default", "insecure").
-	 */
-	kasps = NULL;
-	(void)cfg_map_get(named_g_defaultconfig, "dnssec-policy", &kasps);
-	CFG_LIST_FOREACH(kasps, element) {
-		cfg_obj_t *kconfig = cfg_listelt_value(element);
-		dns_kasp_t *kasp = NULL;
-
-		result = cfg_kasp_fromconfig(kconfig, default_kasp, true,
-					     isc_g_mctx, &keystorelist,
-					     &kasplist, &kasp);
-		if (result != ISC_R_SUCCESS) {
-			goto cleanup_kasplist;
-		}
-		INSIST(kasp != NULL);
-		dns_kasp_freeze(kasp);
-
-		/* Insist that the first built-in policy is the default one. */
-		if (default_kasp == NULL) {
-			INSIST(strcmp(dns_kasp_getname(kasp), "default") == 0);
-			dns_kasp_attach(kasp, &default_kasp);
-		}
-
-		dns_kasp_detach(&kasp);
-	}
-	INSIST(default_kasp != NULL);
-
-	/*
-	 * Create the DNSSEC key and signing policies (KASP).
-	 */
-	kasps = NULL;
-	(void)cfg_map_get(config, "dnssec-policy", &kasps);
-	CFG_LIST_FOREACH(kasps, element) {
-		cfg_obj_t *kconfig = cfg_listelt_value(element);
-		dns_kasp_t *kasp = NULL;
-
-		result = cfg_kasp_fromconfig(kconfig, default_kasp, true,
-					     isc_g_mctx, &keystorelist,
-					     &kasplist, &kasp);
-		if (result != ISC_R_SUCCESS) {
-			goto cleanup_kasplist;
-		}
-		INSIST(kasp != NULL);
-		dns_kasp_freeze(kasp);
-		dns_kasp_detach(&kasp);
-	}
-	dns_kasp_detach(&default_kasp);
-
-	/*
-	 * Save kasp list.
-	 */
-	tmpkasplist = server->kasplist;
-	server->kasplist = kasplist;
-	kasplist = tmpkasplist;
-
-	/*
-	 * Configure the views.
-	 */
-	views = NULL;
-	(void)cfg_map_get(config, "view", &views);
-
-	/*
-	 * Create the views.
-	 */
-	CFG_LIST_FOREACH(views, element) {
-		cfg_obj_t *vconfig = cfg_listelt_value(element);
-		dns_view_t *view = NULL;
-
-		result = create_view(vconfig, &viewlist, &view);
-		if (result != ISC_R_SUCCESS) {
-			goto cleanup_viewlist;
-		}
-		INSIST(view != NULL);
-
-		result = setup_newzones(view, config, vconfig, configparser,
-					named_g_aclconfctx);
-		dns_view_detach(&view);
-
-		if (result != ISC_R_SUCCESS) {
-			goto cleanup_viewlist;
-		}
-	}
-
-	/*
-	 * If there were no explicit views then we do the default
-	 * view here.
-	 */
-	if (views == NULL) {
-		dns_view_t *view = NULL;
-
-		result = create_view(NULL, &viewlist, &view);
-		if (result != ISC_R_SUCCESS) {
-			goto cleanup_viewlist;
-		}
-		INSIST(view != NULL);
-
-		result = setup_newzones(view, config, NULL, configparser,
-					named_g_aclconfctx);
-
-		dns_view_detach(&view);
-		if (result != ISC_R_SUCCESS) {
-			goto cleanup_viewlist;
-		}
-	}
-
-	/*
-	 * Configure and freeze all explicit views.  Explicit
-	 * views that have zones were already created at parsing
-	 * time, but views with no zones must be created here.
-	 */
-	CFG_LIST_FOREACH(views, element) {
-		cfg_obj_t *vconfig = cfg_listelt_value(element);
-		dns_view_t *view = NULL;
-
-		view = NULL;
-		result = find_view(vconfig, &viewlist, &view);
-		if (result != ISC_R_SUCCESS) {
-			goto cleanup_cachelist;
-		}
-
-		result = configure_view(view, &viewlist, config, vconfig,
-					&cachelist, &server->cachelist,
-					&server->kasplist, bindkeys, isc_g_mctx,
-					named_g_aclconfctx, true, first_time);
-		if (result != ISC_R_SUCCESS) {
-			dns_view_detach(&view);
-			goto cleanup_cachelist;
-		}
-		dns_view_freeze(view);
-		dns_view_detach(&view);
-	}
-
-	/*
-	 * Make sure we have a default view if and only if there
-	 * were no explicit views.
-	 */
-	if (views == NULL) {
-		dns_view_t *view = NULL;
-		result = find_view(NULL, &viewlist, &view);
-		if (result != ISC_R_SUCCESS) {
-			goto cleanup_cachelist;
-		}
-		result = configure_view(view, &viewlist, config, NULL,
-					&cachelist, &server->cachelist,
-					&server->kasplist, bindkeys, isc_g_mctx,
-					named_g_aclconfctx, true, first_time);
-		if (result != ISC_R_SUCCESS) {
-			dns_view_detach(&view);
-			goto cleanup_cachelist;
-		}
-		dns_view_freeze(view);
-		dns_view_detach(&view);
-	}
-
-	/*
-	 * Create (or recreate) the built-in views.
-	 */
-	builtin_views = NULL;
-	RUNTIME_CHECK(cfg_map_get(named_g_defaultconfig, "view",
-				  &builtin_views) == ISC_R_SUCCESS);
-	CFG_LIST_FOREACH(builtin_views, element) {
-		cfg_obj_t *vconfig = cfg_listelt_value(element);
-		dns_view_t *view = NULL;
-
-		result = create_view(vconfig, &builtin_viewlist, &view);
-		if (result != ISC_R_SUCCESS) {
-			goto cleanup_cachelist;
-		}
-
-		result = configure_view(view, &viewlist, config, vconfig,
-					&cachelist, &server->cachelist,
-					&server->kasplist, bindkeys, isc_g_mctx,
-					named_g_aclconfctx, false, first_time);
-		if (result != ISC_R_SUCCESS) {
-			dns_view_detach(&view);
-			goto cleanup_cachelist;
-		}
-		dns_view_freeze(view);
-		dns_view_detach(&view);
-	}
-
-	/* Now combine the two viewlists into one */
-	ISC_LIST_APPENDLIST(viewlist, builtin_viewlist, link);
-
-	/*
-	 * Commit any dns_zone_setview() calls on all zones in the new
-	 * view.
-	 */
-	ISC_LIST_FOREACH(viewlist, view, link) {
-		dns_view_setviewcommit(view);
-	}
-
-	/* Swap our new view list with the production one. */
-	tmpviewlist = server->viewlist;
-	server->viewlist = viewlist;
-	viewlist = tmpviewlist;
-
-	/* Make the view list available to each of the views */
-	ISC_LIST_FOREACH(server->viewlist, view, link) {
-		view->viewlist = &server->viewlist;
+		goto cleanup_cachelist;
 	}
 
 	/* Swap our new cache list with the production one. */
@@ -9123,6 +9175,10 @@ apply_configuration(cfg_parser_t *configparser, cfg_obj_t *config,
 	/*
 	 * Swap the new keystores list with the old one (so the new one will be
 	 * used and old one will be cleared).
+	 *
+	 * If this is the initial server setup, store the address
+	 * `&server->keystorelist` in the zone manager, so the zones can reach
+	 * the list during runtime whenever needed.
 	 */
 	tmpkeystorelist = server->keystorelist;
 	server->keystorelist = keystorelist;
@@ -9131,6 +9187,32 @@ apply_configuration(cfg_parser_t *configparser, cfg_obj_t *config,
 		dns_zonemgr_setkeystores(server->zonemgr,
 					 &server->keystorelist);
 	}
+
+	/*
+	 * Save the new kasp list with the old one (so the new one will be used
+	 * and the old one will be cleared).
+	 */
+	tmpkasplist = server->kasplist;
+	server->kasplist = kasplist;
+	kasplist = tmpkasplist;
+
+	/*
+	 * Swap server aclconfctx
+	 */
+	tmpaclconfctx = server->aclconfctx;
+	server->aclconfctx = aclconfctx;
+	aclconfctx = tmpaclconfctx;
+
+	/*
+	 * Swap client TLS context
+	 */
+	if (server->tlsctx_client_cache != NULL) {
+		isc_tlsctx_cache_detach(&server->tlsctx_client_cache);
+	}
+
+	isc_tlsctx_cache_attach(tlsctx_client_cache,
+				&server->tlsctx_client_cache);
+	dns_zonemgr_set_tlsctx_cache(server->zonemgr, tlsctx_client_cache);
 
 	(void)named_server_loadnta(server);
 
@@ -9149,7 +9231,7 @@ apply_configuration(cfg_parser_t *configparser, cfg_obj_t *config,
 
 	/* Configure the statistics channel(s) */
 	result = named_statschannels_configure(named_g_server, config,
-					       named_g_aclconfctx);
+					       server->aclconfctx);
 	if (result != ISC_R_SUCCESS) {
 		isc_log_write(NAMED_LOGCATEGORY_GENERAL, NAMED_LOGMODULE_SERVER,
 			      ISC_LOG_ERROR,
@@ -9162,7 +9244,7 @@ apply_configuration(cfg_parser_t *configparser, cfg_obj_t *config,
 	 * Bind the control port(s).
 	 */
 	result = named_controls_configure(named_g_server->controls, config,
-					  named_g_aclconfctx);
+					  server->aclconfctx);
 	if (result != ISC_R_SUCCESS) {
 		isc_log_write(NAMED_LOGCATEGORY_GENERAL, NAMED_LOGMODULE_SERVER,
 			      ISC_LOG_ERROR, "binding control channel(s): %s",
@@ -9202,7 +9284,27 @@ cleanup_cachelist:
 		isc_mem_put(server->mctx, nsc, sizeof(*nsc));
 	}
 
-	ISC_LIST_APPENDLIST(viewlist, builtin_viewlist, link);
+cleanup_portsets:
+	isc_portset_destroy(isc_g_mctx, &v6portset);
+	isc_portset_destroy(isc_g_mctx, &v4portset);
+
+cleanup_bindkeys_parser:
+	if (bindkeys_parser != NULL) {
+		if (bindkeys != NULL) {
+			cfg_obj_destroy(bindkeys_parser, &bindkeys);
+		}
+		cfg_parser_destroy(&bindkeys_parser);
+	}
+
+	if (exclusive) {
+		isc_loopmgr_resume();
+	}
+
+	/*
+	 * Detach the TLS client context (whether the one created at the
+	 * begining of this function, or the previous running one)
+	 */
+	isc_tlsctx_cache_detach(&tlsctx_client_cache);
 
 cleanup_viewlist:
 	ISC_LIST_FOREACH(viewlist, view, link) {
@@ -9227,21 +9329,9 @@ cleanup_keystorelist:
 		dns_keystore_detach(&keystore);
 	}
 
-cleanup_portsets:
-	isc_portset_destroy(isc_g_mctx, &v6portset);
-	isc_portset_destroy(isc_g_mctx, &v4portset);
-
-cleanup_bindkeys_parser:
-	if (bindkeys_parser != NULL) {
-		if (bindkeys != NULL) {
-			cfg_obj_destroy(bindkeys_parser, &bindkeys);
-		}
-		cfg_parser_destroy(&bindkeys_parser);
-	}
-
-cleanup_exclusive:
-	if (exclusive) {
-		isc_loopmgr_resume();
+cleanup_aclconfctx:
+	if (aclconfctx != NULL) {
+		cfg_aclconfctx_detach(&aclconfctx);
 	}
 
 	isc_log_write(NAMED_LOGCATEGORY_GENERAL, NAMED_LOGMODULE_SERVER,
@@ -9513,8 +9603,8 @@ shutdown_server(void *arg) {
 
 	cleanup_session_key(server, server->mctx);
 
-	if (named_g_aclconfctx != NULL) {
-		cfg_aclconfctx_detach(&named_g_aclconfctx);
+	if (server->aclconfctx != NULL) {
+		cfg_aclconfctx_detach(&server->aclconfctx);
 	}
 
 	cfg_obj_destroy(named_g_parser, &named_g_defaultconfig);
