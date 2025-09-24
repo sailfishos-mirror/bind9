@@ -37,6 +37,21 @@ dns_keymgr_settime_syncpublish(dst_key_t *key, dns_kasp_t *kasp, bool first);
  *\li           'kasp' is a valid DNSSEC policy.
  */
 
+void
+dns_keymgr_key_init(dns_dnsseckey_t *key, dns_kasp_t *kasp, isc_stdtime_t now,
+		    bool csk);
+/*
+ * Initialize this key's properties if not already present.  A key created
+ * and derived from a dnssec-policy will have the required metadata available,
+ * otherwise these may be missing and need to be initialized.  The key states
+ * will be initialized according to existing timing metadata. If 'csk' is
+ * set to true, the key is considered a combined signing key (CSK).
+ *
+ *      Requires:
+ *\li           'key' is a valid DNSSEC key.
+ *\li           'kasp' is a valid DNSSEC policy.
+ */
+
 isc_result_t
 dns_keymgr_run(const dns_name_t *origin, dns_rdataclass_t rdclass,
 	       isc_mem_t *mctx, dns_dnsseckeylist_t *keyring,

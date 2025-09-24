@@ -31,6 +31,7 @@
 
 #include <dns/dnssec.h>
 #include <dns/keystore.h>
+#include <dns/name.h>
 #include <dns/types.h>
 
 /* For storing a list of digest types */
@@ -136,6 +137,8 @@ struct dns_kasp {
 /* Key roles */
 #define DNS_KASP_KEY_ROLE_KSK 0x01
 #define DNS_KASP_KEY_ROLE_ZSK 0x02
+
+#define DNS_KASP_KEY_FORMATSIZE (DNS_NAME_FORMATSIZE + 64)
 
 void
 dns_kasp_create(isc_mem_t *mctx, const char *name, dns_kasp_t **kaspp);
@@ -762,6 +765,17 @@ dns_kasp_key_match(dns_kasp_key_t *key, dns_dnsseckey_t *dkey);
  *
  *\li  True, if the DNSSEC key matches.
  *\li  False, otherwise.
+ */
+
+void
+dns_kasp_key_format(dns_kasp_key_t *key, char *cp, unsigned int size);
+/*%<
+ * Write the identifying information about the policy key (role,
+ * algorithm, tag range) into a string 'cp' of size 'size'.
+ * Requires:
+ *
+ *\li  key != NULL
+ *\li  cp != NULL
  */
 
 bool

@@ -15,13 +15,17 @@
 
 #include <isccfg/cfg.h>
 
+#define ISCCFG_KASPCONF_CHECK_ALGORITHMS 0x01
+#define ISCCFG_KASPCONF_CHECK_KEYLIST	 0x02
+#define ISCCFG_KASPCONF_LOG_ERRORS	 0x04
+
 /***
  *** Functions
  ***/
 
 isc_result_t
 cfg_kasp_fromconfig(const cfg_obj_t *config, dns_kasp_t *default_kasp,
-		    bool check_algorithms, isc_mem_t *mctx,
+		    unsigned int options, isc_mem_t *mctx,
 		    dns_keystorelist_t *keystorelist, dns_kasplist_t *kasplist,
 		    dns_kasp_t **kaspp);
 /*%<
@@ -34,8 +38,16 @@ cfg_kasp_fromconfig(const cfg_obj_t *config, dns_kasp_t *default_kasp,
  *
  * The 'keystorelist' is where to lookup key stores if KASP keys are using them.
  *
- * If 'check_algorithms' is true then the dnssec-policy DNSSEC key
- * algorithms are checked against those supported by the crypto provider.
+ * If 'options' has ISCCFG_KASPCONF_CHECK_ALGORITHMS set, then the dnssec-policy
+ * DNSSEC key algorithms are checked against those supported by the crypto
+ * provider.
+ *
+ * If 'options' has ISCCFG_KASPCONF_CHECK_KEYLIST set, then this function
+ * insists that the key list is not empty, unless the policy is "insecure"
+ * (then the key list must be empty).
+ *
+ * If 'options' has ISCCFG_KASPCONF_LOG_ERRORS set, then configuration errors
+ * and warnings are logged to the global logging context.
  *
  * Requires:
  *
@@ -51,6 +63,30 @@ cfg_kasp_fromconfig(const cfg_obj_t *config, dns_kasp_t *default_kasp,
  *
  *\li  #ISC_R_SUCCESS  If creating and configuring the KASP succeeds.
  *\li  #ISC_R_EXISTS   If 'kasplist' already has a kasp structure with 'name'.
+ *
+ *\li  Other errors are possible.
+ */
+
+isc_result_t
+cfg_kasp_builtinconfig(isc_mem_t *mctx, const char *name,
+		       dns_keystorelist_t *keystorelist,
+		       dns_kasplist_t *kasplist, dns_kasp_t **kaspp);
+/*%<
+ * Create built-in KASP.
+ *
+ * If a 'kasplist' is provided, a lookup happens and if a KASP already exists
+ * with the same name, no new KASP is created, and no attach to 'kaspp' happens.
+ *
+ * Requires:
+ *
+ *\li  'mctx' is a valid memory context.
+ *
+ *\li  kaspp != NULL && *kaspp == NULL
+ *
+ * Returns:
+ *
+ *\li  #ISC_R_SUCCESS  If creating and configuring the KASP succeeds.
+ *\li  #ISC_R_EXISTS   If 'kasplist' already has the default policy.
  *
  *\li  Other errors are possible.
  */
