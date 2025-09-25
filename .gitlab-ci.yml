@@ -304,7 +304,7 @@ stages:
     allow_failure: true  # don't block the pipeline or the pipeline result
 
 .rule_tag: &rule_tag
-  - if: '$CI_COMMIT_TAG != null'
+  - if: '$CI_PROJECT_NAMESPACE == "isc-private" && $CI_COMMIT_TAG != null'
 
 .rule_source_other_than_mr: &rule_source_other_than_mr
   - if: '$CI_PIPELINE_SOURCE =~ /^(api|pipeline|schedule|trigger|web)$/ && $REBASE_ONLY != "1"'
@@ -472,7 +472,7 @@ stages:
       when: manual  # don't run on each MR unless requested
       allow_failure: true
     # - &shotgun_rule_tag
-    #   if: '$CI_COMMIT_TAG != null'
+    #   if: '$CI_PROJECT_NAMESPACE == "isc-private" && $CI_COMMIT_TAG != null'
     #   variables:
     #     SHOTGUN_ROUNDS: 3
     # - &shotgun_rule_other
@@ -1635,7 +1635,7 @@ release:
     - job: docs
       artifacts: true
   rules:
-    - if: '$CI_COMMIT_TAG != null'
+    - *rule_tag
   artifacts:
     paths:
       - "*-release"
@@ -1679,7 +1679,7 @@ sign:
     - job: release
       artifacts: true
   rules:
-    - if: '$CI_COMMIT_TAG != null'
+    - *rule_tag
   when: manual
   allow_failure: false
 
@@ -1757,7 +1757,7 @@ customer-git:tag:
     - job: release
       artifacts: false
   rules:
-    - if: '$CI_PROJECT_NAMESPACE == "isc-private" && $CI_COMMIT_TAG != null'
+    - *rule_tag
   before_script:
     - git clone --depth 1 https://gitlab.isc.org/isc-projects/bind9-qa.git
     - git clone --depth 1 "https://token:${ISC_CUSTOMERS_WRITE_TOKEN}@gitlab.isc.org/isc-customers/isc-customer-settings.git"
@@ -1951,7 +1951,7 @@ stress-test-child-pipeline:
     - if: '$CI_MERGE_REQUEST_DIFF_BASE_SHA != null'
       when: manual  # don't run on each MR unless requested
       allow_failure: true
-    - if: '$CI_COMMIT_TAG != null'
+    - *rule_tag
     - if: '$CI_PIPELINE_SOURCE =~ /^(api|pipeline|schedule|trigger|web)$/ && $REBASE_ONLY != "1"'
   trigger:
     include:
