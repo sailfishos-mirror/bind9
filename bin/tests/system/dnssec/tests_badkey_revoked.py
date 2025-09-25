@@ -9,15 +9,13 @@
 # See the COPYRIGHT file distributed with this work for additional
 # information regarding copyright ownership.
 
-import pytest
-
 import isctest
 
 
-@pytest.fixture(scope="module", autouse=True)
-def reconfigure(ns5, templates):
-    templates.render("ns5/named.conf", {"revoked_key": True})
-    ns5.reconfigure(log=False)
+def bootstrap():
+    return {
+        "revoked_key": True,
+    }
 
 
 def test_revoked_init():

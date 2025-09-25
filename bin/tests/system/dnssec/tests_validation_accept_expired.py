@@ -11,15 +11,13 @@
 
 from dns import flags
 
-import pytest
-
 import isctest
 
 
-@pytest.fixture(scope="module", autouse=True)
-def reconfigure(ns4, templates):
-    templates.render("ns4/named.conf", {"accept_expired": True})
-    ns4.reconfigure(log=False)
+def bootstrap():
+    return {
+        "accept_expired": True,
+    }
 
 
 def test_accept_expired(ns4):

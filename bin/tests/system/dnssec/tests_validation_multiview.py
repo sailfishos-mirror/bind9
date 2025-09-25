@@ -12,15 +12,13 @@
 import os
 import re
 
-import pytest
-
 import isctest
 
 
-@pytest.fixture(scope="module", autouse=True)
-def reconfigure(ns4, templates):
-    templates.render("ns4/named.conf", {"multi_view": True})
-    ns4.reconfigure(log=False)
+def bootstrap():
+    return {
+        "multi_view": True,
+    }
 
 
 def getfrom(file):

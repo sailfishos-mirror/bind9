@@ -11,18 +11,14 @@
 
 from dns import flags
 
-import pytest
-
 import isctest
 
 
-@pytest.fixture(scope="module", autouse=True)
-def reconfigure(ns5, ns9, templates):
-    templates.render("ns5/named.conf", {"broken_key": True})
-    ns5.reconfigure(log=False)
-
-    templates.render("ns9/named.conf", {"forward_badkey": True})
-    ns9.reconfigure(log=False)
+def bootstrap():
+    return {
+        "broken_key": True,
+        "forward_badkey": True,
+    }
 
 
 def test_broken_forwarding(ns9):
