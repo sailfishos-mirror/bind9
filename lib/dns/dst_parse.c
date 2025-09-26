@@ -54,10 +54,9 @@
 
 #define TIMING_NTAGS (DST_MAX_TIMES + 1)
 static const char *timetags[TIMING_NTAGS] = {
-	"Created:",    "Publish:", "Activate:",	 "Revoke:",
-	"Inactive:",   "Delete:",  "DSPublish:", "SyncPublish:",
-	"SyncDelete:", NULL,	   NULL,	 NULL,
-	NULL
+	"Created:", "Publish:",	  "Activate:",	  "Revoke:",	 "Inactive:",
+	"Delete:",  "DSPublish:", "SyncPublish:", "SyncDelete:", NULL,
+	NULL,	    NULL,	  NULL,		  NULL,		 NULL
 };
 
 #define NUMERIC_NTAGS (DST_MAX_NUMERIC + 1)

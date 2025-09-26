@@ -24,7 +24,8 @@
 #define DNS_KEYMGRATTR_NONE	 0x00 /*%< No ordering. */
 #define DNS_KEYMGRATTR_S2I	 0x01 /*%< Secure to insecure. */
 #define DNS_KEYMGRATTR_NOROLL	 0x02 /*%< No rollover allowed. */
-#define DNS_KEYMGRATTR_FORCESTEP 0x04 /*%< Force next step in manual-mode */
+#define DNS_KEYMGRATTR_FORCESTEP 0x04 /*%< Force next step in manual-mode. */
+#define DNS_KEYMGRATTR_FULLSIGN	 0x08 /*%< Full sign was issued. */
 
 void
 dns_keymgr_settime_syncpublish(dst_key_t *key, dns_kasp_t *kasp, bool first);

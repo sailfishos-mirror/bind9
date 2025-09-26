@@ -751,6 +751,7 @@ struct dns_signing {
 	dst_algorithm_t algorithm;
 	uint16_t keyid;
 	bool deleteit;
+	bool fullsign;
 	bool done;
 	ISC_LINK(dns_signing_t) link;
 };
@@ -993,7 +994,7 @@ static void
 dump_done(void *arg, isc_result_t result);
 static isc_result_t
 zone_signwithkey(dns_zone_t *zone, dst_algorithm_t algorithm, uint16_t keyid,
-		 bool deleteit);
+		 bool deleteit, bool fullsign);
 static isc_result_t
 delete_nsec(dns_db_t *db, dns_dbversion_t *ver, dns_dbnode_t *node,
 	    dns_name_t *name, dns_diff_t *diff);
@@ -4101,7 +4102,7 @@ resume_signingwithkey(dns_zone_t *zone) {
 			      : ((rdata.data[5] << 8) | rdata.data[6]);
 		result = zone_signwithkey(zone, alg,
 					  (rdata.data[1] << 8) | rdata.data[2],
-					  rdata.data[3]);
+					  rdata.data[3], false);
 		if (result != ISC_R_SUCCESS) {
 			dnssec_log(zone, ISC_LOG_ERROR,
 				   "zone_signwithkey failed: %s",
@@ -7907,7 +7908,7 @@ failure:
 static bool
 signed_with_good_key(dns_zone_t *zone, dns_db_t *db, dns_dbnode_t *node,
 		     dns_dbversion_t *version, dns_rdatatype_t type,
-		     dst_key_t *key) {
+		     dst_key_t *key, bool fullsign) {
 	isc_result_t result;
 	dns_rdataset_t rdataset;
 	dns_rdata_rrsig_t rrsig;
@@ -7940,7 +7941,7 @@ signed_with_good_key(dns_zone_t *zone, dns_db_t *db, dns_dbnode_t *node,
 		}
 	}
 
-	if (zone->kasp != NULL) {
+	if (zone->kasp != NULL && !fullsign) {
 		int zsk_count = 0;
 		bool approved;
 
@@ -8041,8 +8042,9 @@ sign_a_node(dns_db_t *db, dns_zone_t *zone, dns_name_t *name,
 	    dns_dbnode_t *node, dns_dbversion_t *version, bool build_nsec3,
 	    bool build_nsec, dst_key_t *key, isc_stdtime_t now,
 	    isc_stdtime_t inception, isc_stdtime_t expire, dns_ttl_t nsecttl,
-	    bool both, bool is_ksk, bool is_zsk, bool is_bottom_of_zone,
-	    dns_diff_t *diff, int32_t *signatures, isc_mem_t *mctx) {
+	    bool both, bool is_ksk, bool is_zsk, bool fullsign,
+	    bool is_bottom_of_zone, dns_diff_t *diff, int32_t *signatures,
+	    isc_mem_t *mctx) {
 	isc_result_t result;
 	dns_rdatasetiter_t *iterator = NULL;
 	dns_rdataset_t rdataset = DNS_RDATASET_INIT;
@@ -8152,7 +8154,7 @@ sign_a_node(dns_db_t *db, dns_zone_t *zone, dns_name_t *name,
 			continue;
 		}
 		if (signed_with_good_key(zone, db, node, version, rdataset.type,
-					 key))
+					 key, fullsign))
 		{
 			continue;
 		}
@@ -10168,8 +10170,8 @@ zone_sign(dns_zone_t *zone) {
 				db, zone, name, node, version, build_nsec3,
 				build_nsec, zone_keys[i], now, inception,
 				expire, zone_nsecttl(zone), both, is_ksk,
-				is_zsk, is_bottom_of_zone, zonediff.diff,
-				&signatures, zone->mctx));
+				is_zsk, signing->fullsign, is_bottom_of_zone,
+				zonediff.diff, &signatures, zone->mctx));
 			/*
 			 * If we are adding we are done.  Look for other keys
 			 * of the same algorithm if deleting.
@@ -20407,22 +20409,6 @@ dns_zone_setnotifydelay(dns_zone_t *zone, uint32_t delay) {
 	UNLOCK_ZONE(zone);
 }
 
-isc_result_t
-dns_zone_signwithkey(dns_zone_t *zone, dst_algorithm_t algorithm,
-		     uint16_t keyid, bool deleteit) {
-	isc_result_t result;
-	REQUIRE(DNS_ZONE_VALID(zone));
-
-	dnssec_log(zone, ISC_LOG_NOTICE,
-		   "dns_zone_signwithkey(algorithm=%u, keyid=%u)", algorithm,
-		   keyid);
-	LOCK_ZONE(zone);
-	result = zone_signwithkey(zone, algorithm, keyid, deleteit);
-	UNLOCK_ZONE(zone);
-
-	return result;
-}
-
 /*
  * Called when a dynamic update for an NSEC3PARAM record is received.
  *
@@ -20494,7 +20480,7 @@ dns_zone_getprivatetype(dns_zone_t *zone) {
 
 static isc_result_t
 zone_signwithkey(dns_zone_t *zone, dst_algorithm_t algorithm, uint16_t keyid,
-		 bool deleteit) {
+		 bool deleteit, bool fullsign) {
 	dns_signing_t *signing = NULL;
 	isc_result_t result = ISC_R_SUCCESS;
 	isc_time_t now;
@@ -20508,6 +20494,7 @@ zone_signwithkey(dns_zone_t *zone, dst_algorithm_t algorithm, uint16_t keyid,
 	signing->algorithm = algorithm;
 	signing->keyid = keyid;
 	signing->deleteit = deleteit;
+	signing->fullsign = fullsign;
 	signing->done = false;
 
 	now = isc_time_now();
@@ -22473,6 +22460,9 @@ zone_rekey(dns_zone_t *zone) {
 	 * fully signed now.
 	 */
 	fullsign = DNS_ZONE_OPTION(zone, DNS_ZONEOPT_FULLSIGN);
+	if (fullsign) {
+		options |= DNS_KEYMGRATTR_FULLSIGN;
+	}
 
 	/*
 	 * True when called from "rndc dnssec -step". Indicates the zone
@@ -22845,7 +22835,8 @@ zone_rekey(dns_zone_t *zone) {
 		/* Remove any signatures from removed keys.  */
 		ISC_LIST_FOREACH(rmkeys, key, link) {
 			result = zone_signwithkey(zone, dst_key_alg(key->key),
-						  dst_key_id(key->key), true);
+						  dst_key_id(key->key), true,
+						  false);
 			if (result != ISC_R_SUCCESS) {
 				dnssec_log(zone, ISC_LOG_ERROR,
 					   "zone_signwithkey failed: "
@@ -22874,20 +22865,41 @@ zone_rekey(dns_zone_t *zone) {
 			 * with all active keys, whether they're new or not.
 			 */
 			ISC_LIST_FOREACH(dnskeys, key, link) {
-				if (!key->force_sign && !key->hint_sign) {
-					continue;
-				}
-
-				result = zone_signwithkey(
-					zone, dst_key_alg(key->key),
-					dst_key_id(key->key), false);
-				if (result != ISC_R_SUCCESS) {
-					dnssec_log(zone, ISC_LOG_ERROR,
-						   "zone_signwithkey failed: "
-						   "%s",
-						   isc_result_totext(result));
+				if (key->force_sign || key->hint_sign) {
+					result = zone_signwithkey(
+						zone, dst_key_alg(key->key),
+						dst_key_id(key->key), false,
+						true);
+					if (result != ISC_R_SUCCESS) {
+						dnssec_log(zone, ISC_LOG_ERROR,
+							   "zone_signwithkey "
+							   "failed: "
+							   "%s",
+							   isc_result_totext(
+								   result));
+					}
 				}
 			}
+			/*
+			 * ...and remove signatures for all inactive keys.
+			 */
+			ISC_LIST_FOREACH(dnskeys, key, link) {
+				if (!key->force_sign && !key->hint_sign) {
+					result = zone_signwithkey(
+						zone, dst_key_alg(key->key),
+						dst_key_id(key->key), true,
+						false);
+					if (result != ISC_R_SUCCESS) {
+						dnssec_log(zone, ISC_LOG_ERROR,
+							   "zone_signwithkey "
+							   "failed: "
+							   "%s",
+							   isc_result_totext(
+								   result));
+					}
+				}
+			}
+
 		} else if (newalg) {
 			/*
 			 * We haven't been told to sign fully, but a new
@@ -22902,7 +22914,7 @@ zone_rekey(dns_zone_t *zone) {
 
 				result = zone_signwithkey(
 					zone, dst_key_alg(key->key),
-					dst_key_id(key->key), false);
+					dst_key_id(key->key), false, false);
 				if (result != ISC_R_SUCCESS) {
 					dnssec_log(zone, ISC_LOG_ERROR,
 						   "zone_signwithkey failed: "
