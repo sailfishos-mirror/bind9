@@ -147,7 +147,9 @@ typedef enum dst_algorithm {
 #define DST_TIME_KRRSIG	     11
 #define DST_TIME_DS	     12
 #define DST_TIME_DSDELETE    13
-#define DST_MAX_TIMES	     13
+#define DST_TIME_SIGPUBLISH  14
+#define DST_TIME_SIGDELETE   15
+#define DST_MAX_TIMES	     15
 
 /* Numeric metadata definitions */
 #define DST_NUM_PREDECESSOR 0

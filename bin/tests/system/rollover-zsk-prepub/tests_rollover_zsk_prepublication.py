@@ -41,7 +41,7 @@ POLICY = "zsk-prepub"
 ZSK_LIFETIME = TIMEDELTA["P30D"]
 LIFETIME_POLICY = int(ZSK_LIFETIME.total_seconds())
 IPUB = Ipub(CONFIG)
-IRET = Iret(CONFIG, rollover=True)
+IRET = Iret(CONFIG)
 KEYTTLPROP = CONFIG["dnskey-ttl"] + CONFIG["zone-propagation-delay"]
 OFFSETS = {}
 OFFSETS["step1-p"] = -int(TIMEDELTA["P7D"].total_seconds())
@@ -221,6 +221,15 @@ def test_zsk_prepub_step3(tld, alg, size, ns3):
         "smooth": True,
     }
     isctest.kasp.check_rollover_step(ns3, CONFIG, policy, step)
+
+    # Force full resign and check all signatures have been replaced.
+    with ns3.watch_log_from_here() as watcher:
+        ns3.rndc(f"sign {zone}", log=False)
+        watcher.wait_for_line(f"zone {zone}/IN (signed): sending notifies")
+
+    step["smooth"] = False
+    step["nextev"] = Iret(CONFIG, smooth=False)
+    isctest.kasp.check_rollover_step(ns3, CONFIG, POLICY, step)
 
 
 @pytest.mark.parametrize(
