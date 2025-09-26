@@ -11,7 +11,7 @@
  * information regarding copyright ownership.
  */
 
-// NS2
+{% set wrongoption = wrongoption | default(False) %}
 
 options {
 	port @PORT@;
@@ -30,9 +30,15 @@ controls {
 	inet 10.53.0.1 port @CONTROLPORT@ allow { any; } keys { rndc_key; };
 };
 
-
-zone "example." {
-	type primary;
-	file "example.db";
+view "default" {
+	zone "example." {
+		type primary;
+		file "example.db";
+	};
+	/*
+	 * failure to reconfig must occurs during configuration of the views
+	 */
+	{% if wrongoption %}
+		forwarders port 9999999 { 127.0.0.1; };
+	{% endif %}
 };
-

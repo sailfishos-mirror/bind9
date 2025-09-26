@@ -9,6 +9,11 @@
 # See the COPYRIGHT file distributed with this work for additional
 # information regarding copyright ownership.
 
+import re
+
+
+import isctest
+
 
 def test_configloading_log(ns1):
     """
@@ -39,3 +44,28 @@ def test_configloading_log(ns1):
     with ns1.watch_log_from_here() as watcher:
         ns1.rndc("reload")
         watcher.wait_for_sequence(log_sequence)
+
+
+def test_reload_fails_log(ns1, templates):
+    """
+    This test ensures that when a reconfig fails during view configuration (or
+    after), views/zones (which are newly created view/zones which won't be used
+    and local of apply_configuration) are detached (and freed) before the
+    exclusive mode is released
+    """
+
+    log_sequence = [
+        "apply_configuration",
+        "loop exclusive mode: starting",
+        "apply_configuration: configure_views",
+        re.compile(r".*port '9999999' out of range"),
+        "apply_configuration: detaching views",
+        "loop exclusive mode: ending",
+    ]
+
+    with ns1.watch_log_from_here() as watcher:
+        templates.render("ns1/named.conf", {"wrongoption": True})
+        try:
+            ns1.rndc("reload")
+        except isctest.rndc.RNDCException:
+            watcher.wait_for_sequence(log_sequence)
