@@ -8142,7 +8142,7 @@ apply_configuration(cfg_parser_t *configparser, cfg_obj_t *config,
 	uint32_t max;
 	uint64_t initial, idle, keepalive, advertised, primaries;
 	bool loadbalancesockets;
-	bool exclusive = true;
+	bool exclusive = false;
 	dns_aclenv_t *env =
 		ns_interfacemgr_getaclenv(named_g_server->interfacemgr);
 	cfg_aclconfctx_t *tmpaclctx, *aclctx = NULL;
@@ -8199,6 +8199,7 @@ apply_configuration(cfg_parser_t *configparser, cfg_obj_t *config,
 	isc_tlsctx_cache_create(isc_g_mctx, &tlsctx_client_cache);
 
 	/* Ensure exclusive access to configuration data. */
+	exclusive = true;
 	isc_loopmgr_pause();
 
 	/*
@@ -9300,10 +9301,6 @@ cleanup_bindkeys_parser:
 		cfg_parser_destroy(&bindkeys_parser);
 	}
 
-	if (exclusive) {
-		isc_loopmgr_resume();
-	}
-
 	/*
 	 * Detach the TLS client context (whether the one created at the
 	 * begining of this function, or the previous running one)
@@ -9311,6 +9308,9 @@ cleanup_bindkeys_parser:
 	isc_tlsctx_cache_detach(&tlsctx_client_cache);
 
 cleanup_viewlist:
+	isc_log_write(NAMED_LOGCATEGORY_GENERAL, NAMED_LOGMODULE_SERVER,
+		      ISC_LOG_DEBUG(3), "apply_configuration: detaching views");
+
 	ISC_LIST_FOREACH(viewlist, view, link) {
 		ISC_LIST_UNLINK(viewlist, view, link);
 		if (result == ISC_R_SUCCESS && strcmp(view->name, "_bind") != 0)
@@ -9319,6 +9319,10 @@ cleanup_viewlist:
 			(void)dns_view_apply(view, false, NULL, removed, view);
 		}
 		dns_view_detach(&view);
+	}
+
+	if (exclusive) {
+		isc_loopmgr_resume();
 	}
 
 cleanup_kasplist:
