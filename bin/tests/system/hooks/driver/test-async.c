@@ -125,14 +125,14 @@ logmsg(const char *fmt, ...) {
 isc_result_t
 plugin_register(const char *parameters, const void *cfg, const char *cfg_file,
 		unsigned long cfg_line, isc_mem_t *mctx, void *aclctx,
-		ns_hooktable_t *hooktable, ns_hooksource_t source,
+		ns_hooktable_t *hooktable, const ns_pluginregister_ctx_t *ctx,
 		void **instp) {
 	async_instance_t *inst = NULL;
 
-	UNUSED(source);
 	UNUSED(parameters);
 	UNUSED(cfg);
 	UNUSED(aclctx);
+	UNUSED(ctx);
 
 	isc_log_write(NS_LOGCATEGORY_GENERAL, NS_LOGMODULE_HOOKS, ISC_LOG_INFO,
 		      "registering 'test-async' module from %s:%lu", cfg_file,
@@ -158,14 +158,14 @@ plugin_register(const char *parameters, const void *cfg, const char *cfg_file,
 isc_result_t
 plugin_check(const char *parameters, const void *cfg, const char *cfg_file,
 	     unsigned long cfg_line, isc_mem_t *mctx, void *aclctx,
-	     ns_hooksource_t source) {
+	     const ns_pluginregister_ctx_t *ctx) {
 	UNUSED(parameters);
 	UNUSED(cfg);
 	UNUSED(cfg_file);
 	UNUSED(cfg_line);
 	UNUSED(mctx);
 	UNUSED(aclctx);
-	UNUSED(source);
+	UNUSED(ctx);
 
 	return ISC_R_SUCCESS;
 }

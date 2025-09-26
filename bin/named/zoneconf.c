@@ -2129,7 +2129,11 @@ named_zone_loadplugins(dns_zone_t *zone, const cfg_obj_t *config,
 	}
 
 	if (tpluginlist != NULL || zpluginlist != NULL) {
-		ns_hook_data_t hookdata = { .source = NS_HOOKSOURCE_ZONE };
+		ns_hook_data_t hookdata = {
+			.pluginregister_ctx = { .source = NS_HOOKSOURCE_ZONE,
+						.origin = dns_zone_getorigin(
+							zone) }
+		};
 		isc_mem_t *zmctx = dns_zone_getmctx(zone);
 
 		ns_hooktable_create(zmctx, &hookdata.hooktable);

@@ -369,12 +369,18 @@
  *   instance, bad cookie handling), it would be skipped.
  *
  * The `plugin_register` function (defined by each plugin and called
- * when the plugin is loaded) has a `ns_hooksource_t source` parameter.
- * It indicates whether the plugin has been loaded at the zone level
+ * when the plugin is loaded) has a `ns_pluginregister_ctx_t ctx` parameter.
+ * This provides to the plugin registering function various contextual
+ * informations about the plugin. For instance,  the `ns_hooksource_t source`
+ * property indicates whether the plugin has been loaded at the zone level
  * (`NS_HOOKSOURCE_ZONE`) or at the view level (`NS_HOOKSOURCE_VIEW`).
  * While this can be ignored if it doesn't matter where the plugin is
  * loaded, it can also be checked to enforce that the plugin is loaded
- * only at the zone or view level.
+ * only at the zone or view level. Another property is `dns_name_t *origin`
+ * which indicates the zone name to the plugin if it is loaded at the zone level
+ * (this property is NULL otherwise). Note that `ns_pluginregister_ctx_t`
+ * parameter is defined in a parent stack frame, thus, it is valid only during
+ * `plugin_register` execution.
  */
 
 /*!
@@ -490,10 +496,18 @@ typedef enum {
 	NS_HOOKSOURCE_ZONE
 } ns_hooksource_t;
 
-typedef struct ns_hook_data {
-	ns_hooktable_t *hooktable;
-	ns_plugins_t   *plugins;
+typedef struct ns_pluginregister_ctx {
+	/* is this a zone or a view plugin */
 	ns_hooksource_t source;
+
+	/* origin of the zone if this is a zone plugin, NULL otherwise */
+	const dns_name_t *origin;
+} ns_pluginregister_ctx_t;
+
+typedef struct ns_hook_data {
+	ns_hooktable_t	       *hooktable;
+	ns_plugins_t	       *plugins;
+	ns_pluginregister_ctx_t pluginregister_ctx;
 } ns_hook_data_t;
 
 /*
@@ -512,8 +526,8 @@ typedef struct ns_hook_data {
 typedef isc_result_t
 ns_plugin_register_t(const char *parameters, const void *cfg, const char *file,
 		     unsigned long line, isc_mem_t *mctx, void *aclctx,
-		     ns_hooktable_t *hooktable, ns_hooksource_t source,
-		     void **instp);
+		     ns_hooktable_t		   *hooktable,
+		     const ns_pluginregister_ctx_t *ctx, void **instp);
 /*%<
  * Called when registering a new plugin.
  *
@@ -538,7 +552,7 @@ ns_plugin_destroy_t(void **instp);
 typedef isc_result_t
 ns_plugin_check_t(const char *parameters, const void *cfg, const char *file,
 		  unsigned long line, isc_mem_t *mctx, void *aclctx,
-		  ns_hooksource_t source);
+		  const ns_pluginregister_ctx_t *ctx);
 /*%<
  * Check the validity of 'parameters'.
  */
@@ -605,7 +619,7 @@ ns_plugin_register(const char *modpath, const char *parameters, const void *cfg,
 isc_result_t
 ns_plugin_check(const char *modpath, const char *parameters, const void *cfg,
 		const char *cfg_file, unsigned long cfg_line, isc_mem_t *mctx,
-		void *aclctx, ns_hooksource_t source);
+		void *aclctx, const ns_pluginregister_ctx_t *ctx);
 /*%<
  * Open the plugin module at 'modpath' and check the validity of
  * 'parameters', logging any errors or warnings found, then

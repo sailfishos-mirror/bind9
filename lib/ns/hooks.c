@@ -239,13 +239,14 @@ ns_plugin_register(const char *modpath, const char *parameters, const void *cfg,
 	isc_log_write(NS_LOGCATEGORY_GENERAL, NS_LOGMODULE_HOOKS, ISC_LOG_INFO,
 		      "registering plugin '%s'", modpath);
 
-	INSIST(hookdata->source != NS_HOOKSOURCE_UNDEFINED);
+	INSIST(hookdata->pluginregister_ctx.source != NS_HOOKSOURCE_UNDEFINED);
 
 	CHECK(plugin->check_func(parameters, cfg, cfg_file, cfg_line, mctx,
-				 aclctx, hookdata->source));
+				 aclctx, &hookdata->pluginregister_ctx));
 	CHECK(plugin->register_func(parameters, cfg, cfg_file, cfg_line, mctx,
 				    aclctx, hookdata->hooktable,
-				    hookdata->source, &plugin->inst));
+				    &hookdata->pluginregister_ctx,
+				    &plugin->inst));
 
 	ISC_LIST_APPEND(*hookdata->plugins, plugin, link);
 
@@ -260,14 +261,14 @@ cleanup:
 isc_result_t
 ns_plugin_check(const char *modpath, const char *parameters, const void *cfg,
 		const char *cfg_file, unsigned long cfg_line, isc_mem_t *mctx,
-		void *aclctx, ns_hooksource_t source) {
+		void *aclctx, const ns_pluginregister_ctx_t *ctx) {
 	isc_result_t result;
 	ns_plugin_t *plugin = NULL;
 
 	CHECK(load_plugin(mctx, modpath, &plugin));
 
 	result = plugin->check_func(parameters, cfg, cfg_file, cfg_line, mctx,
-				    aclctx, source);
+				    aclctx, ctx);
 
 cleanup:
 	if (plugin != NULL) {

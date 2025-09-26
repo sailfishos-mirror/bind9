@@ -113,7 +113,7 @@ syncplugin__parse_rcode(const cfg_obj_t *syncplugincfg, uint8_t *rcode) {
 isc_result_t
 plugin_register(const char *parameters, const void *cfg, const char *cfgfile,
 		unsigned long cfgline, isc_mem_t *mctx, void *aclctx,
-		ns_hooktable_t *hooktable, ns_hooksource_t source,
+		ns_hooktable_t *hooktable, const ns_pluginregister_ctx_t *ctx,
 		void **instp) {
 	isc_result_t result;
 	cfg_parser_t *parser = NULL;
@@ -123,10 +123,13 @@ plugin_register(const char *parameters, const void *cfg, const char *cfgfile,
 	ns_hook_t hook;
 	syncplugin_t *inst = NULL;
 	char *sourcestr = NULL;
+	dns_name_t example2com;
+	dns_name_t example3com;
+	dns_name_t example4com;
 
 	UNUSED(cfg);
 	UNUSED(aclctx);
-	UNUSED(source);
+	UNUSED(ctx);
 
 	inst = isc_mem_get(mctx, sizeof(*inst));
 	*inst = (syncplugin_t){ .mctx = mctx };
@@ -155,12 +158,40 @@ plugin_register(const char *parameters, const void *cfg, const char *cfgfile,
 	sourcestr = obj->value.string.base;
 
 	if (strcmp(sourcestr, "zone") == 0) {
-		if (source != NS_HOOKSOURCE_ZONE) {
+		if (ctx->source != NS_HOOKSOURCE_ZONE) {
 			result = ISC_R_FAILURE;
 			goto cleanup;
 		}
+		if (ctx->origin == NULL) {
+			result = ISC_R_FAILURE;
+			goto cleanup;
+		}
+
+		dns_name_init(&example2com);
+		dns_name_init(&example3com);
+		dns_name_init(&example4com);
+
+		result = dns_name_fromstring(&example2com, "example2.com.",
+					     NULL, 0, isc_g_mctx);
+		result = dns_name_fromstring(&example3com, "example3.com.",
+					     NULL, 0, isc_g_mctx);
+		result = dns_name_fromstring(&example4com, "example4.com.",
+					     NULL, 0, isc_g_mctx);
+
+		if (!dns_name_equal(ctx->origin, &example2com) &&
+		    !dns_name_equal(ctx->origin, &example3com) &&
+		    !dns_name_equal(ctx->origin, &example4com))
+		{
+			result = ISC_R_FAILURE;
+			goto cleanup;
+		}
+
 	} else if (strcmp(sourcestr, "view") == 0) {
-		if (source != NS_HOOKSOURCE_VIEW) {
+		if (ctx->source != NS_HOOKSOURCE_VIEW) {
+			result = ISC_R_FAILURE;
+			goto cleanup;
+		}
+		if (ctx->origin != NULL) {
 			result = ISC_R_FAILURE;
 			goto cleanup;
 		}
@@ -173,6 +204,18 @@ plugin_register(const char *parameters, const void *cfg, const char *cfgfile,
 	ns_hook_add(hooktable, mctx, NS_QUERY_NXDOMAIN_BEGIN, &hook);
 
 cleanup:
+	if (DNS_NAME_VALID(&example2com)) {
+		dns_name_free(&example2com, isc_g_mctx);
+	}
+
+	if (DNS_NAME_VALID(&example3com)) {
+		dns_name_free(&example3com, isc_g_mctx);
+	}
+
+	if (DNS_NAME_VALID(&example4com)) {
+		dns_name_free(&example4com, isc_g_mctx);
+	}
+
 	if (syncplugincfg != NULL) {
 		cfg_obj_destroy(parser, &syncplugincfg);
 	}
@@ -187,14 +230,14 @@ cleanup:
 isc_result_t
 plugin_check(const char *parameters, const void *cfg, const char *cfgfile,
 	     unsigned long cfgline, isc_mem_t *mctx, void *aclctx,
-	     ns_hooksource_t source) {
+	     const ns_pluginregister_ctx_t *ctx) {
 	UNUSED(parameters);
 	UNUSED(cfg);
 	UNUSED(cfgfile);
 	UNUSED(cfgline);
 	UNUSED(mctx);
 	UNUSED(aclctx);
-	UNUSED(source);
+	UNUSED(ctx);
 
 	return ISC_R_SUCCESS;
 }
