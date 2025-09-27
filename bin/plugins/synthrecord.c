@@ -401,8 +401,7 @@ static cfg_clausedef_t synthrecord_cfgclauses[] = {
 	{ "prefix", &cfg_type_astring, 0 },
 	{ "origin", &cfg_type_astring, 0 },
 	{ "allow-synth", &cfg_type_bracketed_aml, 0 },
-	{ "ttl", &cfg_type_uint32, 0 },
-	{ "mode", &cfg_type_ustring, 0 }
+	{ "ttl", &cfg_type_uint32, 0 }
 };
 
 static cfg_clausedef_t *synthrecord_cfgparamsclausesets[] = {
@@ -482,36 +481,15 @@ synthrecord_initorigin(synthrecord_t *inst, const cfg_obj_t *synthrecordcfg) {
 	return result;
 }
 
-static isc_result_t
-synthrecord_parseconfigmode(synthrecord_t *inst,
-			    const cfg_obj_t *synthrecordcfg) {
-	isc_result_t result;
-	const cfg_obj_t *obj = NULL;
-	const char *modestr = NULL;
-
-	result = cfg_map_get(synthrecordcfg, "mode", &obj);
-	if (result != ISC_R_SUCCESS) {
-		isc_log_write(NS_LOGCATEGORY_GENERAL, NS_LOGMODULE_HOOKS,
-			      ISC_LOG_ERROR,
-			      "synthrecord: missing mode (forward or reverse)");
-		return result;
-	}
-
-	modestr = obj->value.string.base;
-	if (strcasecmp("forward", modestr) == 0) {
-		inst->mode = FORWARD;
-	} else if (strcasecmp("reverse", modestr) == 0) {
+static void
+synthrecord_setconfigmode(synthrecord_t *inst, const dns_name_t *zname) {
+	if (dns_name_issubdomain(zname, dns_ip6arpa) ||
+	    dns_name_issubdomain(zname, dns_inaddrarpa))
+	{
 		inst->mode = REVERSE;
 	} else {
-		isc_log_write(NS_LOGCATEGORY_GENERAL, NS_LOGMODULE_HOOKS,
-			      ISC_LOG_ERROR,
-			      "synthrecord: mode %s is not allowed (forward or "
-			      "reverse only)",
-			      modestr);
-		result = ISC_R_NOTFOUND;
+		inst->mode = FORWARD;
 	}
-
-	return result;
 }
 
 static isc_result_t
@@ -576,7 +554,8 @@ synthrecord_parsettl(synthrecord_t *inst, const cfg_obj_t *synthrecordcfg) {
 static isc_result_t
 synthrecord_parseconfig(synthrecord_t *inst, const char *parameters,
 			const cfg_obj_t *cfg, const char *cfgfile,
-			unsigned long cfgline, cfg_aclconfctx_t *aclctx) {
+			unsigned long cfgline, cfg_aclconfctx_t *aclctx,
+			const dns_name_t *zname) {
 	isc_result_t result;
 	isc_mem_t *mctx = inst->mctx;
 	cfg_parser_t *parser = NULL;
@@ -591,7 +570,7 @@ synthrecord_parseconfig(synthrecord_t *inst, const char *parameters,
 	CHECK(cfg_parse_buffer(parser, &b, cfgfile, cfgline,
 			       &synthrecord_cfgparams, 0, &synthrecordcfg));
 
-	CHECK(synthrecord_parseconfigmode(inst, synthrecordcfg));
+	synthrecord_setconfigmode(inst, zname);
 	CHECK(synthrecord_initorigin(inst, synthrecordcfg));
 	CHECK(synthrecord_initprefix(inst, synthrecordcfg));
 	CHECK(synthrecord_parseallowsynth(inst, cfg, aclctx, synthrecordcfg));
@@ -624,14 +603,6 @@ plugin_register(const char *parameters, const void *cfg, const char *cfgfile,
 	REQUIRE(hooktable);
 	REQUIRE(instp && *instp == NULL);
 
-	if (ctx->source != NS_HOOKSOURCE_ZONE) {
-		isc_log_write(NS_LOGCATEGORY_GENERAL, NS_LOGMODULE_HOOKS,
-			      ISC_LOG_INFO,
-			      "registering 'synthrecord' failed as it was not "
-			      "configured as a zone plugin");
-		return ISC_R_FAILURE;
-	}
-
 	isc_log_write(NS_LOGCATEGORY_GENERAL, NS_LOGMODULE_HOOKS, ISC_LOG_INFO,
 		      "registering 'synthrecord' module from %s:%lu", cfgfile,
 		      cfgline);
@@ -643,7 +614,7 @@ plugin_register(const char *parameters, const void *cfg, const char *cfgfile,
 	isc_mem_attach(mctx, &inst->mctx);
 	result = ISC_R_SUCCESS;
 	result = synthrecord_parseconfig(inst, parameters, cfg, cfgfile,
-					 cfgline, actx);
+					 cfgline, actx, ctx->origin);
 
 	hook = (ns_hook_t){ .action = synthrecord_entry, .action_data = inst };
 	ns_hook_add(hooktable, mctx, NS_QUERY_NXDOMAIN_BEGIN, &hook);
@@ -660,16 +631,25 @@ plugin_register(const char *parameters, const void *cfg, const char *cfgfile,
 isc_result_t
 plugin_check(const char *parameters, const void *cfg, const char *cfgfile,
 	     unsigned long cfgline, isc_mem_t *mctx, void *actx,
-	     const ns_pluginregister_ctx_t *ctx ISC_ATTR_UNUSED) {
+	     const ns_pluginregister_ctx_t *ctx) {
 	isc_result_t result;
-	synthrecord_t *inst;
+	synthrecord_t *inst = NULL;
+	const dns_name_t *zname = (ctx == NULL) ? NULL : ctx->origin;
+
+	if (ctx->source != NS_HOOKSOURCE_ZONE || ctx->origin == NULL) {
+		isc_log_write(NS_LOGCATEGORY_GENERAL, NS_LOGMODULE_HOOKS,
+			      ISC_LOG_INFO,
+			      "'synthrecord' must be configured "
+			      "as a zone plugin");
+		return ISC_R_FAILURE;
+	}
 
 	inst = isc_mem_get(mctx, sizeof(*inst));
 	*inst = (synthrecord_t){};
 
 	isc_mem_attach(mctx, &inst->mctx);
 	result = synthrecord_parseconfig(inst, parameters, cfg, cfgfile,
-					 cfgline, actx);
+					 cfgline, actx, zname);
 	plugin_destroy((void **)&inst);
 
 	return result;

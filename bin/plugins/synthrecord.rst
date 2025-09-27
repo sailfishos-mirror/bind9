@@ -29,9 +29,13 @@ Description
 enabling :iscman:`named` to synthesize forward and reverse responses for
 non-existent names in a zone.
 
-This plugin can only configured inside a ``zone`` clause.
+This plugin can only configured inside a ``zone`` clause. The name
+of the zone affects the mode in which the plugin operates:  if
+the zone name ends with "ip6.arpa" or "in-addr.arpa", then the plugin
+operates in "reverse" mode, and for any other zone name, it operates
+in "forward" mode.
 
-In ``reverse`` mode, the module intercepts queries of type PTR. If no
+In "reverse" mode, the module intercepts queries of type PTR. If no
 authoritative answer can be found in the zone database, and if the IP
 address encoded in the query name matches one of the prefixes or addresses
 specified in ``allow-synth``, then the module dynamically generates a
@@ -39,13 +43,13 @@ response, constructed by concatenating the configured ``prefix``, the IP
 address encoded in the query reverse name, and the configured ``origin``.
 
 In ``forward`` mode, the module intercepts queries of type A or AAAA.
-If no authoritative answer can be found in the zone, the query
+If no authoritative answer can be found in the zone, and the query
 begins and ends with the configured ``prefix`` and ``origin``, and an
 IP address can be parsed from the part in between, then that IP address
-is returned to the client.
+will be returned to the client.
 
-Note: these synthesized responses are not signed, so the use of this
-module is incompatible with DNSSEC.
+Note: Synthesized responses are not signed, so the use of this module
+is incompatible with DNSSEC.
 
 Example
 ~~~~~~~
@@ -56,7 +60,6 @@ Example
        type primary;
        file "1.168.192.in-addr.arpa.db";
        plugin query "synthrecord" {
-           mode reverse;
            prefix "dynamic-";
            origin "example.";
        };
@@ -66,7 +69,6 @@ Example
        type primary;
        file "e.f.a.c.ip6.arpa.db";
        plugin query "synthrecord" {
-           mode reverse;
            prefix "dynamic-";
            origin "example.";
        };
@@ -76,7 +78,6 @@ Example
        type primary;
        file "example.db";
        plugin query "synthrecord" {
-           mode forward;
            prefix "dynamic-";
            origin "example.";
            allow-synth { 192.168.1/24; cafe::/16; };
@@ -108,11 +109,6 @@ Parameters
 ~~~~~~~~~~
 
 The following parameters are mandatory:
-
-``mode``
-   If ``reverse``, the module will synthesize responses when answering PTR
-   queries. If ``forward``, it will synthesize responses when answering
-   A/AAAA queries.
 
 ``prefix``
    Specifies the prefix of the synthesized name. It must be a single-label

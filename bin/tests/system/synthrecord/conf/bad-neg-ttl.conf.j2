@@ -11,15 +11,16 @@
  * information regarding copyright ownership.
  */
 
-plugin query "@TOP_BUILDDIR@/synthrecord.so" {
-	prefix "dynamic-";
-	allow-synth {
-		10.53.0.0/16;
-		192.168.1.0/24;
-		192.180.0.0/18;
-		cafe:cafe::/32;
+zone 192.in-addr.arpa {
+	type primary;
+	file "file";
+	plugin query "@TOP_BUILDDIR@/synthrecord.so" {
+		prefix "dynamic-";
+		allow-synth {
+			192.168.1.0/24;
+			192.180.0.0/18;
+		};
+		origin example.;
+		ttl -60;
 	};
-	origin example.;
-	ttl -60;
-	mode reverse;
 };

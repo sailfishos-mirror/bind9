@@ -43,7 +43,6 @@ plugin query "@TOP_BUILDDIR@/synthrecord" {
 	};
 	origin example.;
 	ttl 3600;
-	mode reverse;
 };
 {% endif %}
 
@@ -62,7 +61,6 @@ zone "example" {
 		};
 		origin example.;
 		ttl 3600;
-		mode forward;
 	};
 };
 
@@ -76,7 +74,6 @@ zone "0.53.10.in-addr.arpa." {
 		};
 		origin example.;
 		ttl 3600;
-		mode reverse;
 	};
 };
 
@@ -90,7 +87,6 @@ zone "1.53.10.in-addr.arpa." {
 		};
 		origin example.;
 		ttl 3600;
-		mode reverse;
 	};
 };
 
@@ -109,7 +105,6 @@ zone "e.f.a.c.e.f.a.c.ip6.arpa." {
 		};
 		origin example.;
 		ttl 3600;
-		mode reverse;
 	};
 };
 
@@ -119,7 +114,6 @@ zone "f.f.f.f.ip6.arpa." {
 	plugin query "@TOP_BUILDDIR@/synthrecord" {
 		prefix "dynamicdefaults-";
 		origin example.;
-		mode reverse;
 	};
 };
 
@@ -133,7 +127,6 @@ zone "0.0.0.0.ip6.arpa." {
 		};
 		origin example.;
 		ttl 3600;
-		mode reverse;
 	};
 };
 
@@ -147,6 +140,5 @@ zone "168.192.in-addr.arpa." {
 		};
 		origin example.;
 		ttl 3600;
-		mode reverse;
 	};
 };

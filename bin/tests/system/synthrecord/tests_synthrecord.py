@@ -493,6 +493,4 @@ def test_synthrecord_inview(ns1, templates):
         try:
             ns1.rndc("reconfig")
         except isctest.rndc.RNDCException:
-            watcher.wait_for_line(
-                "registering 'synthrecord' failed as it was not configured as a zone plugin"
-            )
+            watcher.wait_for_line("'synthrecord' must be configured as a zone plugin")

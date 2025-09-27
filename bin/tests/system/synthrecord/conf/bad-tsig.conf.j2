@@ -16,13 +16,16 @@ key "test-tsig." {
     secret "DAopyf1mhCbFVZw7pgmNPBoLUq8wEUT7UuPoLENP2HY=";
 };
 
-plugin query "@TOP_BUILDDIR@/synthrecord.so" {
-	prefix "dynamic-";
-	allow-synth {
-		192.168.1.5;
-		key test-tsig.;
+zone example {
+	type primary;
+	file "file";
+	plugin query "@TOP_BUILDDIR@/synthrecord.so" {
+		prefix "dynamic-";
+		allow-synth {
+			192.168.1.5;
+			key test-tsig.;
+		};
+		origin example.;
+		ttl 50;
 	};
-	origin example.;
-	ttl 50;
-	mode reverse;
 };

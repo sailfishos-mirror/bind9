@@ -11,14 +11,14 @@
  * information regarding copyright ownership.
  */
 
-plugin query "@TOP_BUILDDIR@/synthrecord.so" {
-	prefix "dynamic-";
-	allow-synth {
-		10.53.0.0/16;
-		192.168.1.0/24;
-		192.180.0.0/18;
-		cafe:cafe::/32;
+zone example {
+	type primary;
+	file "file";
+	plugin query "@TOP_BUILDDIR@/synthrecord.so" {
+		prefix "dynamic-";
+		allow-synth {
+			10.53.0.0/16;
+		};
+		origin example.;
 	};
-	origin example.;
-	mode reverse;
 };
