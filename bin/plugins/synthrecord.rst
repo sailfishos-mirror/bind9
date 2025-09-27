@@ -108,17 +108,15 @@ and an A query for ``dynamic-192-168-1-5.example`` would receive
 Parameters
 ~~~~~~~~~~
 
-The following parameters are mandatory:
-
 ``prefix``
    Specifies the prefix of the synthesized name. It must be a single-label
-   name.
+   name. This parameter is mandatory.
 
 ``origin``
    Specifies the origin of the synthesized name. This may be the same as
    the zone origin, or a descendent. It cannot be below a delegation point.
-
-The following parameters are optional:
+   This parameter is mandatory for reverse zones, but when configured in
+   forward mode, it defaults to the zone name.
 
 ``allow-synth``
    This option is an address-match list, which can be used to restrict

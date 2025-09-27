@@ -422,6 +422,8 @@ synthrecord_initprefix(synthrecord_t *inst, const cfg_obj_t *synthrecordcfg) {
 
 	result = cfg_map_get(synthrecordcfg, "prefix", &obj);
 	if (result != ISC_R_SUCCESS) {
+		isc_log_write(NS_LOGCATEGORY_GENERAL, NS_LOGMODULE_HOOKS,
+			      ISC_LOG_ERROR, "synthrecord: prefix not found");
 		return result;
 	}
 
@@ -452,33 +454,42 @@ synthrecord_initprefix(synthrecord_t *inst, const cfg_obj_t *synthrecordcfg) {
 }
 
 static isc_result_t
-synthrecord_initorigin(synthrecord_t *inst, const cfg_obj_t *synthrecordcfg) {
+synthrecord_initorigin(synthrecord_t *inst, const cfg_obj_t *synthrecordcfg,
+		       const dns_name_t *zname) {
 	isc_result_t result;
 	const cfg_obj_t *obj = NULL;
 	const char *originstr = NULL;
 
 	result = cfg_map_get(synthrecordcfg, "origin", &obj);
-	if (result != ISC_R_SUCCESS) {
-		return result;
-	}
-
-	originstr = cfg_obj_asstring(obj);
-	dns_name_init(&inst->origin);
-	result = dns_name_fromstring(&inst->origin, originstr, NULL, 0,
-				     inst->mctx);
-	if (result != ISC_R_SUCCESS) {
-		return result;
-	}
-
-	if (!dns_name_isabsolute(&inst->origin)) {
+	if (inst->mode == REVERSE && result != ISC_R_SUCCESS) {
 		isc_log_write(NS_LOGCATEGORY_GENERAL, NS_LOGMODULE_HOOKS,
 			      ISC_LOG_ERROR,
-			      "synthrecord: origin '%s' is not absolute",
-			      originstr);
-		return ISC_R_FAILURE;
+			      "'origin' must be set when configuring "
+			      "'synthrecord' for a reverse zone");
+		return result;
 	}
 
-	return result;
+	dns_name_init(&inst->origin);
+	if (result == ISC_R_SUCCESS) {
+		originstr = cfg_obj_asstring(obj);
+		result = dns_name_fromstring(&inst->origin, originstr, NULL, 0,
+					     inst->mctx);
+		if (result != ISC_R_SUCCESS) {
+			return result;
+		}
+
+		if (!dns_name_isabsolute(&inst->origin)) {
+			isc_log_write(NS_LOGCATEGORY_GENERAL,
+				      NS_LOGMODULE_HOOKS, ISC_LOG_ERROR,
+				      "synthrecord: origin '%s' not absolute",
+				      originstr);
+			return ISC_R_FAILURE;
+		}
+	} else {
+		dns_name_dup(zname, inst->mctx, &inst->origin);
+	}
+
+	return ISC_R_SUCCESS;
 }
 
 static void
@@ -571,7 +582,7 @@ synthrecord_parseconfig(synthrecord_t *inst, const char *parameters,
 			       &synthrecord_cfgparams, 0, &synthrecordcfg));
 
 	synthrecord_setconfigmode(inst, zname);
-	CHECK(synthrecord_initorigin(inst, synthrecordcfg));
+	CHECK(synthrecord_initorigin(inst, synthrecordcfg, zname));
 	CHECK(synthrecord_initprefix(inst, synthrecordcfg));
 	CHECK(synthrecord_parseallowsynth(inst, cfg, aclctx, synthrecordcfg));
 	CHECK(synthrecord_parsettl(inst, synthrecordcfg));
