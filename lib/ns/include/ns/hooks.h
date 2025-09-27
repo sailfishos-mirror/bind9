@@ -505,7 +505,7 @@ typedef struct ns_hook_data {
  * as well; if not, set NS_PLUGIN_AGE to 0.
  */
 #ifndef NS_PLUGIN_VERSION
-#define NS_PLUGIN_VERSION 2
+#define NS_PLUGIN_VERSION 3
 #define NS_PLUGIN_AGE	  0
 #endif /* ifndef NS_PLUGIN_VERSION */
 
@@ -537,7 +537,8 @@ ns_plugin_destroy_t(void **instp);
 
 typedef isc_result_t
 ns_plugin_check_t(const char *parameters, const void *cfg, const char *file,
-		  unsigned long line, isc_mem_t *mctx, void *aclctx);
+		  unsigned long line, isc_mem_t *mctx, void *aclctx,
+		  ns_hooksource_t source);
 /*%<
  * Check the validity of 'parameters'.
  */
@@ -604,7 +605,7 @@ ns_plugin_register(const char *modpath, const char *parameters, const void *cfg,
 isc_result_t
 ns_plugin_check(const char *modpath, const char *parameters, const void *cfg,
 		const char *cfg_file, unsigned long cfg_line, isc_mem_t *mctx,
-		void *aclctx);
+		void *aclctx, ns_hooksource_t source);
 /*%<
  * Open the plugin module at 'modpath' and check the validity of
  * 'parameters', logging any errors or warnings found, then

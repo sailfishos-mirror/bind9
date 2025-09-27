@@ -286,8 +286,6 @@ parse_parameters(filter_instance_t *inst, const char *parameters,
 	CHECK(cfg_parse_buffer(parser, &b, cfg_file, cfg_line,
 			       &cfg_type_parameters, 0, &param_obj));
 
-	CHECK(check_syntax(param_obj, cfg, mctx, aclctx));
-
 	CHECK(parse_filter_a_on(param_obj, "filter-a-on-v6", &inst->v6_a));
 	CHECK(parse_filter_a_on(param_obj, "filter-a-on-v4", &inst->v4_a));
 
@@ -367,7 +365,8 @@ cleanup:
 
 isc_result_t
 plugin_check(const char *parameters, const void *cfg, const char *cfg_file,
-	     unsigned long cfg_line, isc_mem_t *mctx, void *aclctx) {
+	     unsigned long cfg_line, isc_mem_t *mctx, void *aclctx,
+	     ns_hooksource_t source ISC_ATTR_UNUSED) {
 	isc_result_t result = ISC_R_SUCCESS;
 	cfg_parser_t *parser = NULL;
 	cfg_obj_t *param_obj = NULL;

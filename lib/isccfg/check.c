@@ -3061,6 +3061,7 @@ check:
 struct check_one_plugin_data {
 	isc_mem_t *mctx;
 	cfg_aclconfctx_t *aclctx;
+	ns_hooksource_t source;
 	isc_result_t *check_result;
 };
 
@@ -3093,7 +3094,7 @@ check_one_plugin(const cfg_obj_t *config, const cfg_obj_t *obj,
 
 	result = ns_plugin_check(full_path, parameters, config,
 				 cfg_obj_file(obj), cfg_obj_line(obj),
-				 data->mctx, data->aclctx);
+				 data->mctx, data->aclctx, data->source);
 	if (result != ISC_R_SUCCESS) {
 		cfg_obj_log(obj, ISC_LOG_ERROR, "%s: plugin check failed: %s",
 			    full_path, isc_result_totext(result));
@@ -3105,11 +3106,13 @@ check_one_plugin(const cfg_obj_t *config, const cfg_obj_t *obj,
 
 static isc_result_t
 check_plugins(const cfg_obj_t *plugins, const cfg_obj_t *config,
-	      cfg_aclconfctx_t *aclctx, isc_mem_t *mctx) {
+	      cfg_aclconfctx_t *aclctx, ns_hooksource_t source,
+	      isc_mem_t *mctx) {
 	isc_result_t result = ISC_R_SUCCESS;
 	struct check_one_plugin_data check_one_plugin_data = {
 		.mctx = mctx,
 		.aclctx = aclctx,
+		.source = source,
 		.check_result = &result,
 	};
 
@@ -4129,7 +4132,8 @@ isccfg_check_zoneconf(const cfg_obj_t *zconfig, const cfg_obj_t *voptions,
 		const cfg_obj_t *plugins = NULL;
 
 		(void)cfg_map_get(zoptions, "plugin", &plugins);
-		tresult = check_plugins(plugins, config, aclctx, mctx);
+		tresult = check_plugins(plugins, config, aclctx,
+					NS_HOOKSOURCE_ZONE, mctx);
 		if (tresult != ISC_R_SUCCESS) {
 			result = tresult;
 		}
@@ -5741,7 +5745,8 @@ check_viewconf(const cfg_obj_t *config, const cfg_obj_t *voptions,
 			(void)cfg_map_get(config, "plugin", &plugins);
 		}
 
-		tresult = check_plugins(plugins, config, aclctx, mctx);
+		tresult = check_plugins(plugins, config, aclctx,
+					NS_HOOKSOURCE_VIEW, mctx);
 		if (tresult != ISC_R_SUCCESS) {
 			result = tresult;
 		}

@@ -157,13 +157,15 @@ plugin_register(const char *parameters, const void *cfg, const char *cfg_file,
 
 isc_result_t
 plugin_check(const char *parameters, const void *cfg, const char *cfg_file,
-	     unsigned long cfg_line, isc_mem_t *mctx, void *aclctx) {
+	     unsigned long cfg_line, isc_mem_t *mctx, void *aclctx,
+	     ns_hooksource_t source) {
 	UNUSED(parameters);
 	UNUSED(cfg);
 	UNUSED(cfg_file);
 	UNUSED(cfg_line);
 	UNUSED(mctx);
 	UNUSED(aclctx);
+	UNUSED(source);
 
 	return ISC_R_SUCCESS;
 }
