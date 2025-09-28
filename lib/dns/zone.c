@@ -1237,6 +1237,8 @@ zone_free(dns_zone_t *zone) {
 	REQUIRE(zone->timer == NULL);
 	REQUIRE(zone->zmgr == NULL);
 
+	dns_zone_unloadplugins(zone);
+
 	isc_refcount_destroy(&zone->references);
 	isc_refcount_destroy(&zone->irefs);
 
@@ -1385,7 +1387,6 @@ zone_free(dns_zone_t *zone) {
 	if (zone->gluecachestats != NULL) {
 		isc_stats_detach(&zone->gluecachestats);
 	}
-	dns_zone_unloadplugins(zone);
 
 	/* last stuff */
 	ZONEDB_DESTROYLOCK(&zone->dblock);
