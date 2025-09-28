@@ -797,9 +797,9 @@ ns_query_cancel(ns_client_t *client) {
 			*fetchp = NULL;
 		}
 	}
-	if (client->query.hookaclctx != NULL) {
-		client->query.hookaclctx->cancel(client->query.hookaclctx);
-		client->query.hookaclctx = NULL;
+	if (client->query.hookasyncctx != NULL) {
+		client->query.hookasyncctx->cancel(client->query.hookasyncctx);
+		client->query.hookasyncctx = NULL;
 	}
 	UNLOCK(&client->query.fetchlock);
 }
@@ -6607,9 +6607,9 @@ query_hookresume(void *arg) {
 	REQUIRE(NS_CLIENT_VALID(client));
 
 	LOCK(&client->query.fetchlock);
-	if (client->query.hookaclctx != NULL) {
-		INSIST(rev->ctx == client->query.hookaclctx);
-		client->query.hookaclctx = NULL;
+	if (client->query.hookasyncctx != NULL) {
+		INSIST(rev->ctx == client->query.hookasyncctx);
+		client->query.hookasyncctx = NULL;
 		canceled = false;
 		client->inner.now = isc_stdtime_now();
 	} else {
@@ -6732,7 +6732,7 @@ ns_query_hookasync(query_ctx_t *qctx, ns_query_starthookasync_t runasync,
 	CTRACE(ISC_LOG_DEBUG(3), "ns_query_hookasync");
 
 	REQUIRE(NS_CLIENT_VALID(client));
-	REQUIRE(client->query.hookaclctx == NULL);
+	REQUIRE(client->query.hookasyncctx == NULL);
 	REQUIRE(FETCH_RECTYPE_NORMAL(client) == NULL);
 
 	result = acquire_recursionquota(client);
@@ -6743,7 +6743,7 @@ ns_query_hookasync(query_ctx_t *qctx, ns_query_starthookasync_t runasync,
 	qctx_save(qctx, &saved_qctx);
 	result = runasync(saved_qctx, client->manager->mctx, arg,
 			  client->manager->loop, query_hookresume, client,
-			  &client->query.hookaclctx);
+			  &client->query.hookasyncctx);
 	if (result != ISC_R_SUCCESS) {
 		goto cleanup_and_detach_from_quota;
 	}
