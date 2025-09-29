@@ -628,6 +628,9 @@ kasp_from_conf(cfg_obj_t *config, isc_mem_t *mctx, isc_log_t *lctx,
 	const cfg_obj_t *keystores = NULL;
 	dns_keystore_t *ks = NULL, *ks_next;
 	dns_keystorelist_t kslist;
+	unsigned int options = (ISCCFG_KASPCONF_CHECK_ALGORITHMS |
+				ISCCFG_KASPCONF_CHECK_KEYLIST |
+				ISCCFG_KASPCONF_LOG_ERRORS);
 
 	ISC_LIST_INIT(kasplist);
 	ISC_LIST_INIT(kslist);
@@ -668,7 +671,7 @@ kasp_from_conf(cfg_obj_t *config, isc_mem_t *mctx, isc_log_t *lctx,
 			continue;
 		}
 
-		result = cfg_kasp_fromconfig(kconfig, NULL, true, mctx, lctx,
+		result = cfg_kasp_fromconfig(kconfig, NULL, options, mctx, lctx,
 					     &kslist, &kasplist, &kasp);
 		if (result != ISC_R_SUCCESS) {
 			fatal("failed to configure dnssec-policy '%s': %s",

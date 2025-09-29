@@ -8442,6 +8442,9 @@ load_configuration(const char *filename, named_server_t *server,
 	dns_kasp_t *kasp_next = NULL;
 	dns_kasp_t *default_kasp = NULL;
 	dns_kasplist_t tmpkasplist, kasplist;
+	unsigned int kaspopts = (ISCCFG_KASPCONF_CHECK_ALGORITHMS |
+				 ISCCFG_KASPCONF_CHECK_KEYLIST |
+				 ISCCFG_KASPCONF_LOG_ERRORS);
 	dns_keystore_t *keystore = NULL;
 	dns_keystore_t *keystore_next = NULL;
 	dns_keystorelist_t tmpkeystorelist, keystorelist;
@@ -9275,7 +9278,7 @@ load_configuration(const char *filename, named_server_t *server,
 		cfg_obj_t *kconfig = cfg_listelt_value(element);
 
 		kasp = NULL;
-		result = cfg_kasp_fromconfig(kconfig, default_kasp, true,
+		result = cfg_kasp_fromconfig(kconfig, default_kasp, kaspopts,
 					     named_g_mctx, named_g_lctx,
 					     &keystorelist, &kasplist, &kasp);
 		if (result != ISC_R_SUCCESS) {
@@ -9304,7 +9307,7 @@ load_configuration(const char *filename, named_server_t *server,
 	{
 		cfg_obj_t *kconfig = cfg_listelt_value(element);
 		kasp = NULL;
-		result = cfg_kasp_fromconfig(kconfig, default_kasp, true,
+		result = cfg_kasp_fromconfig(kconfig, default_kasp, kaspopts,
 					     named_g_mctx, named_g_lctx,
 					     &keystorelist, &kasplist, &kasp);
 		if (result != ISC_R_SUCCESS) {
