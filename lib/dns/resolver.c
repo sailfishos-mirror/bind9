@@ -243,9 +243,9 @@
 #define NS_PROCESSING_LIMIT 20
 
 STATIC_ASSERT(NS_PROCESSING_LIMIT > NS_RR_LIMIT,
-	      "The maximum number of NS RRs processed for each delegation "
-	      "(NS_PROCESSING_LIMIT) must be larger than the large delegation "
-	      "threshold (NS_RR_LIMIT).");
+	      "The maximum number of NS RRs processed for each "
+	      "delegation (NS_PROCESSING_LIMIT) must be larger than the large "
+	      "delegation threshold (NS_RR_LIMIT).");
 
 /* Hash table for zone counters */
 #ifndef RES_DOMAIN_HASH_BITS
@@ -9036,11 +9036,10 @@ rctx_authority_negative(respctx_t *rctx) {
 					if (rctx->ns_name != NULL &&
 					    name != rctx->ns_name)
 					{
-						log_formerr(fctx, "multiple NS "
-								  "RRsets "
-								  "in "
-								  "authority "
-								  "section");
+						log_formerr(
+							fctx,
+							"multiple NS RRsets in "
+							"authority section");
 						rctx->result = DNS_R_FORMERR;
 						return ISC_R_COMPLETE;
 					}
@@ -9061,11 +9060,10 @@ rctx_authority_negative(respctx_t *rctx) {
 					if (rctx->soa_name != NULL &&
 					    name != rctx->soa_name)
 					{
-						log_formerr(fctx, "multiple "
-								  "SOA RRs "
-								  "in "
-								  "authority "
-								  "section");
+						log_formerr(
+							fctx,
+							"multiple SOA RRs in "
+							"authority section");
 						rctx->result = DNS_R_FORMERR;
 						return ISC_R_COMPLETE;
 					}
@@ -9215,8 +9213,8 @@ rctx_authority_dnssec(respctx_t *rctx) {
 				 * one DS RRset.
 				 */
 				if (rctx->ns_name == NULL) {
-					log_formerr(fctx, "DS with no "
-							  "referral");
+					log_formerr(fctx,
+						    "DS with no referral");
 					rctx->result = DNS_R_FORMERR;
 					return ISC_R_COMPLETE;
 				}
@@ -9225,10 +9223,9 @@ rctx_authority_dnssec(respctx_t *rctx) {
 					if (rctx->ds_name != NULL &&
 					    name != rctx->ds_name)
 					{
-						log_formerr(fctx, "DS doesn't "
-								  "match "
-								  "referral "
-								  "(NS)");
+						log_formerr(fctx,
+							    "DS doesn't match "
+							    "referral (NS)");
 						rctx->result = DNS_R_FORMERR;
 						return ISC_R_COMPLETE;
 					}
