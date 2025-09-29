@@ -169,9 +169,17 @@ option(
 
 option(
     'fuzzing',
+    type: 'feature',
+    value: 'auto',
+    description: 'Build fuzzing binaries',
+)
+
+option(
+    'fuzzing-backend',
     type: 'combo',
     choices: ['none', 'afl', 'libfuzzer', 'oss-fuzz'],
-    description: 'Enable fuzzing',
+    value: 'none',
+    description: 'Fuzzing backend (backend none with -Dfuzzing=enabled only compiles the binary)',
 )
 
 option(
