@@ -1679,7 +1679,8 @@ validate_answer_process(void *arg) {
 	 * At this point we could check that the signature algorithm
 	 * was known and "sufficiently good".
 	 */
-	if (!dns_resolver_algorithm_supported(val->view->resolver, val->name,
+	if (!dns_resolver_algorithm_supported(val->view->resolver,
+					      &val->siginfo->signer,
 					      val->siginfo->algorithm))
 	{
 		if (val->unsupported_algorithm == 0) {

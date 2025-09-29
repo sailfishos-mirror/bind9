@@ -3757,10 +3757,42 @@ n=$((n + 1))
 test "$ret" -eq 0 || echo_i "failed"
 status=$((status + ret))
 
+echo_i "check that zone contents are still secure despite disable-algorithms on query name (name below zone name) ($n)"
+ret=0
+dig_with_opts @10.53.0.4 z.secure.example >dig.out.ns4.test$n || ret=1
+grep "ANSWER: 2," dig.out.ns4.test$n >/dev/null || ret=1
+grep "status: NOERROR" dig.out.ns4.test$n >/dev/null || ret=1
+grep "flags:.*ad.*QUERY" dig.out.ns4.test$n >/dev/null || ret=1
+n=$((n + 1))
+test "$ret" -eq 0 || echo_i "failed"
+status=$((status + ret))
+
+echo_i "check that zone contents are treated as insecure when disable-algorithms name is above zone name ($n)"
+ret=0
+dig_with_opts @10.53.0.4 zonecut.ent.secure.example >dig.out.ns4.test$n || ret=1
+grep "ANSWER: 2," dig.out.ns4.test$n >/dev/null || ret=1
+grep "status: NOERROR" dig.out.ns4.test$n >/dev/null || ret=1
+grep "flags:.*ad.*QUERY" dig.out.ns4.test$n >/dev/null && ret=1
+grep "; EDE: 1 (Unsupported DNSKEY Algorithm): " dig.out.ns4.test$n >/dev/null || ret=1
+n=$((n + 1))
+test "$ret" -eq 0 || echo_i "failed"
+status=$((status + ret))
+
+echo_i "check that DS records are still treated as secure at the disable-algorithm name ($n)"
+ret=0
+dig_with_opts @10.53.0.4 badalg.secure.example DS >dig.out.ns4.test$n || ret=1
+grep "ANSWER: 2," dig.out.ns4.test$n >/dev/null || ret=1
+grep "status: NOERROR" dig.out.ns4.test$n >/dev/null || ret=1
+grep "flags:.*ad.*QUERY" dig.out.ns4.test$n >/dev/null || ret=1
+n=$((n + 1))
+test "$ret" -eq 0 || echo_i "failed"
+status=$((status + ret))
+
 echo_i "checking EDE code 1 for bad alg mnemonic ($n)"
 ret=0
 dig_with_opts @10.53.0.4 badalg.secure.example >dig.out.ns4.test$n || ret=1
 grep "; EDE: 1 (Unsupported DNSKEY Algorithm): (ECDSAP256SHA256 badalg.secure.example/A)" dig.out.ns4.test$n >/dev/null || ret=1
+grep "status: NOERROR" dig.out.ns4.test$n >/dev/null || ret=1
 grep "flags:.*ad.*QUERY" dig.out.ns4.test$n >/dev/null && ret=1
 n=$((n + 1))
 test "$ret" -eq 0 || echo_i "failed"
