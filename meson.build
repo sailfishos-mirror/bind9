@@ -923,13 +923,33 @@ assert(
 
 # LTO
 
+# Taken from Meson's compilers/mixins/clang.py:get_lto_compile_args
+# (technically mold requires version 1.1)
+supported_clang_lto_linkers = [
+    'ld64',
+    'lld-link',
+    'ld.lld',
+    'ld.gold',
+    'ld.mold',
+]
+
+# On Mac OS, the has_argument check returns true, but compilation fails, so we
+# simply disable LTO.
+has_fat_lto = cc.has_argument('-ffat-lto-objects') and host_machine.system() != 'darwin'
+if not has_fat_lto
+    warning(
+        'Your platform does not support fat lto objects but -Dnamed-lto was not set to off. Building without LTO anyway.',
+    )
+    named_lto_opt = 'off'
+endif
+
 static_lto_c_args = []
 static_lto_link_args = []
 
 if named_lto_opt == 'full'
     static_lto_c_args = ['-ffat-lto-objects', '-flto']
     static_lto_link_args = ['-flto']
-elif named_lto_opt == 'thin' and cc.get_id() == 'clang' and cc.get_linker_id() == 'ld.lld'
+elif named_lto_opt == 'thin' and cc.get_id() == 'clang' and cc.get_linker_id() in supported_clang_lto_linkers
     # Per LLVM docs [1], -ffat-lto-objects is supported only with lld and gold,
     # and gold is deprecated/unmantained.
     # [1]: https://llvm.org/docs/FatLTO.html
@@ -940,7 +960,17 @@ elif named_lto_opt == 'thin' and cc.get_id() == 'gcc'
     static_lto_c_args = ['-ffat-lto-objects', '-flto=auto']
     static_lto_link_args = ['-flto=auto']
 elif named_lto_opt == 'thin'
-    error('LTO requires clang with ld.lld, or gcc with any linker')
+    if cc.get_id() == 'clang'
+        error(
+            'Clang ThinLTO only works with gold, lld, lld-link, ld64 or mold, not '
+            + cc.get_linker_id()
+            + '. To build, use a supported linker or disable LTO with -Dnamed-lto=off.',
+        )
+    else
+        error(
+            'Unsupported configuration for LTO. To build, use a supported linker or disable LTO with -Dnamed-lto=off.',
+        )
+    endif
 endif
 
 add_project_arguments(static_lto_c_args, language: 'c')
