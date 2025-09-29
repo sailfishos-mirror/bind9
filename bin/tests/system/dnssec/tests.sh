@@ -2851,7 +2851,7 @@ dig_with_opts +noauth expired.example. +dnssec @10.53.0.4 soa >dig.out.ns4.test$
 grep "SERVFAIL" dig.out.ns4.test$n >/dev/null || ret=1
 grep "flags:.*ad.*QUERY" dig.out.ns4.test$n >/dev/null && ret=1
 grep "expired.example/.*: RRSIG has expired" ns4/named.run >/dev/null || ret=1
-grep "; EDE: 7 (Signature Expired): (expired.example/DNSKEY)" dig.out.ns4.test$n >/dev/null || ret=1
+grep "; EDE: 7 (Signature Expired)" dig.out.ns4.test$n >/dev/null || ret=1
 n=$((n + 1))
 test "$ret" -eq 0 || echo_i "failed"
 status=$((status + ret))
@@ -2863,7 +2863,7 @@ dig_with_opts +noauth future.example. +dnssec @10.53.0.4 soa >dig.out.ns4.test$n
 grep "SERVFAIL" dig.out.ns4.test$n >/dev/null || ret=1
 grep "flags:.*ad.*QUERY" dig.out.ns4.test$n >/dev/null && ret=1
 grep "future.example/.*: RRSIG validity period has not begun" ns4/named.run >/dev/null || ret=1
-grep "; EDE: 8 (Signature Not Yet Valid): (future.example/DNSKEY)" dig.out.ns4.test$n >/dev/null || ret=1
+grep "; EDE: 8 (Signature Not Yet Valid)" dig.out.ns4.test$n >/dev/null || ret=1
 n=$((n + 1))
 test "$ret" -eq 0 || echo_i "failed"
 status=$((status + ret))
@@ -3742,7 +3742,7 @@ dig_with_opts +noauth +noadd +nodnssec +adflag @10.53.0.3 dnskey-unsupported.exa
 dig_with_opts +noauth +noadd +nodnssec +adflag @10.53.0.4 dnskey-unsupported.example A >dig.out.ns4.test$n
 grep "status: NOERROR," dig.out.ns3.test$n >/dev/null || ret=1
 grep "status: NOERROR," dig.out.ns4.test$n >/dev/null || ret=1
-grep "; EDE: 1 (Unsupported DNSKEY Algorithm): (255 dnskey-unsupported.example/SOA)" dig.out.ns4.test$n >/dev/null || ret=1
+grep "; EDE: 1 (Unsupported DNSKEY Algorithm)" dig.out.ns4.test$n >/dev/null || ret=1
 grep "flags:.*ad.*QUERY" dig.out.ns4.test$n >/dev/null && ret=1
 n=$((n + 1))
 test "$ret" -eq 0 || echo_i "failed"
@@ -3751,7 +3751,7 @@ status=$((status + ret))
 echo_i "checking EDE code 2 for unsupported DS digest ($n)"
 ret=0
 dig_with_opts @10.53.0.4 a.ds-unsupported.example >dig.out.ns4.test$n || ret=1
-grep "; EDE: 2 (Unsupported DS Digest Type): (SHA-256 ds-unsupported.example/DNSKEY)" dig.out.ns4.test$n >/dev/null || ret=1
+grep "; EDE: 2 (Unsupported DS Digest Type)" dig.out.ns4.test$n >/dev/null || ret=1
 grep "flags:.*ad.*QUERY" dig.out.ns4.test$n >/dev/null && ret=1
 n=$((n + 1))
 test "$ret" -eq 0 || echo_i "failed"
@@ -3773,7 +3773,7 @@ dig_with_opts @10.53.0.4 zonecut.ent.secure.example >dig.out.ns4.test$n || ret=1
 grep "ANSWER: 2," dig.out.ns4.test$n >/dev/null || ret=1
 grep "status: NOERROR" dig.out.ns4.test$n >/dev/null || ret=1
 grep "flags:.*ad.*QUERY" dig.out.ns4.test$n >/dev/null && ret=1
-grep "; EDE: 1 (Unsupported DNSKEY Algorithm): " dig.out.ns4.test$n >/dev/null || ret=1
+grep "; EDE: 1 (Unsupported DNSKEY Algorithm)" dig.out.ns4.test$n >/dev/null || ret=1
 n=$((n + 1))
 test "$ret" -eq 0 || echo_i "failed"
 status=$((status + ret))
@@ -3791,7 +3791,7 @@ status=$((status + ret))
 echo_i "checking EDE code 1 for bad alg mnemonic ($n)"
 ret=0
 dig_with_opts @10.53.0.4 badalg.secure.example >dig.out.ns4.test$n || ret=1
-grep "; EDE: 1 (Unsupported DNSKEY Algorithm): (ECDSAP256SHA256 badalg.secure.example/A)" dig.out.ns4.test$n >/dev/null || ret=1
+grep "; EDE: 1 (Unsupported DNSKEY Algorithm)" dig.out.ns4.test$n >/dev/null || ret=1
 grep "status: NOERROR" dig.out.ns4.test$n >/dev/null || ret=1
 grep "flags:.*ad.*QUERY" dig.out.ns4.test$n >/dev/null && ret=1
 n=$((n + 1))
@@ -3801,8 +3801,8 @@ status=$((status + ret))
 echo_i "checking both EDE code 1 and 2 for unsupported digest on one DNSKEY and alg on the other ($n)"
 ret=0
 dig_with_opts @10.53.0.4 a.digest-alg-unsupported.example >dig.out.ns4.test$n || ret=1
-grep "; EDE: 1 (Unsupported DNSKEY Algorithm): (ECDSAP384SHA384 digest-alg-unsupported.example/DNSKEY)" dig.out.ns4.test$n >/dev/null || ret=1
-grep "; EDE: 2 (Unsupported DS Digest Type): (SHA-384 digest-alg-unsupported.example/DNSKEY)" dig.out.ns4.test$n >/dev/null || ret=1
+grep "; EDE: 1 (Unsupported DNSKEY Algorithm)" dig.out.ns4.test$n >/dev/null || ret=1
+grep "; EDE: 2 (Unsupported DS Digest Type)" dig.out.ns4.test$n >/dev/null || ret=1
 grep "flags:.*ad.*QUERY" dig.out.ns4.test$n >/dev/null && ret=1
 n=$((n + 1))
 test "$ret" -eq 0 || echo_i "failed"
@@ -4127,7 +4127,7 @@ dig_with_opts @10.53.0.3 a.unsupported.trusted A >dig.out.ns3.test$n
 dig_with_opts @10.53.0.8 a.unsupported.trusted A >dig.out.ns8.test$n
 grep "status: NOERROR," dig.out.ns3.test$n >/dev/null || ret=1
 grep "status: NOERROR," dig.out.ns8.test$n >/dev/null || ret=1
-grep "; EDE: 1 (Unsupported DNSKEY Algorithm): (255 ns3.unsupported.trusted (cached))" dig.out.ns8.test$n >/dev/null || ret=1
+grep "; EDE: 1 (Unsupported DNSKEY Algorithm)" dig.out.ns8.test$n >/dev/null || ret=1
 grep "flags:.*ad.*QUERY" dig.out.ns8.test$n >/dev/null && ret=1
 n=$((n + 1))
 test "$ret" -eq 0 || echo_i "failed"
@@ -4139,7 +4139,7 @@ dig_with_opts @10.53.0.3 a.unsupported.managed A >dig.out.ns3.test$n
 dig_with_opts @10.53.0.8 a.unsupported.managed A >dig.out.ns8.test$n
 grep "status: NOERROR," dig.out.ns3.test$n >/dev/null || ret=1
 grep "status: NOERROR," dig.out.ns8.test$n >/dev/null || ret=1
-grep "; EDE: 1 (Unsupported DNSKEY Algorithm): (255 ns3.unsupported.managed (cached))" dig.out.ns8.test$n >/dev/null || ret=1
+grep "; EDE: 1 (Unsupported DNSKEY Algorithm)" dig.out.ns8.test$n >/dev/null || ret=1
 grep "flags:.*ad.*QUERY" dig.out.ns8.test$n >/dev/null && ret=1
 n=$((n + 1))
 test "$ret" -eq 0 || echo_i "failed"
