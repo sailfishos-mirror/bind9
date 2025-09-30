@@ -53,9 +53,10 @@ def after_servers_start(ns3, templates):
 
         return False
 
+    nsdir = ns3.identifier
+
     # Extra test for nsec3-change.kasp.
     zone = "nsec3-change.kasp"
-    nsdir = ns3.identifier
     fqdn = f"{zone}."
     isctest.kasp.wait_keymgr_done(ns3, zone)
     shutil.copyfile(f"{nsdir}/template2.db.in", f"{nsdir}/{zone}.db")
