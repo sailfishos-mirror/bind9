@@ -66,18 +66,13 @@ def check_auth_nsec(response):
     assert len(rrs) != 0, "no NSEC records found in authority section"
 
 
-def check_auth_nsec3(response, iterations=0, optout=0, saltlen=0):
-    match = f"IN NSEC3 1 {optout} {iterations}"
+def check_auth_nsec3(response, iterations=0, optout=0, salt="-"):
+    match = f"IN NSEC3 1 {optout} {iterations} {salt}"
     rrs = []
 
     for rrset in response.authority:
         if rrset.match(dns.rdataclass.IN, dns.rdatatype.NSEC3, dns.rdatatype.NONE):
             assert match in rrset.to_text()
-            if saltlen == 0:
-                assert f"{match} -" in rrset.to_text()
-            else:
-                assert not f"{match} -" in rrset.to_text()
-
             rrs.append(rrset)
         assert not rrset.match(
             dns.rdataclass.IN, dns.rdatatype.NSEC, dns.rdatatype.NONE
@@ -88,6 +83,7 @@ def check_auth_nsec3(response, iterations=0, optout=0, saltlen=0):
 
 def check_nsec3param(response, match, saltlen):
     rrs = []
+    salt = "-"
 
     for rrset in response.answer:
         if rrset.match(dns.rdataclass.IN, dns.rdatatype.NSEC3PARAM, dns.rdatatype.NONE):
@@ -96,6 +92,7 @@ def check_nsec3param(response, match, saltlen):
                 assert f"{match} -" in rrset.to_text()
             else:
                 assert not f"{match} -" in rrset.to_text()
+                salt = rrset.to_text().split()[7]
 
             rrs.append(rrset)
         else:
@@ -104,3 +101,5 @@ def check_nsec3param(response, match, saltlen):
             )
 
     assert len(rrs) != 0
+
+    return salt

@@ -343,12 +343,12 @@ def test_nsec3_case(ns3, params):
     response = isctest.query.tcp(query, ns3.ip)
     assert response.rcode() == dns.rcode.NOERROR
 
-    check_nsec3param(response, match, saltlen)
+    salt = check_nsec3param(response, match, saltlen)
 
     query = isctest.query.create(f"nosuchname.{fqdn}", dns.rdatatype.A)
     response = isctest.query.tcp(query, ns3.ip)
     assert response.rcode() == dns.rcode.NXDOMAIN
-    check_auth_nsec3(response, iterations, optout, saltlen)
+    check_auth_nsec3(response, iterations, optout, salt)
 
     # Extra test for nsec3-change.kasp.
     if zone == "nsec3-change.kasp":
