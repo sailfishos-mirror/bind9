@@ -381,6 +381,7 @@ stages:
       -Ddeveloper=enabled
       -Dleak-detection=enabled
       -Doptimization=1
+      -Dnamed-lto=thin
       $EXTRA_CONFIGURE
       build
 

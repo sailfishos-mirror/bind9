@@ -933,27 +933,48 @@ supported_clang_lto_linkers = [
     'ld.mold',
 ]
 
-# On Mac OS, the has_argument check returns true, but compilation fails, so we
-# simply disable LTO.
-has_fat_lto = cc.has_argument('-ffat-lto-objects') and host_machine.system() != 'darwin'
-if not has_fat_lto
-    warning(
-        'Your platform does not support fat lto objects but -Dnamed-lto was not set to `disabled`. Building without LTO anyway.',
-    )
-    named_lto_opt = 'disabled'
+is_darwin = host_machine.system() == 'darwin'
+is_auto_lto = named_lto_opt == 'auto'
+is_supported_linker = cc.get_linker_id() in supported_clang_lto_linkers
+has_fat_lto = cc.has_argument('-ffat-lto-objects') and not is_darwin
+has_fuzzing_backend = fuzzing_backend_opt != 'none'
+
+# First, resolution of the 'auto' case for LTO.
+if is_auto_lto
+    if has_fuzzing_backend
+        # Fuzzers might need sanitizer converage sections, which LTO discards.
+        # Disable LTO when a fuzzing backend is configured.
+        # NB: enabling -Dfuzzing is fine since it justs builds the binaries.
+        named_lto_opt = 'disabled'
+    elif is_darwin
+        # On Mac OS, the has_argument('-ffat-lto-objects') check returns true,
+        # but compilation fails, so we simply disable LTO.
+        named_lto_opt = 'disabled'
+    elif not has_fat_lto
+        # Some very old compilers don't support fat lto objects.
+        named_lto_opt = 'disabled'
+    elif cc.get_id() == 'clang' and not is_supported_linker
+        # Per LLVM docs [1], -ffat-lto-objects is supported only with lld and gold,
+        # and gold is deprecated/unmantained. Manual testing shows that mold
+        # works too though.
+        named_lto_opt = 'disabled'
+    elif get_option('auto_features').disabled()
+        # Fake being a boolean option for the purpose of -Dauto-features
+        named_lto_opt = 'disabled'
+    else
+        named_lto_opt = 'thin'
+    endif
 endif
 
 static_lto_c_args = []
 static_lto_link_args = []
 
-if named_lto_opt == 'full'
+if developer_mode and is_auto_lto
+    # Build a static `named` but do not enable -flto to improve compilation speed.
+elif named_lto_opt == 'full'
     static_lto_c_args = ['-ffat-lto-objects', '-flto']
     static_lto_link_args = ['-flto']
-elif named_lto_opt == 'thin' and cc.get_id() == 'clang' and cc.get_linker_id() in supported_clang_lto_linkers
-    # Per LLVM docs [1], -ffat-lto-objects is supported only with lld and gold,
-    # and gold is deprecated/unmantained.
-    # [1]: https://llvm.org/docs/FatLTO.html
-
+elif named_lto_opt == 'thin' and cc.get_id() == 'clang' and is_supported_linker
     static_lto_c_args = ['-ffat-lto-objects', '-flto=thin']
     static_lto_link_args = ['-flto=thin']
 elif named_lto_opt == 'thin' and cc.get_id() == 'gcc'
