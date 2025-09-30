@@ -11,6 +11,10 @@
 
 # pylint: disable=redefined-outer-name,unused-import
 
+import os
+import shutil
+import time
+
 import dns.update
 import pytest
 
@@ -29,36 +33,60 @@ from nsec3.common import (
 )
 
 
+@pytest.fixture(scope="module", autouse=True)
+def after_servers_start(ns3, templates):
+
+    def wait_for_soa_update():
+        match = "20 20 1814400 900"
+
+        for _ in range(5):
+            query = isctest.query.create(fqdn, dns.rdatatype.SOA)
+            response = isctest.query.tcp(query, ns3.ip)
+            rrset = response.get_rrset(
+                response.answer,
+                dns.name.from_text(fqdn),
+                dns.rdataclass.IN,
+                dns.rdatatype.SOA,
+            )
+            if match in str(rrset[0]):
+                return True
+
+        return False
+
+    # Extra test for nsec3-change.kasp.
+    zone = "nsec3-change.kasp"
+    nsdir = ns3.identifier
+    fqdn = f"{zone}."
+    isctest.kasp.wait_keymgr_done(ns3, zone)
+    shutil.copyfile(f"{nsdir}/template2.db.in", f"{nsdir}/{zone}.db")
+    ns3.rndc(f"reload {zone}")
+
+    isctest.run.retry_with_timeout(wait_for_soa_update, timeout=5)
+    # After reconfig, the NSEC3PARAM TTL should match the new SOA MINIMUM.
+
+    # Ensure rsasha1-to-nsec3-wait.kasp is fully signed prior to reconfig.
+    with_rsasha1 = "RSASHA1_SUPPORTED"
+    assert with_rsasha1 in os.environ, f"{with_rsasha1} env variable undefined"
+    if os.getenv(with_rsasha1) == "1":
+        zone = "rsasha1-to-nsec3-wait.kasp"
+        isctest.kasp.check_dnssec_verify(ns3, zone)
+
+    # Reconfigure.
+    templates.render(f"{nsdir}/named-fips.conf", {"reconfiged": True})
+    templates.render(f"{nsdir}/named-rsasha1.conf", {"reconfiged": True})
+    ns3.reconfigure()
+
+
 @pytest.mark.parametrize(
     "params",
     [
         pytest.param(
             {
-                "zone": "nsec-to-nsec3.kasp",
-                "policy": "nsec",
-                "key-properties": [
-                    f"csk 0 {ALGORITHM} {SIZE} goal:omnipresent dnskey:rumoured krrsig:rumoured zrrsig:rumoured ds:hidden",
-                ],
-            },
-            id="nsec-to-nsec3.kasp",
-        ),
-        pytest.param(
-            {
-                "zone": "rsasha1-to-nsec3.kasp",
-                "policy": "rsasha1",
-                "key-properties": [
-                    f"csk 0 {RSASHA1.number} 2048 goal:omnipresent dnskey:rumoured krrsig:rumoured zrrsig:rumoured ds:hidden",
-                ],
-            },
-            id="rsasha1-to-nsec3.kasp",
-            marks=isctest.mark.with_algorithm("RSASHA1"),
-        ),
-        pytest.param(
-            {
                 "zone": "rsasha1-to-nsec3-wait.kasp",
-                "policy": "rsasha1",
+                "policy": "nsec3",
                 "key-properties": [
-                    f"csk 0 {RSASHA1.number} 2048 goal:omnipresent dnskey:omnipresent krrsig:omnipresent zrrsig:omnipresent ds:omnipresent",
+                    f"csk 0 {RSASHA1.number} 2048 goal:hidden dnskey:omnipresent krrsig:omnipresent zrrsig:omnipresent ds:omnipresent",
+                    f"csk 0 {ALGORITHM} {SIZE} goal:omnipresent dnskey:rumoured krrsig:rumoured zrrsig:rumoured ds:hidden",
                 ],
             },
             id="rsasha1-to-nsec3-wait.kasp",
@@ -66,29 +94,37 @@ from nsec3.common import (
         ),
         pytest.param(
             {
-                # This is a secondary zone, where the primary is signed with
-                # NSEC3 but the dnssec-policy dictates NSEC.
-                "zone": "nsec3-xfr-inline.kasp",
-                "policy": "nsec",
+                "zone": "nsec3-to-rsasha1.kasp",
+                "policy": "rsasha1",
                 "key-properties": [
-                    f"csk 0 {ALGORITHM} {SIZE} goal:omnipresent dnskey:rumoured krrsig:rumoured zrrsig:rumoured ds:hidden",
+                    f"csk 0 {ALGORITHM} {SIZE} goal:hidden dnskey:unretentive krrsig:unretentive zrrsig:unretentive ds:hidden",
+                    f"csk 0 {RSASHA1.number} 2048 goal:omnipresent dnskey:rumoured krrsig:rumoured zrrsig:rumoured ds:hidden",
                 ],
-                "external-keys": [
-                    f"csk 0 {ALGORITHM} {SIZE}",
-                ],
-                "external-keydir": "ns2",
             },
-            id="nsec3-xfr-inline.kasp",
+            id="nsec3-to-rsasha1.kasp",
+            marks=isctest.mark.with_algorithm("RSASHA1"),
         ),
         pytest.param(
             {
-                "zone": "nsec3-dynamic-update-inline.kasp",
+                "zone": "nsec3-to-rsasha1-ds.kasp",
+                "policy": "rsasha1",
+                "key-properties": [
+                    f"csk 0 {ALGORITHM} {SIZE} goal:hidden dnskey:omnipresent krrsig:omnipresent zrrsig:omnipresent ds:omnipresent",
+                    f"csk 0 {RSASHA1.number} 2048 goal:omnipresent dnskey:rumoured krrsig:rumoured zrrsig:rumoured ds:hidden",
+                ],
+            },
+            id="nsec3-to-rsasha1-ds.kasp",
+            marks=isctest.mark.with_algorithm("RSASHA1"),
+        ),
+        pytest.param(
+            {
+                "zone": "nsec3-to-nsec.kasp",
                 "policy": "nsec",
                 "key-properties": [
                     f"csk 0 {ALGORITHM} {SIZE} goal:omnipresent dnskey:rumoured krrsig:rumoured zrrsig:rumoured ds:hidden",
                 ],
             },
-            id="nsec3-dynamic-update-inline.kasp",
+            id="nsec3-to-nsec.kasp",
         ),
     ],
 )
@@ -106,19 +142,10 @@ def test_nsec_case(ns3, params):
     isctest.log.info(f"check nsec case zone {zone} policy {policy}")
 
     # First make sure the zone is properly signed.
-    isctest.kasp.wait_keymgr_done(ns3, zone)
+    isctest.kasp.wait_keymgr_done(ns3, zone, reconfig=True)
 
     # Key files.
     keys = isctest.kasp.keydir_to_keylist(zone, keydir)
-    if "external-keys" in params:
-        expected2 = isctest.kasp.policy_to_properties(ttl, keys=params["external-keys"])
-        for ek in expected2:
-            ek.private = False  # noqa
-            ek.legacy = True  # noqa
-        expected = expected + expected2
-        assert "external-keydir" in params
-        extkeys = isctest.kasp.keydir_to_keylist(zone, params["external-keydir"])
-        keys = keys + extkeys
 
     isctest.kasp.check_keys(zone, keys, expected)
     isctest.kasp.check_dnssec_verify(ns3, zone)
@@ -135,47 +162,30 @@ def test_nsec_case(ns3, params):
     assert response.rcode() == dns.rcode.NXDOMAIN
     check_auth_nsec(response)
 
-    # Extra test for nsec3-dynamic-update-inline.kasp.
-    if zone == "nsec3-dynamic-update-inline.kasp":
-        isctest.log.info(f"dynamic update dnssec-policy zone {zone} with NSEC3")
-        update_msg = dns.update.UpdateMessage(zone)
-        update_msg.add(
-            f"04O18462RI5903H8RDVL0QDT5B528DUJ.{zone}.",
-            3600,
-            "NSEC3",
-            "0 0 0 408A4B2D412A4E95 1JMDDPMTFF8QQLIOINSIG4CR9OTICAOC A RRSIG",
-        )
-
-        with ns3.watch_log_from_here() as watcher:
-            ns3.nsupdate(update_msg, expected_rcode=dns.rcode.REFUSED)
-            watcher.wait_for_line(
-                f"updating zone '{zone}/IN': update failed: explicit NSEC3 updates are not allowed in secure zones (REFUSED)"
-            )
-
 
 @pytest.mark.parametrize(
     "params",
     [
         pytest.param(
             {
-                "zone": "nsec3-to-rsasha1.kasp",
+                "zone": "nsec-to-nsec3.kasp",
                 "policy": "nsec3",
                 "key-properties": [
                     f"csk 0 {ALGORITHM} {SIZE} goal:omnipresent dnskey:rumoured krrsig:rumoured zrrsig:rumoured ds:hidden",
                 ],
             },
-            id="nsec3-to-rsasha1.kasp",
-            marks=isctest.mark.with_algorithm("RSASHA1"),
+            id="nsec-to-nsec3.kasp",
         ),
         pytest.param(
             {
-                "zone": "nsec3-to-rsasha1-ds.kasp",
+                "zone": "rsasha1-to-nsec3.kasp",
                 "policy": "nsec3",
                 "key-properties": [
-                    f"csk 0 {ALGORITHM} {SIZE} goal:omnipresent dnskey:omnipresent krrsig:omnipresent zrrsig:omnipresent ds:omnipresent",
+                    f"csk 0 {RSASHA1.number} 2048 goal:hidden dnskey:unretentive krrsig:unretentive zrrsig:unretentive ds:hidden",
+                    f"csk 0 {ALGORITHM} {SIZE} goal:omnipresent dnskey:rumoured krrsig:rumoured zrrsig:rumoured ds:hidden",
                 ],
             },
-            id="nsec3-to-rsasha1-ds.kasp",
+            id="rsasha1-to-nsec3.kasp",
             marks=isctest.mark.with_algorithm("RSASHA1"),
         ),
         pytest.param(
@@ -202,6 +212,11 @@ def test_nsec_case(ns3, params):
             {
                 "zone": "nsec3-change.kasp",
                 "policy": "nsec3",
+                "soa-minimum": 900,
+                "nsec3param": {
+                    "optout": 1,
+                    "salt-length": 8,
+                },
                 "key-properties": [
                     f"csk 0 {ALGORITHM} {SIZE} goal:omnipresent dnskey:rumoured krrsig:rumoured zrrsig:rumoured ds:hidden",
                 ],
@@ -211,7 +226,11 @@ def test_nsec_case(ns3, params):
         pytest.param(
             {
                 "zone": "nsec3-dynamic-change.kasp",
-                "policy": "nsec3",
+                "policy": "nsec3-other",
+                "nsec3param": {
+                    "optout": 1,
+                    "salt-length": 8,
+                },
                 "key-properties": [
                     f"csk 0 {ALGORITHM} {SIZE} goal:omnipresent dnskey:rumoured krrsig:rumoured zrrsig:rumoured ds:hidden",
                 ],
@@ -238,40 +257,36 @@ def test_nsec_case(ns3, params):
             },
             id="nsec3-inline-to-dynamic.kasp",
         ),
-        pytest.param(
-            {
-                "zone": "nsec3-to-nsec.kasp",
-                "policy": "nsec3",
-                "key-properties": [
-                    f"csk 0 {ALGORITHM} {SIZE} goal:omnipresent dnskey:rumoured krrsig:rumoured zrrsig:rumoured ds:hidden",
-                ],
-            },
-            id="nsec3-to-nsec.kasp",
-        ),
-        pytest.param(
-            {
-                "zone": "nsec3-to-optout.kasp",
-                "policy": "nsec3",
-                "key-properties": [
-                    f"csk 0 {ALGORITHM} {SIZE} goal:omnipresent dnskey:rumoured krrsig:rumoured zrrsig:rumoured ds:hidden",
-                ],
-            },
-            id="nsec3-to-optout.kasp",
-        ),
-        pytest.param(
-            {
-                "zone": "nsec3-from-optout.kasp",
-                "policy": "optout",
-                "nsec3param": {
-                    "optout": 1,
-                    "salt-length": 0,
-                },
-                "key-properties": [
-                    f"csk 0 {ALGORITHM} {SIZE} goal:omnipresent dnskey:rumoured krrsig:rumoured zrrsig:rumoured ds:hidden",
-                ],
-            },
-            id="nsec3-from-optout.kasp",
-        ),
+        # DISABLED:
+        # There is a bug in the nsec3param building code that thinks when the
+        # optout bit is changed, the chain already exists. [GL #2216]
+        # pytest.param(
+        #    {
+        #        "zone": "nsec3-to-optout.kasp",
+        #        "policy": "nsec3",
+        #        "nsec3param": {
+        #            "optout": 1,
+        #            "salt-length": 0,
+        #        },
+        #        "key-properties": [
+        #            f"csk 0 {ALGORITHM} {SIZE} goal:omnipresent dnskey:rumoured krrsig:rumoured zrrsig:rumoured ds:hidden",
+        #        ],
+        #    },
+        #    id="nsec3-to-optout.kasp",
+        # ),
+        # DISABLED:
+        # There is a bug in the nsec3param building code that thinks when the
+        # optout bit is changed, the chain already exists. [GL #2216]
+        # pytest.param(
+        #    {
+        #        "zone": "nsec3-from-optout.kasp",
+        #        "policy": "optout",
+        #        "key-properties": [
+        #            f"csk 0 {ALGORITHM} {SIZE} goal:omnipresent dnskey:rumoured krrsig:rumoured zrrsig:rumoured ds:hidden",
+        #        ],
+        #    },
+        #    id="nsec3-from-optout.kasp",
+        # ),
         pytest.param(
             {
                 "zone": "nsec3-other.kasp",
@@ -295,7 +310,8 @@ def test_nsec3_case(ns3, params):
     policy = params["policy"]
     keydir = ns3.identifier
     config = default_config
-    ttl = int(config["dnskey-ttl"].total_seconds())
+    ttl = int(config.get("dnskey-ttl", 3600).total_seconds())
+    minimum = params.get("soa-minimum", 3600)
     expected = isctest.kasp.policy_to_properties(ttl=ttl, keys=params["key-properties"])
 
     iterations = 0
@@ -305,13 +321,13 @@ def test_nsec3_case(ns3, params):
         optout = params["nsec3param"].get("optout", 0)
         saltlen = params["nsec3param"].get("salt-length", 0)
 
-    match = f"{fqdn} 3600 IN NSEC3PARAM 1 0 {iterations}"
+    match = f"{fqdn} {minimum} IN NSEC3PARAM 1 0 {iterations}"
 
     # Test case.
     isctest.log.info(f"check nsec3 case zone {zone} policy {policy}")
 
     # First make sure the zone is properly signed.
-    isctest.kasp.wait_keymgr_done(ns3, zone)
+    isctest.kasp.wait_keymgr_done(ns3, zone, reconfig=True)
 
     keys = isctest.kasp.keydir_to_keylist(zone, keydir)
     isctest.kasp.check_keys(zone, keys, expected)
@@ -328,3 +344,12 @@ def test_nsec3_case(ns3, params):
     response = isctest.query.tcp(query, ns3.ip)
     assert response.rcode() == dns.rcode.NXDOMAIN
     check_auth_nsec3(response, iterations, optout, salt)
+
+    # Extra test for nsec3-change.kasp.
+    if zone == "nsec3-change.kasp":
+        # Using rndc signing -nsec3param (should fail)
+        isctest.log.info(
+            f"use rndc signing -nsec3param {zone} to change NSEC3 settings"
+        )
+        response = ns3.rndc(f"signing -nsec3param 1 1 12 ffff {zone}")
+        assert "zone uses dnssec-policy, use rndc dnssec command instead" in response
