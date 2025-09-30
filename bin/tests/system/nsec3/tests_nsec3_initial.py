@@ -9,12 +9,10 @@
 # See the COPYRIGHT file distributed with this work for additional
 # information regarding copyright ownership.
 
+# pylint: disable=redefined-outer-name,unused-import
+
 import shutil
-import os
 
-from datetime import timedelta
-
-import dns
 import dns.update
 import pytest
 
@@ -22,57 +20,15 @@ pytest.importorskip("dns", minversion="2.0.0")
 import isctest
 import isctest.mark
 from isctest.vars.algorithms import RSASHA1
-
-pytestmark = pytest.mark.extra_artifacts(
-    [
-        "*.axfr",
-        "*.created",
-        "dig.out.*",
-        "rndc.reload.*",
-        "rndc.signing.*",
-        "update.out.*",
-        "verify.out.*",
-        "ns*/dsset-**",
-        "ns*/K*",
-        "ns*/settime.out.*",
-        "ns*/*.db",
-        "ns*/*.jbk",
-        "ns*/*.jnl",
-        "ns*/*.signed",
-        "ns*/keygen.out.*",
-        "ns3/named-common.conf",
-        "ns3/named-fips.conf",
-        "ns3/named-rsasha0.conf",
-        "ns3/named-rsasha1.conf",
-    ]
+from nsec3.common import (
+    ALGORITHM,
+    SIZE,
+    default_config,
+    pytestmark,
+    check_auth_nsec,
+    check_auth_nsec3,
+    check_nsec3param,
 )
-
-ALGORITHM = os.environ["DEFAULT_ALGORITHM_NUMBER"]
-SIZE = os.environ["DEFAULT_BITS"]
-
-default_config = {
-    "dnskey-ttl": timedelta(hours=1),
-    "ds-ttl": timedelta(days=1),
-    "key-directory": "{keydir}",
-    "max-zone-ttl": timedelta(days=1),
-    "parent-propagation-delay": timedelta(hours=1),
-    "publish-safety": timedelta(hours=1),
-    "retire-safety": timedelta(hours=1),
-    "signatures-refresh": timedelta(days=5),
-    "signatures-validity": timedelta(days=14),
-    "zone-propagation-delay": timedelta(minutes=5),
-}
-
-
-def check_auth_nsec(response):
-    rrs = []
-    for rrset in response.authority:
-        if rrset.match(dns.rdataclass.IN, dns.rdatatype.NSEC, dns.rdatatype.NONE):
-            rrs.append(rrset)
-        assert not rrset.match(
-            dns.rdataclass.IN, dns.rdatatype.NSEC3, dns.rdatatype.NONE
-        )
-    assert len(rrs) != 0
 
 
 @pytest.mark.parametrize(
@@ -216,46 +172,6 @@ def wait_for_soa_update(server, fqdn):
         time.sleep(1)
 
     return verified
-
-
-def check_nsec3param(response, match, saltlen):
-    rrs = []
-
-    for rrset in response.answer:
-        if rrset.match(dns.rdataclass.IN, dns.rdatatype.NSEC3PARAM, dns.rdatatype.NONE):
-            assert match in rrset.to_text()
-            if saltlen == 0:
-                assert f"{match} -" in rrset.to_text()
-            else:
-                assert not f"{match} -" in rrset.to_text()
-
-            rrs.append(rrset)
-        else:
-            assert rrset.match(
-                dns.rdataclass.IN, dns.rdatatype.RRSIG, dns.rdatatype.NSEC3PARAM
-            )
-
-    assert len(rrs) != 0
-
-
-def check_auth_nsec3(response, iterations=0, optout=0, saltlen=0):
-    match = f"IN NSEC3 1 {optout} {iterations}"
-    rrs = []
-
-    for rrset in response.authority:
-        if rrset.match(dns.rdataclass.IN, dns.rdatatype.NSEC3, dns.rdatatype.NONE):
-            assert match in rrset.to_text()
-            if saltlen == 0:
-                assert f"{match} -" in rrset.to_text()
-            else:
-                assert not f"{match} -" in rrset.to_text()
-
-            rrs.append(rrset)
-        assert not rrset.match(
-            dns.rdataclass.IN, dns.rdatatype.NSEC, dns.rdatatype.NONE
-        )
-
-    assert len(rrs) != 0
 
 
 @pytest.mark.parametrize(
