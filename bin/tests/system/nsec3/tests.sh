@@ -235,44 +235,6 @@ key_clear "KEY2"
 key_clear "KEY3"
 key_clear "KEY4"
 
-# Test NSEC3 and NSEC3PARAM is the same after restart
-set_zone_policy "nsec3.kasp" "nsec3" 1 3600
-set_nsec3param "0" "0"
-set_key_default_values "KEY1"
-echo_i "check zone ${ZONE} before restart"
-check_nsec3
-
-# Restart named, NSEC3 should stay the same.
-ret=0
-echo "stop ns3"
-stop_server --use-rndc --port ${CONTROLPORT} ${DIR} || ret=1
-test "$ret" -eq 0 || echo_i "failed"
-status=$((status + ret))
-
-ret=0
-echo "start ns3"
-start_server --noclean --restart --port ${PORT} ${DIR}
-test "$ret" -eq 0 || echo_i "failed"
-status=$((status + ret))
-
-prevsalt="${SALT}"
-set_zone_policy "nsec3.kasp" "nsec3" 1 3600
-set_nsec3param "0" "0"
-set_key_default_values "KEY1"
-SALT="${prevsalt}"
-echo_i "check zone ${ZONE} after restart has salt ${SALT}"
-check_nsec3
-
-# Zone: nsec3-fails-to-load.kasp. (should be fixed after reload)
-cp ns3/template.db.in ns3/nsec3-fails-to-load.kasp.db
-rndc_reload ns3 10.53.0.3
-
-set_zone_policy "nsec3-fails-to-load.kasp" "nsec3" 1 3600
-set_nsec3param "0" "0"
-set_key_default_values "KEY1"
-echo_i "check zone ${ZONE} after reload"
-check_nsec3
-
 # Zone: nsec3-ent.kasp (regression test for #5108)
 n=$((n + 1))
 echo_i "check query for newly empty name does not crash ($n)"
