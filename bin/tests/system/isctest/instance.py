@@ -154,7 +154,9 @@ class NamedInstance:
 
         return response
 
-    def nsupdate(self, update_msg: dns.message.Message):
+    def nsupdate(
+        self, update_msg: dns.message.Message, expected_rcode=dns.rcode.NOERROR
+    ):
         """
         Issue a dynamic update to a server's zone.
         """
@@ -168,12 +170,14 @@ class NamedInstance:
                 self.ip,
                 self.ports.dns,
                 timeout=3,
-                expected_rcode=dns.rcode.NOERROR,
+                expected_rcode=expected_rcode,
             )
         except dns.exception.Timeout as exc:
             msg = f"update timeout for {zone}"
             raise dns.exception.Timeout(msg) from exc
-        debug(f"update of zone {zone} to server {self.ip} successful")
+        debug(
+            f"update of zone {zone} to server {self.ip} finished with {expected_rcode}"
+        )
         return response
 
     def watch_log_from_start(
