@@ -354,3 +354,99 @@ def test_nsec3_case(ns3, params):
         )
         response = ns3.rndc(f"signing -nsec3param 1 1 12 ffff {zone}")
         assert "zone uses dnssec-policy, use rndc dnssec command instead" in response
+
+
+def test_nsec3_ent(ns3, templates):
+    # Zone: nsec3-ent.kasp (regression test for #5108)
+    zone = "nsec3-ent.kasp"
+    fqdn = f"{zone}."
+    policy = "nsec3"
+    keydir = ns3.identifier
+    config = default_config
+    ttl = int(config.get("dnskey-ttl", 3600).total_seconds())
+    minimum = 3600
+    keyprops = [
+        f"csk 0 {ALGORITHM} {SIZE} goal:omnipresent dnskey:rumoured krrsig:rumoured zrrsig:rumoured ds:hidden",
+    ]
+    expected = isctest.kasp.policy_to_properties(ttl=ttl, keys=keyprops)
+
+    # Test case.
+    isctest.log.info(f"check nsec3 case zone {zone} policy {policy}")
+
+    # First make sure the zone is properly signed.
+    isctest.kasp.wait_keymgr_done(ns3, zone, reconfig=True)
+
+    keys = isctest.kasp.keydir_to_keylist(zone, keydir)
+    isctest.kasp.check_keys(zone, keys, expected)
+    isctest.kasp.check_dnssec_verify(ns3, zone)
+    isctest.kasp.check_apex(ns3, zone, keys, [])
+
+    query = isctest.query.create(fqdn, dns.rdatatype.NSEC3PARAM)
+    response = isctest.query.tcp(query, ns3.ip, ns3.ports.dns, timeout=3)
+    assert response.rcode() == dns.rcode.NOERROR
+
+    match = f"{fqdn} {minimum} IN NSEC3PARAM 1 0 0"
+    salt = check_nsec3param(response, match, 0)
+
+    query = isctest.query.create(f"nosuchname.{fqdn}", dns.rdatatype.A)
+    response = isctest.query.tcp(query, ns3.ip, ns3.ports.dns, timeout=3)
+    assert response.rcode() == dns.rcode.NXDOMAIN
+    check_auth_nsec3(response, 0, 0, salt)
+
+    isctest.log.info("check query for newly empty name does not crash")
+
+    # confirm the pre-existing name still exists
+    query = isctest.query.create(f"c.{fqdn}", dns.rdatatype.A)
+    response = isctest.query.tcp(query, ns3.ip, ns3.ports.dns, timeout=3)
+    assert response.rcode() == dns.rcode.NOERROR
+
+    match = "10.0.0.3"
+    rrset = response.get_rrset(
+        response.answer,
+        dns.name.from_text(f"c.{fqdn}"),
+        dns.rdataclass.IN,
+        dns.rdatatype.A,
+    )
+    assert rrset is not None, "no A records found in answer section"
+    assert match in str(rrset[0])
+
+    # remove a name, bump the SOA, and reload
+    templates.render(f"{ns3.identifier}/nsec3-ent.kasp.db", {"serial": 2})
+
+    with ns3.watch_log_from_here() as watcher:
+        ns3.rndc(f"reload {zone}")
+        watcher.wait_for_line(f"zone {zone}/IN (signed): sending notifies")
+
+    # try the query again
+    query = isctest.query.create(f"c.{fqdn}", dns.rdatatype.A)
+    response = isctest.query.tcp(query, ns3.ip, ns3.ports.dns, timeout=3)
+    assert response.rcode() == dns.rcode.NXDOMAIN
+
+    isctest.log.info("check queries for new names below ENT do not crash")
+
+    # confirm the ENT name does not exist yet
+    query = isctest.query.create(f"x.y.z.{fqdn}", dns.rdatatype.A)
+    response = isctest.query.tcp(query, ns3.ip, ns3.ports.dns, timeout=3)
+    assert response.rcode() == dns.rcode.NXDOMAIN
+
+    # add a name with an ENT, bump the SOA, and reload ensuring the time stamp changes
+    templates.render(f"{ns3.identifier}/nsec3-ent.kasp.db", {"serial": 3})
+
+    with ns3.watch_log_from_here() as watcher:
+        ns3.rndc(f"reload {zone}")
+        watcher.wait_for_line(f"zone {zone}/IN (signed): sending notifies")
+
+    # try the query again
+    query = isctest.query.create(f"x.y.z.{fqdn}", dns.rdatatype.A)
+    response = isctest.query.tcp(query, ns3.ip, ns3.ports.dns, timeout=3)
+    assert response.rcode() == dns.rcode.NOERROR
+
+    match = "10.0.0.4"
+    rrset = response.get_rrset(
+        response.answer,
+        dns.name.from_text(f"x.y.z.{fqdn}"),
+        dns.rdataclass.IN,
+        dns.rdatatype.A,
+    )
+    assert rrset is not None, "no A records found in answer section"
+    assert match in str(rrset[0])
