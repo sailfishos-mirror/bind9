@@ -160,26 +160,181 @@ static void
 doc_geoip(cfg_printer_t *pctx, const cfg_type_t *type);
 #endif /* HAVE_GEOIP2 */
 
+void
+cfg_obj_clone(const cfg_obj_t *source, cfg_obj_t **target) {
+	REQUIRE(source != NULL);
+	REQUIRE(source->type != NULL);
+	REQUIRE(source->type->rep != NULL);
+	REQUIRE(source->type->rep->copy != NULL);
+	REQUIRE(target != NULL && *target == NULL);
+
+	cfg_obj_create(source->mctx, source->file, source->line, source->type,
+		       target);
+	source->type->rep->copy(*target, source);
+}
+
+static void
+copy_uint32(cfg_obj_t *to, const cfg_obj_t *from) {
+	to->value.uint32 = from->value.uint32;
+}
+
+static void
+copy_uint64(cfg_obj_t *to, const cfg_obj_t *from) {
+	to->value.uint64 = from->value.uint64;
+}
+
+static void
+copy_boolean(cfg_obj_t *to, const cfg_obj_t *from) {
+	to->value.boolean = from->value.boolean;
+}
+
+static void
+copy_sockaddr(cfg_obj_t *to, const cfg_obj_t *from) {
+	to->value.sockaddr = from->value.sockaddr;
+}
+
+static void
+copy_sockaddrtls(cfg_obj_t *to, const cfg_obj_t *from) {
+	to->value.sockaddrtls.sockaddr = from->value.sockaddrtls.sockaddr;
+
+	if (from->value.sockaddrtls.tls.base != NULL) {
+		size_t len = from->value.sockaddrtls.tls.length;
+
+		to->value.sockaddrtls.tls.base = isc_mem_get(to->mctx, len + 1);
+		to->value.sockaddrtls.tls.length = len;
+		memmove(to->value.sockaddrtls.tls.base,
+			from->value.sockaddrtls.tls.base, len + 1);
+	}
+}
+
+static void
+copy_netprefix(cfg_obj_t *to, const cfg_obj_t *from) {
+	to->value.netprefix = from->value.netprefix;
+}
+
+static void
+copy_duration(cfg_obj_t *to, const cfg_obj_t *from) {
+	to->value.duration = from->value.duration;
+}
+
+static void
+copy_string(cfg_obj_t *to, const cfg_obj_t *from) {
+	to->value.string.length = from->value.string.length;
+	to->value.string.base = isc_mem_get(to->mctx,
+					    to->value.string.length + 1);
+	memmove(to->value.string.base, from->value.string.base,
+		to->value.string.length + 1);
+}
+
+static void
+copy_map_destroy(char *key, unsigned int type, isc_symvalue_t symval,
+		 void *arg) {
+	cfg_obj_t *obj = symval.as_pointer;
+
+	UNUSED(key);
+	UNUSED(type);
+	UNUSED(arg);
+
+	cfg_obj_detach(&obj);
+}
+
+static bool
+copy_map_add(char *key, unsigned int type, isc_symvalue_t value, void *arg) {
+	cfg_obj_t *to = arg;
+	cfg_obj_t *toelt = NULL;
+
+	/*
+	 * Only `as_pointer` is used to store the cfg_obj_t object (see
+	 * cfg_map_parsebody)
+	 */
+	cfg_obj_clone(value.as_pointer, &toelt);
+	value.as_pointer = toelt;
+
+	INSIST(isc_symtab_define(to->value.map.symtab, key, type, value,
+				 isc_symexists_reject) == ISC_R_SUCCESS);
+
+	/*
+	 * Do not delete the existing element from `from` table.
+	 */
+	return false;
+}
+
+static void
+copy_map(cfg_obj_t *to, const cfg_obj_t *from) {
+	if (from->value.map.id != NULL) {
+		cfg_obj_clone(from->value.map.id, &to->value.map.id);
+	}
+	isc_symtab_create(to->mctx, copy_map_destroy, NULL, false,
+			  &to->value.map.symtab);
+	isc_symtab_foreach(from->value.map.symtab, copy_map_add, to);
+
+	/*
+	 * clausesets are statically defined
+	 */
+	to->value.map.clausesets = from->value.map.clausesets;
+}
+
+static void
+copy_list(cfg_obj_t *to, const cfg_obj_t *from) {
+	const cfg_listelt_t *fromelt = cfg_list_first(from);
+
+	ISC_LIST_INIT(to->value.list);
+	while (fromelt != NULL) {
+		cfg_listelt_t *toelt = isc_mem_get(to->mctx, sizeof(*toelt));
+
+		*toelt = (cfg_listelt_t){ .link = ISC_LINK_INITIALIZER };
+		cfg_obj_clone(fromelt->obj, &toelt->obj);
+
+		ISC_LIST_APPEND(to->value.list, toelt, link);
+
+		fromelt = cfg_list_next(fromelt);
+	}
+}
+
+static void
+copy_tuple(cfg_obj_t *to, const cfg_obj_t *from) {
+	const cfg_tuplefielddef_t *fields = from->type->of;
+	const cfg_tuplefielddef_t *field;
+	size_t size = 0;
+
+	for (field = fields; field->name != NULL; field++) {
+		size++;
+	}
+
+	to->value.tuple = isc_mem_cget(to->mctx, size, sizeof(cfg_obj_t *));
+
+	for (size_t j = 0; j < size; j++) {
+		cfg_obj_clone(from->value.tuple[j], &to->value.tuple[j]);
+	}
+}
+
+static void
+copy_noop(cfg_obj_t *to, const cfg_obj_t *from) {
+	UNUSED(to);
+	UNUSED(from);
+}
+
 /*
  * Data representations.  These correspond to members of the
  * "value" union in struct cfg_obj (except "void", which does
  * not need a union member).
  */
 
-cfg_rep_t cfg_rep_uint32 = { "uint32", free_noop };
-cfg_rep_t cfg_rep_uint64 = { "uint64", free_noop };
-cfg_rep_t cfg_rep_string = { "string", free_string };
-cfg_rep_t cfg_rep_boolean = { "boolean", free_noop };
-cfg_rep_t cfg_rep_map = { "map", free_map };
-cfg_rep_t cfg_rep_list = { "list", free_list };
-cfg_rep_t cfg_rep_tuple = { "tuple", free_tuple };
-cfg_rep_t cfg_rep_sockaddr = { "sockaddr", free_noop };
-cfg_rep_t cfg_rep_sockaddrtls = { "sockaddrtls", free_sockaddrtls };
-cfg_rep_t cfg_rep_netprefix = { "netprefix", free_noop };
-cfg_rep_t cfg_rep_void = { "void", free_noop };
-cfg_rep_t cfg_rep_fixedpoint = { "fixedpoint", free_noop };
-cfg_rep_t cfg_rep_percentage = { "percentage", free_noop };
-cfg_rep_t cfg_rep_duration = { "duration", free_noop };
+cfg_rep_t cfg_rep_uint32 = { "uint32", free_noop, copy_uint32 };
+cfg_rep_t cfg_rep_uint64 = { "uint64", free_noop, copy_uint64 };
+cfg_rep_t cfg_rep_string = { "string", free_string, copy_string };
+cfg_rep_t cfg_rep_boolean = { "boolean", free_noop, copy_boolean };
+cfg_rep_t cfg_rep_map = { "map", free_map, copy_map };
+cfg_rep_t cfg_rep_list = { "list", free_list, copy_list };
+cfg_rep_t cfg_rep_tuple = { "tuple", free_tuple, copy_tuple };
+cfg_rep_t cfg_rep_sockaddr = { "sockaddr", free_noop, copy_sockaddr };
+cfg_rep_t cfg_rep_sockaddrtls = { "sockaddrtls", free_sockaddrtls,
+				  copy_sockaddrtls };
+cfg_rep_t cfg_rep_netprefix = { "netprefix", free_noop, copy_netprefix };
+cfg_rep_t cfg_rep_void = { "void", free_noop, copy_noop };
+cfg_rep_t cfg_rep_fixedpoint = { "fixedpoint", free_noop, copy_uint32 };
+cfg_rep_t cfg_rep_percentage = { "percentage", free_noop, copy_uint32 };
+cfg_rep_t cfg_rep_duration = { "duration", free_noop, copy_duration };
 
 /*
  * Configuration type definitions.

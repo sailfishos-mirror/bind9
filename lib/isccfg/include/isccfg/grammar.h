@@ -100,6 +100,7 @@ typedef isc_result_t (*cfg_parsefunc_t)(cfg_parser_t *, const cfg_type_t *type,
 typedef void (*cfg_printfunc_t)(cfg_printer_t *, const cfg_obj_t *);
 typedef void (*cfg_docfunc_t)(cfg_printer_t *, const cfg_type_t *);
 typedef void (*cfg_freefunc_t)(cfg_obj_t *);
+typedef void (*cfg_copyfunc_t)(cfg_obj_t *to, const cfg_obj_t *from);
 
 /*
  * Structure definitions
@@ -169,6 +170,7 @@ struct cfg_netprefix {
 struct cfg_rep {
 	const char    *name; /*%< For debugging only */
 	cfg_freefunc_t free; /*%< How to free this kind of data. */
+	cfg_copyfunc_t copy; /*%< Deep copy of the node. */
 };
 
 /*%
