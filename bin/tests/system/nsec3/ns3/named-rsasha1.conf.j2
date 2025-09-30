@@ -11,9 +11,9 @@
  * information regarding copyright ownership.
  */
 
-// NS3
-
-include "named-fips.conf";
+{% set reconfiged = reconfiged | default(False) %}
+{% set rsasha1_to_nsec3 = "rsasha1" if not reconfiged else "nsec3" %}
+{% set nsec3_to_rsasha1 = "nsec3" if not reconfiged else "rsasha1" %}
 
 dnssec-policy "rsasha1" {
 	keys {
@@ -29,7 +29,7 @@ dnssec-policy "rsasha1" {
 zone "rsasha1-to-nsec3.kasp" {
 	type primary;
 	file "rsasha1-to-nsec3.kasp.db";
-	dnssec-policy "rsasha1";
+	dnssec-policy "@rsasha1_to_nsec3@";
 };
 
 /*
@@ -40,7 +40,7 @@ zone "rsasha1-to-nsec3.kasp" {
 zone "rsasha1-to-nsec3-wait.kasp" {
 	type primary;
 	file "rsasha1-to-nsec3-wait.kasp.db";
-	dnssec-policy "rsasha1";
+	dnssec-policy "@rsasha1_to_nsec3@";
 };
 
 /*
@@ -51,7 +51,7 @@ zone "rsasha1-to-nsec3-wait.kasp" {
 zone "nsec3-to-rsasha1.kasp" {
 	type primary;
 	file "nsec3-to-rsasha1.kasp.db";
-	dnssec-policy "nsec3";
+	dnssec-policy "@nsec3_to_rsasha1@";
 };
 
 /*
@@ -63,5 +63,5 @@ zone "nsec3-to-rsasha1.kasp" {
 zone "nsec3-to-rsasha1-ds.kasp" {
 	type primary;
 	file "nsec3-to-rsasha1-ds.kasp.db";
-	dnssec-policy "nsec3";
+	dnssec-policy "@nsec3_to_rsasha1@";
 };
