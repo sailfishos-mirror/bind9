@@ -206,12 +206,98 @@ ISC_RUN_TEST_IMPL(cfg_map_nextclause) {
 	} while (name != NULL);
 }
 
+static void
+cfg_clone_copy_dumpconf(void *closure, const char *text, int textlen) {
+	isc_buffer_putmem((isc_buffer_t *)closure, (const unsigned char *)text,
+			  textlen);
+}
+
+ISC_RUN_TEST_IMPL(cfg_clone_copy) {
+	cfg_obj_t *orig = NULL;
+	cfg_obj_t *clone = NULL;
+	isc_result_t result;
+	isc_buffer_t buf;
+	isc_buffer_t dumpb1;
+	char dumpbdata1[10024];
+	isc_buffer_t dumpb2;
+	char dumpbdata2[10024];
+
+	/*
+	 * This is a modified subset of the default conf which contains
+	 * all the possible types cloned and copied.
+	 */
+	static char conf[] = "\
+options {\n\
+	answer-cookie yes;\n\
+	cookie-algorithm siphash24;\n\
+	dump-file \"named_dump.db\";\n\
+	notify-rate 20;\n\
+	allow-recursion {\n\
+		\"localhost\";\n\
+		\"localnets\";\n\
+	};\n\
+	prefetch 2 9;\n\
+	check-dup-records warn;\n\
+	max-ixfr-ratio 100%;\n\
+};\n\
+remote-servers \"foo\" {\n\
+	2801:1b8:10::b;\n\
+	192.0.32.132;\n\
+};\n\
+view \"_bind\" chaos {\n\
+	zone \"version.bind\" chaos {\n\
+		type primary;\n\
+		database \"_builtin version\";\n\
+	};\n\
+	max-cache-size 2097152;\n\
+	rate-limit {\n\
+		min-table-size 10;\n\
+		slip 0;\n\
+	};\n\
+};\n";
+	isc_buffer_init(&buf, conf, sizeof(conf));
+	isc_buffer_add(&buf, sizeof(conf) - 1);
+
+	result = cfg_parse_buffer(isc_g_mctx, &buf, "", 0, &cfg_type_namedconf,
+				  0, &orig);
+	assert_int_equal(result, ISC_R_SUCCESS);
+
+	isc_buffer_init(&dumpb1, dumpbdata1, sizeof(dumpbdata1));
+	cfg_printx(orig, 0, cfg_clone_copy_dumpconf, &dumpb1);
+	isc_buffer_putuint8(&dumpb1, 0);
+
+	/*
+	 * The point of the test is not really to test the stringify code of the
+	 * cfg_obj_t tree, but let's do it as a sanity check first.
+	 */
+	assert_int_equal(strcmp(conf, dumpbdata1), 0);
+
+	/*
+	 * The original tree can be freed anytime, it is not connected in any
+	 * way to the clone.
+	 */
+	cfg_obj_clone(orig, &clone);
+	cfg_obj_detach(&orig);
+
+	/*
+	 * Dumping the clone and comparing its output to the original
+	 * dump of the orinal config verify-ish the two assumptions above.
+	 */
+	isc_buffer_init(&dumpb2, dumpbdata2, sizeof(dumpbdata2));
+	cfg_printx(clone, 0, cfg_clone_copy_dumpconf, &dumpb2);
+
+	assert_int_equal(strcmp(dumpbdata1, dumpbdata2), 0);
+
+	cfg_obj_detach(&clone);
+}
+
 ISC_TEST_LIST_START
 
 ISC_TEST_ENTRY(addzoneconf)
 ISC_TEST_ENTRY(parse_buffer)
 ISC_TEST_ENTRY(cfg_map_firstclause)
 ISC_TEST_ENTRY(cfg_map_nextclause)
+ISC_TEST_ENTRY(cfg_clone_copy)
 
 ISC_TEST_LIST_END
 
