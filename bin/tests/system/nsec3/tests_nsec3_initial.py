@@ -40,7 +40,10 @@ pytestmark = pytest.mark.extra_artifacts(
         "ns*/*.jnl",
         "ns*/*.signed",
         "ns*/keygen.out.*",
+        "ns3/named-common.conf",
         "ns3/named-fips.conf",
+        "ns3/named-rsasha0.conf",
+        "ns3/named-rsasha1.conf",
     ]
 )
 
