@@ -1511,7 +1511,7 @@ clang:tsan:
     CC: "${CLANG}"
     CFLAGS: "${CFLAGS_COMMON}"
     LDFLAGS: "-Wl,--disable-new-dtags"
-    EXTRA_CONFIGURE: "${TSAN_CONFIGURE_FLAGS_COMMON} -Db_lundef=false -Dnamed-lto=off --native-file ci/clang-trixie.ini"
+    EXTRA_CONFIGURE: "${TSAN_CONFIGURE_FLAGS_COMMON} -Db_lundef=false -Dnamed-lto=disabled --native-file ci/clang-trixie.ini"
   <<: *build_job
 
 system:clang:tsan:
@@ -1985,7 +1985,7 @@ respdiff:tsan:
     CC: "${CLANG}"
     CFLAGS: "${CFLAGS_COMMON}"
     LDFLAGS: "-Wl,--disable-new-dtags"
-    EXTRA_CONFIGURE: "${TSAN_CONFIGURE_FLAGS_COMMON} -Dnamed-lto=off -Db_lundef=false"
+    EXTRA_CONFIGURE: "${TSAN_CONFIGURE_FLAGS_COMMON} -Dnamed-lto=disabled -Db_lundef=false"
     MAX_DISAGREEMENTS_PERCENTAGE: "0.3"
     TSAN_OPTIONS: "${TSAN_OPTIONS_DEBIAN}"
   script:

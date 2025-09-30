@@ -938,9 +938,9 @@ supported_clang_lto_linkers = [
 has_fat_lto = cc.has_argument('-ffat-lto-objects') and host_machine.system() != 'darwin'
 if not has_fat_lto
     warning(
-        'Your platform does not support fat lto objects but -Dnamed-lto was not set to off. Building without LTO anyway.',
+        'Your platform does not support fat lto objects but -Dnamed-lto was not set to `disabled`. Building without LTO anyway.',
     )
-    named_lto_opt = 'off'
+    named_lto_opt = 'disabled'
 endif
 
 static_lto_c_args = []
@@ -964,17 +964,17 @@ elif named_lto_opt == 'thin'
         error(
             'Clang ThinLTO only works with gold, lld, lld-link, ld64 or mold, not '
             + cc.get_linker_id()
-            + '. To build, use a supported linker or disable LTO with -Dnamed-lto=off.',
+            + '. To build, use a supported linker or disable LTO with -Dnamed-lto=disabled.',
         )
     else
         error(
-            'Unsupported configuration for LTO. To build, use a supported linker or disable LTO with -Dnamed-lto=off.',
+            'Unsupported configuration for LTO. To build, use a supported linker or disable LTO with -Dnamed-lto=disabled.',
         )
     endif
 endif
 
 add_project_arguments(static_lto_c_args, language: 'c')
-if named_lto_opt != 'off' and cc.get_id() == 'clang' and sanitizer.contains('address')
+if named_lto_opt != 'disabled' and cc.get_id() == 'clang' and sanitizer.contains('address')
     # Needed to suppress the
     #    warning: Redundant instrumentation detected, with module flag:
     #    nosanitize_address [-Werror,-Wbackend-plugin]
@@ -987,7 +987,7 @@ if named_lto_opt != 'off' and cc.get_id() == 'clang' and sanitizer.contains('add
     add_project_arguments('-Wno-backend-plugin', language: 'c')
 endif
 
-if meson_lto and named_lto_opt != 'off'
+if meson_lto and named_lto_opt != 'disabled'
     # Meson's builtin LTO settings do not set -ffat-lto-objects, which can cause
     # build issues.
     # Since we don't want two, possibly conflicting, sets of LTO flags, we
@@ -996,7 +996,7 @@ if meson_lto and named_lto_opt != 'off'
     error(
         '''
             Meson builtin -Db_lto and BIND's -Dnamed-lto options are incompatible.
-            Either disable named-lto with -Dnamed-lto=off, or avoid setting
+            Either disable named-lto with -Dnamed-lto=disabled, or avoid setting
             -Db_lto.
 
             Note that using -Db_lto is not a recommended configuration, might
@@ -1572,7 +1572,7 @@ executable(
 
 named_deps = []
 
-if named_lto_opt == 'off'
+if named_lto_opt == 'disabled'
     named_deps = [
         libdns_dep,
         libisc_dep,
