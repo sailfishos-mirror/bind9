@@ -77,14 +77,15 @@
 #define NA	    DST_KEY_STATE_NA
 
 /* Quickly get key state timing metadata. */
-#define NUM_KEYSTATES (DST_MAX_KEYSTATES)
-static int keystatetimes[NUM_KEYSTATES] = { DST_TIME_DNSKEY, DST_TIME_ZRRSIG,
-					    DST_TIME_KRRSIG, DST_TIME_DS };
+static int keystatetimes[] = { DST_TIME_DNSKEY, DST_TIME_ZRRSIG,
+			       DST_TIME_KRRSIG, DST_TIME_DS };
+#define NUM_KEYSTATES (int)ARRAY_SIZE(keystatetimes)
+
 /* Readable key state types and values. */
 static const char *keystatetags[NUM_KEYSTATES] = { "DNSKEY", "ZRRSIG", "KRRSIG",
 						   "DS" };
-static const char *keystatestrings[4] = { "HIDDEN", "RUMOURED", "OMNIPRESENT",
-					  "UNRETENTIVE" };
+static const char *keystatestrings[] = { "HIDDEN", "RUMOURED", "OMNIPRESENT",
+					 "UNRETENTIVE" };
 
 static void
 log_key_overflow(dst_key_t *key, const char *what) {
