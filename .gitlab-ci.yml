@@ -1680,6 +1680,26 @@ sign:
   when: manual
   allow_failure: false
 
+# Job creating the release announcement MR in Printing Press
+
+prepare-release-announcement:
+  <<: *base_image
+  stage: release
+  when: manual
+  variables:
+    GIT_DEPTH: 1
+  before_script:
+    - git clone --depth 1 https://gitlab.isc.org/isc-projects/bind9-qa.git
+  script:
+    - bind9-qa/releng/prepare_release_announcement.py --metadata bind9-qa/releng/metadata.json
+  needs: []
+  rules:
+    - if: '$CI_COMMIT_TAG != null && $CI_COMMIT_TAG !~ /-S/'
+  artifacts:
+    paths:
+      - printing-press/
+    when: on_failure
+
 # Job merging the tag back into its base branch
 
 merge-tag:
