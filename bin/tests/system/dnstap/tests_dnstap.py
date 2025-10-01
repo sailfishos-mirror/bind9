@@ -30,20 +30,7 @@ pytestmark = pytest.mark.extra_artifacts(
 )
 
 
-def run_rndc(server, rndc_command):
-    """
-    Send the specified 'rndc_command' to 'server' with a timeout of 10 seconds
-    """
-    rndc = os.getenv("RNDC")
-    port = os.getenv("CONTROLPORT")
-
-    cmdline = [rndc, "-c", "../_common/rndc.conf", "-p", port, "-s", server]
-    cmdline.extend(rndc_command)
-
-    subprocess.check_output(cmdline, stderr=subprocess.STDOUT, timeout=10)
-
-
-def test_dnstap_dispatch_socket_addresses():
+def test_dnstap_dispatch_socket_addresses(ns3):
     # Send some query to ns3 so that it records something in its dnstap file.
     msg = isctest.query.create("mail.example.", "A")
     res = isctest.query.tcp(msg, "10.53.0.2", expected_rcode=dns.rcode.NOERROR)
@@ -52,7 +39,7 @@ def test_dnstap_dispatch_socket_addresses():
     ]
 
     # Before continuing, roll dnstap file to ensure it is flushed to disk.
-    run_rndc("10.53.0.3", ["dnstap", "-roll", "1"])
+    ns3.rndc("dnstap -roll 1")
 
     # Move the dnstap file aside so that it is retained for troubleshooting.
     os.rename(os.path.join("ns3", "dnstap.out.0"), "dnstap.out.resolver_addresses")
