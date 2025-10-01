@@ -240,6 +240,9 @@ ns_plugin_register(const char *modpath, const char *parameters, const void *cfg,
 		      "registering plugin '%s'", modpath);
 
 	INSIST(hookdata->source != NS_HOOKSOURCE_UNDEFINED);
+
+	CHECK(plugin->check_func(parameters, cfg, cfg_file, cfg_line, mctx,
+				 aclctx, hookdata->source));
 	CHECK(plugin->register_func(parameters, cfg, cfg_file, cfg_line, mctx,
 				    aclctx, hookdata->hooktable,
 				    hookdata->source, &plugin->inst));
@@ -257,14 +260,14 @@ cleanup:
 isc_result_t
 ns_plugin_check(const char *modpath, const char *parameters, const void *cfg,
 		const char *cfg_file, unsigned long cfg_line, isc_mem_t *mctx,
-		void *aclctx) {
+		void *aclctx, ns_hooksource_t source) {
 	isc_result_t result;
 	ns_plugin_t *plugin = NULL;
 
 	CHECK(load_plugin(mctx, modpath, &plugin));
 
 	result = plugin->check_func(parameters, cfg, cfg_file, cfg_line, mctx,
-				    aclctx);
+				    aclctx, source);
 
 cleanup:
 	if (plugin != NULL) {

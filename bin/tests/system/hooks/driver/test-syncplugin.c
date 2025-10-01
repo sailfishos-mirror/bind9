@@ -186,13 +186,15 @@ cleanup:
 
 isc_result_t
 plugin_check(const char *parameters, const void *cfg, const char *cfgfile,
-	     unsigned long cfgline, isc_mem_t *mctx, void *aclctx) {
+	     unsigned long cfgline, isc_mem_t *mctx, void *aclctx,
+	     ns_hooksource_t source) {
 	UNUSED(parameters);
 	UNUSED(cfg);
 	UNUSED(cfgfile);
 	UNUSED(cfgline);
 	UNUSED(mctx);
 	UNUSED(aclctx);
+	UNUSED(source);
 
 	return ISC_R_SUCCESS;
 }
