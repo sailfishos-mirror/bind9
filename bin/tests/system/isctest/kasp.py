@@ -15,7 +15,6 @@ import glob
 import os
 from pathlib import Path
 import re
-import subprocess
 import time
 from typing import Dict, List, Optional, Tuple, Union
 
@@ -533,8 +532,8 @@ class Key:
             str(self.keyfile),
         ]
 
-        out = isctest.run.cmd(dsfromkey_command)
-        dsfromkey = out.stdout.decode("utf-8").split()
+        cmd = isctest.run.cmd(dsfromkey_command)
+        dsfromkey = cmd.out.split()
 
         rdata_fromfile = " ".join(dsfromkey[:7])
         rdata_fromwire = " ".join(cds[:7])
@@ -837,18 +836,14 @@ def check_dnssec_verify(server, zone, tsig=None):
                     file.write(rr.to_text())
                     file.write("\n")
 
-            try:
-                verify_command = [os.environ.get("VERIFY"), "-z", "-o", zone, zonefile]
-                verified = isctest.run.cmd(verify_command)
-            except subprocess.CalledProcessError:
-                pass
-
-        if verified:
-            break
+            verify_command = [os.environ.get("VERIFY"), "-z", "-o", zone, zonefile]
+            verified = isctest.run.cmd(verify_command, raise_on_exception=False)
+            if verified.rc == 0:
+                return
 
         time.sleep(1)
 
-    assert verified
+    assert False, "zone not verified"
 
 
 def check_dnssecstatus(server, zone, keys, policy=None, view=None, verbose=False):

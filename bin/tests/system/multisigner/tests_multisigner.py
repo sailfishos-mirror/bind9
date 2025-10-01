@@ -73,8 +73,8 @@ def dsfromkey(key):
         "-w",
         str(key.keyfile),
     ]
-    out = isctest.run.cmd(dsfromkey_command)
-    return out.stdout.decode("utf-8").split()
+    cmd = isctest.run.cmd(dsfromkey_command)
+    return cmd.out.split()
 
 
 def check_dnssec(server, zone, keys, expected):
@@ -102,12 +102,11 @@ def check_no_dnssec_in_journal(server, zone):
         f"{server.identifier}/{zone}.db.jnl",
     ]
 
-    out = isctest.run.cmd(journalprint)
-    contents = out.stdout.decode("utf-8")
+    cmd = isctest.run.cmd(journalprint)
     pattern = re.compile(
         r"^\s*(?:\S+\s+){4}(NSEC|NSEC3|NSEC3PARAM|RRSIG)", flags=re.MULTILINE
     )
-    match = pattern.search(contents)
+    match = pattern.search(cmd.out)
     assert not match, f"{match.group(1)} record found in journal"
 
 

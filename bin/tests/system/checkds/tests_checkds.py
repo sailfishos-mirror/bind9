@@ -102,10 +102,10 @@ def verify_zone(zone, transfer):
 
     verifier = isctest.run.cmd(verify_cmd)
 
-    if verifier.returncode != 0:
+    if verifier.rc != 0:
         isctest.log.error(f"dnssec-verify {zone} failed")
 
-    return verifier.returncode == 0
+    return verifier.rc == 0
 
 
 def read_statefile(server, zone):
@@ -210,10 +210,10 @@ def rekey(zone):
     ]
     controller = isctest.run.cmd(rndc_cmd)
 
-    if controller.returncode != 0:
+    if controller.rc != 0:
         isctest.log.error(f"rndc loadkeys {zone} failed")
 
-    assert controller.returncode == 0
+    assert controller.rc == 0
 
 
 class CheckDSTest(NamedTuple):

@@ -63,14 +63,14 @@ def grep_c(regex, filename):
 def keygen(*args):
     keygen_cmd = [os.environ.get("KEYGEN")]
     keygen_cmd.extend(args)
-    return isctest.run.cmd(keygen_cmd, log_stdout=True).stdout.decode("utf-8").strip()
+    return isctest.run.cmd(keygen_cmd).out.strip()
 
 
 # run dnssec-settime
 def settime(*args):
     settime_cmd = [os.environ.get("SETTIME")]
     settime_cmd.extend(args)
-    return isctest.run.cmd(settime_cmd, log_stdout=True).stdout.decode("utf-8").strip()
+    return isctest.run.cmd(settime_cmd).out.strip()
 
 
 @pytest.mark.parametrize(
