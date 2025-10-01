@@ -1260,7 +1260,6 @@ def test_kasp_insecure(ns3):
 
 
 def test_kasp_bad_maxzonettl(ns3):
-    # check that max-zone-ttl rejects zones with too high TTL.
     isctest.log.info("check max-zone-ttl rejects zones with too high TTL")
     zone = "max-zone-ttl.kasp"
     assert f"loading from master file {zone}.db failed: out of range" in ns3.log
@@ -1284,7 +1283,10 @@ def test_kasp_dnssec_keygen():
 
         return isctest.run.cmd(keygen_command).stdout.decode("utf-8")
 
-    # check that 'dnssec-keygen -k' (configured policy) creates valid files.
+    isctest.log.info(
+        "check that 'dnssec-keygen -k' (configured policy) created valid files"
+    )
+
     keyprops = [
         f"csk {lifetime['P1Y']} 13 256",
         f"ksk {lifetime['P1Y']} 8 2048",
@@ -1297,14 +1299,20 @@ def test_kasp_dnssec_keygen():
     expected = isctest.kasp.policy_to_properties(ttl=200, keys=keyprops)
     isctest.kasp.check_keys("kasp", keys, expected)
 
-    # check that 'dnssec-keygen -k' (default policy) creates valid files.
+    isctest.log.info(
+        "check that 'dnssec-keygen -k' (default policy) created valid files"
+    )
+
     keyprops = ["csk 0 13 256"]
     out = keygen("kasp", "default")
     keys = isctest.kasp.keystr_to_keylist(out)
     expected = isctest.kasp.policy_to_properties(ttl=3600, keys=keyprops)
     isctest.kasp.check_keys("kasp", keys, expected)
 
-    # check that 'dnssec-settime' by default does not edit key state file.
+    isctest.log.info(
+        "check that 'dnssec-settime' by default does not edit key state file"
+    )
+
     key = keys[0]
     shutil.copyfile(key.privatefile, f"{key.privatefile}.backup")
     shutil.copyfile(key.keyfile, f"{key.keyfile}.backup")
@@ -1324,8 +1332,10 @@ def test_kasp_dnssec_keygen():
     assert key.get_metadata("Publish", file=key.privatefile) == str(publish)
     assert key.get_metadata("Publish", file=key.keyfile, comment=True) == str(publish)
 
-    # check that 'dnssec-settime -s' also sets publish time metadata and
-    # states in key state file.
+    isctest.log.info(
+        "check that 'dnssec-settime -s' also sets publish time metadata and states in key state file"
+    )
+
     now = KeyTimingMetadata.now()
     goal = "omnipresent"
     dnskey = "rumoured"
@@ -1371,8 +1381,10 @@ def test_kasp_dnssec_keygen():
     isctest.kasp.check_keys("kasp", keys, expected)
     isctest.kasp.check_keytimes(keys, expected)
 
-    # check that 'dnssec-settime -s' also unsets publish time metadata and
-    # states in key state file.
+    isctest.log.info(
+        "check that 'dnssec-settime -s' also unsets publish time metadata and states in key state file"
+    )
+
     now = KeyTimingMetadata.now()
     keyprops = ["csk 0 13 256"]
     expected = isctest.kasp.policy_to_properties(ttl=3600, keys=keyprops)
@@ -1406,7 +1418,10 @@ def test_kasp_dnssec_keygen():
     isctest.kasp.check_keys("kasp", keys, expected)
     isctest.kasp.check_keytimes(keys, expected)
 
-    # check that 'dnssec-settime -s' also sets active time metadata and states in key state file (uppercase)
+    isctest.log.info(
+        "check that 'dnssec-settime -s' also sets active time metadata and states in key state file (uppercase)"
+    )
+
     soon = now + timedelta(hours=2)
     goal = "hidden"
     dnskey = "unretentive"
