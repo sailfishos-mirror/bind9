@@ -99,30 +99,44 @@
 		goto cleanup;                \
 	}
 
-#define NUMERIC_NTAGS (DST_MAX_NUMERIC + 1)
-static const char *numerictags[NUMERIC_NTAGS] = {
-	"Predecessor:", "Successor:",  "MaxTTL:",    "RollPeriod:",
-	"Lifetime:",	"DSPubCount:", "DSRemCount:"
+static const char *numerictags[DST_MAX_NUMERIC] = {
+	[DST_NUM_PREDECESSOR] = "Predecessor:",
+	[DST_NUM_SUCCESSOR] = "Successor:",
+	[DST_NUM_MAXTTL] = "MaxTTL:",
+	[DST_NUM_ROLLPERIOD] = "RollPeriod:",
+	[DST_NUM_LIFETIME] = "Lifetime:",
+	[DST_NUM_DSPUBCOUNT] = "DSPubCount:",
+	[DST_NUM_DSDELCOUNT] = "DSRemCount:",
 };
 
-#define BOOLEAN_NTAGS (DST_MAX_BOOLEAN + 1)
-static const char *booleantags[BOOLEAN_NTAGS] = { "KSK:", "ZSK:" };
-
-#define TIMING_NTAGS (DST_MAX_TIMES + 1)
-static const char *timingtags[TIMING_NTAGS] = {
-	"Generated:",	 "Published:",	  "Active:",	   "Revoked:",
-	"Retired:",	 "Removed:",
-
-	"DSPublish:",	 "SyncPublish:",  "SyncDelete:",
-
-	"DNSKEYChange:", "ZRRSIGChange:", "KRRSIGChange:", "DSChange:",
-
-	"DSRemoved:",	 "ZRRSIGPublish", "ZRRSIGRemoved"
+static const char *booleantags[DST_MAX_BOOLEAN] = {
+	[DST_BOOL_KSK] = "KSK:",
+	[DST_BOOL_ZSK] = "ZSK:",
 };
 
-#define KEYSTATES_NTAGS (DST_MAX_KEYSTATES + 1)
-static const char *keystatestags[KEYSTATES_NTAGS] = {
-	"DNSKEYState:", "ZRRSIGState:", "KRRSIGState:", "DSState:", "GoalState:"
+static const char *timingtags[DST_MAX_TIMES] = {
+	[DST_TIME_CREATED] = "Generated:",
+	[DST_TIME_PUBLISH] = "Published:",
+	[DST_TIME_ACTIVATE] = "Active:",
+	[DST_TIME_REVOKE] = "Revoked:",
+	[DST_TIME_INACTIVE] = "Retired:",
+	[DST_TIME_DELETE] = "Removed:",
+	[DST_TIME_DSPUBLISH] = "DSPublish:",
+	[DST_TIME_SYNCPUBLISH] = "SyncPublish:",
+	[DST_TIME_SYNCDELETE] = "SyncDelete:",
+	[DST_TIME_DNSKEY] = "DNSKEYChange:",
+	[DST_TIME_ZRRSIG] = "ZRRSIGChange:",
+	[DST_TIME_KRRSIG] = "KRRSIGChange:",
+	[DST_TIME_DS] = "DSChange:",
+	[DST_TIME_DSDELETE] = "DSRemoved:",
+	[DST_TIME_SIGPUBLISH] = "ZRRSIGPublish:",
+	[DST_TIME_SIGDELETE] = "ZZRRSIGDelete:",
+};
+
+static const char *keystatestags[DST_MAX_KEYSTATES] = {
+	[DST_KEY_DNSKEY] = "DNSKEYState:", [DST_KEY_ZRRSIG] = "ZRRSIGState:",
+	[DST_KEY_KRRSIG] = "KRRSIGState:", [DST_KEY_DS] = "DSState:",
+	[DST_KEY_GOAL] = "GoalState:",
 };
 
 #define KEYSTATES_NVALUES 4
@@ -987,7 +1001,7 @@ isc_result_t
 dst_key_getbool(const dst_key_t *key, int type, bool *valuep) {
 	REQUIRE(VALID_KEY(key));
 	REQUIRE(valuep != NULL);
-	REQUIRE(type <= DST_MAX_BOOLEAN);
+	REQUIRE(type < DST_MAX_BOOLEAN);
 
 	isc_mutex_lock(&(((dst_key_t *)key)->mdlock));
 	if (!key->boolset[type]) {
@@ -1003,7 +1017,7 @@ dst_key_getbool(const dst_key_t *key, int type, bool *valuep) {
 void
 dst_key_setbool(dst_key_t *key, int type, bool value) {
 	REQUIRE(VALID_KEY(key));
-	REQUIRE(type <= DST_MAX_BOOLEAN);
+	REQUIRE(type < DST_MAX_BOOLEAN);
 
 	isc_mutex_lock(&key->mdlock);
 	key->modified = key->modified || !key->boolset[type] ||
@@ -1016,7 +1030,7 @@ dst_key_setbool(dst_key_t *key, int type, bool value) {
 void
 dst_key_unsetbool(dst_key_t *key, int type) {
 	REQUIRE(VALID_KEY(key));
-	REQUIRE(type <= DST_MAX_BOOLEAN);
+	REQUIRE(type < DST_MAX_BOOLEAN);
 
 	isc_mutex_lock(&key->mdlock);
 	key->modified = key->modified || key->boolset[type];
@@ -1028,7 +1042,7 @@ isc_result_t
 dst_key_getnum(const dst_key_t *key, int type, uint32_t *valuep) {
 	REQUIRE(VALID_KEY(key));
 	REQUIRE(valuep != NULL);
-	REQUIRE(type <= DST_MAX_NUMERIC);
+	REQUIRE(type < DST_MAX_NUMERIC);
 
 	isc_mutex_lock(&(((dst_key_t *)key)->mdlock));
 	if (!key->numset[type]) {
@@ -1044,7 +1058,7 @@ dst_key_getnum(const dst_key_t *key, int type, uint32_t *valuep) {
 void
 dst_key_setnum(dst_key_t *key, int type, uint32_t value) {
 	REQUIRE(VALID_KEY(key));
-	REQUIRE(type <= DST_MAX_NUMERIC);
+	REQUIRE(type < DST_MAX_NUMERIC);
 
 	isc_mutex_lock(&key->mdlock);
 	key->modified = key->modified || !key->numset[type] ||
@@ -1057,7 +1071,7 @@ dst_key_setnum(dst_key_t *key, int type, uint32_t value) {
 void
 dst_key_unsetnum(dst_key_t *key, int type) {
 	REQUIRE(VALID_KEY(key));
-	REQUIRE(type <= DST_MAX_NUMERIC);
+	REQUIRE(type < DST_MAX_NUMERIC);
 
 	isc_mutex_lock(&key->mdlock);
 	key->modified = key->modified || key->numset[type];
@@ -1069,7 +1083,7 @@ isc_result_t
 dst_key_gettime(const dst_key_t *key, int type, isc_stdtime_t *timep) {
 	REQUIRE(VALID_KEY(key));
 	REQUIRE(timep != NULL);
-	REQUIRE(type <= DST_MAX_TIMES);
+	REQUIRE(type < DST_MAX_TIMES);
 
 	isc_mutex_lock(&(((dst_key_t *)key)->mdlock));
 	if (!key->timeset[type]) {
@@ -1084,7 +1098,7 @@ dst_key_gettime(const dst_key_t *key, int type, isc_stdtime_t *timep) {
 void
 dst_key_settime(dst_key_t *key, int type, isc_stdtime_t when) {
 	REQUIRE(VALID_KEY(key));
-	REQUIRE(type <= DST_MAX_TIMES);
+	REQUIRE(type < DST_MAX_TIMES);
 
 	isc_mutex_lock(&key->mdlock);
 	key->modified = key->modified || !key->timeset[type] ||
@@ -1097,7 +1111,7 @@ dst_key_settime(dst_key_t *key, int type, isc_stdtime_t when) {
 void
 dst_key_unsettime(dst_key_t *key, int type) {
 	REQUIRE(VALID_KEY(key));
-	REQUIRE(type <= DST_MAX_TIMES);
+	REQUIRE(type < DST_MAX_TIMES);
 
 	isc_mutex_lock(&key->mdlock);
 	key->modified = key->modified || key->timeset[type];
@@ -1109,7 +1123,7 @@ isc_result_t
 dst_key_getstate(const dst_key_t *key, int type, dst_key_state_t *statep) {
 	REQUIRE(VALID_KEY(key));
 	REQUIRE(statep != NULL);
-	REQUIRE(type <= DST_MAX_KEYSTATES);
+	REQUIRE(type < DST_MAX_KEYSTATES);
 
 	isc_mutex_lock(&(((dst_key_t *)key)->mdlock));
 	if (!key->keystateset[type]) {
@@ -1125,7 +1139,7 @@ dst_key_getstate(const dst_key_t *key, int type, dst_key_state_t *statep) {
 void
 dst_key_setstate(dst_key_t *key, int type, dst_key_state_t state) {
 	REQUIRE(VALID_KEY(key));
-	REQUIRE(type <= DST_MAX_KEYSTATES);
+	REQUIRE(type < DST_MAX_KEYSTATES);
 
 	isc_mutex_lock(&key->mdlock);
 	key->modified = key->modified || !key->keystateset[type] ||
@@ -1138,7 +1152,7 @@ dst_key_setstate(dst_key_t *key, int type, dst_key_state_t state) {
 void
 dst_key_unsetstate(dst_key_t *key, int type) {
 	REQUIRE(VALID_KEY(key));
-	REQUIRE(type <= DST_MAX_KEYSTATES);
+	REQUIRE(type < DST_MAX_KEYSTATES);
 
 	isc_mutex_lock(&key->mdlock);
 	key->modified = key->modified || key->keystateset[type];
@@ -1627,22 +1641,22 @@ find_metadata(const char *s, const char *tags[], int ntags) {
 
 static int
 find_numericdata(const char *s) {
-	return find_metadata(s, numerictags, NUMERIC_NTAGS);
+	return find_metadata(s, numerictags, DST_MAX_NUMERIC);
 }
 
 static int
 find_booleandata(const char *s) {
-	return find_metadata(s, booleantags, BOOLEAN_NTAGS);
+	return find_metadata(s, booleantags, DST_MAX_BOOLEAN);
 }
 
 static int
 find_timingdata(const char *s) {
-	return find_metadata(s, timingtags, TIMING_NTAGS);
+	return find_metadata(s, timingtags, DST_MAX_TIMES);
 }
 
 static int
 find_keystatedata(const char *s) {
-	return find_metadata(s, keystatestags, KEYSTATES_NTAGS);
+	return find_metadata(s, keystatestags, DST_MAX_KEYSTATES);
 }
 
 static isc_result_t
@@ -1734,7 +1748,7 @@ dst_key_read_state(const char *filename, isc_mem_t *mctx, dst_key_t **keyp) {
 		/* Numeric metadata */
 		tag = find_numericdata(DST_AS_STR(token));
 		if (tag >= 0) {
-			INSIST(tag < NUMERIC_NTAGS);
+			INSIST(tag < DST_MAX_NUMERIC);
 
 			NEXTTOKEN(lex, opt | ISC_LEXOPT_NUMBER, &token);
 			if (token.type != isc_tokentype_number) {
@@ -1748,7 +1762,7 @@ dst_key_read_state(const char *filename, isc_mem_t *mctx, dst_key_t **keyp) {
 		/* Boolean metadata */
 		tag = find_booleandata(DST_AS_STR(token));
 		if (tag >= 0) {
-			INSIST(tag < BOOLEAN_NTAGS);
+			INSIST(tag < DST_MAX_BOOLEAN);
 
 			NEXTTOKEN(lex, opt, &token);
 			if (token.type != isc_tokentype_string) {
@@ -1770,7 +1784,7 @@ dst_key_read_state(const char *filename, isc_mem_t *mctx, dst_key_t **keyp) {
 		if (tag >= 0) {
 			uint32_t when;
 
-			INSIST(tag < TIMING_NTAGS);
+			INSIST(tag < DST_MAX_TIMES);
 
 			NEXTTOKEN(lex, opt, &token);
 			if (token.type != isc_tokentype_string) {
@@ -1791,7 +1805,7 @@ dst_key_read_state(const char *filename, isc_mem_t *mctx, dst_key_t **keyp) {
 		if (tag >= 0) {
 			dst_key_state_t state;
 
-			INSIST(tag < KEYSTATES_NTAGS);
+			INSIST(tag < DST_MAX_KEYSTATES);
 
 			NEXTTOKEN(lex, opt, &token);
 			if (token.type != isc_tokentype_string) {
@@ -2310,7 +2324,7 @@ dst_key_is_unused(const dst_key_t *key) {
 	 * None of the key timing metadata, except Created, may be set.  Key
 	 * state times may be set only if their respective state is HIDDEN.
 	 */
-	for (int i = 0; i < DST_MAX_TIMES + 1; i++) {
+	for (int i = 0; i < DST_MAX_TIMES; i++) {
 		state_type_set = false;
 
 		switch (i) {
@@ -2631,7 +2645,7 @@ dst_key_copy_metadata(dst_key_t *to, dst_key_t *from) {
 	REQUIRE(VALID_KEY(to));
 	REQUIRE(VALID_KEY(from));
 
-	for (int i = 0; i < DST_MAX_TIMES + 1; i++) {
+	for (int i = 0; i < DST_MAX_TIMES; i++) {
 		result = dst_key_gettime(from, i, &when);
 		if (result == ISC_R_SUCCESS) {
 			dst_key_settime(to, i, when);
@@ -2640,7 +2654,7 @@ dst_key_copy_metadata(dst_key_t *to, dst_key_t *from) {
 		}
 	}
 
-	for (int i = 0; i < DST_MAX_NUMERIC + 1; i++) {
+	for (int i = 0; i < DST_MAX_NUMERIC; i++) {
 		result = dst_key_getnum(from, i, &num);
 		if (result == ISC_R_SUCCESS) {
 			dst_key_setnum(to, i, num);
@@ -2649,7 +2663,7 @@ dst_key_copy_metadata(dst_key_t *to, dst_key_t *from) {
 		}
 	}
 
-	for (int i = 0; i < DST_MAX_BOOLEAN + 1; i++) {
+	for (int i = 0; i < DST_MAX_BOOLEAN; i++) {
 		result = dst_key_getbool(from, i, &yesno);
 		if (result == ISC_R_SUCCESS) {
 			dst_key_setbool(to, i, yesno);
@@ -2658,7 +2672,7 @@ dst_key_copy_metadata(dst_key_t *to, dst_key_t *from) {
 		}
 	}
 
-	for (int i = 0; i < DST_MAX_KEYSTATES + 1; i++) {
+	for (int i = 0; i < DST_MAX_KEYSTATES; i++) {
 		result = dst_key_getstate(from, i, &state);
 		if (result == ISC_R_SUCCESS) {
 			dst_key_setstate(to, i, state);
