@@ -25,12 +25,14 @@ more plugins are added. Currently, only "query plugins" are supported;
 these modify the name server query logic. Other plugin types may be
 added in the future.
 
-The only plugin currently included in BIND is :iscman:`filter-aaaa.so <filter-aaaa>`, which
-replaces the ``filter-aaaa`` feature that previously existed natively as
-part of :iscman:`named`. The code for this feature has been removed from
-:iscman:`named` and can no longer be configured using standard :iscman:`named.conf`
-syntax, but linking in the :iscman:`filter-aaaa.so <filter-aaaa>` plugin provides identical
-functionality.
+The plugins currently included in BIND are :iscman:`filter-aaaa.so
+<filter-aaaa>`, :iscman:`filter-a.so <filter-a>` and :iscman:`synthrecord.so <synthrecord>`.
+
+The plugin :iscman:`filter-aaaa.so <filter-aaaa>` replaces the ``filter-aaaa``
+feature that previously existed natively as part of :iscman:`named`. The code
+for this feature has been removed from :iscman:`named` and can no longer be
+configured using standard :iscman:`named.conf` syntax, but linking in the
+:iscman:`filter-aaaa.so <filter-aaaa>` plugin provides identical functionality.
 
 Configuring Plugins
 ~~~~~~~~~~~~~~~~~~~

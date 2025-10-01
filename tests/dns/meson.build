@@ -12,6 +12,7 @@
 dns_tests = [
     'acl',
     'badcache',
+    'byaddr',
     'db',
     'dbdiff',
     'dbiterator',

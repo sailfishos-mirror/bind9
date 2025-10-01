@@ -139,6 +139,7 @@ man_pages = [
         author,
         8,
     ),
+    ("synthrecord", "synthrecord", "dynamically synthesize PTR records", author, 8),
     ("host", "host", "DNS lookup utility", author, 1),
     ("mdig", "mdig", "DNS pipelined lookup utility", author, 1),
     (
