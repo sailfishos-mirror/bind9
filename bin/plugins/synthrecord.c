@@ -601,8 +601,8 @@ cleanup:
 
 isc_result_t
 plugin_register(const char *parameters, const void *cfg, const char *cfgfile,
-		unsigned long cfgline, isc_mem_t *mctx, void *actx,
-		ns_hooktable_t *hooktable, const ns_pluginregister_ctx_t *ctx,
+		unsigned long cfgline, isc_mem_t *mctx, void *aclctx,
+		ns_hooktable_t *hooktable, const ns_pluginctx_t *ctx,
 		void **instp) {
 	synthrecord_t *inst = NULL;
 	ns_hook_t hook;
@@ -610,7 +610,7 @@ plugin_register(const char *parameters, const void *cfg, const char *cfgfile,
 
 	REQUIRE(cfg);
 	REQUIRE(mctx);
-	REQUIRE(actx);
+	REQUIRE(aclctx);
 	REQUIRE(hooktable);
 	REQUIRE(instp && *instp == NULL);
 
@@ -625,7 +625,7 @@ plugin_register(const char *parameters, const void *cfg, const char *cfgfile,
 	isc_mem_attach(mctx, &inst->mctx);
 	result = ISC_R_SUCCESS;
 	result = synthrecord_parseconfig(inst, parameters, cfg, cfgfile,
-					 cfgline, actx, ctx->origin);
+					 cfgline, aclctx, ctx->origin);
 
 	hook = (ns_hook_t){ .action = synthrecord_entry, .action_data = inst };
 	ns_hook_add(hooktable, mctx, NS_QUERY_NXDOMAIN_BEGIN, &hook);
@@ -641,8 +641,8 @@ plugin_register(const char *parameters, const void *cfg, const char *cfgfile,
 
 isc_result_t
 plugin_check(const char *parameters, const void *cfg, const char *cfgfile,
-	     unsigned long cfgline, isc_mem_t *mctx, void *actx,
-	     const ns_pluginregister_ctx_t *ctx) {
+	     unsigned long cfgline, isc_mem_t *mctx, void *aclctx,
+	     const ns_pluginctx_t *ctx) {
 	isc_result_t result;
 	synthrecord_t *inst = NULL;
 	const dns_name_t *zname = (ctx == NULL) ? NULL : ctx->origin;
@@ -660,7 +660,7 @@ plugin_check(const char *parameters, const void *cfg, const char *cfgfile,
 
 	isc_mem_attach(mctx, &inst->mctx);
 	result = synthrecord_parseconfig(inst, parameters, cfg, cfgfile,
-					 cfgline, actx, zname);
+					 cfgline, aclctx, zname);
 	plugin_destroy((void **)&inst);
 
 	return result;

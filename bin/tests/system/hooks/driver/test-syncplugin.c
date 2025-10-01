@@ -113,7 +113,7 @@ syncplugin__parse_rcode(const cfg_obj_t *syncplugincfg, uint8_t *rcode) {
 isc_result_t
 plugin_register(const char *parameters, const void *cfg, const char *cfgfile,
 		unsigned long cfgline, isc_mem_t *mctx, void *aclctx,
-		ns_hooktable_t *hooktable, const ns_pluginregister_ctx_t *ctx,
+		ns_hooktable_t *hooktable, const ns_pluginctx_t *ctx,
 		void **instp) {
 	isc_result_t result;
 	cfg_parser_t *parser = NULL;
@@ -230,7 +230,7 @@ cleanup:
 isc_result_t
 plugin_check(const char *parameters, const void *cfg, const char *cfgfile,
 	     unsigned long cfgline, isc_mem_t *mctx, void *aclctx,
-	     const ns_pluginregister_ctx_t *ctx) {
+	     const ns_pluginctx_t *ctx) {
 	UNUSED(parameters);
 	UNUSED(cfg);
 	UNUSED(cfgfile);

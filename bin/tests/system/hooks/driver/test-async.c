@@ -125,7 +125,7 @@ logmsg(const char *fmt, ...) {
 isc_result_t
 plugin_register(const char *parameters, const void *cfg, const char *cfg_file,
 		unsigned long cfg_line, isc_mem_t *mctx, void *aclctx,
-		ns_hooktable_t *hooktable, const ns_pluginregister_ctx_t *ctx,
+		ns_hooktable_t *hooktable, const ns_pluginctx_t *ctx,
 		void **instp) {
 	async_instance_t *inst = NULL;
 
@@ -158,7 +158,7 @@ plugin_register(const char *parameters, const void *cfg, const char *cfg_file,
 isc_result_t
 plugin_check(const char *parameters, const void *cfg, const char *cfg_file,
 	     unsigned long cfg_line, isc_mem_t *mctx, void *aclctx,
-	     const ns_pluginregister_ctx_t *ctx) {
+	     const ns_pluginctx_t *ctx) {
 	UNUSED(parameters);
 	UNUSED(cfg);
 	UNUSED(cfg_file);
