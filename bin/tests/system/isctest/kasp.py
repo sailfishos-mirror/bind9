@@ -190,7 +190,6 @@ class KeyProperties:
     @staticmethod
     def default(with_state=True) -> "KeyProperties":
         properties = {
-            "expect": True,
             "private": True,
             "legacy": False,
             "role": "csk",
@@ -544,9 +543,6 @@ class Key:
         """
         Check the key with given properties.
         """
-        if not properties.properties["expect"]:
-            return False
-
         # Check file existence.
         # Noop. If file is missing then the get_metadata calls will fail.
 
@@ -1515,7 +1511,6 @@ def policy_to_properties(ttl, keys: List[str]) -> List[KeyProperties]:
         count += 1
         line = key.split()
         keyprop = KeyProperties(f"KEY{count}", {}, {}, {})
-        keyprop.properties["expect"] = True
         keyprop.properties["private"] = True
         keyprop.properties["legacy"] = False
         keyprop.properties["offset"] = timedelta(0)
