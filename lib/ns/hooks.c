@@ -224,6 +224,9 @@ ns_plugin_register(const char *modpath, const char *parameters, const void *cfg,
 	isc_log_write(ns_lctx, NS_LOGCATEGORY_GENERAL, NS_LOGMODULE_HOOKS,
 		      ISC_LOG_INFO, "registering plugin '%s'", modpath);
 
+	CHECK(plugin->check_func(parameters, cfg, cfg_file, cfg_line, mctx,
+				 lctx, actx));
+
 	CHECK(plugin->register_func(parameters, cfg, cfg_file, cfg_line, mctx,
 				    lctx, actx, view->hooktable,
 				    &plugin->inst));
