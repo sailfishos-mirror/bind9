@@ -11,6 +11,7 @@
 
 import os
 import re
+import subprocess
 
 import pytest
 
@@ -63,12 +64,12 @@ def test_verify_good_zone_nsec_next_name_case_mismatch():
 
 def get_bad_zone_output(zone):
     only_opt = ["-z"] if re.match(r"[zk]sk-only", zone) else []
-    output = isctest.run.cmd(
+    cmd = isctest.run.cmd(
         [VERIFY, *only_opt, "-o", zone, f"zones/{zone}.bad"],
+        stderr=subprocess.STDOUT,
         raise_on_exception=False,
     )
-    stream = (output.stdout + output.stderr).decode("utf-8").replace("\n", "")
-    return stream
+    return cmd.out
 
 
 @pytest.mark.parametrize(
@@ -153,19 +154,17 @@ def test_verify_bad_zone_files_unequal_nsec3_chains():
 def test_verify_soa_not_at_top_error():
     # when -o is not used, origin is set to zone file name,
     # which should cause an error in this case
-    output = isctest.run.cmd(
-        [VERIFY, "zones/ksk+zsk.nsec.good"], raise_on_exception=False
-    ).stderr.decode("utf-8")
-    assert "not at top of zone" in output
-    assert "use -o to specify a different zone origin" in output
+    cmd = isctest.run.cmd([VERIFY, "zones/ksk+zsk.nsec.good"], raise_on_exception=False)
+    assert "not at top of zone" in cmd.err
+    assert "use -o to specify a different zone origin" in cmd.err
 
 
 # checking error message when an invalid -o is specified
 # and a SOA record not at top of zone is found
 def test_verify_invalid_o_option_soa_not_at_top_error():
-    output = isctest.run.cmd(
+    cmd = isctest.run.cmd(
         [VERIFY, "-o", "invalid.origin", "zones/ksk+zsk.nsec.good"],
         raise_on_exception=False,
-    ).stderr.decode("utf-8")
-    assert "not at top of zone" in output
-    assert "use -o to specify a different zone origin" not in output
+    )
+    assert "not at top of zone" in cmd.err
+    assert "use -o to specify a different zone origin" not in cmd.err

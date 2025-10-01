@@ -20,6 +20,18 @@ from isctest.compat import dns_rcode
 import dns.message
 
 
+class CmdResult:
+    def __init__(self, proc=None):
+        self.proc = proc
+        self.rc = self.proc.returncode
+        self.out = ""
+        self.err = ""
+        if self.proc.stdout:
+            self.out = self.proc.stdout.decode("utf-8")
+        if self.proc.stderr:
+            self.err = self.proc.stderr.decode("utf-8")
+
+
 def cmd(
     args,
     cwd=None,
@@ -31,7 +43,7 @@ def cmd(
     input_text: Optional[bytes] = None,
     raise_on_exception=True,
     env: Optional[dict] = None,
-):
+) -> CmdResult:
     """Execute a command with given args as subprocess."""
     isctest.log.debug(f"isctest.run.cmd(): {' '.join(args)}")
 
@@ -61,24 +73,24 @@ def cmd(
             env=env,
         )
         print_debug_logs(proc)
-        return proc
+        return CmdResult(proc)
     except subprocess.CalledProcessError as exc:
         print_debug_logs(exc)
         isctest.log.debug(f"isctest.run.cmd(): (return code) {exc.returncode}")
         if raise_on_exception:
             raise exc
-        return exc
+        return CmdResult(exc)
 
 
 class Dig:
     def __init__(self, base_params: str = ""):
         self.base_params = base_params
 
-    def __call__(self, params: str) -> str:
-        """Run the dig command with the given parameters and return the decoded output."""
+    def __call__(self, params: str) -> CmdResult:
+        """Run the dig command with the given parameters."""
         return cmd(
             [os.environ.get("DIG")] + f"{self.base_params} {params}".split(),
-        ).stdout.decode("utf-8")
+        )
 
 
 def retry_with_timeout(func, timeout, delay=1, msg=None):

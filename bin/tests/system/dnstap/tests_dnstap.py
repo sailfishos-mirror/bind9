@@ -13,7 +13,6 @@
 
 import os
 import re
-import subprocess
 
 import isctest
 import pytest
@@ -45,8 +44,8 @@ def test_dnstap_dispatch_socket_addresses(ns3):
     os.rename(os.path.join("ns3", "dnstap.out.0"), "dnstap.out.resolver_addresses")
 
     # Read the contents of the dnstap file using dnstap-read.
-    output = subprocess.check_output(
-        [os.getenv("DNSTAPREAD"), "dnstap.out.resolver_addresses"], encoding="utf-8"
+    dnstapread = isctest.run.cmd(
+        [os.getenv("DNSTAPREAD"), "dnstap.out.resolver_addresses"],
     )
 
     # Check whether all frames contain the expected addresses.
@@ -61,7 +60,7 @@ def test_dnstap_dispatch_socket_addresses(ns3):
     bad_frames = []
     inspected_frames = 0
     addr_regex = r"^10\.53\.0\.[0-9]+:[0-9]{1,5}$"
-    for line in output.splitlines():
+    for line in dnstapread.out.splitlines():
         _, _, frame_type, addr1, _, addr2, _ = line.split(" ", 6)
         # Only inspect RESOLVER_QUERY and RESOLVER_RESPONSE frames.
         if frame_type not in ("RQ", "RR"):
