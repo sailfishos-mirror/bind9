@@ -324,12 +324,12 @@ cleanup:
 isc_result_t
 plugin_register(const char *parameters, const void *cfg, const char *cfg_file,
 		unsigned long cfg_line, isc_mem_t *mctx, void *aclctx,
-		ns_hooktable_t *hooktable, ns_hooksource_t source,
+		ns_hooktable_t *hooktable, const ns_pluginregister_ctx_t *ctx,
 		void **instp) {
 	filter_instance_t *inst = NULL;
 	isc_result_t result = ISC_R_SUCCESS;
 
-	UNUSED(source);
+	UNUSED(ctx);
 
 	isc_log_write(NS_LOGCATEGORY_GENERAL, NS_LOGMODULE_HOOKS, ISC_LOG_INFO,
 		      "registering 'filter-a' "
@@ -366,7 +366,7 @@ cleanup:
 isc_result_t
 plugin_check(const char *parameters, const void *cfg, const char *cfg_file,
 	     unsigned long cfg_line, isc_mem_t *mctx, void *aclctx,
-	     ns_hooksource_t source ISC_ATTR_UNUSED) {
+	     const ns_pluginregister_ctx_t *ctx ISC_ATTR_UNUSED) {
 	isc_result_t result = ISC_R_SUCCESS;
 	cfg_parser_t *parser = NULL;
 	cfg_obj_t *param_obj = NULL;

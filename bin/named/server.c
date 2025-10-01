@@ -5421,7 +5421,9 @@ configure_view(dns_view_t *view, dns_viewlist_t *viewlist, cfg_obj_t *config,
 	}
 
 	if (plugin_list != NULL) {
-		ns_hook_data_t hookdata = { .source = NS_HOOKSOURCE_VIEW };
+		ns_hook_data_t hookdata = {
+			.pluginregister_ctx = { .source = NS_HOOKSOURCE_VIEW }
+		};
 
 		INSIST(view->hooktable == NULL);
 		ns_hooktable_create(view->mctx, &hookdata.hooktable);
