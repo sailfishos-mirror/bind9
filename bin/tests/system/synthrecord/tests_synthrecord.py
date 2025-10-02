@@ -13,17 +13,19 @@ import os
 import subprocess
 
 from ipaddress import IPv4Address, IPv6Address
-import hypothesis
-from hypothesis import assume
+
 import pytest
-import isctest
-import isctest.hypothesis
-from isctest.hypothesis.strategies import dns_names
+
 import dns.message
 import dns.reversename
 from dns.reversename import ipv4_reverse_domain
 from dns.reversename import ipv6_reverse_domain
 
+import isctest
+from isctest.hypothesis.strategies import dns_names
+
+from hypothesis import assume, given
+from hypothesis.strategies import ip_addresses
 
 SERVER = "10.53.0.1"
 
@@ -293,7 +295,7 @@ def build_synthetic_name_v6(prefix, ip, domain):
 example_domain = dns.name.from_text("example.")
 
 
-@hypothesis.given(domain=dns_names())
+@given(domain=dns_names())
 def test_synthrecord_reverse_randomdomains(domain):
     assume(
         not (
@@ -307,7 +309,7 @@ def test_synthrecord_reverse_randomdomains(domain):
     assert res.rcode() == dns.rcode.REFUSED
 
 
-@hypothesis.given(ip=hypothesis.strategies.ip_addresses(network="10.53.0.0/24"))
+@given(ip=ip_addresses(network="10.53.0.0/24"))
 def test_sythreverse_noerror_hasdata_v4(ip):
     assume(ip not in [IPv4Address("10.53.0.28"), IPv4Address("10.53.0.4")])
     query = dns.message.make_query(ip.reverse_pointer, "PTR")
@@ -324,7 +326,7 @@ def test_sythreverse_noerror_hasdata_v4(ip):
     ]
 
 
-@hypothesis.given(ip=hypothesis.strategies.ip_addresses(network="10.53.2.0/24"))
+@given(ip=ip_addresses(network="10.53.2.0/24"))
 def test_sythreverse_refused_v4(ip):
     query = dns.message.make_query(ip.reverse_pointer, "PTR")
     res = isctest.query.udp(query, SERVER)
@@ -335,7 +337,7 @@ arpa_cafecafe = dns.name.from_text("e.f.a.c.e.f.a.c.ip6.arpa.")
 arpa_zeros16 = dns.name.from_text("0.0.0.0.ip6.arpa.")
 
 
-@hypothesis.given(ip=hypothesis.strategies.ip_addresses(v=6))
+@given(ip=ip_addresses(v=6))
 def test_sythreverse_refused_v6(ip):
     assume(not dns.name.from_text(ip.reverse_pointer).is_subdomain(arpa_cafecafe))
     assume(not dns.name.from_text(ip.reverse_pointer).is_subdomain(arpa_zeros16))
@@ -362,7 +364,7 @@ def test_synthreverse_idn_compat(addr, expected):
     ]
 
 
-@hypothesis.given(ip=hypothesis.strategies.ip_addresses(network="cafe:cafe::/32"))
+@given(ip=ip_addresses(network="cafe:cafe::/32"))
 def test_sythreverse_noerror_hasdata_v6(ip):
     assume(not ip == IPv6Address("cafe:cafe::"))
     query = dns.message.make_query(ip.reverse_pointer, "PTR")
@@ -379,7 +381,7 @@ def test_sythreverse_noerror_hasdata_v6(ip):
     ]
 
 
-@hypothesis.given(ip=hypothesis.strategies.ip_addresses(network="10.53.1.0/24"))
+@given(ip=ip_addresses(network="10.53.1.0/24"))
 def test_sythreverse_unallowed_subnet_v4(ip):
     # allow-nets is 10.53.1.0/29, so only addresses below 10.53.1.9 are allowed
     # to have a synthetic record (_allow_subnet_v4 below checks the opposite)
@@ -390,7 +392,7 @@ def test_sythreverse_unallowed_subnet_v4(ip):
     assert res.rcode() == dns.rcode.NXDOMAIN
 
 
-@hypothesis.given(ip=hypothesis.strategies.ip_addresses(network="10.53.1.0/29"))
+@given(ip=ip_addresses(network="10.53.1.0/29"))
 def test_sythreverse_allowed_subnet_v4(ip):
     query = dns.message.make_query(ip.reverse_pointer, "PTR")
     res = isctest.query.udp(query, SERVER)
@@ -406,7 +408,7 @@ def test_sythreverse_allowed_subnet_v4(ip):
     ]
 
 
-@hypothesis.given(
+@given(
     domain=isctest.hypothesis.strategies.dns_names(
         suffix=dns.name.from_text("1.53.10.in-addr.arpa."), min_labels=8, max_labels=34
     )
@@ -418,7 +420,7 @@ def test_sythreverse_arpa_v4_nxdomain_toomanylabel(domain):
     assert res.rcode() == dns.rcode.NXDOMAIN
 
 
-@hypothesis.given(
+@given(
     domain=isctest.hypothesis.strategies.dns_names(
         prefix=dns.name.from_text("dynamic-10-53-0-20"),
         suffix=dns.name.from_text("example"),
@@ -433,7 +435,7 @@ def test_sythforward_arpa_v4_nxdomain_toomanylabel(domain):
     assert res.rcode() == dns.rcode.NXDOMAIN
 
 
-@hypothesis.given(
+@given(
     domain=isctest.hypothesis.strategies.dns_names(
         prefix=dns.name.from_text("dynamic-cafe-cafe--cafe"),
         suffix=dns.name.from_text("example"),
@@ -448,7 +450,7 @@ def test_sythforward_arpa_v6_nxdomain_toomanylabel(domain):
     assert res.rcode() == dns.rcode.NXDOMAIN
 
 
-@hypothesis.given(
+@given(
     domain=isctest.hypothesis.strategies.dns_names(
         prefix=dns.name.from_text("dynamic-cafe--cafe--cafe"),
         suffix=dns.name.from_text("example"),
@@ -463,7 +465,7 @@ def test_sythforward_arpa_v6_nxdomain_unallowednet(domain):
     assert res.rcode() == dns.rcode.NXDOMAIN
 
 
-@hypothesis.given(
+@given(
     domain=isctest.hypothesis.strategies.dns_names(
         suffix=dns.name.from_text("a.e.f.a.c.e.f.a.c.ip6.arpa."), max_labels=34
     )
@@ -475,7 +477,7 @@ def test_sythreverse_arpa_v6_nxdomain_toofewlabels(domain):
     assert res.rcode() == dns.rcode.NXDOMAIN
 
 
-@hypothesis.given(
+@given(
     domain=isctest.hypothesis.strategies.dns_names(
         suffix=dns.name.from_text("e.f.a.c.e.f.a.c.ip6.arpa."), min_labels=36
     )
