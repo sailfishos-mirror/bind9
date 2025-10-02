@@ -1600,7 +1600,7 @@ def test_kasp_zsk_retired(ns3):
         watcher.wait_for_line(f"keymgr: {zone} done")
 
     msg = f"zone {zone}/IN (signed): zone_rekey:zone_verifykeys failed: some key files are missing"
-    ns3.log.prohibit(msg)
+    assert msg not in ns3.log
 
 
 def test_kasp_purge_keys(ns4):
@@ -1624,10 +1624,10 @@ def test_kasp_purge_keys(ns4):
         watcher.wait_for_line(f"keymgr: {zone} done")
 
     msg = f"zone {zone}/IN/example1 (signed): zone_rekey:zone_verifykeys failed: some key files are missing"
-    ns4.log.prohibit(msg)
+    assert msg not in ns4.log
 
     msg = f"zone {zone}/IN/example2 (signed): zone_rekey:zone_verifykeys failed: some key files are missing"
-    ns4.log.prohibit(msg)
+    assert msg not in ns4.log
 
 
 def test_kasp_reload_restart(ns6):
@@ -1729,7 +1729,7 @@ def test_kasp_manual_mode(ns3):
     # Key rollover should have been be blocked.
     tag = expected[1].key.tag
     blockmsg = f"keymgr-manual-mode: block ZSK rollover for key {zone}/ECDSAP256SHA256/{tag} (policy {policy})"
-    ns3.log.expect(blockmsg)
+    assert blockmsg in ns3.log
 
     # Remove files.
     for key in ksks + zsks:

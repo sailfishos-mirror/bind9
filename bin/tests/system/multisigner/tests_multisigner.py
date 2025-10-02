@@ -179,7 +179,7 @@ def check_add_zsk(server, zone, keys, expected, extra_keys, extra, primary=None)
     isctest.log.info(
         f"- zone {zone} {server.identifier}: make sure we did not try to sign with the keys added with nsupdate"
     )
-    server.log.prohibit(f"dns_zone_findkeys: error reading ./K{zone}")
+    assert f"dns_zone_findkeys: error reading ./K{zone}" not in server.log
 
     # Trigger keymgr.
     with server.watch_log_from_here() as watcher:
@@ -189,7 +189,7 @@ def check_add_zsk(server, zone, keys, expected, extra_keys, extra, primary=None)
     # Check again.
     isctest.log.info(f"- zone {zone} {server.identifier}: check again after keymgr run")
     check_dnssec(server, zone, keys + extra_keys, expected + extra)
-    server.log.prohibit(f"dns_zone_findkeys: error reading ./K{zone}")
+    assert f"dns_zone_findkeys: error reading ./K{zone}" not in server.log
 
 
 def _check_remove_zsk_fail(
