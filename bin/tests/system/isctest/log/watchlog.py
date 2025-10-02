@@ -15,7 +15,7 @@ import abc
 import os
 import time
 
-from isctest.text import compile_pattern, FlexPattern, LineReader, LogFile
+from isctest.text import compile_pattern, FlexPattern, LineReader
 
 
 T = TypeVar("T")

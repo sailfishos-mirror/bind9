@@ -18,7 +18,8 @@ import os
 import re
 
 from .rndc import RNDCBinaryExecutor, RNDCException, RNDCExecutor
-from .log import info, LogFile, WatchLogFromStart, WatchLogFromHere
+from .log import info, WatchLogFromStart, WatchLogFromHere
+from .text import TextFile
 
 
 class NamedPorts(NamedTuple):
@@ -61,7 +62,7 @@ class NamedInstance:
         """
         self.ip = self._identifier_to_ip(identifier)
         self.ports = ports
-        self.log = LogFile(os.path.join(identifier, "named.run"))
+        self.log = TextFile(os.path.join(identifier, "named.run"))
         self._rndc_executor = rndc_executor or RNDCBinaryExecutor()
         self._rndc_logger = rndc_logger
 
