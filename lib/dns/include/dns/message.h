@@ -284,6 +284,7 @@ struct dns_message {
 	unsigned int tkey	      : 1;
 	unsigned int rdclass_set      : 1;
 	unsigned int fuzzing	      : 1;
+	unsigned int has_dname	      : 1;
 
 	unsigned int opt_reserved;
 	unsigned int sig_reserved;
@@ -1525,6 +1526,13 @@ dns_message_response_minttl(dns_message_t *msg, dns_ttl_t *pttl);
  * Requires:
  * \li   msg be a valid rendered message;
  * \li   'pttl != NULL'.
+ */
+
+bool
+dns_message_hasdname(dns_message_t *msg);
+/*%<
+ * Return whether a DNAME was detected in the ANSWER section of a QUERY
+ * message when it was parsed.
  */
 
 ISC_LANG_ENDDECLS
