@@ -15,6 +15,7 @@ import glob
 import os
 from pathlib import Path
 import re
+from re import compile as Re
 import time
 from typing import Dict, List, Optional, Tuple, Union
 
@@ -1453,7 +1454,7 @@ def next_key_event_equals(server, zone, next_event):
         waitfor = rf".*zone {zone}.*: next key event in (?!3600$)(.*) seconds"
 
     with server.watch_log_from_start() as watcher:
-        watcher.wait_for_line(re.compile(waitfor))
+        watcher.wait_for_line(Re(waitfor))
 
     # WMM: The with code below is extracting the line the watcher was
     # waiting for. If WatchLog.wait_for_line()` returned the matched string,

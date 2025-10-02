@@ -12,6 +12,7 @@
 from datetime import timedelta
 import os
 import re
+from re import compile as Re
 
 import pytest
 
@@ -103,9 +104,7 @@ def check_no_dnssec_in_journal(server, zone):
     ]
 
     cmd = isctest.run.cmd(journalprint)
-    pattern = re.compile(
-        r"^\s*(?:\S+\s+){4}(NSEC|NSEC3|NSEC3PARAM|RRSIG)", flags=re.MULTILINE
-    )
+    pattern = Re(r"^\s*(?:\S+\s+){4}(NSEC|NSEC3|NSEC3PARAM|RRSIG)", flags=re.MULTILINE)
     match = pattern.search(cmd.out)
     assert not match, f"{match.group(1)} record found in journal"
 
