@@ -366,6 +366,12 @@ trynsec3:
 static void
 resume_answer_with_key_done(void *arg);
 
+static bool
+over_max_fails(dns_validator_t *val);
+
+static void
+consume_validation_fail(dns_validator_t *val);
+
 static void
 resume_answer_with_key(void *arg) {
 	dns_validator_t *val = arg;
@@ -374,6 +380,13 @@ resume_answer_with_key(void *arg) {
 	isc_result_t result = select_signing_key(val, rdataset);
 	if (result == ISC_R_SUCCESS) {
 		val->keyset = &val->frdataset;
+	} else if (result != ISC_R_NOTFOUND) {
+		val->result = result;
+		if (over_max_fails(val)) {
+			INSIST(val->key == NULL);
+			val->result = ISC_R_QUOTA;
+		}
+		consume_validation_fail(val);
 	}
 
 	(void)validate_async_run(val, resume_answer_with_key_done);
@@ -382,6 +395,16 @@ resume_answer_with_key(void *arg) {
 static void
 resume_answer_with_key_done(void *arg) {
 	dns_validator_t *val = arg;
+
+	switch (val->result) {
+	case ISC_R_CANCELED:	 /* Validation was canceled */
+	case ISC_R_SHUTTINGDOWN: /* Server shutting down */
+	case ISC_R_QUOTA:	 /* Validation fails quota reached */
+		dns_validator_cancel(val);
+		break;
+	default:
+		break;
+	}
 
 	resume_answer(val);
 }
@@ -1047,9 +1070,6 @@ select_signing_key(dns_validator_t *val, dns_rdataset_t *rdataset) {
 		val->key = NULL;
 		result = dns_rdataset_next(rdataset);
 	}
-	if (result == ISC_R_NOMORE) {
-		return ISC_R_NOTFOUND;
-	}
 
 	for (; result == ISC_R_SUCCESS; result = dns_rdataset_next(rdataset)) {
 		dns_rdata_rrsig_t *siginfo = val->siginfo;
@@ -1072,18 +1092,11 @@ select_signing_key(dns_validator_t *val, dns_rdataset_t *rdataset) {
 			continue;
 		}
 
-		result = dns_dnssec_keyfromrdata(&siginfo->signer, &rdata,
-						 val->view->mctx, &val->key);
-		if (result == ISC_R_SUCCESS) {
-			/* found the key we wanted */
-			break;
-		}
-	}
-	if (result == ISC_R_NOMORE) {
-		result = ISC_R_NOTFOUND;
+		return dns_dnssec_keyfromrdata(&siginfo->signer, &rdata,
+					       val->view->mctx, &val->key);
 	}
 
-	return result;
+	return ISC_R_NOTFOUND;
 }
 
 /*%
@@ -1354,7 +1367,7 @@ selfsigned_dnskey(dns_validator_t *val) {
 			result = dns_dnssec_keyfromrdata(name, &keyrdata, mctx,
 							 &dstkey);
 			if (result != ISC_R_SUCCESS) {
-				continue;
+				return result;
 			}
 
 			/*
@@ -1594,7 +1607,7 @@ validate_answer_signing_key_done(void *arg);
 static void
 validate_answer_signing_key(void *arg) {
 	dns_validator_t *val = arg;
-	isc_result_t result = ISC_R_NOTFOUND;
+	isc_result_t result;
 
 	if (CANCELED(val) || CANCELING(val)) {
 		val->result = ISC_R_CANCELED;
@@ -1617,13 +1630,19 @@ validate_answer_signing_key(void *arg) {
 	default:
 		/* Select next signing key */
 		result = select_signing_key(val, val->keyset);
+		if (result == ISC_R_SUCCESS) {
+			INSIST(val->key != NULL);
+		} else if (result == ISC_R_NOTFOUND) {
+			INSIST(val->key == NULL);
+		} else {
+			val->result = result;
+			if (over_max_fails(val)) {
+				INSIST(val->key == NULL);
+				val->result = ISC_R_QUOTA;
+			}
+			consume_validation_fail(val);
+		}
 		break;
-	}
-
-	if (result == ISC_R_SUCCESS) {
-		INSIST(val->key != NULL);
-	} else {
-		INSIST(val->key == NULL);
 	}
 
 	(void)validate_async_run(val, validate_answer_signing_key_done);
@@ -1892,10 +1911,7 @@ check_signer(dns_validator_t *val, dns_rdata_t *keyrdata, uint16_t keyid,
 			result = dns_dnssec_keyfromrdata(
 				val->name, keyrdata, val->view->mctx, &dstkey);
 			if (result != ISC_R_SUCCESS) {
-				/*
-				 * This really shouldn't happen, but...
-				 */
-				continue;
+				return result;
 			}
 		}
 		result = verify(val, dstkey, &rdata, sig.keyid);
