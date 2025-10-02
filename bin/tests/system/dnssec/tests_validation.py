@@ -9,8 +9,8 @@
 # See the COPYRIGHT file distributed with this work for additional
 # information regarding copyright ownership.
 
+from re import compile as Re
 import os
-import re
 import shutil
 import time
 
@@ -52,14 +52,6 @@ pytestmark = pytest.mark.extra_artifacts(
         "*/*.unsplit",
     ]
 )
-
-
-# helper functions
-def grep_q(regex, filename):
-    with open(filename, "r", encoding="utf-8") as f:
-        blob = f.read().splitlines()
-    results = [x for x in blob if re.search(regex, x)]
-    return len(results) != 0
 
 
 def getfrom(file):
@@ -501,13 +493,10 @@ def test_negative_validation_nsec3():
     isctest.check.servfail(res2)
 
 
-def test_excessive_nsec3_iterations():
-    assert grep_q(
-        "zone too-many-iterations/IN: excessive NSEC3PARAM iterations", "ns2/named.run"
-    )
-    assert grep_q(
-        "zone too-many-iterations/IN: excessive NSEC3PARAM iterations", "ns3/named.run"
-    )
+def test_excessive_nsec3_iterations(ns2, ns3):
+    msg = "zone too-many-iterations/IN: excessive NSEC3PARAM iterations"
+    assert msg in ns2.log
+    assert msg in ns3.log
 
     # check fallback to insecure with NSEC3 iterations is too high
     msg = isctest.query.create("does-not-exist.too-many-iterations", "A")
@@ -721,10 +710,11 @@ def test_negative_validation_optout():
 def test_cache(ns4):
     # check that key id's are logged when dumping the cache
     ns4.rndc("dumpdb -cache", log=False)
-    assert grep_q("; key id = ", "ns4/named_dump.db")
+    dumpdb = isctest.text.TextFile("ns4/named_dump.db")
+    assert "; key id = " in dumpdb
 
     # check for RRSIG covered type in negative cache
-    assert grep_q("; example. RRSIG NSEC ", "ns4/named_dump.db")
+    assert "; example. RRSIG NSEC " in dumpdb
 
     # check validated data are not cached longer than originalttl
     msg = isctest.query.create("a.ttlpatch.example", "A")
@@ -952,7 +942,8 @@ def test_validation_recovery(ns2, ns4):
     res = isctest.query.tcp(msg, "10.53.0.4")
     isctest.check.servfail(res)
     ns4.rndc("dumpdb", log=False)
-    grep_q("10.53.0.100", "ns4/named_dump.db")
+    dumpdb = isctest.text.TextFile("ns4/named_dump.db")
+    assert "10.53.0.100" in dumpdb
 
     # then reload server with properly signed zone
     shutil.copyfile(
@@ -1136,7 +1127,7 @@ def test_expired_signatures(ns4):
     isctest.check.servfail(res)
     isctest.check.noadflag(res)
     isctest.check.ede(res, EDECode.SIGNATURE_EXPIRED)
-    assert grep_q("expired.example/.*: RRSIG has expired", "ns4/named.run")
+    assert Re("expired.example/.*: RRSIG has expired") in ns4.log
 
     # check future signatures do not validate
     msg = isctest.query.create("future.example", "SOA")
@@ -1144,9 +1135,7 @@ def test_expired_signatures(ns4):
     isctest.check.servfail(res)
     isctest.check.noadflag(res)
     isctest.check.ede(res, EDECode.SIGNATURE_NOT_YET_VALID)
-    assert grep_q(
-        "future.example/.*: RRSIG validity period has not begun", "ns4/named.run"
-    )
+    assert Re("future.example/.*: RRSIG validity period has not begun") in ns4.log
 
     # check that a dynamic zone with future signatures is re-signed on load
     msg = isctest.query.create("managed-future.example", "A")

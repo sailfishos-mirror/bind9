@@ -1099,9 +1099,8 @@ def check_cdslog(server, zone, key, substr):
 
 
 def check_cdslog_prohibit(server, zone, key, substr):
-    server.log.prohibit(
-        f"{substr} for key {zone}/{key.algorithm.name}/{key.tag} is now published"
-    )
+    msg = f"{substr} for key {zone}/{key.algorithm.name}/{key.tag} is now published"
+    assert msg not in server.log
 
 
 def check_cdsdelete(rrset, expected):

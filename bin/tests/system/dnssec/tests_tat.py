@@ -60,7 +60,7 @@ def test_tat_queries(ns1, ns6):
         watcher.wait_for_line("trust-anchor-telemetry '_ta-")
 
     # check that _ta-AAAA trust-anchor-telemetry are not sent when disabled
-    ns1.log.prohibit("sending trust-anchor-telemetry query '_ta")
+    assert "sending trust-anchor-telemetry query '_ta" not in ns1.log
 
     # check that KEY-TAG (ednsopt 14) trust-anchor-telemetry queries are
     # logged. this matches "dig . dnskey +ednsopt=KEY-TAG:ffff":

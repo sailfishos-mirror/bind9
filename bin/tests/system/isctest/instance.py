@@ -21,10 +21,11 @@ import re
 import dns.message
 import dns.rcode
 
-from .log import debug, info, LogFile, WatchLogFromStart, WatchLogFromHere
+from .log import debug, info, WatchLogFromStart, WatchLogFromHere
 from .rndc import RNDCBinaryExecutor, RNDCException, RNDCExecutor
 from .run import perl
 from .query import udp
+from .text import TextFile
 
 
 class NamedPorts(NamedTuple):
@@ -87,7 +88,7 @@ class NamedInstance:
         if ports is None:
             ports = NamedPorts.from_env()
         self.ports = ports
-        self.log = LogFile(os.path.join(identifier, "named.run"))
+        self.log = TextFile(os.path.join(identifier, "named.run"))
         self._rndc_executor = rndc_executor or RNDCBinaryExecutor()
         self._rndc_logger = rndc_logger
 
@@ -239,3 +240,6 @@ class NamedInstance:
             f"{os.environ['srcdir']}/start.pl",
             [self.system_test_name, self.identifier] + args,
         )
+
+    def __repr__(self):
+        return self.identifier

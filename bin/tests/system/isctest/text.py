@@ -14,7 +14,7 @@
 import abc
 import re
 from re import compile as Re
-from typing import Iterator, Match, Optional, Pattern, TextIO, Union
+from typing import Iterator, List, Match, Optional, Pattern, TextIO, Union
 
 
 FlexPattern = Union[str, Pattern]
@@ -28,41 +28,60 @@ def compile_pattern(string: FlexPattern) -> Pattern:
     raise TypeError("only string and re.Pattern allowed")
 
 
-class LogFile:
+class Grep(abc.ABC):
     """
-    Log file wrapper with a path and means to find a string in its contents.
+    Implement a grep-like interface for pattern matching in texts and files.
+    """
+
+    @abc.abstractmethod
+    def readlines(self) -> Iterator[str]:
+        raise NotImplementedError
+
+    def igrep(self, pattern: FlexPattern) -> Iterator[Match]:
+        """
+        Iterate over the lines matching the pattern.
+        """
+        regex = compile_pattern(pattern)
+
+        for line in self.readlines():
+            match = regex.search(line)
+            if match:
+                yield match
+
+    def grep(self, pattern: FlexPattern) -> List[Match]:
+        """
+        Get list of lines matching the pattern.
+        """
+        return list(self.igrep(pattern))
+
+    def __contains__(self, pattern: FlexPattern) -> bool:
+        """
+        Return whether any of the lines in the log contains matches the pattern.
+        """
+        try:
+            next(self.igrep(pattern))
+        except StopIteration:
+            return False
+        return True
+
+
+class TextFile(Grep):
+    """
+    Text file wrapper with grep support.
     """
 
     def __init__(self, path: str):
         self.path = path
 
-    @property
-    def _lines(self) -> Iterator[str]:
+    def readlines(self) -> Iterator[str]:
         with open(self.path, encoding="utf-8") as f:
             yield from f
 
-    def __contains__(self, substring: str) -> bool:
-        """
-        Return whether any of the lines in the log contains a given string.
-        """
-        for line in self._lines:
-            if substring in line:
-                return True
-        return False
-
-    def expect(self, msg: str):
-        """Check the string is present anywhere in the log file."""
-        if msg in self:
-            return
-        assert False, f"log message not found in log {self.path}: {msg}"
-
-    def prohibit(self, msg: str):
-        """Check the string is not present in the entire log file."""
-        if msg in self:
-            assert False, f"forbidden message appeared in log {self.path}: {msg}"
+    def __repr__(self):
+        return self.path
 
 
-class LineReader:
+class LineReader(Grep):
     """
     >>> import io
 
