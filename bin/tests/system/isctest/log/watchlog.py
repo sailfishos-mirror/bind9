@@ -14,6 +14,7 @@ from typing import Any, Iterator, List, Match, Optional, Pattern, TextIO, TypeVa
 import abc
 import os
 import re
+from re import compile as Re
 import time
 
 
@@ -213,7 +214,7 @@ class WatchLog(abc.ABC):
             if isinstance(string, Pattern):
                 patterns.append(string)
             elif isinstance(string, str):
-                pattern = re.compile(re.escape(string))
+                pattern = Re(re.escape(string))
                 patterns.append(pattern)
             else:
                 raise WatchLogException(
@@ -256,13 +257,14 @@ class WatchLog(abc.ABC):
         Recommended use:
 
         ```python
+        from re import compile as Re
         import isctest
 
         def test_foo(servers):
             with servers["ns1"].watch_log_from_start() as watcher:
                 watcher.wait_for_line("all zones loaded")
 
-            pattern = re.compile(r"next key event in ([0-9]+) seconds")
+            pattern = Re(r"next key event in ([0-9]+) seconds")
             with servers["ns1"].watch_log_from_here() as watcher:
                 # ... do stuff here ...
                 match = watcher.wait_for_line(pattern)
@@ -321,7 +323,8 @@ class WatchLog(abc.ABC):
         >>> # Different values must be returned depending on which line is
         >>> # found in the log file.
         >>> import tempfile
-        >>> patterns = [re.compile(r"bar ([0-9])"), "qux"]
+        >>> from re import compile as Re
+        >>> patterns = [Re(r"bar ([0-9])"), "qux"]
         >>> with tempfile.NamedTemporaryFile("w") as file:
         ...     print("foo bar 3", file=file, flush=True)
         ...     with WatchLogFromStart(file.name) as watcher:
@@ -443,7 +446,8 @@ class WatchLog(abc.ABC):
         >>> assert ret[1].group(0) == "foo"
 
         >>> import tempfile
-        >>> bar_pattern = re.compile('bar')
+        >>> from re import compile as Re
+        >>> bar_pattern = Re('bar')
         >>> patterns = ['foo', bar_pattern]
         >>> with tempfile.NamedTemporaryFile("w") as file:
         ...     print("bar", file=file, flush=True)
