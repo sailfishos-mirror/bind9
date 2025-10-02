@@ -15,8 +15,8 @@ Notes for BIND 9.20.14
 Security Fixes
 ~~~~~~~~~~~~~~
 
-- [CVE-2025-8677] DNSSEC validation fails if matching but invalid DNSKEY
-  is found.
+- DNSSEC validation fails if matching but invalid DNSKEY is found.
+  :cve:`2025-8677`
 
   Previously, if a matching but cryptographically invalid key was
   encountered during DNSSEC validation, the key was skipped and not
@@ -28,7 +28,7 @@ Security Fixes
   Security and Privacy Laboratory at Nankai University for bringing this
   vulnerability to our attention. :gl:`#5343`
 
-- [CVE-2025-40778] Address various spoofing attacks.
+- Address various spoofing attacks. :cve:`2025-40778`
 
   Previously, several issues could be exploited to poison a DNS cache
   with spoofed records for zones which were not DNSSEC-signed or if the
@@ -44,8 +44,8 @@ Security Fixes
   Duan from Tsinghua University for bringing this vulnerability to our
   attention. :gl:`#5414`
 
-- [CVE-2025-40780] Cache-poisoning due to weak pseudo-random number
-  generator.
+- Cache-poisoning due to weak pseudo-random number generator.
+  :cve:`2025-40780`
 
   It was discovered during research for an upcoming academic paper that
   a xoshiro128\*\* internal state can be recovered by an external 3rd
@@ -63,30 +63,33 @@ Security Fixes
 New Features
 ~~~~~~~~~~~~
 
-- Add dnssec-policy keys configuration check to named-checkconf.
+- Add :any:`dnssec-policy` keys configuration check to
+  :iscman:`named-checkconf`.
 
-  A new option `-k` is added to `named-checkconf` that allows checking
-  the `dnssec-policy` `keys` configuration against the configured key
-  stores. If the found key files are not in sync with the given
-  `dnssec-policy`, the check will fail.
+  A new option :option:`-k <named-checkconf -k>` was added to
+  :iscman:`named-checkconf` that allows checking the
+  :any:`dnssec-policy` :any:`keys` configuration against the configured
+  key stores. If the found key files are not in sync with the given
+  :any:`dnssec-policy`, the check will fail.
 
-  This is useful to run before migrating to `dnssec-policy`. :gl:`#5486`
+  This is useful to run before migrating to :any:`dnssec-policy`.
+  :gl:`#5486`
 
 Bug Fixes
 ~~~~~~~~~
 
 - Use signer name when disabling DNSSEC algorithms.
 
-  ``disable-algorithms`` could cause DNSSEC validation failures when the
-  parent zone was signed with the algorithms that were being disabled
-  for the child zone. This has been fixed; `disable-algorithms` now
-  works on a whole-of-zone basis.
+  :any:`disable-algorithms` could cause DNSSEC validation failures when
+  the parent zone was signed with the algorithms that were being
+  disabled for the child zone. This has been fixed;
+  :any:`disable-algorithms` now works on a whole-of-zone basis.
 
-  If the zone's name is at or below the ``disable-algorithms`` name the
-  algorithm is disabled for that zone, using deepest match when there
-  are multiple ``disable-algorithms`` clauses.  :gl:`#5165`
+  If the zone's name is at or below the :any:`disable-algorithms` name
+  the algorithm is disabled for that zone, using deepest match when
+  there are multiple :any:`disable-algorithms` clauses. :gl:`#5165`
 
-- Rndc sign during ZSK rollover will now replace signatures.
+- :option:`rndc sign` during ZSK rollover will now replace signatures.
 
   When performing a ZSK rollover, if the new DNSKEY is omnipresent, the
   :option:`rndc sign` command now signs the zone completely with the
@@ -96,12 +99,10 @@ Bug Fixes
 - Missing DNSSEC information when CD bit is set in query.
 
   The RRSIGs for glue records were not being cached correctly for CD=1
-  queries.  This has been fixed. :gl:`#5502`
+  queries. This has been fixed. :gl:`#5502`
 
 - Preserve cache when reload fails and reload the server again.
 
-  Fixes an issue where failing to reconfigure/reload the server would
-  prevent to preserved the views caches on the subsequent server
-  reconfiguration/reload. :gl:`#5523`
-
-
+  This fixes an issue where failing to reconfigure/reload the server
+  would fail to preserve the views' caches for subsequent server
+  reconfigurations/reloads. :gl:`#5523`
