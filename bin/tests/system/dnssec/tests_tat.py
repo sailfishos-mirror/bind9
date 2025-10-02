@@ -10,7 +10,7 @@
 # information regarding copyright ownership.
 
 import os
-import re
+from re import compile as Re
 
 from dns import edns
 
@@ -67,7 +67,7 @@ def test_tat_queries(ns1, ns6):
     msg = isctest.query.create(".", "DNSKEY")
     opt = edns.GenericOption(14, b"\xff\xff")
     msg.use_edns(edns=True, options=[opt])
-    pattern = re.compile("trust-anchor-telemetry './IN' from .* 65535")
+    pattern = Re("trust-anchor-telemetry './IN' from .* 65535")
     with ns1.watch_log_from_here() as watcher:
         res = isctest.query.tcp(msg, "10.53.0.1")
         watcher.wait_for_line(pattern)
@@ -79,7 +79,7 @@ def test_tat_queries(ns1, ns6):
     opt1 = edns.GenericOption(14, b"\xff\xff")
     opt2 = edns.GenericOption(14, b"\xff\xfe")
     msg.use_edns(edns=True, options=[opt2, opt1])
-    pattern = re.compile("trust-anchor-telemetry './IN' from .* 65534")
+    pattern = Re("trust-anchor-telemetry './IN' from .* 65534")
     with ns1.watch_log_from_here() as watcher:
         res = isctest.query.tcp(msg, "10.53.0.1")
         isctest.check.noerror(res)

@@ -9,8 +9,7 @@
 # See the COPYRIGHT file distributed with this work for additional
 # information regarding copyright ownership.
 
-import re
-
+from re import compile as Re
 
 import isctest
 
@@ -59,7 +58,7 @@ def test_reload_fails_log(ns1, templates):
         "apply_configuration",
         "loop exclusive mode: starting",
         "apply_configuration: configure_views",
-        re.compile(r".*port '9999999' out of range"),
+        Re(r".*port '9999999' out of range"),
         "apply_configuration: detaching views",
         "loop exclusive mode: ending",
         "reloading configuration failed",

@@ -12,6 +12,7 @@
 from collections import namedtuple
 import os
 import re
+from re import compile as Re
 import struct
 import time
 
@@ -475,7 +476,7 @@ def test_offline_ksk_signing(ns2):
         os.rename(f"ns2/{KSK}.private.bak", f"ns2/{KSK}.private")
 
     def loadkeys():
-        pattern = re.compile(f"{zone}/IN.*next key event")
+        pattern = Re(f"{zone}/IN.*next key event")
         with ns2.watch_log_from_here() as watcher:
             ns2.rndc(f"loadkeys {zone}", log=False)
             watcher.wait_for_line(pattern)
