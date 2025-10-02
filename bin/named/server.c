@@ -5422,7 +5422,7 @@ configure_view(dns_view_t *view, dns_viewlist_t *viewlist, cfg_obj_t *config,
 
 	if (plugin_list != NULL) {
 		ns_hook_data_t hookdata = {
-			.pluginregister_ctx = { .source = NS_HOOKSOURCE_VIEW }
+			.pluginctx = { .source = NS_HOOKSOURCE_VIEW }
 		};
 
 		INSIST(view->hooktable == NULL);

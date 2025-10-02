@@ -3063,7 +3063,7 @@ struct check_one_plugin_data {
 	cfg_aclconfctx_t *aclctx;
 	ns_hooksource_t source;
 	isc_result_t *check_result;
-	const ns_pluginregister_ctx_t *ctx;
+	const ns_pluginctx_t *ctx;
 };
 
 /*%
@@ -3110,7 +3110,7 @@ check_plugins(const cfg_obj_t *plugins, const cfg_obj_t *config,
 	      cfg_aclconfctx_t *aclctx, const dns_name_t *zname,
 	      isc_mem_t *mctx) {
 	isc_result_t result = ISC_R_SUCCESS;
-	ns_pluginregister_ctx_t ctx = {
+	ns_pluginctx_t ctx = {
 		.source = (zname == NULL) ? NS_HOOKSOURCE_VIEW
 					  : NS_HOOKSOURCE_ZONE,
 		.origin = zname,
