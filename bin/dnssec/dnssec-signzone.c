@@ -2852,7 +2852,7 @@ findkeys:
 	 * Find keys that match this zone in the key repository.
 	 */
 	result = dns_dnssec_findmatchingkeys(gorigin, NULL, directory, NULL,
-					     now, mctx, &matchkeys);
+					     now, false, mctx, &matchkeys);
 	if (result == ISC_R_NOTFOUND) {
 		result = ISC_R_SUCCESS;
 	}

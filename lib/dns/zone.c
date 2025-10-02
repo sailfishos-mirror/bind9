@@ -6590,7 +6590,8 @@ dns_zone_getdnsseckeys(dns_zone_t *zone, dns_db_t *db, dns_dbversion_t *ver,
 	/* Get keys from private key files. */
 	dns_zone_lock_keyfiles(zone);
 	result = dns_dnssec_findmatchingkeys(origin, kasp, dir, zone->keystores,
-					     now, dns_zone_getmctx(zone), keys);
+					     now, false, dns_zone_getmctx(zone),
+					     keys);
 	dns_zone_unlock_keyfiles(zone);
 
 	if (result != ISC_R_SUCCESS && result != ISC_R_NOTFOUND) {
@@ -16596,8 +16597,8 @@ dns_zone_dnskey_inuse(dns_zone_t *zone, dns_rdata_t *rdata, bool *inuse) {
 
 	dns_zone_lock_keyfiles(zone);
 	result = dns_dnssec_findmatchingkeys(dns_zone_getorigin(zone), kasp,
-					     keydir, keystores, now, mctx,
-					     &keylist);
+					     keydir, keystores, now, false,
+					     mctx, &keylist);
 	dns_zone_unlock_keyfiles(zone);
 	if (result == ISC_R_NOTFOUND) {
 		return ISC_R_SUCCESS;
@@ -22622,7 +22623,8 @@ zone_rekey(dns_zone_t *zone) {
 
 	dns_zone_lock_keyfiles(zone);
 	result = dns_dnssec_findmatchingkeys(&zone->origin, kasp, dir,
-					     zone->keystores, now, mctx, &keys);
+					     zone->keystores, now, false, mctx,
+					     &keys);
 	dns_zone_unlock_keyfiles(zone);
 
 	if (result != ISC_R_SUCCESS) {
