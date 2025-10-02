@@ -63,10 +63,17 @@ Security Fixes
 New Features
 ~~~~~~~~~~~~
 
-- Support for additional tokens in the zone file name template.
+- Add :any:`dnssec-policy` keys configuration check to
+  :iscman:`named-checkconf`.
 
-  See :any:`file` for a complete list of currently supported tokens.
-  :gl:`#85`
+  A new option :option:`-k <named-checkconf -k>` was added to
+  :iscman:`named-checkconf` that allows checking the
+  :any:`dnssec-policy` :any:`keys` configuration against the configured
+  key stores. If the found key files are not in sync with the given
+  :any:`dnssec-policy`, the check will fail.
+
+  This is useful to run before migrating to :any:`dnssec-policy`.
+  :gl:`#5486`
 
 - Add support for synthetic records.
 
@@ -98,17 +105,10 @@ New Features
   enable quicker responses, since plugins are only called when they are
   needed. :gl:`#5356`
 
-- Add :any:`dnssec-policy` keys configuration check to
-  :iscman:`named-checkconf`.
+- Support for additional tokens in the zone file name template.
 
-  A new option :option:`-k <named-checkconf -k>` was added to
-  :iscman:`named-checkconf` that allows checking the
-  :any:`dnssec-policy` :any:`keys` configuration against the configured
-  key stores. If the found key files are not in sync with the given
-  :any:`dnssec-policy`, the check will fail.
-
-  This is useful to run before migrating to :any:`dnssec-policy`.
-  :gl:`#5486`
+  See :any:`file` for a complete list of currently supported tokens.
+  :gl:`#85`
 
 Removed Features
 ~~~~~~~~~~~~~~~~
@@ -123,6 +123,23 @@ Removed Features
 Bug Fixes
 ~~~~~~~~~
 
+- Missing DNSSEC information when CD bit is set in query.
+
+  The RRSIGs for glue records were not being cached correctly for CD=1
+  queries. This has been fixed. :gl:`#5502`
+
+- :option:`rndc sign` during ZSK rollover will now replace signatures.
+
+  When performing a ZSK rollover, if the new DNSKEY is omnipresent, the
+  :option:`rndc sign` command now signs the zone completely with the
+  successor key, replacing all zone signatures from the predecessor key
+  with new ones. :gl:`#5483`
+
+- Add a check for ``chroot()`` to the build system.
+
+  The Meson build procedure was not checking for the existence of the
+  ``chroot()`` function. This has been fixed. :gl:`#5519`
+
 - Use signer name when disabling DNSSEC algorithms.
 
   :any:`disable-algorithms` could cause DNSSEC validation failures when
@@ -133,23 +150,6 @@ Bug Fixes
   If the zone's name is at or below the :any:`disable-algorithms` name
   the algorithm is disabled for that zone, using deepest match when
   there are multiple :any:`disable-algorithms` clauses. :gl:`#5165`
-
-- :option:`rndc sign` during ZSK rollover will now replace signatures.
-
-  When performing a ZSK rollover, if the new DNSKEY is omnipresent, the
-  :option:`rndc sign` command now signs the zone completely with the
-  successor key, replacing all zone signatures from the predecessor key
-  with new ones. :gl:`#5483`
-
-- Missing DNSSEC information when CD bit is set in query.
-
-  The RRSIGs for glue records were not being cached correctly for CD=1
-  queries. This has been fixed. :gl:`#5502`
-
-- Add a check for ``chroot()`` to the build system.
-
-  The Meson build procedure was not checking for the existence of the
-  ``chroot()`` function. This has been fixed. :gl:`#5519`
 
 - Preserve cache when reload fails and reload the server again.
 
