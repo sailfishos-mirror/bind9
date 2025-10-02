@@ -32,7 +32,6 @@
 
 #include <isc/ascii.h>
 #include <isc/atomic.h>
-#include <isc/entropy.h>
 #include <isc/hash.h>
 #include <isc/hashmap.h>
 #include <isc/magic.h>
