@@ -65,6 +65,15 @@ class Grep(abc.ABC):
         return True
 
 
+class Text(Grep, str):  # type: ignore
+    """
+    Wrapper around classic string with grep support.
+    """
+
+    def readlines(self):
+        yield from self.splitlines(keepends=True)
+
+
 class TextFile(Grep):
     """
     Text file wrapper with grep support.

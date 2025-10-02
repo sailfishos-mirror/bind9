@@ -15,6 +15,7 @@ import time
 from typing import Optional
 
 import isctest.log
+import isctest.text
 from isctest.compat import dns_rcode
 
 import dns.message
@@ -24,12 +25,12 @@ class CmdResult:
     def __init__(self, proc=None):
         self.proc = proc
         self.rc = self.proc.returncode
-        self.out = ""
-        self.err = ""
+        self.out = isctest.text.Text("")
+        self.err = isctest.text.Text("")
         if self.proc.stdout:
-            self.out = self.proc.stdout.decode("utf-8")
+            self.out = isctest.text.Text(self.proc.stdout.decode("utf-8"))
         if self.proc.stderr:
-            self.err = self.proc.stderr.decode("utf-8")
+            self.err = isctest.text.Text(self.proc.stderr.decode("utf-8"))
 
 
 def cmd(
