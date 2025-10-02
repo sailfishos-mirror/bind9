@@ -69,19 +69,24 @@ New Features
   zone name, zone's view name and type); the new following tokens are
   now also accepted:
 
-  - `$name` or `%s` is replaced with the zone name in lower case; -
-  `$type` or `%t` is replaced with the zone type -- i.e., primary,
-  secondary, etc); - `$view` or `%v` is replaced with the view name; -
-  `$char1` or `%1` is replaced with the first character of the zone
-  name; - `$char2` or `%2` is replaced with the second character of the
-  zone name   (or a dot if there is no second character); - `$char3` or
-  `%3` is replaced with the third character of the zone name (or   a dot
-  if there is no third character); - `$label1` or `%z` is replaced with
-  the toplevel domain of the zone (or a   dot if it is the root zone); -
-  `$label2` or `%y` is replaced with the next label under the toplevel
-  domain (or a dot if there is no next label); - `$label3` or `%x` is
-  replaced with the next-next label under the toplevel   domain (or a
-  dot if there is no next-next label). :gl:`#85` :gl:`!10779`
+  - `$name` or `%s` is replaced with the zone name in lower case;
+  - `$type` or `%t` is replaced with the zone type -- i.e., primary,
+    secondary, etc);
+  - `$view` or `%v` is replaced with the view name;
+  - `$char1` or `%1` is replaced with the first character of the zone
+    name;
+  - `$char2` or `%2` is replaced with the second character of the zone
+    name (or a dot if there is no second character);
+  - `$char3` or `%3` is replaced with the third character of the zone
+    name (or a dot if there is no third character);
+  - `$label1` or `%z` is replaced with the toplevel domain of the zone
+    (or a dot if it is the root zone);
+  - `$label2` or `%y` is replaced with the next label under the toplevel
+    domain (or a dot if there is no next label);
+  - `$label3` or `%x` is replaced with the next-next label under the
+    toplevel domain (or a dot if there is no next-next label).
+
+  :gl:`#85` :gl:`!10779`
 
 - Add support for synthetic records. ``cefed841046``
 
