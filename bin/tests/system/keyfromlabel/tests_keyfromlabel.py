@@ -11,7 +11,7 @@
 
 import hashlib
 import os
-import re
+from re import compile as Re
 import shutil
 
 import pytest
@@ -83,7 +83,7 @@ def token_init_and_cleanup():
             env=EMPTY_OPENSSL_CONF_ENV,
             raise_on_exception=False,
         )
-        assert re.search("Found token (.*) with matching token label", cmd.out)
+        assert Re("Found token (.*) with matching token label") in cmd.out
 
 
 # pylint: disable-msg=too-many-locals

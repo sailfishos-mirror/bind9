@@ -11,7 +11,7 @@
 
 import os
 import re
-import subprocess
+from re import compile as Re
 
 import pytest
 
@@ -62,14 +62,14 @@ def test_verify_good_zone_nsec_next_name_case_mismatch():
     )
 
 
-def get_bad_zone_output(zone):
-    only_opt = ["-z"] if re.match(r"[zk]sk-only", zone) else []
+def verify_bad_zone(zone):
+    only_opt = ["-z"] if re.search(r"^[zk]sk-only", zone) else []
     cmd = isctest.run.cmd(
         [VERIFY, *only_opt, "-o", zone, f"zones/{zone}.bad"],
-        stderr=subprocess.STDOUT,
         raise_on_exception=False,
     )
-    return cmd.out
+    assert cmd.rc != 0
+    return cmd
 
 
 @pytest.mark.parametrize(
@@ -81,7 +81,8 @@ def get_bad_zone_output(zone):
     ],
 )
 def test_verify_bad_zone_files_dnskeyonly(zone):
-    assert re.match(r".*DNSKEY is not signed.*", get_bad_zone_output(zone))
+    cmd = verify_bad_zone(zone)
+    assert "DNSKEY is not signed" in cmd.err
 
 
 @pytest.mark.parametrize(
@@ -98,10 +99,8 @@ def test_verify_bad_zone_files_dnskeyonly(zone):
     ],
 )
 def test_verify_bad_zone_files_expired(zone):
-    assert re.match(
-        r".*signature has expired.*|.*No self-signed .*DNSKEY found.*",
-        get_bad_zone_output(zone),
-    )
+    cmd = verify_bad_zone(zone)
+    assert Re("signature has expired|No self-signed DNSKEY found") in cmd.err
 
 
 @pytest.mark.parametrize(
@@ -113,40 +112,33 @@ def test_verify_bad_zone_files_expired(zone):
     ],
 )
 def test_verify_bad_zone_files_unexpected_nsec_rrset(zone):
-    assert re.match(r".*unexpected NSEC RRset at.*", get_bad_zone_output(zone))
+    cmd = verify_bad_zone(zone)
+    assert "unexpected NSEC RRset at" in cmd.err
 
 
 def test_verify_bad_zone_files_bad_nsec_record():
-    assert re.match(
-        r".*Bad NSEC record for.*, next name mismatch.*",
-        get_bad_zone_output("ksk+zsk.nsec.broken-chain"),
-    )
+    cmd = verify_bad_zone("ksk+zsk.nsec.broken-chain")
+    assert Re("Bad NSEC record for.*, next name mismatch") in cmd.err
 
 
 def test_verify_bad_zone_files_bad_bitmap():
-    assert re.match(
-        r".*bit map mismatch.*", get_bad_zone_output("ksk+zsk.nsec.bad-bitmap")
-    )
+    cmd = verify_bad_zone("ksk+zsk.nsec.bad-bitmap")
+    assert "bit map mismatch" in cmd.err
 
 
 def test_verify_bad_zone_files_missing_nsec3_record():
-    assert re.match(
-        r".*Missing NSEC3 record for.*",
-        get_bad_zone_output("ksk+zsk.nsec3.missing-empty"),
-    )
+    cmd = verify_bad_zone("ksk+zsk.nsec3.missing-empty")
+    assert "Missing NSEC3 record for" in cmd.err
 
 
 def test_verify_bad_zone_files_no_dnssec_keys():
-    assert re.match(
-        r".*Zone contains no DNSSEC keys.*", get_bad_zone_output("unsigned")
-    )
+    cmd = verify_bad_zone("unsigned")
+    assert "Zone contains no DNSSEC keys" in cmd.err
 
 
 def test_verify_bad_zone_files_unequal_nsec3_chains():
-    assert re.match(
-        r".*Expected and found NSEC3 chains not equal.*",
-        get_bad_zone_output("ksk+zsk.nsec3.extra-nsec3"),
-    )
+    cmd = verify_bad_zone("ksk+zsk.nsec3.extra-nsec3")
+    assert "Expected and found NSEC3 chains not equal" in cmd.err
 
 
 # checking error message when -o is not used

@@ -52,14 +52,6 @@ pytestmark = pytest.mark.extra_artifacts(
 )
 
 
-# helper functions
-def grep_c(regex, filename):
-    with open(filename, "r", encoding="utf-8") as f:
-        blob = f.read().splitlines()
-    results = [x for x in blob if re.search(regex, x)]
-    return len(results)
-
-
 # run dnssec-keygen
 def keygen(*args):
     keygen_cmd = [os.environ.get("KEYGEN")]
@@ -126,7 +118,7 @@ def test_split_dnssec():
     isctest.check.adflag(res2)
 
 
-def test_expiring_rrsig():
+def test_expiring_rrsig(ns3):
     # check soon-to-expire RRSIGs without a replacement private
     # key aren't deleted. this response has to have an RRSIG:
     msg = isctest.query.create("expiring.example.", "NS")
@@ -135,8 +127,7 @@ def test_expiring_rrsig():
     assert sigs
 
     # check that named doesn't loop when private keys are not available
-    n = grep_c("reading private key file expiring.example", "ns3/named.run")
-    assert n < 15
+    assert len(ns3.log.grep("reading private key file expiring.example")) < 15
 
     # check expired signatures stay place when updates are disabled
     msg = isctest.query.create("expired.example", "SOA")
