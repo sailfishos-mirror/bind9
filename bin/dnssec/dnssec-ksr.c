@@ -217,7 +217,8 @@ get_dnskeys(ksr_ctx_t *ksr, dns_dnsseckeylist_t *keys) {
 	ISC_LIST_INIT(*keys);
 	ISC_LIST_INIT(keys_read);
 	ret = dns_dnssec_findmatchingkeys(name, NULL, ksr->keydir, NULL,
-					  ksr->now, isc_g_mctx, &keys_read);
+					  ksr->now, false, isc_g_mctx,
+					  &keys_read);
 	if (ret != ISC_R_SUCCESS && ret != ISC_R_NOTFOUND) {
 		fatal("failed to load existing keys from %s: %s", ksr->keydir,
 		      isc_result_totext(ret));

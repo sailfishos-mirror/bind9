@@ -486,10 +486,17 @@ key_collision(dst_key_t *dstkey, dns_name_t *name, const char *dir,
 	}
 
 	ISC_LIST_INIT(matchkeys);
-	result = dns_dnssec_findmatchingkeys(name, NULL, dir, NULL, now, mctx,
-					     &matchkeys);
+	bool keykey = false;
+
+	/*
+	 * DNSKEY and KEY both use the same file names patterns so
+	 * we have to look for both sets of keys.
+	 */
+again:
+	result = dns_dnssec_findmatchingkeys(name, NULL, dir, NULL, now, keykey,
+					     mctx, &matchkeys);
 	if (result == ISC_R_NOTFOUND) {
-		return false;
+		goto try_key;
 	}
 
 	while (!ISC_LIST_EMPTY(matchkeys) && !conflict) {
@@ -531,6 +538,11 @@ key_collision(dst_key_t *dstkey, dns_name_t *name, const char *dir,
 		dns_dnsseckey_destroy(mctx, &key);
 	}
 
+try_key:
+	if (!conflict && !keykey) {
+		keykey = true;
+		goto again;
+	}
 	return conflict;
 }
 
