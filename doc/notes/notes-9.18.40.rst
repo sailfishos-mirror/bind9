@@ -15,8 +15,8 @@ Notes for BIND 9.18.40
 Security Fixes
 ~~~~~~~~~~~~~~
 
-- [CVE-2025-8677] DNSSEC validation fails if matching but invalid DNSKEY
-  is found.
+- DNSSEC validation fails if matching but invalid DNSKEY is found.
+  :cve:`2025-8677`
 
   Previously, if a matching but cryptographically invalid key was
   encountered during DNSSEC validation, the key was skipped and not
@@ -28,7 +28,7 @@ Security Fixes
   Security and Privacy Laboratory at Nankai University for bringing this
   vulnerability to our attention. :gl:`#5343`
 
-- [CVE-2025-40778] Address various spoofing attacks.
+- Address various spoofing attacks. :cve:`2025-40778`
 
   Previously, several issues could be exploited to poison a DNS cache
   with spoofed records for zones which were not DNSSEC-signed or if the
@@ -44,8 +44,8 @@ Security Fixes
   Duan from Tsinghua University for bringing this vulnerability to our
   attention. :gl:`#5414`
 
-- [CVE-2025-40780] Cache-poisoning due to weak pseudo-random number
-  generator.
+- Cache-poisoning due to weak pseudo-random number generator.
+  :cve:`2025-40780`
 
   It was discovered during research for an upcoming academic paper that
   a xoshiro128\*\* internal state can be recovered by an external 3rd
@@ -97,18 +97,10 @@ Bug Fixes
 - Prevent spurious SERVFAILs for certain 0-TTL resource records.
 
   Under certain circumstances, BIND 9 can return SERVFAIL when updating
-  existing entries in the cache with new NS, A, AAAA, or DS records with
-  0-TTL. :gl:`#5294`
-
-- RPZ canonical warning displays zone entry incorrectly.
-
-  When an IPv6 rpz prefix entry is entered incorrectly the log message
-  was just displaying the prefix rather than the full entry.  This has
-  been corrected. :gl:`#5491`
+  existing entries in the cache with new NS, A, AAAA, or DS records that have a
+  TTL of zero. :gl:`#5294`
 
 - Missing DNSSEC information when CD bit is set in query.
 
   The RRSIGs for glue records were not being cached correctly for CD=1
-  queries.  This has been fixed. :gl:`#5502`
-
-
+  queries. This has been fixed. :gl:`#5502`
