@@ -43,6 +43,7 @@ endif
 developer_mode = get_option('developer').enabled()
 
 c_std = get_option('c_std')
+lundef = get_option('b_lundef')
 optimization = get_option('optimization')
 sanitizer = get_option('b_sanitize')
 meson_lto = get_option('b_lto')
@@ -55,8 +56,8 @@ dnstap_opt = get_option('dnstap')
 doc_opt = get_option('doc')
 doh_opt = get_option('doh')
 fips_opt = get_option('fips')
-fuzz_opt = get_option('fuzzing')
-fuzz_backend_opt = get_option('fuzzing-backend')
+fuzzing_backend_opt = get_option('fuzzing-backend')
+fuzzing_opt = get_option('fuzzing')
 geoip_opt = get_option('geoip')
 gssapi_opt = get_option('gssapi')
 idn_opt = get_option('idn')
@@ -66,6 +67,7 @@ line_opt = get_option('line')
 lmdb_opt = get_option('lmdb')
 locktype_opt = get_option('locktype')
 named_lto_opt = get_option('named-lto')
+oss_fuzz_args_opt = get_option('oss-fuzz-args')
 stats_json_opt = get_option('stats-json')
 stats_xml_opt = get_option('stats-xml')
 tracing_opt = get_option('tracing')
@@ -405,21 +407,34 @@ endif
 ## Fuzzing
 config.set_quoted('FUZZDIR', meson.project_source_root() / 'fuzz')
 
-fuzz_link_args = []
-if fuzz_opt.enabled()
-    if fuzz_backed_opt != 'none'
-        if get_option('b_lundef') != false
-            warning('fuzzing will fail to build properly without -Db_lundef=false')
-        endif
+if fuzzing_backend_opt != 'none'
+    assert(
+        fuzzing_opt.allowed(),
+        'fuzzing backend cannot be specified while fuzzing is disabled',
+    )
 
-        if fuzz_opt == 'afl'
-        elif fuzz_opt == 'libfuzzer'
-            config.set('FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION', 1)
-            fuzz_link_args += '-fsanitize=fuzzer,address,undefined'
-            add_project_link_arguments('-fsanitize=address,undefined', language: 'c')
-            add_project_arguments('-fsanitize=fuzzer-no-link,address,undefined', language: 'c')
-        endif
-    endif
+    assert(
+        not (cc.get_id() == 'clang' and lundef != false),
+        'fuzzing will not build properly without -Db_lundef=false',
+    )
+endif
+
+fuzz_link_args = []
+if fuzzing_backend_opt == 'afl'
+    config.set('FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION', 1)
+    config.set('ENABLE_AFL', 1)
+elif fuzzing_backend_opt == 'libfuzzer'
+    config.set('FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION', 1)
+    fuzz_link_args += '-fsanitize=fuzzer,address,undefined'
+    add_project_link_arguments('-fsanitize=address,undefined', language: 'c')
+    add_project_arguments('-fsanitize=fuzzer-no-link,address,undefined', language: 'c')
+elif fuzzing_backend_opt == 'oss-fuzz'
+    config.set('FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION', 1)
+    assert(
+        oss_fuzz_args_opt != '',
+        '-Doss-fuzz-args must be set when using the "oss-fuzz" fuzzing backend',
+    )
+    fuzz_link_args += oss_fuzz_args_opt
 endif
 
 ## Architecture
@@ -1726,7 +1741,7 @@ subdir('doc')
 subdir('tests')
 
 foreach name, sources : fuzz_binaries
-    executable(
+    fuzz_bin = executable(
         name,
         sources,
         export_dynamic: true,
@@ -1739,6 +1754,14 @@ foreach name, sources : fuzz_binaries
             libisc_dep,
             libtest_dep,
         ],
+    )
+
+    test(
+        name,
+        fuzz_bin,
+        protocol: 'exitcode',
+        suite: 'fuzz',
+        timeout: 60,
     )
 endforeach
 
