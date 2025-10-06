@@ -151,18 +151,6 @@ SPDX-License-Identifier = "MPL-2.0"
 
 [[annotations]]
 path = [
-	"m4/libtool.m4",
-	"m4/ltoptions.m4",
-	"m4/ltsugar.m4",
-	"m4/ltversion.m4",
-	"m4/ltversion.m4",
-	"m4/lt~obsolete.m4"
-]
-precedence = "aggregate"
-SPDX-FileCopyrightText = "Free Software Foundation, Inc.\n This file is free software; the Free Software Foundation gives unlimited\n permission to copy and/or distribute it, with or without modifications, as long\n as this notice is preserved."
-
-[[annotations]]
-path = [
 	"**/.clang-format",
 	"**/.clang-format.headers",
 	"**/.dir-locals.el",
