@@ -302,7 +302,6 @@ options {
 	tcp-primaries-timeout <integer>;
 	tcp-receive-buffer <integer>;
 	tcp-send-buffer <integer>;
-	tkey-domain <quoted_string>; // obsolete
 	tkey-gssapi-keytab <quoted_string>;
 	tls-port <integer>;
 	transfer-format ( many-answers | one-answer );
