@@ -54,7 +54,6 @@ BASIC_VARS = {
     "PIPEQUERIES": f"{BUILD_VARS['TOP_BUILDDIR']}/pipequeries",
     "TMPDIR": os.getenv("TMPDIR", "/tmp"),
     "KRB5_CONFIG": "/dev/null",  # we don't want a KRB5_CONFIG setting breaking the tests
-    "KRB5_KTNAME": "dns.keytab",  # use local keytab instead of default /etc/krb5.keytab
     "LC_ALL": "C",
     "ANS_LOG_LEVEL": "debug",
     "DYLIB": ("dylib" if os.uname().sysname == "Darwin" else "so"),

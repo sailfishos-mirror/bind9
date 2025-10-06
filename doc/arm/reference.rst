@@ -1448,21 +1448,8 @@ default is used.
    :tags: security
    :short: Sets the KRB5 keytab file to use for GSS-TSIG updates.
 
-   This is the KRB5 keytab file to use for GSS-TSIG updates. If this option is
-   set and ``tkey-gssapi-credential`` is not set, updates are
-   allowed with any key matching a principal in the specified keytab.
-
-.. namedconf:statement:: tkey-gssapi-credential
-   :tags: security
-   :short: Sets the security credential for authentication keys requested by the GSS-TSIG protocol.
-
-   This is the security credential with which the server should authenticate
-   keys requested by the GSS-TSIG protocol. Currently only Kerberos 5
-   authentication is available; the credential is a Kerberos
-   principal which the server can acquire through the default system key
-   file, normally ``/etc/krb5.keytab``. The location of the keytab file can be
-   overridden using the :any:`tkey-gssapi-keytab` option. Normally this
-   principal is of the form ``DNS/server.domain``.
+   This is the KRB5 keytab file to use for GSS-TSIG updates, which are
+   allowed for any key matching a principal in the specified keytab.
 
 .. namedconf:statement:: dump-file
    :tags: logging

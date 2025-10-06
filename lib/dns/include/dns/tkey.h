@@ -31,9 +31,8 @@
 #define DNS_TKEYMODE_DELETE	      5
 
 struct dns_tkeyctx {
-	dns_gss_cred_id_t gsscred;
-	isc_mem_t	 *mctx;
-	char		 *gssapi_keytab;
+	isc_mem_t *mctx;
+	char	  *gssapi_keytab;
 };
 
 void
