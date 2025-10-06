@@ -40,20 +40,20 @@ New Features
 Removed Features
 ~~~~~~~~~~~~~~~~
 
-- Deprecate the :namedconf:ref:`tkey-gssapi-credential` statement.
+- Deprecate the ``tkey-gssapi-credential`` statement.
 
   The :any:`tkey-gssapi-keytab` statement allows GSS-TSIG to be set up
   in a simpler and more reliable way than using the
-  :any:`tkey-gssapi-credential` statement and setting environment
+  ``tkey-gssapi-credential`` statement and setting environment
   variables (e.g. ``KRB5_KTNAME``). Therefore, the
-  :any:`tkey-gssapi-credential` statement has been deprecated;
+  ``tkey-gssapi-credential`` statement has been deprecated;
   :any:`tkey-gssapi-keytab` should be used instead.
 
   For configurations currently using a combination of both
-  :any:`tkey-gssapi-keytab` *and* :any:`tkey-gssapi-credential`, the
+  :any:`tkey-gssapi-keytab` *and* ``tkey-gssapi-credential``, the
   latter should be dropped and the keytab pointed to by
   :any:`tkey-gssapi-keytab` should now only contain the credential
-  previously specified by :any:`tkey-gssapi-credential`. :gl:`#4204`
+  previously specified by ``tkey-gssapi-credential``. :gl:`#4204`
 
 - Obsolete the "tkey-domain" statement.
 

@@ -103,9 +103,6 @@ dns_tkeyctx_destroy(dns_tkeyctx_t **tctxp) {
 	if (tctx->gssapi_keytab != NULL) {
 		isc_mem_free(mctx, tctx->gssapi_keytab);
 	}
-	if (tctx->gsscred != NULL) {
-		dst_gssapi_releasecred(&tctx->gsscred);
-	}
 	isc_mem_putanddetach(&mctx, tctx, sizeof(dns_tkeyctx_t));
 }
 
@@ -176,14 +173,11 @@ process_gsstkey(dns_message_t *msg, dns_name_t *name, dns_rdata_tkey_t *tkeyin,
 	dns_gss_ctx_id_t gss_ctx = NULL;
 
 	/*
-	 * You have to define either a gss credential (principal) to
-	 * accept with tkey-gssapi-credential, or you have to
-	 * configure a specific keytab (with tkey-gssapi-keytab) in
+	 * You have to define a specific keytab (with tkey-gssapi-keytab) in
 	 * order to use gsstkey.
 	 */
-	if (tctx->gsscred == NULL && tctx->gssapi_keytab == NULL) {
-		tkey_log("process_gsstkey(): no tkey-gssapi-credential "
-			 "or tkey-gssapi-keytab configured");
+	if (tctx->gssapi_keytab == NULL) {
+		tkey_log("process_gsstkey(): no tkey-gssapi-keytab configured");
 		return DNS_R_REFUSED;
 	}
 
@@ -202,13 +196,9 @@ process_gsstkey(dns_message_t *msg, dns_name_t *name, dns_rdata_tkey_t *tkeyin,
 		gss_ctx = dst_key_getgssctx(tsigkey->key);
 	}
 
-	/*
-	 * Note that tctx->gsscred may be NULL if tctx->gssapi_keytab is set
-	 */
 	intoken = (isc_region_t){ tkeyin->key, tkeyin->keylen };
-	result = dst_gssapi_acceptctx(tctx->gsscred, tctx->gssapi_keytab,
-				      &intoken, &outtoken, &gss_ctx, principal,
-				      tctx->mctx);
+	result = dst_gssapi_acceptctx(tctx->gssapi_keytab, &intoken, &outtoken,
+				      &gss_ctx, principal, tctx->mctx);
 	if (result == DNS_R_INVALIDTKEY) {
 		if (tsigkey != NULL) {
 			dns_tsigkey_detach(&tsigkey);
