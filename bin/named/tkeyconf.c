@@ -23,12 +23,11 @@
 
 #include <named/tkeyconf.h>
 
-isc_result_t
+void
 named_tkeyctx_fromconfig(const cfg_obj_t *options, isc_mem_t *mctx,
 			 dns_tkeyctx_t **tctxp) {
 	isc_result_t result;
 	dns_tkeyctx_t *tctx = NULL;
-	const char *s;
 	const cfg_obj_t *obj;
 
 	dns_tkeyctx_create(mctx, &tctx);
@@ -36,10 +35,9 @@ named_tkeyctx_fromconfig(const cfg_obj_t *options, isc_mem_t *mctx,
 	obj = NULL;
 	result = cfg_map_get(options, "tkey-gssapi-keytab", &obj);
 	if (result == ISC_R_SUCCESS) {
-		s = cfg_obj_asstring(obj);
+		const char *s = cfg_obj_asstring(obj);
 		tctx->gssapi_keytab = isc_mem_strdup(mctx, s);
 	}
 
 	*tctxp = tctx;
-	return ISC_R_SUCCESS;
 }

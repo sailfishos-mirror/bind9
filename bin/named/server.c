@@ -8824,15 +8824,7 @@ apply_configuration(cfg_parser_t *configparser, cfg_obj_t *config,
 	if (options != NULL) {
 		dns_tkeyctx_t *tkeyctx = NULL;
 
-		result = named_tkeyctx_fromconfig(options, isc_g_mctx,
-						  &tkeyctx);
-		if (result != ISC_R_SUCCESS) {
-			isc_log_write(NAMED_LOGCATEGORY_GENERAL,
-				      NAMED_LOGMODULE_SERVER, ISC_LOG_ERROR,
-				      "configuring TKEY: %s",
-				      isc_result_totext(result));
-			goto cleanup_cachelist;
-		}
+		named_tkeyctx_fromconfig(options, isc_g_mctx, &tkeyctx);
 		if (server->sctx->tkeyctx != NULL) {
 			dns_tkeyctx_destroy(&server->sctx->tkeyctx);
 		}
