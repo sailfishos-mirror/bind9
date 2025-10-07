@@ -70,6 +70,7 @@ synthrecord_reverseanswer(synthrecord_t *inst, isc_netaddr_t *na,
 	isc_buffer_t addrb;
 	char addrbdata[DNS_NAME_FORMATSIZE];
 	isc_region_t addrr;
+	isc_result_t result;
 
 	REQUIRE(DNS_NAME_VALID(synthname));
 	REQUIRE(na->family == AF_INET || na->family == AF_INET6);
@@ -78,7 +79,10 @@ synthrecord_reverseanswer(synthrecord_t *inst, isc_netaddr_t *na,
 	isc_buffer_copyregion(&b, &inst->prefix);
 
 	isc_buffer_init(&addrb, addrbdata, sizeof(addrbdata));
-	isc_netaddr_totext(na, &addrb);
+	result = isc_netaddr_totext(na, &addrb);
+	if (result != ISC_R_SUCCESS) {
+		return result;
+	}
 
 	/*
 	 * IDN compatibility, as an IPv6 begining or ending with `::` will be
@@ -645,8 +649,8 @@ plugin_check(const char *parameters, const void *cfg, const char *cfgfile,
 	     const ns_pluginctx_t *ctx) {
 	isc_result_t result;
 	synthrecord_t *inst = NULL;
-	const dns_name_t *zname = (ctx == NULL) ? NULL : ctx->origin;
 
+	REQUIRE(ctx != NULL);
 	if (ctx->source != NS_HOOKSOURCE_ZONE || ctx->origin == NULL) {
 		isc_log_write(NS_LOGCATEGORY_GENERAL, NS_LOGMODULE_HOOKS,
 			      ISC_LOG_INFO,
@@ -660,7 +664,7 @@ plugin_check(const char *parameters, const void *cfg, const char *cfgfile,
 
 	isc_mem_attach(mctx, &inst->mctx);
 	result = synthrecord_parseconfig(inst, parameters, cfg, cfgfile,
-					 cfgline, aclctx, zname);
+					 cfgline, aclctx, ctx->origin);
 	plugin_destroy((void **)&inst);
 
 	return result;
