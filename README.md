@@ -83,10 +83,6 @@ for more information.
 To join the __BIND Users__ mailing list, or view the archives, visit
 [https://lists.isc.org/mailman/listinfo/bind-users](https://lists.isc.org/mailman/listinfo/bind-users).
 
-If you're planning on making changes to the BIND 9 source code, you
-may also want to join the __BIND Workers__ mailing list, at
-[https://lists.isc.org/mailman/listinfo/bind-workers](https://lists.isc.org/mailman/listinfo/bind-workers).
-
 ### <a name="contrib"/> Contributing to BIND
 
 ISC maintains a public git repository for BIND; details can be found
