@@ -5058,6 +5058,10 @@ record_static_keys(isc_symtab_t *symtab, isc_mem_t *mctx,
 
 		result = dns_name_fromstring(name, str, dns_rootname, 0, NULL);
 		if (result != ISC_R_SUCCESS) {
+			/*
+			 * No need to record an error or to log it as has
+			 * has already been handled by check_trust_anchor.
+			 */
 			continue;
 		}
 
@@ -5080,11 +5084,10 @@ record_static_keys(isc_symtab_t *symtab, isc_mem_t *mctx,
 		result = isc_symtab_define(symtab, p, 1, symvalue,
 					   isc_symexists_reject);
 		if (result == ISC_R_EXISTS) {
+			/*
+			 * Multiple trust anchors for the same name are ok.
+			 */
 			isc_mem_free(mctx, p);
-		} else if (result != ISC_R_SUCCESS) {
-			isc_mem_free(mctx, p);
-			ret = result;
-			continue;
 		}
 
 		if (autovalidation && dns_name_equal(name, dns_rootname)) {
@@ -5127,6 +5130,10 @@ check_initializing_keys(isc_symtab_t *symtab, const cfg_obj_t *keylist) {
 		str = cfg_obj_asstring(cfg_tuple_get(obj, "name"));
 		result = dns_name_fromstring(name, str, dns_rootname, 0, NULL);
 		if (result != ISC_R_SUCCESS) {
+			/*
+			 * No need to record an error or to log it as has
+			 * has already been handled by check_trust_anchor.
+			 */
 			continue;
 		}
 
@@ -5153,10 +5160,10 @@ check_initializing_keys(isc_symtab_t *symtab, const cfg_obj_t *keylist) {
 	return ret;
 }
 
-static isc_result_t
+static void
 record_ds_keys(isc_symtab_t *symtab, isc_mem_t *mctx,
 	       const cfg_obj_t *keylist) {
-	isc_result_t result, ret = ISC_R_SUCCESS;
+	isc_result_t result;
 	dns_fixedname_t fixed;
 	dns_name_t *name = NULL;
 	char namebuf[DNS_NAME_FORMATSIZE], *p = NULL;
@@ -5172,6 +5179,10 @@ record_ds_keys(isc_symtab_t *symtab, isc_mem_t *mctx,
 
 		result = dns_name_fromstring(name, str, dns_rootname, 0, NULL);
 		if (result != ISC_R_SUCCESS) {
+			/*
+			 * No need to record an error or to log it as has
+			 * has already been handled by check_trust_anchor.
+			 */
 			continue;
 		}
 
@@ -5192,11 +5203,12 @@ record_ds_keys(isc_symtab_t *symtab, isc_mem_t *mctx,
 		result = isc_symtab_define(symtab, p, 1, symvalue,
 					   isc_symexists_reject);
 		if (result == ISC_R_EXISTS) {
+			/*
+			 * Multiple trust anchors for the same name are ok.
+			 */
 			isc_mem_free(mctx, p);
 		}
 	}
-
-	return ret;
 }
 
 /*
@@ -5224,10 +5236,7 @@ check_ta_conflicts(const cfg_obj_t *global_ta, const cfg_obj_t *view_ta,
 			result = tresult;
 		}
 
-		tresult = record_ds_keys(dstab, mctx, keylist);
-		if (result == ISC_R_SUCCESS) {
-			result = tresult;
-		}
+		record_ds_keys(dstab, mctx, keylist);
 	}
 
 	CFG_LIST_FOREACH(view_ta, elt) {
@@ -5238,10 +5247,7 @@ check_ta_conflicts(const cfg_obj_t *global_ta, const cfg_obj_t *view_ta,
 			result = tresult;
 		}
 
-		tresult = record_ds_keys(dstab, mctx, keylist);
-		if (result == ISC_R_SUCCESS) {
-			result = tresult;
-		}
+		record_ds_keys(dstab, mctx, keylist);
 	}
 
 	/*
