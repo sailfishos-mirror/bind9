@@ -74,8 +74,8 @@ def test_rollover_multisigner(ns3, alg, size):
 
     newprops = [f"zsk unlimited {alg} {size} tag-range:0-32767"]
     expected2 = isctest.kasp.policy_to_properties(ttl, newprops)
-    expected2[0].properties["private"] = False
-    expected2[0].properties["legacy"] = True
+    expected2[0].private = False  # noqa
+    expected2[0].legacy = True  # noqa
     expected = expected + expected2
 
     ownkeys = isctest.kasp.keydir_to_keylist(zone, ns3.identifier)
@@ -98,8 +98,8 @@ def test_rollover_multisigner(ns3, alg, size):
     newkeys = isctest.kasp.keystr_to_keylist(out)
     newprops = [f"zsk unlimited {alg} {size} tag-range:0-32767"]
     expected2 = isctest.kasp.policy_to_properties(ttl, newprops)
-    expected2[0].properties["private"] = False
-    expected2[0].properties["legacy"] = True
+    expected2[0].private = False  # noqa
+    expected2[0].legacy = True  # noqa
     expected = expected + expected2
 
     dnskey = newkeys[0].dnskey().split()
