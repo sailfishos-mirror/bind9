@@ -614,33 +614,20 @@ dns_zone_flush(dns_zone_t *zone);
  */
 
 isc_result_t
-dns_zone_dump(dns_zone_t *zone);
-/*%<
- *	Write the zone to database.
- *
- * Require:
- *\li	'zone' to be a valid zone.
- */
-
-isc_result_t
 dns_zone_dumptostream(dns_zone_t *zone, FILE *fd, dns_masterformat_t format,
 		      const dns_master_style_t *style,
 		      const uint32_t		rawversion);
 /*%<
  *    Write the zone to stream 'fd' in the specified 'format'.
- *    If the 'format' is dns_masterformat_text (RFC1035), 'style' also
- *    specifies the file style (e.g., &dns_master_style_default).
  *
- *    dns_zone_dumptostream() is a backward-compatible form of
- *    dns_zone_dumptostream2(), which always uses the dns_masterformat_text
- *    format and the dns_master_style_default style.
+ *    If 'format' is dns_masterformat_text (RFC1035), 'style'
+ *    specifies the file style (e.g., &dns_master_style_default),
+ *    and 'rawversion' is ignored.
  *
- *    dns_zone_dumptostream2() is a backward-compatible form of
- *    dns_zone_dumptostream3(), which always uses the current
- *    default raw file format version.
- *
- *    Note that dns_zone_dumptostream3() is the most flexible form.  It
- *    can also provide the functionality of dns_zone_fulldumptostream().
+ *    If 'format' is dns_masterformat_raw, 'style' is ignored, and
+ *    'rawversion" specifies the format verson of the raw zone file:
+ *    version 0 raw files can be read by all BIND 9 releases;
+ *    version 1 was introduced in BIND 9.9.
  *
  * Require:
  *\li	'zone' to be a valid zone.
