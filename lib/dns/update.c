@@ -1564,9 +1564,7 @@ dns_update_signaturesinc(dns_update_log_t *log, dns_zone_t *zone, dns_db_t *db,
 		CHECK(dns_diff_sort(diff, temp_order));
 		state->state = sign_updates;
 		state->magic = STATE_MAGIC;
-		if (statep != NULL) {
-			*statep = state;
-		}
+		SET_IF_NOT_NULL(statep, state);
 	} else {
 		REQUIRE(DNS_STATE_VALID(*statep));
 		state = *statep;

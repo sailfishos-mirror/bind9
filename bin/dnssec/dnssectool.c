@@ -511,9 +511,7 @@ key_collision(dst_key_t *dstkey, dns_name_t *name, const char *dir,
 						id, oldid);
 				}
 			} else {
-				if (exact != NULL) {
-					*exact = true;
-				}
+				SET_IF_NOT_NULL(exact, true);
 				if (verbose > 1) {
 					fprintf(stderr, "Key ID %d exists\n",
 						id);
