@@ -333,8 +333,7 @@ def test_migrate2kasp_case(servers, params):
 
     # Special case: CSK without SEP bit set.
     if zone == "csk-nosep.kasp":
-        expected[0].properties["role_full"] = "zone-signing"
-        expected[0].properties["flags"] = 256
+        expected[0].flags = 256
 
     # Key files.
     keys = isctest.kasp.keydir_to_keylist(zone, params["config"]["key-directory"])

@@ -912,7 +912,7 @@ def test_kasp_default(ns3):
         ns3.rndc(f"loadkeys {zone}", log=False)
         watcher.wait_for_line(f"zone {zone}/IN (signed): {expectmsg}")
     # Nothing has changed.
-    expected[0].properties["private"] = False
+    expected[0].private = False  # noqa
     isctest.kasp.check_dnssec_verify(ns3, zone)
     isctest.kasp.check_keys(zone, keys, expected)
     isctest.kasp.check_keytimes(keys, expected)
