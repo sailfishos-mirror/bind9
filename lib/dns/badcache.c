@@ -313,9 +313,7 @@ dns_badcache_find(dns_badcache_t *bc, const dns_name_t *name,
 
 	if (found != NULL && bcentry_alive(ht, found, now)) {
 		result = ISC_R_SUCCESS;
-		if (flagp != NULL) {
-			*flagp = found->flags;
-		}
+		SET_IF_NOT_NULL(flagp, found->flags);
 	}
 
 	isc_tid_t tid = isc_tid();
