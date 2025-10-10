@@ -40,7 +40,7 @@ keyfromlabel() {
   dir="$4"
   shift 4
 
-  $KEYFRLAB -K $dir -a $alg -l "pkcs11:token=softhsm2-enginepkcs11;object=${id}-${zone};pin-source=$PWD/ns1/pin" "$@" $zone >>keyfromlabel.out.$zone.$id 2>keyfromlabel.err.$zone.$id || return 1
+  $KEYFRLAB -K $dir -a $alg -y -l "pkcs11:token=softhsm2-enginepkcs11;object=${id}-${zone};pin-source=$PWD/ns1/pin" "$@" $zone >>keyfromlabel.out.$zone.$id 2>keyfromlabel.err.$zone.$id || return 1
   cat keyfromlabel.out.$zone.$id
 }
 
