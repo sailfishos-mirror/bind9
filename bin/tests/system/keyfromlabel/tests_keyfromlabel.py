@@ -139,6 +139,7 @@ def test_keyfromlabel(alg_name, alg_type, alg_bits):
             *os.environ.get("ENGINE_ARG", "").split(),
             "-a",
             alg_name,
+            "-y",
             "-l",
             f"pkcs11:token=softhsm2-keyfromlabel;object={key_id}-{zone};pin-source=pin",
             *key_flag,
