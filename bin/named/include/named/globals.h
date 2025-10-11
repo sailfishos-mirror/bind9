@@ -89,9 +89,9 @@ EXTERN unsigned int named_g_debuglevel INIT(0);
  */
 EXTERN cfg_obj_t *named_g_defaultconfig	       INIT(NULL);
 EXTERN const cfg_obj_t *named_g_defaultoptions INIT(NULL);
-EXTERN const char *named_g_conffile	   INIT(NAMED_SYSCONFDIR "/named.conf");
-EXTERN const char *named_g_defaultbindkeys INIT(NULL);
-EXTERN const char *named_g_keyfile	   INIT(NAMED_SYSCONFDIR "/rndc.key");
+EXTERN const char *named_g_conffile	INIT(NAMED_SYSCONFDIR "/named.conf");
+EXTERN const char *named_g_bindkeysfile INIT(NULL);
+EXTERN const char *named_g_keyfile	INIT(NAMED_SYSCONFDIR "/rndc.key");
 
 EXTERN bool named_g_conffileset INIT(false);
 

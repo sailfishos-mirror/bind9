@@ -1194,7 +1194,8 @@ static cfg_clausedef_t namedconf_or_view_clauses[] = {
 };
 
 /*%
- * Clauses that can occur in the bind.keys file.
+ * Clauses that can occur in a trust anchor file (previously
+ * called bind.keys).
  */
 static cfg_clausedef_t bindkeys_clauses[] = {
 	{ "managed-keys", &cfg_type_dnsseckeys,
@@ -1218,7 +1219,7 @@ static cfg_clausedef_t options_clauses[] = {
 	{ "automatic-interface-scan", &cfg_type_boolean, 0 },
 	{ "avoid-v4-udp-ports", NULL, CFG_CLAUSEFLAG_ANCIENT },
 	{ "avoid-v6-udp-ports", NULL, CFG_CLAUSEFLAG_ANCIENT },
-	{ "bindkeys-file", &cfg_type_qstring, CFG_CLAUSEFLAG_TESTONLY },
+	{ "bindkeys-file", &cfg_type_qstring, CFG_CLAUSEFLAG_ANCIENT },
 	{ "blackhole", &cfg_type_bracketed_aml, 0 },
 	{ "cookie-algorithm", &cfg_type_cookiealg, 0 },
 	{ "cookie-secret", &cfg_type_sstring, CFG_CLAUSEFLAG_MULTI },
