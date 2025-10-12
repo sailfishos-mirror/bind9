@@ -111,6 +111,47 @@ def check_no_dnssec_in_journal(server, zone):
     assert not match, f"{match.group(1)} record found in journal"
 
 
+def wait_for_serial(primary, server, zone):
+    if primary.identifier == server.identifier:
+        # No need to check if the transfer has been done.
+        return
+
+    def check_serial():
+        response = isctest.query.tcp(
+            query, primary.ip, primary.ports.dns, timeout=3, attempts=1
+        )
+        assert response.rcode() == dns.rcode.NOERROR
+        soa = response.get_rrset(
+            response.answer,
+            dns.name.from_text(fqdn),
+            dns.rdataclass.IN,
+            dns.rdatatype.SOA,
+        )
+        serial1 = soa[0].serial
+
+        response = isctest.query.tcp(
+            query, server.ip, server.ports.dns, timeout=3, attempts=1
+        )
+        assert response.rcode() == dns.rcode.NOERROR
+        soa = response.get_rrset(
+            response.answer,
+            dns.name.from_text(fqdn),
+            dns.rdataclass.IN,
+            dns.rdatatype.SOA,
+        )
+        serial2 = soa[0].serial
+
+        return (
+            f"zone {zone}/IN (signed): serial {serial2} (unsigned {serial1})"
+            in server.log
+        )
+
+    fqdn = f"{zone}."
+    query = isctest.query.create(fqdn, dns.rdatatype.SOA)
+
+    isctest.run.retry_with_timeout(check_serial, timeout=10)
+
+
 def check_add_zsk(server, zone, keys, expected, extra_keys, extra, primary=None):
     if primary is None:
         primary = server
@@ -127,6 +168,8 @@ def check_add_zsk(server, zone, keys, expected, extra_keys, extra, primary=None)
         rdata = " ".join(dnskey[4:])
         update_msg.add(f"{zone}.", TTL, "DNSKEY", rdata)
     primary.nsupdate(update_msg)
+
+    wait_for_serial(primary, server, zone)
 
     # Check the new DNSKEY RRset.
     isctest.log.info(
@@ -213,6 +256,8 @@ def check_remove_zsk(
         update_msg.delete(f"{zone}.", "DNSKEY", rdata)
     primary.nsupdate(update_msg)
 
+    wait_for_serial(primary, server, zone)
+
     # We should have only the KSK and ZSK from server.
     isctest.log.info(
         f"- zone {zone} {server.identifier}: check DNSKEY RRset after update remove"
@@ -246,6 +291,8 @@ def check_add_cdnskey(server, zone, keys, expected, extra_keys, extra, primary=N
         rdata = " ".join(dnskey[4:])
         update_msg.add(f"{zone}.", TTL, "CDNSKEY", rdata)
     primary.nsupdate(update_msg)
+
+    wait_for_serial(primary, server, zone)
 
     # Now there should be two CDNSKEY records.
     isctest.log.info(
@@ -325,6 +372,8 @@ def check_remove_cdnskey(
         update_msg.delete(f"{zone}.", "CDNSKEY", rdata)
     primary.nsupdate(update_msg)
 
+    wait_for_serial(primary, server, zone)
+
     # Now there should be one CDNSKEY record again.
     isctest.log.info(
         f"- zone {zone} {server.identifier}: check CDNSKEY RRset after update remove"
@@ -358,6 +407,8 @@ def check_add_cds(server, zone, keys, expected, extra_keys, extra, primary=None)
         rdata = " ".join(ds[4:])
         update_msg.add(f"{zone}.", TTL, "CDS", rdata)
     primary.nsupdate(update_msg)
+
+    wait_for_serial(primary, server, zone)
 
     # Now there should be two CDS records.
     isctest.log.info(
@@ -436,6 +487,8 @@ def check_remove_cds(
         rdata = " ".join(ds[4:])
         update_msg.delete(f"{zone}.", "CDS", rdata)
     primary.nsupdate(update_msg)
+
+    wait_for_serial(primary, server, zone)
 
     # Now there should be one CDS record again.
     isctest.log.info(
@@ -521,4 +574,77 @@ def test_multisigner(ns3, ns4):
     # Remove CDS RRset.
     check_remove_cds(ns3, zone, keys3, expected3, [ksks4[0]], extra, check_fail=True)
     check_remove_cds(ns4, zone, keys4, expected4, [ksks3[0]], extra, check_fail=True)
+    check_no_dnssec_in_journal(ns4, zone)
+
+
+def test_multisigner_secondary(ns3, ns4, ns5):
+    zone = "model2.secondary"
+    keyprops = [
+        f"ksk 0 {ALGORITHM} {SIZE} goal:omnipresent dnskey:omnipresent krrsig:omnipresent ds:omnipresent",
+        f"zsk 0 {ALGORITHM} {SIZE} goal:omnipresent dnskey:omnipresent zrrsig:omnipresent",
+    ]
+
+    # First make sure the zone is properly signed.
+    isctest.log.info(f"basic DNSSEC tests for {zone}")
+    isctest.kasp.wait_keymgr_done(ns3, zone)
+    isctest.kasp.wait_keymgr_done(ns4, zone)
+
+    keys3 = isctest.kasp.keydir_to_keylist(zone, ns3.identifier)
+    ksks3 = [k for k in keys3 if k.is_ksk()]
+    zsks3 = [k for k in keys3 if not k.is_ksk()]
+    expected3 = isctest.kasp.policy_to_properties(ttl=TTL, keys=keyprops)
+
+    check_dnssec(ns3, zone, keys3, expected3)
+
+    keys4 = isctest.kasp.keydir_to_keylist(zone, ns4.identifier)
+    ksks4 = [k for k in keys4 if k.is_ksk()]
+    zsks4 = [k for k in keys4 if not k.is_ksk()]
+    expected4 = isctest.kasp.policy_to_properties(ttl=TTL, keys=keyprops)
+
+    check_dnssec(ns4, zone, keys4, expected4)
+
+    # Add DNSKEY to RRset.
+    newprops = [f"zsk unlimited {ALGORITHM} {SIZE}"]
+    extra = isctest.kasp.policy_to_properties(ttl=TTL, keys=newprops)
+    extra[0].private = False  # noqa
+    extra[0].legacy = True  # noqa
+
+    check_add_zsk(ns3, zone, keys3, expected3, [zsks4[0]], extra, primary=ns5)
+    check_add_zsk(ns4, zone, keys4, expected4, [zsks3[0]], extra, primary=ns5)
+    check_no_dnssec_in_journal(ns3, zone)
+    check_no_dnssec_in_journal(ns4, zone)
+
+    # Remove DNSKEY from RRset.
+    check_remove_zsk(ns3, zone, keys3, expected3, [zsks4[0]], extra, primary=ns5)
+    check_remove_zsk(ns4, zone, keys4, expected4, [zsks3[0]], extra, primary=ns5)
+    check_no_dnssec_in_journal(ns3, zone)
+    check_no_dnssec_in_journal(ns4, zone)
+
+    # Add CDNSKEY RRset.
+    newprops = [f"ksk unlimited {ALGORITHM} {SIZE}"]
+    extra = isctest.kasp.policy_to_properties(ttl=TTL, keys=newprops)
+    extra[0].private = False  # noqa
+    extra[0].legacy = True  # noqa
+
+    check_add_cdnskey(ns3, zone, keys3, expected3, [ksks4[0]], extra, primary=ns5)
+    check_add_cdnskey(ns4, zone, keys4, expected4, [ksks3[0]], extra, primary=ns5)
+    check_no_dnssec_in_journal(ns3, zone)
+    check_no_dnssec_in_journal(ns4, zone)
+
+    # Remove CDNSKEY RRset.
+    check_remove_cdnskey(ns3, zone, keys3, expected3, [ksks4[0]], extra, primary=ns5)
+    check_remove_cdnskey(ns4, zone, keys4, expected4, [ksks3[0]], extra, primary=ns5)
+    check_no_dnssec_in_journal(ns3, zone)
+    check_no_dnssec_in_journal(ns4, zone)
+
+    # Update CDS RRset.
+    check_add_cds(ns3, zone, keys3, expected3, [ksks4[0]], extra, primary=ns5)
+    check_add_cds(ns4, zone, keys4, expected4, [ksks3[0]], extra, primary=ns5)
+    check_no_dnssec_in_journal(ns3, zone)
+    check_no_dnssec_in_journal(ns4, zone)
+
+    # Remove CDS RRset.
+    check_remove_cds(ns3, zone, keys3, expected3, [ksks4[0]], extra, primary=ns5)
+    check_remove_cds(ns4, zone, keys4, expected4, [ksks3[0]], extra, primary=ns5)
+    check_no_dnssec_in_journal(ns3, zone)
     check_no_dnssec_in_journal(ns4, zone)

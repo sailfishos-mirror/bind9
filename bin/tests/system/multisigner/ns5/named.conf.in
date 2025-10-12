@@ -27,6 +27,7 @@ options {
 	recursion no;
 	key-directory ".";
 	dnssec-validation no;
+	notify-delay 0;
 };
 
 key rndc_key {
