@@ -1138,8 +1138,9 @@ configure_view_dnsseckeys(dns_view_t *view, const cfg_obj_t *vconfig,
 		const cfg_obj_t *builtin_keys = NULL;
 
 		/*
-		 * If bind.keys exists and is populated, it overrides
-		 * the trust-anchors clause hard-coded in
+		 * If "-T bindkeys=<filename>" was used and
+		 * the file has a root key in it, that will
+		 * replace the trust-anchors clause hard-coded in
 		 * named_g_defaultconfig.
 		 */
 		if (bindkeys != NULL) {
@@ -1147,7 +1148,7 @@ configure_view_dnsseckeys(dns_view_t *view, const cfg_obj_t *vconfig,
 				      NAMED_LOGMODULE_SERVER, ISC_LOG_INFO,
 				      "obtaining root key for view %s "
 				      "from '%s'",
-				      view->name, named_g_server->bindkeysfile);
+				      view->name, named_g_bindkeysfile);
 
 			(void)cfg_map_get(bindkeys, "trust-anchors",
 					  &builtin_keys);
@@ -8114,9 +8115,8 @@ configure_kasplist(const cfg_obj_t *config, dns_kasplist_t *kasplist,
 
 static isc_result_t
 apply_configuration(cfg_parser_t *configparser, cfg_obj_t *config,
-		    named_server_t *server, bool first_time) {
-	cfg_obj_t *bindkeys = NULL;
-	cfg_parser_t *bindkeys_parser = NULL;
+		    cfg_obj_t *bindkeys, named_server_t *server,
+		    bool first_time) {
 	const cfg_obj_t *maps[3];
 	const cfg_obj_t *obj = NULL;
 	const cfg_obj_t *options = NULL;
@@ -8251,48 +8251,6 @@ apply_configuration(cfg_parser_t *configparser, cfg_obj_t *config,
 	named_g_http_streams_per_conn = cfg_obj_asuint32(obj);
 #endif
 
-	/*
-	 * If "dnssec-validation auto" is turned on, the root key
-	 * will be used as a default trust anchor. The root key
-	 * is built in, but if bindkeys-file is set, then it will
-	 * be overridden with the key in that file.
-	 */
-	obj = NULL;
-	(void)named_config_get(maps, "bindkeys-file", &obj);
-	if (obj != NULL) {
-		setstring(server, &server->bindkeysfile, cfg_obj_asstring(obj));
-		INSIST(server->bindkeysfile != NULL);
-		if (access(server->bindkeysfile, R_OK) != 0) {
-			isc_log_write(NAMED_LOGCATEGORY_GENERAL,
-				      NAMED_LOGMODULE_SERVER, ISC_LOG_INFO,
-				      "unable to open '%s'; using built-in "
-				      "keys instead",
-				      server->bindkeysfile);
-		} else {
-			result = cfg_parser_create(isc_g_mctx,
-						   &bindkeys_parser);
-			if (result != ISC_R_SUCCESS) {
-				goto cleanup_bindkeys_parser;
-			}
-
-			result = cfg_parse_file(bindkeys_parser,
-						server->bindkeysfile,
-						&cfg_type_bindkeys, &bindkeys);
-			if (result != ISC_R_SUCCESS) {
-				isc_log_write(NAMED_LOGCATEGORY_GENERAL,
-					      NAMED_LOGMODULE_SERVER,
-					      ISC_LOG_INFO,
-					      "unable to parse '%s' "
-					      "error '%s'; using "
-					      "built-in keys instead",
-					      server->bindkeysfile,
-					      isc_result_totext(result));
-			}
-		}
-	} else {
-		setstring(server, &server->bindkeysfile, NULL);
-	}
-
 #if defined(HAVE_GEOIP2)
 	/*
 	 * Release any previously opened GeoIP2 databases.
@@ -8338,7 +8296,7 @@ apply_configuration(cfg_parser_t *configparser, cfg_obj_t *config,
 				      max, named_g_cpus);
 			result = ISC_R_RANGE;
 
-			goto cleanup_bindkeys_parser;
+			goto cleanup_tls;
 		}
 		softquota = max - margin;
 	} else {
@@ -8363,7 +8321,7 @@ apply_configuration(cfg_parser_t *configparser, cfg_obj_t *config,
 				    aclctx, isc_g_mctx,
 				    &server->sctx->blackholeacl);
 	if (result != ISC_R_SUCCESS) {
-		goto cleanup_bindkeys_parser;
+		goto cleanup_tls;
 	}
 
 	if (server->sctx->blackholeacl != NULL) {
@@ -9287,14 +9245,7 @@ cleanup_portsets:
 	isc_portset_destroy(isc_g_mctx, &v6portset);
 	isc_portset_destroy(isc_g_mctx, &v4portset);
 
-cleanup_bindkeys_parser:
-	if (bindkeys_parser != NULL) {
-		if (bindkeys != NULL) {
-			cfg_obj_destroy(bindkeys_parser, &bindkeys);
-		}
-		cfg_parser_destroy(&bindkeys_parser);
-	}
-
+cleanup_tls:
 	/*
 	 * Detach the TLS client context (whether the one created at the
 	 * begining of this function, or the previous running one)
@@ -9347,7 +9298,7 @@ static isc_result_t
 load_configuration(named_server_t *server, bool first_time) {
 	isc_result_t result;
 	cfg_parser_t *parser = NULL;
-	cfg_obj_t *config = NULL;
+	cfg_obj_t *config = NULL, *bindkeys = NULL;
 
 	isc_log_write(NAMED_LOGCATEGORY_GENERAL, NAMED_LOGMODULE_SERVER,
 		      ISC_LOG_DEBUG(1), "load_configuration");
@@ -9362,10 +9313,44 @@ load_configuration(named_server_t *server, bool first_time) {
 		goto cleanup;
 	}
 
-	result = apply_configuration(parser, config, server, first_time);
+	if (named_g_bindkeysfile != NULL) {
+		/*
+		 * If "dnssec-validation auto" is turned on, the root key
+		 * will be used as a default trust anchor. The root key
+		 * is built in, but if -Tbindkeys=<filename> is used,
+		 * the key is overridden with the key in that file.
+		 */
+		if (access(named_g_bindkeysfile, R_OK) != 0) {
+			isc_log_write(NAMED_LOGCATEGORY_GENERAL,
+				      NAMED_LOGMODULE_SERVER, ISC_LOG_INFO,
+				      "unable to open '%s'; using built-in "
+				      "keys instead",
+				      named_g_bindkeysfile);
+		} else {
+			cfg_parser_reset(parser);
+			result = cfg_parse_file(parser, named_g_bindkeysfile,
+						&cfg_type_bindkeys, &bindkeys);
+			if (result != ISC_R_SUCCESS) {
+				isc_log_write(NAMED_LOGCATEGORY_GENERAL,
+					      NAMED_LOGMODULE_SERVER,
+					      ISC_LOG_INFO,
+					      "unable to parse '%s' "
+					      "error '%s'; using "
+					      "built-in keys instead",
+					      named_g_bindkeysfile,
+					      isc_result_totext(result));
+			}
+		}
+	}
+
+	result = apply_configuration(parser, config, bindkeys, server,
+				     first_time);
 
 cleanup:
-	if (config) {
+	if (bindkeys != NULL) {
+		cfg_obj_destroy(parser, &bindkeys);
+	}
+	if (config != NULL) {
 		cfg_obj_destroy(parser, &config);
 	}
 	cfg_parser_destroy(&parser);
@@ -9985,10 +9970,6 @@ named_server_destroy(named_server_t **serverp) {
 	isc_mem_free(server->mctx, server->dumpfile);
 	isc_mem_free(server->mctx, server->secrootsfile);
 	isc_mem_free(server->mctx, server->recfile);
-
-	if (server->bindkeysfile != NULL) {
-		isc_mem_free(server->mctx, server->bindkeysfile);
-	}
 
 	if (server->version != NULL) {
 		isc_mem_free(server->mctx, server->version);

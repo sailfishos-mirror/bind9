@@ -1501,14 +1501,6 @@ default is used.
    default is ``named.stats`` in the server's current directory. The
    format of the file is described in :ref:`statsfile`.
 
-.. namedconf:statement:: bindkeys-file
-   :tags: dnssec
-   :short: Specifies the pathname of a file to override the built-in trusted keys provided by :iscman:`named`.
-
-   This is the pathname of a file to override the built-in trusted keys provided
-   by :iscman:`named`. See the discussion of :any:`dnssec-validation` for
-   details. This is intended for server testing.
-
 .. namedconf:statement:: secroots-file
    :tags: dnssec
    :short: Specifies the pathname of the file where the server dumps security roots, when using :option:`rndc secroots`.

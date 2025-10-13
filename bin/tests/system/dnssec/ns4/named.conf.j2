@@ -35,15 +35,8 @@ options {
 
 	{% if managed_key %}
 		dnssec-validation auto;
-		bindkeys-file "managed.conf";
 	{% else %}
-		# Note: We only reference the bind.keys file here to
-		# confirm that it is *not* being used.	It contains the
-		# real root key, and we're using a local toy root zone for
-		# the tests, so it wouldn't work.  But dnssec-validation
-		# is set to "yes" not "auto", so that won't matter.
 		dnssec-validation yes;
-		bindkeys-file "../../../../../bind.keys";
 	{% endif %}
 
 	disable-algorithms "digest-alg-unsupported.example." { ECDSAP384SHA384; };

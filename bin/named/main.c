@@ -649,7 +649,7 @@ parse_fuzz_arg(void) {
 
 static void
 parse_T_opt(char *option) {
-	const char *p;
+	const char *p = NULL;
 	char *last = NULL;
 	/*
 	 * force the server to behave (or misbehave) in
@@ -692,6 +692,8 @@ parse_T_opt(char *option) {
 		if (maxudp <= 0) {
 			named_main_earlyfatal("bad maxudp");
 		}
+	} else if (!strncmp(option, "bindkeys=", 9)) {
+		named_g_bindkeysfile = option + 9;
 	} else if (!strncmp(option, "mkeytimers=", 11)) {
 		p = strtok_r(option + 11, "/", &last);
 		if (p == NULL) {

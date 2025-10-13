@@ -24,7 +24,6 @@ options {
 	recursion yes;
 	notify no;
 	dnssec-validation auto;
-	bindkeys-file "managed.conf";
 	servfail-ttl 0;
 };
 
