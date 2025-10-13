@@ -1364,17 +1364,17 @@ compute_keytag(dns_rdata_t *rdata) {
 /*%
  * Is the DNSKEY rrset in val->event->rdataset self-signed?
  */
-static bool
+static isc_result_t
 selfsigned_dnskey(dns_validator_t *val) {
 	dns_rdataset_t *rdataset = val->event->rdataset;
 	dns_rdataset_t *sigrdataset = val->event->sigrdataset;
 	dns_name_t *name = val->event->name;
 	isc_result_t result;
 	isc_mem_t *mctx = val->view->mctx;
-	bool answer = false;
+	bool match = false;
 
 	if (rdataset->type != dns_rdatatype_dnskey) {
-		return false;
+		return DNS_R_NOKEYMATCH;
 	}
 
 	for (result = dns_rdataset_first(rdataset); result == ISC_R_SUCCESS;
@@ -1396,8 +1396,6 @@ selfsigned_dnskey(dns_validator_t *val) {
 		     result == ISC_R_SUCCESS;
 		     result = dns_rdataset_next(sigrdataset))
 		{
-			dst_key_t *dstkey = NULL;
-
 			dns_rdata_reset(&sigrdata);
 			dns_rdataset_current(sigrdataset, &sigrdata);
 			result = dns_rdata_tostruct(&sigrdata, &sig, NULL);
@@ -1412,18 +1410,16 @@ selfsigned_dnskey(dns_validator_t *val) {
 
 			/*
 			 * If the REVOKE bit is not set we have a
-			 * theoretically self signed DNSKEY RRset.
-			 * This will be verified later.
+			 * theoretically self-signed DNSKEY RRset;
+			 * this will be verified later.
+			 *
+			 * We don't return the answer yet, though,
+			 * because we need to check the remaining keys
+			 * and possbly remove them if they're revoked.
 			 */
 			if ((key.flags & DNS_KEYFLAG_REVOKE) == 0) {
-				answer = true;
-				continue;
-			}
-
-			result = dns_dnssec_keyfromrdata(name, &keyrdata, mctx,
-							 &dstkey);
-			if (result != ISC_R_SUCCESS) {
-				return result;
+				match = true;
+				break;
 			}
 
 			/*
@@ -1433,6 +1429,14 @@ selfsigned_dnskey(dns_validator_t *val) {
 			if (DNS_TRUST_PENDING(rdataset->trust) &&
 			    dns_view_istrusted(val->view, name, &key))
 			{
+				dst_key_t *dstkey = NULL;
+
+				result = dns_dnssec_keyfromrdata(
+					name, &keyrdata, mctx, &dstkey);
+				if (result != ISC_R_SUCCESS) {
+					break;
+				}
+
 				result = dns_dnssec_verify(
 					name, rdataset, dstkey, true,
 					val->view->maxbits, mctx, &sigrdata,
@@ -1445,6 +1449,8 @@ selfsigned_dnskey(dns_validator_t *val) {
 					 */
 					dns_view_untrust(val->view, name, &key);
 				}
+
+				dst_key_free(&dstkey);
 			} else if (rdataset->trust >= dns_trust_secure) {
 				/*
 				 * We trust this RRset so if the key is
@@ -1452,12 +1458,14 @@ selfsigned_dnskey(dns_validator_t *val) {
 				 */
 				dns_view_untrust(val->view, name, &key);
 			}
-
-			dst_key_free(&dstkey);
 		}
 	}
 
-	return answer;
+	if (!match) {
+		return DNS_R_NOKEYMATCH;
+	}
+
+	return ISC_R_SUCCESS;
 }
 
 /*%
@@ -3054,11 +3062,22 @@ validator_start(isc_task_t *task, isc_event_t *event) {
 
 		INSIST(dns_rdataset_isassociated(val->event->rdataset));
 		INSIST(dns_rdataset_isassociated(val->event->sigrdataset));
-		if (selfsigned_dnskey(val)) {
+
+		result = selfsigned_dnskey(val);
+		switch (result) {
+		case ISC_R_SUCCESS:
 			result = validate_dnskey(val);
-		} else {
+			break;
+		case DNS_R_NOKEYMATCH:
 			result = validate_answer(val, false);
+			break;
+		default:
+			validator_log(val, ISC_LOG_INFO,
+				      "invalid selfsigned DNSKEY: %s",
+				      isc_result_totext(result));
+			goto cleanup;
 		}
+
 		if (result == DNS_R_NOVALIDSIG &&
 		    (val->attributes & VALATTR_TRIEDVERIFY) == 0)
 		{
@@ -3127,6 +3146,7 @@ validator_start(isc_task_t *task, isc_event_t *event) {
 		UNREACHABLE();
 	}
 
+cleanup:
 	if (result != DNS_R_WAIT) {
 		want_destroy = exit_check(val);
 		validator_done(val, result);
