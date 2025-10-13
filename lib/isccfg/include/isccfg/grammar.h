@@ -64,6 +64,9 @@ enum {
 
 	/*% Clause has been obsolete so long that it's now a fatal error */
 	CFG_CLAUSEFLAG_ANCIENT = 1 << 9,
+
+	/*% Clause allowed in the builtin configuration only */
+	CFG_CLAUSEFLAG_BUILTINONLY = 1 << 10,
 };
 
 /*%
@@ -288,6 +291,7 @@ struct cfg_parser {
 #define CFG_PCTX_NOOBSOLETE	(1 << 2)
 #define CFG_PCTX_NOEXPERIMENTAL (1 << 3)
 #define CFG_PCTX_ALLCONFIGS	(1 << 4)
+#define CFG_PCTX_BUILTIN	(1 << 5)
 
 /*@{*/
 /*%

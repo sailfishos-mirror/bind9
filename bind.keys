@@ -20,7 +20,7 @@
 # See https://data.iana.org/root-anchors/root-anchors.xml for current trust
 # anchor information for the root zone.
 
-trust-anchors {
+builtin-trust-anchors {
         # This key (20326) was published in the root zone in 2017, and
         # is scheduled to be phased out starting in 2025. It will remain
         # in the root zone until some time after its successor key has

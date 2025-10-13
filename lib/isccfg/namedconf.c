@@ -910,6 +910,11 @@ static cfg_type_t cfg_type_dnsseckeys = { "dnsseckeys",
 					  &cfg_rep_list,
 					  &cfg_type_managedkey };
 
+cfg_type_t cfg_type_builtin_dnsseckeys = {
+	"builtin-dnsseckeys", cfg_parse_bracketed_list, NULL, NULL,
+	&cfg_rep_list,	      &cfg_type_managedkey
+};
+
 /*%
  * A list of key entries, used in a DNSSEC Key and Signing Policy.
  */
@@ -1381,6 +1386,9 @@ static cfg_clausedef_t namedconf_clauses[] = {
 	  CFG_CLAUSEFLAG_MULTI | CFG_CLAUSEFLAG_NOTCONFIGURED },
 #endif
 	{ "template", &cfg_type_template, CFG_CLAUSEFLAG_MULTI },
+	{ "builtin-trust-anchors", &cfg_type_builtin_dnsseckeys,
+	  CFG_CLAUSEFLAG_MULTI | CFG_CLAUSEFLAG_BUILTINONLY |
+		  CFG_CLAUSEFLAG_NODOC },
 	{ "tls", &cfg_type_tlsconf, CFG_CLAUSEFLAG_MULTI },
 	{ "view", &cfg_type_view, CFG_CLAUSEFLAG_MULTI, merge_append },
 	{ NULL, NULL, 0 }

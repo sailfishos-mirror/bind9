@@ -801,7 +801,7 @@ cleanup:
 
 #define REQUIRE_PCTX_FLAGS(flags)                                        \
 	REQUIRE((flags & ~(CFG_PCTX_NODEPRECATED | CFG_PCTX_NOOBSOLETE | \
-			   CFG_PCTX_NOEXPERIMENTAL)) == 0)
+			   CFG_PCTX_NOEXPERIMENTAL | CFG_PCTX_BUILTIN)) == 0)
 
 isc_result_t
 cfg_parse_file(isc_mem_t *mctx, const char *filename, const cfg_type_t *type,
@@ -2461,6 +2461,15 @@ cfg_parse_mapbody(cfg_parser_t *pctx, const cfg_type_t *type, cfg_obj_t **ret) {
 					 clause->name);
 			CHECK(ISC_R_FAILURE);
 		}
+		if ((pctx->flags & CFG_PCTX_BUILTIN) == 0 &&
+		    (clause->flags & CFG_CLAUSEFLAG_BUILTINONLY) != 0)
+		{
+			cfg_parser_error(pctx, 0,
+					 "option '%s' is allowed in the "
+					 "builtin configuration only",
+					 clause->name);
+			CHECK(ISC_R_FAILURE);
+		}
 
 		/* Issue warnings if appropriate */
 		if ((pctx->flags & CFG_PCTX_NODEPRECATED) == 0 &&
@@ -2698,6 +2707,11 @@ cfg_print_mapbody(cfg_printer_t *pctx, const cfg_obj_t *obj) {
 
 		for (clause = *clauseset; clause->name != NULL; clause++) {
 			isc_result_t result;
+
+			if ((clause->flags & CFG_CLAUSEFLAG_BUILTINONLY) != 0) {
+				continue;
+			}
+
 			result = isc_symtab_lookup(obj->value.map.symtab,
 						   clause->name,
 						   SYMTAB_DUMMY_TYPE, &symval);

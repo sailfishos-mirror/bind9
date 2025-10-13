@@ -1140,8 +1140,8 @@ configure_view_dnsseckeys(dns_view_t *view, const cfg_obj_t *vconfig,
 				      "from '%s'",
 				      view->name, named_g_bindkeysfile);
 
-			(void)cfg_map_get(bindkeys, "trust-anchors",
-					  &builtin_keys);
+			CHECK(cfg_map_get(bindkeys, "trust-anchors",
+					  &builtin_keys));
 
 			if (builtin_keys == NULL) {
 				isc_log_write(DNS_LOGCATEGORY_SECURITY,
@@ -1159,8 +1159,8 @@ configure_view_dnsseckeys(dns_view_t *view, const cfg_obj_t *vconfig,
 				      "using built-in root key for view %s",
 				      view->name);
 
-			(void)cfg_map_get(config, "trust-anchors",
-					  &builtin_keys);
+			CHECK(cfg_map_get(config, "builtin-trust-anchors",
+					  &builtin_keys));
 		}
 
 		if (builtin_keys != NULL) {
