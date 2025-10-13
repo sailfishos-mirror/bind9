@@ -29,6 +29,9 @@ extern cfg_type_t cfg_type_namedconf;
 extern cfg_type_t cfg_type_bindkeys;
 /*%< A bind.keys file. */
 
+extern cfg_type_t cfg_type_builtin_dnsseckeys;
+/*%< The builtin dnsseckey builtin-trust-anchors */
+
 extern cfg_type_t cfg_type_addzoneconf;
 /*%< A single zone passed via the addzone rndc command. */
 

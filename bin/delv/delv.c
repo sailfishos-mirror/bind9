@@ -75,6 +75,7 @@
 
 #include <dst/dst.h>
 
+#include <isccfg/grammar.h>
 #include <isccfg/namedconf.h>
 
 #include <ns/client.h>
@@ -158,8 +159,16 @@ static dns_name_t *anchor_name = NULL;
 static dns_master_style_t *style = NULL;
 static dns_fixedname_t qfn;
 
-/* Default trust anchors */
+/* Default trust anchors and clause/type definitions */
 static char anchortext[] = TRUST_ANCHORS;
+
+static cfg_clausedef_t delv_clauses[] = { { "builtin-trust-anchors",
+					    &cfg_type_builtin_dnsseckeys,
+					    CFG_CLAUSEFLAG_MULTI },
+					  { NULL, NULL, 0 } };
+static cfg_clausedef_t *delv_clausesets[] = { delv_clauses, NULL };
+static cfg_type_t delv_type = { "delv", cfg_parse_mapbody, NULL,
+				NULL,	&cfg_rep_map,	   delv_clausesets };
 
 /*
  * Static function prototypes
@@ -833,20 +842,23 @@ setup_dnsseckeys(dns_client_t *client, dns_view_t *toview) {
 		if (result != ISC_R_SUCCESS) {
 			fatal("Unable to load keys from '%s'", anchorfile);
 		}
+
+		INSIST(bindkeys != NULL);
+		cfg_map_get(bindkeys, "trust-anchors", &trust_anchors);
 	} else {
 		isc_buffer_t b;
 
 		isc_buffer_init(&b, anchortext, sizeof(anchortext) - 1);
 		isc_buffer_add(&b, sizeof(anchortext) - 1);
-		result = cfg_parse_buffer(isc_g_mctx, &b, NULL, 0,
-					  &cfg_type_bindkeys, 0, &bindkeys);
+		result = cfg_parse_buffer(isc_g_mctx, &b, NULL, 0, &delv_type,
+					  0, &bindkeys);
 		if (result != ISC_R_SUCCESS) {
 			fatal("Unable to parse built-in keys");
 		}
+		INSIST(bindkeys != NULL);
+		cfg_map_get(bindkeys, "builtin-trust-anchors", &trust_anchors);
 	}
 
-	INSIST(bindkeys != NULL);
-	cfg_map_get(bindkeys, "trust-anchors", &trust_anchors);
 	if (trust_anchors != NULL) {
 		CHECK(load_keys(trust_anchors, client, toview));
 	}
