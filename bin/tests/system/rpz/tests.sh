@@ -622,7 +622,7 @@ nochange_ns10 a3-1.static-stub-nomatch # 16
 if [ "$MODE" = dnsrps ]; then
   addr 12.12.12.12 as-ns.tld5. # 17 qname-as-ns
 fi
-nextpart ns3/named.run | grep -q "unrecognized NS rpz_rrset_find() failed: glue" \
+nextpart ns3/named.run | grep -F "unrecognized NS rpz_rrset_find() failed: glue" >/dev/null \
   && setret "seen: unrecognized NS rpz_rrset_find() failed: glue"
 end_group
 if [ "$MODE" = dnsrps ]; then
@@ -645,7 +645,7 @@ nochange_ns10 a4-1.static-stub-nomatch # 8
 if [ "$MODE" = dnsrps ]; then
   addr 12.12.12.12 as-ns.tld5. # 9 ip-as-ns
 fi
-nextpart ns3/named.run | grep -q "unrecognized NS rpz_rrset_find() failed: glue" \
+nextpart ns3/named.run | grep -F "unrecognized NS rpz_rrset_find() failed: glue" >/dev/null \
   && setret "seen: unrecognized NS rpz_rrset_find() failed: glue"
 end_group
 
