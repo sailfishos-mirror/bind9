@@ -1630,7 +1630,7 @@ plus_option(char *option, struct query *query, bool global) {
 		FULLCHECK("yaml");
 		yaml = state;
 		if (state) {
-			display_rrcomments = state;
+			display_rrcomments = 1;
 		}
 		break;
 	case 'z': /* zflag */
