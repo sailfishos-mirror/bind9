@@ -12,11 +12,16 @@
 # information regarding copyright ownership.
 
 ret=0
-for spatch in cocci/*.spatch; do
-  patch="$(dirname "$spatch")/$(basename "$spatch" .spatch).patch"
+
+run_spatch() {
+  local spatch=$1
+  shift
+  local spatchargs="$@"
+  local patch="$(dirname "$spatch")/$(basename "$spatch" .spatch).patch"
+
   : >"$patch"
   echo "Applying semantic patch $spatch..."
-  spatch --jobs "${TEST_PARALLEL_JOBS:-1}" --sp-file "$spatch" --use-gitgrep --dir "." --very-quiet --include-headers "$@" >>"$patch" 2>cocci.stderr
+  spatch --jobs "${TEST_PARALLEL_JOBS:-1}" --sp-file "$spatch" --use-gitgrep --dir "." --include-headers $spatchargs >>"$patch" 2>cocci.stderr
   cat cocci.stderr
   if grep -q -e "parse error" cocci.stderr; then
     ret=1
@@ -27,7 +32,34 @@ for spatch in cocci/*.spatch; do
   else
     rm "$patch"
   fi
+}
+
+spatchargs=""
+spatchfile=""
+
+for arg in "$@"; do
+  if [ "$arg" = "--" ]; then
+    shift
+    spatchargs="$@"
+    break
+  fi
+
+  if [ -z "$spatchfile" ]; then
+    spatchfile="$arg"
+    shift
+  else
+    echo "USAGE: $0 [spatch-file] [-- spatch arguments]"
+    exit 1
+  fi
 done
+
+if [ -n "$spatchfile" ]; then
+  run_spatch $spatchfile $spatchargs
+else
+  for spatch in cocci/*.spatch; do
+    run_spatch $spatch --very-quiet $spatchargs
+  done
+fi
 
 rm -f cocci.stderr
 
