@@ -763,7 +763,7 @@ echo_i "checking addzone with nonexistent template ($n)"
 ret=0
 nextpart ns2/named.run >/dev/null
 $RNDCCMD 10.53.0.2 addzone 'wrong.example in external { template nope; };' 2>&1 | grep -qF "failure" || ret=1
-nextpart ns2/named.run | grep -qF "zone 'wrong.example': template 'nope' not found" || ret=1
+nextpart ns2/named.run | grep -F "zone 'wrong.example': template 'nope' not found" >/dev/null || ret=1
 test -f ns2/wrong-template.example.db && ret=1
 n=$((n + 1))
 if [ $ret != 0 ]; then echo_i "failed"; fi

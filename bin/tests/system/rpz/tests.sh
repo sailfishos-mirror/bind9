@@ -562,7 +562,7 @@ nxdomain a3-1.stub                     # 13
 nxdomain a3-1.static-stub              # 14
 nochange_ns10 a3-1.stub-nomatch        # 15
 nochange_ns10 a3-1.static-stub-nomatch # 16
-nextpart ns3/named.run | grep -q "unrecognized NS rpz_rrset_find() failed: glue" \
+nextpart ns3/named.run | grep -F "unrecognized NS rpz_rrset_find() failed: glue" >/dev/null \
   && setret "seen: unrecognized NS rpz_rrset_find() failed: glue"
 end_group
 ckstats $ns3 test3 ns3 9
@@ -578,7 +578,7 @@ nxdomain a4-1.stub                     # 5
 nxdomain a4-1.static-stub              # 6
 nochange_ns10 a4-1.stub-nomatch        # 7
 nochange_ns10 a4-1.static-stub-nomatch # 8
-nextpart ns3/named.run | grep -q "unrecognized NS rpz_rrset_find() failed: glue" \
+nextpart ns3/named.run | grep -F "unrecognized NS rpz_rrset_find() failed: glue" >/dev/null \
   && setret "seen: unrecognized NS rpz_rrset_find() failed: glue"
 end_group
 
