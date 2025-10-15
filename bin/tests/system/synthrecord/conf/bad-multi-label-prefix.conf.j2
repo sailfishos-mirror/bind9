@@ -14,7 +14,7 @@
 zone 192.in-addr.arpa {
 	type primary;
 	file "file";
-	plugin query "@TOP_BUILDDIR@/synthrecord.so" {
+	plugin query "@TOP_BUILDDIR@/synthrecord.@DYLIB@" {
 		prefix "dynam.ic-";
 		allow-synth {
 			192.168.1.0/24;

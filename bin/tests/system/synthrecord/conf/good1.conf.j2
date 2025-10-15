@@ -14,7 +14,7 @@
 zone 10.in-addr.arpa {
 	type primary;
 	file "10.in-addr.arpa.db";
-        plugin query "@TOP_BUILDDIR@/synthrecord.so" {
+        plugin query "@TOP_BUILDDIR@/synthrecord.@DYLIB@" {
                 prefix "dynamic-";
                 allow-synth {
                         10.53.0.0/16;
@@ -27,7 +27,7 @@ zone 10.in-addr.arpa {
 zone e.f.a.c.ip6.arpa {
 	type primary;
 	file "e.f.a.c.in-addr.arpa.db";
-        plugin query "@TOP_BUILDDIR@/synthrecord.so" {
+        plugin query "@TOP_BUILDDIR@/synthrecord.@DYLIB@" {
                 prefix "dynamic-";
                 allow-synth {
                         cafe:cafe::/32;
@@ -40,7 +40,7 @@ zone e.f.a.c.ip6.arpa {
 zone example {
 	type primary;
 	file "example.db";
-        plugin query "@TOP_BUILDDIR@/synthrecord.so" {
+        plugin query "@TOP_BUILDDIR@/synthrecord.@DYLIB@" {
                 prefix "dynamic-";
                 allow-synth {
                         10.53.0.0/16;
