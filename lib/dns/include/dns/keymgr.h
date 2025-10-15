@@ -167,19 +167,20 @@ dns_keymgr_rollover(dns_kasp_t *kasp, dns_dnsseckeylist_t *keyring,
 
 isc_result_t
 dns_keymgr_status(dns_kasp_t *kasp, dns_dnsseckeylist_t *keyring,
-		  isc_stdtime_t now, char *out, size_t out_len);
+		  isc_buffer_t *buf, isc_stdtime_t now, bool verbose,
+		  bool checkds);
 /*%<
  * Retrieve the status of given 'kasp' policy and keys in the
- * 'keyring' and store the printable output in the 'out' buffer.
+ * 'keyring' and store the printable output in the 'buf' buffer.
  *
  *	Requires:
  *\li		'kasp' is not NULL.
  *\li		'keyring' is not NULL.
- *\li		'out' is not NULL.
+ *\li		'buf' is not NULL.
  *
  *	Returns:
  *\li		ISC_R_SUCCESS on success.
- *\li		ISC_R_NOSPACE if the 'out' buffer is too small.
+ *\li		ISC_R_NOSPACE if the 'buf' buffer is too small.
  *\li		ISC_R_FAILURE if other error occurred.
  *\li		Printable status in 'out'.
  *

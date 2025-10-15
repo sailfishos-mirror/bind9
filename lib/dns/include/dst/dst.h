@@ -1104,6 +1104,15 @@ dst_key_is_unused(const dst_key_t *key);
  */
 
 bool
+dst_key_is_hidden(const dst_key_t *key);
+/*%<
+ * Check if this key is completely hidden.
+ *
+ * Requires:
+ *	'key' to be valid.
+ */
+
+bool
 dst_key_is_published(dst_key_t *key, isc_stdtime_t now, isc_stdtime_t *publish);
 /*%<
  * Check if it is safe to publish this key (e.g. put the DNSKEY in the zone).

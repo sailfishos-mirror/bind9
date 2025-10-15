@@ -2307,6 +2307,26 @@ dst_key_tkeytoken(const dst_key_t *key) {
 }
 
 /*
+ * A key is considered hidden if it has all states set to HIDDEN or NA.
+ *
+ */
+bool
+dst_key_is_hidden(const dst_key_t *key) {
+	REQUIRE(VALID_KEY(key));
+
+	for (int i = 0; i < DST_MAX_KEYSTATES; i++) {
+		dst_key_state_t st;
+		if (dst_key_getstate(key, i, &st) != ISC_R_SUCCESS) {
+			st = DST_KEY_STATE_HIDDEN;
+		}
+		if (st != DST_KEY_STATE_HIDDEN) {
+			return false;
+		}
+	}
+	return true;
+}
+
+/*
  * A key is considered unused if it does not have any timing metadata set
  * other than "Created".
  *

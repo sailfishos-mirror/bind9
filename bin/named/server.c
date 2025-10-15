@@ -14344,10 +14344,8 @@ named_server_dnssec(named_server_t *server, isc_lex_t *lex,
 		 * Output the DNSSEC status of the key and signing policy.
 		 */
 		isc_result_t r;
-		LOCK(&kasp->lock);
-		r = dns_keymgr_status(kasp, &keys, now, &output[0],
-				      sizeof(output));
-		UNLOCK(&kasp->lock);
+		r = dns_zone_dnssecstatus(zone, kasp, &keys, now, verbose,
+					  &output[0], sizeof(output));
 		CHECK(putstr(text, output));
 		if (r != ISC_R_SUCCESS) {
 			CHECK(putstr(text,

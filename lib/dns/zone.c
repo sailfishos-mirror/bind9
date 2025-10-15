@@ -22284,6 +22284,42 @@ dns_zone_rekey(dns_zone_t *zone, bool fullsign, bool forcekeymgr) {
 }
 
 isc_result_t
+dns_zone_dnssecstatus(dns_zone_t *zone, dns_kasp_t *kasp,
+		      dns_dnsseckeylist_t *keys, isc_stdtime_t now,
+		      bool verbose, char *out, size_t out_len) {
+	isc_buffer_t buf;
+	isc_result_t result = ISC_R_SUCCESS;
+	isc_time_t refreshkeytime;
+	isc_stdtime_t refresh;
+	char timestr[26];
+
+	REQUIRE(DNS_ZONE_VALID(zone));
+	REQUIRE(out != NULL);
+
+	isc_buffer_init(&buf, out, out_len);
+
+	RETERR(isc_buffer_printf(
+		&buf, "DNSSEC status for zone '%s' using policy '%s':\n",
+		zone->strname, dns_kasp_getname(kasp)));
+
+	isc_stdtime_tostring(now, timestr, sizeof(timestr));
+	RETERR(isc_buffer_printf(&buf, "Current time:   %s\n", timestr));
+
+	dns_zone_getrefreshkeytime(zone, &refreshkeytime);
+	refresh = isc_time_seconds(&refreshkeytime);
+	isc_stdtime_tostring(refresh, timestr, sizeof(timestr));
+	RETERR(isc_buffer_printf(&buf, "Next key event: %s\n", timestr));
+
+	bool checkds = zone->checkdstype != dns_checkdstype_no;
+	LOCK(&kasp->lock);
+	result = dns_keymgr_status(kasp, keys, &buf, now, verbose, checkds);
+	UNLOCK(&kasp->lock);
+
+failure:
+	return result;
+}
+
+isc_result_t
 dns_zone_nscheck(dns_zone_t *zone, dns_db_t *db, dns_dbversion_t *version,
 		 unsigned int *errors) {
 	isc_result_t result;
