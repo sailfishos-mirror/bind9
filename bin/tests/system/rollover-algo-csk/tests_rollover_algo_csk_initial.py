@@ -27,7 +27,7 @@ from rollover.common import (
 @pytest.mark.parametrize(
     "tld, policy",
     [
-        param("kasp", "csk-algoroll"),
+        param("kasp", "csk-algoroll-kasp"),
         param("manual", "csk-algoroll-manual"),
     ],
 )

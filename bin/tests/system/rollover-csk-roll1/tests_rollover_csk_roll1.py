@@ -404,6 +404,8 @@ def test_csk_roll1_step7(tld, alg, size, ns3):
         # This is the Lcsk, minus time passed since the key started signing,
         # minus the prepublication time.
         "nextev": CSK_LIFETIME - IRETZSK - IPUB - KEYTTLPROP,
+        # Include hidden keys in output.
+        "verbose": True,
     }
     isctest.kasp.check_rollover_step(ns3, CONFIG, policy, step)
 

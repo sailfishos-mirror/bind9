@@ -319,6 +319,8 @@ def test_algoroll_ksk_zsk_reconfig_step5(tld, ns6, alg, size):
         # platforms by subtracting the number of seconds which passed
         # between key creation and invoking 'rndc reconfig'.
         "nextev": ALGOROLL_IRET - ALGOROLL_IRETKSK - ALGOROLL_KEYTTLPROP - TIME_PASSED,
+        # Include hidden keys in output.
+        "verbose": True,
     }
     isctest.kasp.check_rollover_step(ns6, CONFIG, policy, step)
 
@@ -352,5 +354,7 @@ def test_algoroll_ksk_zsk_reconfig_step6(tld, ns6, alg, size):
         # keys have an unlimited lifetime.  Fallback to the default
         # loadkeys interval.
         "nextev": TIMEDELTA["PT1H"],
+        # Include hidden keys in output.
+        "verbose": True,
     }
     isctest.kasp.check_rollover_step(ns6, CONFIG, policy, step)

@@ -342,7 +342,7 @@ def cb_remove_keyfiles(params, ksks=None, zsks=None):
         pytest.param(
             {
                 "zone": "rsasha1-nsec3.kasp",
-                "policy": "rsasha1",
+                "policy": "rsasha1-nsec3",
                 "config": kasp_config,
                 "key-properties": rsa1_properties(7),
             },
@@ -939,7 +939,7 @@ def test_kasp_dynamic(ns3):
     # Standard dynamic zone.
     isctest.log.info("check dynamic zone is updated and signed after update")
     zone = "dynamic.kasp"
-    policy = "default"
+    policy = "default-dynamic"
 
     isctest.kasp.wait_keymgr_done(ns3, zone)
 
@@ -1005,6 +1005,7 @@ def test_kasp_dynamic(ns3):
 
     # Dynamic, and inline-signing.
     zone = "dynamic-inline-signing.kasp"
+    policy = "default"
 
     isctest.kasp.wait_keymgr_done(ns3, zone)
 
