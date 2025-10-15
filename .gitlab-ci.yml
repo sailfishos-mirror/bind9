@@ -386,7 +386,7 @@ stages:
 # Unpack release tarball and continue work in the extracted directory.
 .unpack_release_tarball: &unpack_release_tarball
   - tar --extract --file build/meson-dist/bind-*.tar.xz
-  - rm -f bind-*.tar.xz
+  - rm -f build/meson-dist/bind-*.tar.xz
   - cd bind-*
 
 .fips-feature-test: &fips_feature_test
