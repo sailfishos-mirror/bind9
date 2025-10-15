@@ -14,7 +14,7 @@
 zone example {
 	type primary;
 	file "file";
-	plugin query "@TOP_BUILDDIR@/synthrecord.so" {
+	plugin query "@TOP_BUILDDIR@/synthrecord.@DYLIB@" {
 		prefix { 10.43.4.5/2; };
 		origin "example.";
 		ttl 60;

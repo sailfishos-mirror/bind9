@@ -14,7 +14,7 @@
 zone 10.in-addr.arpa {
 	type primary;
 	file "file";
-	plugin query "@TOP_BUILDDIR@/synthrecord.so" {
+	plugin query "@TOP_BUILDDIR@/synthrecord.@DYLIB@" {
 		allow-synth {
 			10.53.0.0/16;
 		};

@@ -19,7 +19,7 @@ key "test-tsig." {
 zone example {
 	type primary;
 	file "file";
-	plugin query "@TOP_BUILDDIR@/synthrecord.so" {
+	plugin query "@TOP_BUILDDIR@/synthrecord.@DYLIB@" {
 		prefix "dynamic-";
 		allow-synth {
 			192.168.1.5;
