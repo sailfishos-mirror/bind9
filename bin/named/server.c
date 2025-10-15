@@ -14169,6 +14169,7 @@ named_server_dnssec(named_server_t *server, isc_lex_t *lex,
 	dst_algorithm_t algorithm = 0;
 	/* variables for -status */
 	bool status = false;
+	bool verbose = false;
 	char output[4096];
 	isc_stdtime_t now, when;
 	isc_time_t timenow, timewhen;
@@ -14206,6 +14207,25 @@ named_server_dnssec(named_server_t *server, isc_lex_t *lex,
 		forcestep = true;
 	} else {
 		CHECK(DNS_R_SYNTAX);
+	}
+
+	if (status) {
+		/* Check for options */
+		for (;;) {
+			ptr = next_token(lex, text);
+			if (ptr == NULL) {
+				msg = "Bad format";
+				CHECK(ISC_R_UNEXPECTEDEND);
+			} else if (argcheck(ptr, "v")) {
+				verbose = true;
+			} else if (ptr[0] == '-') {
+				msg = "Unknown option";
+				CHECK(DNS_R_SYNTAX);
+			} else {
+				zonetext = ptr;
+			}
+			break;
+		}
 	}
 
 	if (rollover || checkds) {

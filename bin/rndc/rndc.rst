@@ -180,13 +180,13 @@ Currently supported commands are:
 
    See also :option:`rndc addzone` and :option:`rndc modzone`.
 
-.. option:: dnssec (-status | -step | -rollover -key id [-alg algorithm] [-when time] | -checkds [-key id [-alg algorithm]] [-when time]  published | withdrawn)) zone [class [view]]
+.. option:: dnssec (-status [-v] | -step | -rollover -key id [-alg algorithm] [-when time] | -checkds [-key id [-alg algorithm]] [-when time]  published | withdrawn)) zone [class [view]]
 
    This command allows you to interact with the "dnssec-policy" of a given
    zone.
 
    ``rndc dnssec -status`` show the DNSSEC signing state for the specified
-   zone.
+   zone. Add ``-v`` to show more verbose output on key states.
 
    ``rndc dnssec -step`` sends a signal to an instance of :iscman:`named` for a
    zone configured with ``dnssec-policy`` in manual mode, telling it to
