@@ -1119,7 +1119,6 @@ configure_view_dnsseckeys(dns_view_t *view, const cfg_obj_t *vconfig,
 		}
 	}
 
-	maps[i++] = named_g_defaultoptions;
 	maps[i] = NULL;
 
 	dns_view_initsecroots(view);
@@ -1160,8 +1159,8 @@ configure_view_dnsseckeys(dns_view_t *view, const cfg_obj_t *vconfig,
 				      "using built-in root key for view %s",
 				      view->name);
 
-			(void)cfg_map_get(named_g_defaultconfig,
-					  "trust-anchors", &builtin_keys);
+			(void)cfg_map_get(config, "trust-anchors",
+					  &builtin_keys);
 		}
 
 		if (builtin_keys != NULL) {
@@ -3831,7 +3830,6 @@ configure_view(dns_view_t *view, dns_viewlist_t *viewlist, cfg_obj_t *config,
 	if (options != NULL) {
 		maps[i++] = options;
 	}
-	maps[i++] = named_g_defaultoptions;
 
 	if (config != NULL) {
 		cfgmaps[j++] = config;
@@ -7185,7 +7183,6 @@ setup_newzones(dns_view_t *view, cfg_obj_t *config, cfg_obj_t *vconfig,
 	if (result == ISC_R_SUCCESS) {
 		maps[i++] = options;
 	}
-	maps[i++] = named_g_defaultoptions;
 	maps[i] = NULL;
 
 	result = named_config_get(maps, "allow-new-zones", &nz);
@@ -7904,7 +7901,6 @@ apply_configuration(cfg_obj_t *config, cfg_obj_t *bindkeys,
 	if (result == ISC_R_SUCCESS) {
 		maps[i++] = options;
 	}
-	maps[i++] = named_g_defaultoptions;
 	maps[i] = NULL;
 
 	/* Create the ACL configuration context */
@@ -9020,13 +9016,14 @@ cleanup_aclctx:
 		      ISC_LOG_DEBUG(1), "apply_configuration: %s",
 		      isc_result_totext(result));
 
+	cfg_obj_detach(&config);
 	return result;
 }
 
 static isc_result_t
 load_configuration(named_server_t *server, bool first_time) {
 	isc_result_t result;
-	cfg_obj_t *config = NULL, *bindkeys = NULL;
+	cfg_obj_t *config = NULL, *bindkeys = NULL, *effective = NULL;
 
 	isc_log_write(NAMED_LOGCATEGORY_GENERAL, NAMED_LOGMODULE_SERVER,
 		      ISC_LOG_DEBUG(1), "load_configuration");
@@ -9063,7 +9060,8 @@ load_configuration(named_server_t *server, bool first_time) {
 		}
 	}
 
-	result = apply_configuration(config, bindkeys, server, first_time);
+	effective = cfg_effective_config(config, named_g_defaultconfig);
+	result = apply_configuration(effective, bindkeys, server, first_time);
 
 cleanup:
 	if (bindkeys != NULL) {

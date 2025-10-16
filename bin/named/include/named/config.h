@@ -69,3 +69,7 @@ named_config_getkeyalgorithm(const char *str, unsigned int *typep,
 isc_result_t
 named_config_findopt(const cfg_obj_t *opts1, const cfg_obj_t *opts2,
 		     const char *name, const cfg_obj_t **objp);
+
+isc_result_t
+named_config_effective(cfg_obj_t **effective, const cfg_obj_t *defaults,
+		       const cfg_obj_t *user);
