@@ -1196,6 +1196,138 @@ map_merge(cfg_obj_t *effectivemap, const cfg_obj_t *defaultmap) {
 	}
 }
 
+static void
+options_merge_defaultacl(cfg_obj_t *effectiveoptions,
+			 const cfg_obj_t *defaultoptions, const char *aclname,
+			 bool needsdefault) {
+	const cfg_obj_t *obj = NULL;
+	isc_result_t result;
+
+	if (needsdefault == false) {
+		return;
+	}
+
+	result = cfg_map_get(defaultoptions, aclname, &obj);
+	INSIST(result == ISC_R_SUCCESS);
+
+	cfg_obj_ref(UNCONST(obj));
+	result = cfg_map_add(effectiveoptions, UNCONST(obj), aclname);
+	INSIST(result == ISC_R_SUCCESS);
+}
+
+static void
+options_merge(cfg_obj_t *effectiveoptions, const cfg_obj_t *defaultoptions) {
+	const cfg_obj_t *obj = NULL;
+	isc_result_t result;
+	bool noquerycacheacl = false;
+	bool norecursionacl = false;
+	bool noquerycacheonacl = false;
+	bool norecursiononacl = false;
+
+	/*
+	 * ACLs allow-query-cache, allow-recursion, allow-query-cache-on and
+	 * allow-recursion-on need to be "merged" at once because there
+	 * are implicit dependency rules between them. After all those
+	 * dependency rules have been applied, the default values are used
+	 * _only_ if they are still undefined in the user configuration.
+	 *
+	 * This need to be done only for the global options, because the views
+	 * and zone ACL initialization code will look in the global options
+	 * as fallback, and they'll be defined there.
+	 *
+	 * This is useless (and shouldn't have any effect) for views with
+	 * recursion=false, but needed for those with recursion=true
+	 */
+	result = cfg_map_get(effectiveoptions, "allow-query-cache", &obj);
+	if (result != ISC_R_SUCCESS) {
+		result = cfg_map_get(effectiveoptions, "allow-recursion", &obj);
+		if (result == ISC_R_SUCCESS) {
+			cfg_obj_ref(UNCONST(obj));
+			result = cfg_map_add(effectiveoptions, UNCONST(obj),
+					     "allow-query-cache");
+			INSIST(result == ISC_R_SUCCESS);
+		} else {
+			result = cfg_map_get(effectiveoptions, "allow-query",
+					     &obj);
+			if (result == ISC_R_SUCCESS) {
+				cfg_obj_ref(UNCONST(obj));
+				result = cfg_map_add(effectiveoptions,
+						     UNCONST(obj),
+						     "allow-query-cache");
+				INSIST(result == ISC_R_SUCCESS);
+			} else {
+				noquerycacheacl = true;
+			}
+		}
+	}
+
+	obj = NULL;
+	result = cfg_map_get(effectiveoptions, "allow-recursion", &obj);
+	if (result != ISC_R_SUCCESS) {
+		result = cfg_map_get(effectiveoptions, "allow-query-cache",
+				     &obj);
+		if (result == ISC_R_SUCCESS) {
+			cfg_obj_ref(UNCONST(obj));
+			result = cfg_map_add(effectiveoptions, UNCONST(obj),
+					     "allow-recursion");
+			INSIST(result == ISC_R_SUCCESS);
+		} else {
+			result = cfg_map_get(effectiveoptions, "allow-query",
+					     &obj);
+			if (result == ISC_R_SUCCESS) {
+				cfg_obj_ref(UNCONST(obj));
+				result = cfg_map_add(effectiveoptions,
+						     UNCONST(obj),
+						     "allow-recursion");
+				INSIST(result == ISC_R_SUCCESS);
+			} else {
+				norecursionacl = true;
+			}
+		}
+	}
+
+	obj = NULL;
+	result = cfg_map_get(effectiveoptions, "allow-query-cache-on", &obj);
+	if (result != ISC_R_SUCCESS) {
+		result = cfg_map_get(effectiveoptions, "allow-recursion-on",
+				     &obj);
+		if (result == ISC_R_SUCCESS) {
+			cfg_obj_ref(UNCONST(obj));
+			result = cfg_map_add(effectiveoptions, UNCONST(obj),
+					     "allow-query-cache-on");
+			INSIST(result == ISC_R_SUCCESS);
+		} else {
+			noquerycacheonacl = true;
+		}
+	}
+
+	obj = NULL;
+	result = cfg_map_get(effectiveoptions, "allow-recursion-on", &obj);
+	if (result != ISC_R_SUCCESS) {
+		result = cfg_map_get(effectiveoptions, "allow-query-cache-on",
+				     &obj);
+		if (result == ISC_R_SUCCESS) {
+			cfg_obj_ref(UNCONST(obj));
+			result = cfg_map_add(effectiveoptions, UNCONST(obj),
+					     "allow-recursion-on");
+			INSIST(result == ISC_R_SUCCESS);
+		} else {
+			norecursiononacl = true;
+		}
+	}
+
+	options_merge_defaultacl(effectiveoptions, defaultoptions,
+				 "allow-query-cache", noquerycacheacl);
+	options_merge_defaultacl(effectiveoptions, defaultoptions,
+				 "allow-recursion", norecursionacl);
+	options_merge_defaultacl(effectiveoptions, defaultoptions,
+				 "allow-query-cache-on", noquerycacheonacl);
+	options_merge_defaultacl(effectiveoptions, defaultoptions,
+				 "allow-recursion-on", norecursiononacl);
+
+	map_merge(effectiveoptions, defaultoptions);
+}
+
 /*%
  * Clauses that can be found within the top level of the named.conf
  * file only.
@@ -1216,7 +1348,7 @@ static cfg_clausedef_t namedconf_clauses[] = {
 	{ "lwres", NULL, CFG_CLAUSEFLAG_MULTI | CFG_CLAUSEFLAG_ANCIENT },
 	{ "masters", &cfg_type_serverlist,
 	  CFG_CLAUSEFLAG_MULTI | CFG_CLAUSEFLAG_NODOC },
-	{ "options", &cfg_type_options, 0 },
+	{ "options", &cfg_type_options, 0, options_merge },
 	{ "parental-agents", &cfg_type_serverlist,
 	  CFG_CLAUSEFLAG_MULTI | CFG_CLAUSEFLAG_NODOC },
 	{ "primaries", &cfg_type_serverlist,
