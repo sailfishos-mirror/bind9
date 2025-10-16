@@ -3992,35 +3992,32 @@ cfg_print_grammar(const cfg_type_t *type, unsigned int flags,
 	cfg_doc_obj(&pctx, type);
 }
 
-isc_result_t
-cfg_map_add(cfg_obj_t *mapobj, cfg_obj_t *obj, const char *clausename) {
-	isc_result_t result = ISC_R_SUCCESS;
-	const cfg_map_t *map = NULL;
-	isc_symvalue_t symval;
+static const cfg_clausedef_t *
+map_lookup_clause(const cfg_obj_t *mapobj, const char *clausename) {
+	const cfg_map_t *map = &mapobj->value.map;
 	const cfg_clausedef_t *const *clauseset = NULL;
 	const cfg_clausedef_t *clause = NULL;
 
-	REQUIRE(mapobj != NULL && mapobj->type->rep == &cfg_rep_map);
-	REQUIRE(obj != NULL);
-	REQUIRE(clausename != NULL);
-
-	map = &mapobj->value.map;
-
-	clause = NULL;
 	for (clauseset = map->clausesets; *clauseset != NULL; clauseset++) {
 		for (clause = *clauseset; clause->name != NULL; clause++) {
 			if (strcasecmp(clause->name, clausename) == 0) {
-				goto breakout;
+				return clause;
 			}
 		}
 	}
 
-breakout:
-	if (clause == NULL || clause->name == NULL) {
-		return ISC_R_FAILURE;
-	}
+	return NULL;
+}
 
-	result = isc_symtab_lookup(map->symtab, clausename, SYMTAB_DUMMY_TYPE,
+static isc_result_t
+map_define(cfg_obj_t *mapobj, cfg_obj_t *obj, const cfg_clausedef_t *clause) {
+	isc_result_t result;
+	const cfg_map_t *map;
+	isc_symvalue_t symval;
+
+	map = &mapobj->value.map;
+
+	result = isc_symtab_lookup(map->symtab, clause->name, SYMTAB_DUMMY_TYPE,
 				   &symval);
 	if (result == ISC_R_NOTFOUND) {
 		if ((clause->flags & CFG_CLAUSEFLAG_MULTI) != 0) {
@@ -4057,6 +4054,89 @@ breakout:
 	}
 
 	return result;
+}
+
+isc_result_t
+cfg_map_add(cfg_obj_t *mapobj, cfg_obj_t *obj, const char *clausename) {
+	const cfg_clausedef_t *clause;
+
+	REQUIRE(mapobj != NULL && mapobj->type->rep == &cfg_rep_map);
+	REQUIRE(obj != NULL);
+	REQUIRE(clausename != NULL);
+
+	clause = map_lookup_clause(mapobj, clausename);
+	if (clause == NULL || clause->name == NULL) {
+		return ISC_R_FAILURE;
+	}
+
+	return map_define(mapobj, obj, clause);
+}
+
+isc_result_t
+cfg_map_addclone(cfg_obj_t *map, const cfg_obj_t *obj,
+		 const cfg_clausedef_t *clause) {
+	isc_result_t result = ISC_R_SUCCESS;
+	cfg_obj_t *clone = NULL;
+
+	REQUIRE(map != NULL && map->type->rep == &cfg_rep_map);
+	REQUIRE(obj != NULL);
+	REQUIRE(clause != NULL && clause->name != NULL);
+
+	/*
+	 * Repeatable clauses aren't explicitly defined as cfg_list types,
+	 * but a list is created internally if the clause has
+	 * CFG_CLAUSEFLAG_MULTI set.
+	 */
+	if ((clause->flags & CFG_CLAUSEFLAG_MULTI) != 0) {
+		const cfg_listelt_t *elt = NULL;
+
+		REQUIRE(cfg_obj_islist(obj));
+
+		elt = cfg_list_first(obj);
+		while (elt != NULL && result == ISC_R_SUCCESS) {
+			cfg_obj_clone(elt->obj, &clone);
+			result = map_define(map, clone, clause);
+			elt = cfg_list_next(elt);
+
+			/*
+			 * map_define internally attach each added node
+			 * in the implicit list
+			 */
+			cfg_obj_detach(&clone);
+		}
+	} else {
+		cfg_obj_clone(obj, &clone);
+		result = map_define(map, clone, clause);
+	}
+
+	return result;
+}
+
+void
+cfg_list_addclone(cfg_obj_t *dst, const cfg_obj_t *src, bool prepend) {
+	const cfg_listelt_t *srcelt = NULL;
+	cfg_list_t list = ISC_LIST_INITIALIZER;
+
+	REQUIRE(cfg_obj_islist(dst));
+	REQUIRE(cfg_obj_islist(src));
+
+	srcelt = cfg_list_first(src);
+	while (srcelt != NULL) {
+		cfg_listelt_t *dstelt = isc_mem_get(dst->mctx, sizeof(*dstelt));
+
+		*dstelt = (cfg_listelt_t){ .link = ISC_LINK_INITIALIZER };
+		cfg_obj_clone(srcelt->obj, &dstelt->obj);
+
+		if (prepend) {
+			ISC_LIST_APPEND(list, dstelt, link);
+		} else {
+			ISC_LIST_APPEND(dst->value.list, dstelt, link);
+		}
+		srcelt = cfg_list_next(srcelt);
+	}
+	if (prepend) {
+		ISC_LIST_PREPENDLIST(dst->value.list, list, link);
+	}
 }
 
 isc_result_t
