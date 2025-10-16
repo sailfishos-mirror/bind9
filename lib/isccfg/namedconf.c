@@ -1142,6 +1142,60 @@ static cfg_type_t cfg_type_fetchesper = { "fetchesper",	   cfg_parse_tuple,
 					  cfg_print_tuple, cfg_doc_tuple,
 					  &cfg_rep_tuple,  fetchesper_fields };
 
+static void
+map_merge(cfg_obj_t *effectivemap, const cfg_obj_t *defaultmap) {
+	const void *clauses = NULL;
+	const cfg_clausedef_t *clause = NULL;
+	unsigned int i = 0;
+
+	for (clause = cfg_map_firstclause(effectivemap->type, &clauses, &i);
+	     clause != NULL;
+	     clause = cfg_map_nextclause(effectivemap->type, &clauses, &i))
+	{
+		isc_result_t defaultres;
+		isc_result_t effectiveres;
+		cfg_obj_t *effectiveobj = NULL;
+		const cfg_obj_t *defaultobj = NULL;
+
+		defaultres = cfg_map_get(defaultmap, clause->name, &defaultobj);
+		INSIST(defaultres == ISC_R_NOTFOUND ||
+		       defaultres == ISC_R_SUCCESS);
+
+		effectiveres = cfg_map_get(effectivemap, clause->name,
+					   (const cfg_obj_t **)&effectiveobj);
+		INSIST(effectiveres == ISC_R_NOTFOUND ||
+		       effectiveres == ISC_R_SUCCESS);
+
+		/*
+		 * If the clause has a specific case, let's delegate to its
+		 * merge callback
+		 */
+		if (effectiveobj != NULL && defaultobj != NULL &&
+		    clause->merge != NULL)
+		{
+			clause->merge(effectiveobj, defaultobj);
+			continue;
+		}
+
+		/*
+		 * If the clause is defined in the default but not in the user
+		 * config, let's clone it inside the user config
+		 */
+		if (effectiveres == ISC_R_NOTFOUND &&
+		    defaultres == ISC_R_SUCCESS)
+		{
+			INSIST(cfg_map_addclone(effectivemap, defaultobj,
+						clause) == ISC_R_SUCCESS);
+			continue;
+		}
+
+		/*
+		 * Otherwise, the clause is defined in user, so the default (if
+		 * it exists) is ignored
+		 */
+	}
+}
+
 /*%
  * Clauses that can be found within the top level of the named.conf
  * file only.
@@ -4070,3 +4124,18 @@ static cfg_type_t cfg_type_http_description = {
 	"http_desc", cfg_parse_named_map, cfg_print_map,
 	cfg_doc_map, &cfg_rep_map,	  http_description_clausesets
 };
+
+cfg_obj_t *
+cfg_effective_config(const cfg_obj_t *userconfig,
+		     const cfg_obj_t *defaultconfig) {
+	cfg_obj_t *effective = NULL;
+
+	REQUIRE(defaultconfig != NULL &&
+		defaultconfig->type == &cfg_type_namedconf);
+	REQUIRE(userconfig != NULL && userconfig->type == &cfg_type_namedconf);
+
+	cfg_obj_clone(userconfig, &effective);
+	map_merge(effective, defaultconfig);
+
+	return effective;
+}

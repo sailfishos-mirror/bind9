@@ -49,3 +49,14 @@ extern cfg_type_t cfg_type_zoneopts;
 
 /*%< DNSSEC Key and Signing Policy options */
 extern cfg_type_t cfg_type_dnssecpolicyopts;
+
+/*%<
+ * Build the effective configuration, by cloning the user configuration then
+ * applying (merging) the default configuration on top of it (based on various
+ * specific rules regarding how a default statement is used/overridden when the
+ * user provides it, and possibly how some user provided statement might be
+ * internally changed).
+ */
+cfg_obj_t *
+cfg_effective_config(const cfg_obj_t *userconfig,
+		     const cfg_obj_t *defaultconfig);
