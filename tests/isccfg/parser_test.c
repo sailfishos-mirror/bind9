@@ -174,36 +174,38 @@ ISC_RUN_TEST_IMPL(parse_buffer) {
 
 /* test cfg_map_firstclause() */
 ISC_RUN_TEST_IMPL(cfg_map_firstclause) {
-	const char *name = NULL;
 	const void *clauses = NULL;
 	unsigned int idx;
+	const cfg_clausedef_t *clause = NULL;
 
-	name = cfg_map_firstclause(&cfg_type_zoneopts, &clauses, &idx);
-	assert_non_null(name);
+	clause = cfg_map_firstclause(&cfg_type_zoneopts, &clauses, &idx);
+	assert_non_null(clause);
+	assert_non_null(clause->name);
 	assert_non_null(clauses);
 	assert_int_equal(idx, 0);
 }
 
 /* test cfg_map_nextclause() */
 ISC_RUN_TEST_IMPL(cfg_map_nextclause) {
-	const char *name = NULL;
 	const void *clauses = NULL;
 	unsigned int idx;
+	const cfg_clausedef_t *clause = NULL;
 
-	name = cfg_map_firstclause(&cfg_type_zoneopts, &clauses, &idx);
-	assert_non_null(name);
+	clause = cfg_map_firstclause(&cfg_type_zoneopts, &clauses, &idx);
+	assert_non_null(clause);
+	assert_non_null(clause->name);
 	assert_non_null(clauses);
 	assert_int_equal(idx, ISC_R_SUCCESS);
 
 	do {
-		name = cfg_map_nextclause(&cfg_type_zoneopts, &clauses, &idx);
-		if (name != NULL) {
+		clause = cfg_map_nextclause(&cfg_type_zoneopts, &clauses, &idx);
+		if (clause != NULL) {
 			assert_non_null(clauses);
 		} else {
 			assert_null(clauses);
 			assert_int_equal(idx, 0);
 		}
-	} while (name != NULL);
+	} while (clause != NULL);
 }
 
 static void

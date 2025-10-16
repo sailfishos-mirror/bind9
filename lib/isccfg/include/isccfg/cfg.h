@@ -68,6 +68,11 @@ typedef struct cfg_obj cfg_obj_t;
 typedef struct cfg_listelt cfg_listelt_t;
 
 /*%
+ * A configuration clause definition.
+ */
+typedef struct cfg_clausedef cfg_clausedef_t;
+
+/*%
  * A callback function to be called when parsing an option
  * that needs to be interpreted at parsing time, like
  * "directory".
@@ -539,10 +544,11 @@ cfg_obj_line(const cfg_obj_t *obj);
  * Return the line in file where this object was defined.
  */
 
-const char *
+const cfg_clausedef_t *
 cfg_map_firstclause(const cfg_type_t *map, const void **clauses,
 		    unsigned int *idx);
-const char *
+
+const cfg_clausedef_t *
 cfg_map_nextclause(const cfg_type_t *map, const void **clauses,
 		   unsigned int *idx);
 

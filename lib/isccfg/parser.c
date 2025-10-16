@@ -2891,7 +2891,7 @@ cfg_map_count(const cfg_obj_t *mapobj) {
 	return isc_symtab_count(map->symtab);
 }
 
-const char *
+const cfg_clausedef_t *
 cfg_map_firstclause(const cfg_type_t *map, const void **clauses,
 		    unsigned int *idx) {
 	cfg_clausedef_t *const *clauseset;
@@ -2912,10 +2912,10 @@ cfg_map_firstclause(const cfg_type_t *map, const void **clauses,
 			return NULL;
 		}
 	}
-	return (*clauseset)[*idx].name;
+	return &(*clauseset)[*idx];
 }
 
-const char *
+const cfg_clausedef_t *
 cfg_map_nextclause(const cfg_type_t *map, const void **clauses,
 		   unsigned int *idx) {
 	cfg_clausedef_t *const *clauseset;
@@ -2937,7 +2937,7 @@ cfg_map_nextclause(const cfg_type_t *map, const void **clauses,
 			return NULL;
 		}
 	}
-	return (*clauseset)[*idx].name;
+	return &(*clauseset)[*idx];
 }
 
 /* Parse an arbitrary token, storing its raw text representation. */
@@ -4037,7 +4037,7 @@ breakout:
 			symval.as_pointer = obj;
 		}
 
-		result = isc_symtab_define(map->symtab, clausename,
+		result = isc_symtab_define(map->symtab, clause->name,
 					   SYMTAB_DUMMY_TYPE, symval,
 					   isc_symexists_reject);
 		INSIST(result == ISC_R_SUCCESS);

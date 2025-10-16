@@ -74,13 +74,13 @@ assert_text(const char *text) {
 
 static const cfg_clausedef_t *
 find_clause(const cfg_type_t *map, const char *name) {
-	const char *found_name = NULL;
+	const cfg_clausedef_t *found = NULL;
 	const void *clauses = NULL;
 	unsigned int idx;
 
-	found_name = cfg_map_firstclause(map, &clauses, &idx);
-	while (name != NULL && strcasecmp(name, found_name)) {
-		found_name = cfg_map_nextclause(map, &clauses, &idx);
+	found = cfg_map_firstclause(map, &clauses, &idx);
+	while (name != NULL && strcasecmp(name, found->name)) {
+		found = cfg_map_nextclause(map, &clauses, &idx);
 	}
 
 	return ((cfg_clausedef_t *)clauses) + idx;
