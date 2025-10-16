@@ -1196,6 +1196,19 @@ map_merge(cfg_obj_t *effectivemap, const cfg_obj_t *defaultmap) {
 	}
 }
 
+/*
+ * These are used when merging clauses with CFG_CLAUSEFLAG_MULTI, where
+ * the entries from the user configuration and the default configuration
+ * are added together, rather than the user configuration overriding the
+ * default.  merge_prepend() puts the default configuration at the
+ * beginning of the cloned object (for example, for dnssec-policy), and
+ * merge_append() puts it at the end (for example, for views).
+ */
+static void
+merge_prepend(cfg_obj_t *effectiveobj, const cfg_obj_t *defaultobj) {
+	cfg_list_addclone(effectiveobj, defaultobj, true);
+}
+
 static void
 merge_append(cfg_obj_t *effectiveobj, const cfg_obj_t *defaultobj) {
 	cfg_list_addclone(effectiveobj, defaultobj, false);
@@ -1340,7 +1353,8 @@ options_merge(cfg_obj_t *effectiveoptions, const cfg_obj_t *defaultoptions) {
 static cfg_clausedef_t namedconf_clauses[] = {
 	{ "acl", &cfg_type_acl, CFG_CLAUSEFLAG_MULTI },
 	{ "controls", &cfg_type_controls, CFG_CLAUSEFLAG_MULTI },
-	{ "dnssec-policy", &cfg_type_dnssecpolicy, CFG_CLAUSEFLAG_MULTI },
+	{ "dnssec-policy", &cfg_type_dnssecpolicy, CFG_CLAUSEFLAG_MULTI,
+	  merge_prepend },
 #if HAVE_LIBNGHTTP2
 	{ "http", &cfg_type_http_description,
 	  CFG_CLAUSEFLAG_MULTI | CFG_CLAUSEFLAG_OPTIONAL },

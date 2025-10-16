@@ -7834,36 +7834,8 @@ configure_kasplist(const cfg_obj_t *config, dns_kasplist_t *kasplist,
 	APPLY_CONFIGURATION_SUBROUTINE_LOG;
 
 	/*
-	 * Create the built-in kasp policies ("default", "insecure").
-	 */
-	(void)cfg_map_get(named_g_defaultconfig, "dnssec-policy", &kasps);
-	CFG_LIST_FOREACH(kasps, element) {
-		cfg_obj_t *kconfig = cfg_listelt_value(element);
-		dns_kasp_t *kasp = NULL;
-
-		result = cfg_kasp_fromconfig(kconfig, default_kasp, kaspopts,
-					     isc_g_mctx, keystorelist, kasplist,
-					     &kasp);
-		if (result != ISC_R_SUCCESS) {
-			return result;
-		}
-		INSIST(kasp != NULL);
-		dns_kasp_freeze(kasp);
-
-		/* Insist that the first built-in policy is the default one. */
-		if (default_kasp == NULL) {
-			INSIST(strcmp(dns_kasp_getname(kasp), "default") == 0);
-			dns_kasp_attach(kasp, &default_kasp);
-		}
-
-		dns_kasp_detach(&kasp);
-	}
-	INSIST(default_kasp != NULL);
-
-	/*
 	 * Create the DNSSEC key and signing policies (KASP).
 	 */
-	kasps = NULL;
 	(void)cfg_map_get(config, "dnssec-policy", &kasps);
 	CFG_LIST_FOREACH(kasps, element) {
 		cfg_obj_t *kconfig = cfg_listelt_value(element);
@@ -7875,8 +7847,16 @@ configure_kasplist(const cfg_obj_t *config, dns_kasplist_t *kasplist,
 		if (result != ISC_R_SUCCESS) {
 			return result;
 		}
+
 		INSIST(kasp != NULL);
 		dns_kasp_freeze(kasp);
+
+		/* Insist that the first built-in policy is the default one. */
+		if (default_kasp == NULL) {
+			INSIST(strcmp(dns_kasp_getname(kasp), "default") == 0);
+			dns_kasp_attach(kasp, &default_kasp);
+		}
+
 		dns_kasp_detach(&kasp);
 	}
 	dns_kasp_detach(&default_kasp);
