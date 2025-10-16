@@ -18,8 +18,8 @@ set -e
 RNDCCMD="$RNDC -c ../_common/rndc.conf -p ${CONTROLPORT} -s"
 DIG="$DIG +time=12 +tries=1"
 
-max_stale_ttl=$(sed -ne 's,^[[:space:]]*max-stale-ttl \([[:digit:]]*\).*,\1,p' $TOP_SRCDIR/bin/named/config.c)
-stale_answer_ttl=$(sed -ne 's,^[[:space:]]*stale-answer-ttl \([[:digit:]]*\).*,\1,p' $TOP_SRCDIR/bin/named/config.c)
+max_stale_ttl=$(sed -ne 's,^[[:space:]]*max-stale-ttl \([[:digit:]]*\).*,\1,p' $TOP_SRCDIR/bin/include/defaultconfig.h)
+stale_answer_ttl=$(sed -ne 's,^[[:space:]]*stale-answer-ttl \([[:digit:]]*\).*,\1,p' $TOP_SRCDIR/bin/include/defaultconfig.h)
 
 status=0
 n=0
@@ -997,7 +997,7 @@ status=$((status + ret))
 echo_i "test server with no serve-stale options set"
 
 n=$((n + 1))
-echo_i "updating ns3/named.conf ($n)"
+echo_i "updating ns3/named1.conf ($n)"
 ret=0
 copy_setports ns3/named1.conf.in ns3/named.conf
 if [ $ret != 0 ]; then echo_i "failed"; fi
@@ -1722,7 +1722,7 @@ if [ $ret != 0 ]; then echo_i "failed"; fi
 echo_i "test stale-answer-client-timeout (off)"
 
 n=$((n + 1))
-echo_i "updating ns3/named.conf ($n)"
+echo_i "updating ns3/named3.conf ($n)"
 ret=0
 copy_setports ns3/named3.conf.in ns3/named.conf
 if [ $ret != 0 ]; then echo_i "failed"; fi
@@ -1849,7 +1849,7 @@ status=$((status + ret))
 echo_i "test stale-answer-client-timeout (0)"
 
 n=$((n + 1))
-echo_i "updating ns3/named.conf ($n)"
+echo_i "updating ns3/named4.conf ($n)"
 ret=0
 copy_setports ns3/named4.conf.in ns3/named.conf
 if [ $ret != 0 ]; then echo_i "failed"; fi
@@ -2170,7 +2170,7 @@ status=$((status + ret))
 echo_i "test stale-answer-client-timeout (0) and stale-refresh-time (4)"
 
 n=$((n + 1))
-echo_i "updating ns3/named.conf ($n)"
+echo_i "updating ns3/named5.conf ($n)"
 ret=0
 copy_setports ns3/named5.conf.in ns3/named.conf
 if [ $ret != 0 ]; then echo_i "failed"; fi
@@ -2355,7 +2355,7 @@ echo_i "test serve-stale's interaction with fetch-limits (cache only)"
 # are set to 1, which is ridiciously low, but that is because for this test we
 # want to reach the fetch-limits.
 n=$((n + 1))
-echo_i "updating ns3/named.conf ($n)"
+echo_i "updating ns3/named6.conf ($n)"
 ret=0
 copy_setports ns3/named6.conf.in ns3/named.conf
 if [ $ret != 0 ]; then echo_i "failed"; fi
@@ -2465,7 +2465,7 @@ echo_i "test serve-stale's interaction with fetch limits (dual-mode)"
 # Update named configuration so that ns3 becomes a recursive resolver which is
 # also a secondary server for the root zone.
 n=$((n + 1))
-echo_i "updating ns3/named.conf ($n)"
+echo_i "updating ns3/named7.conf ($n)"
 ret=0
 copy_setports ns3/named7.conf.in ns3/named.conf
 if [ $ret != 0 ]; then echo_i "failed"; fi
