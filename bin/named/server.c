@@ -3827,6 +3827,7 @@ configure_view(dns_view_t *view, dns_viewlist_t *viewlist, cfg_obj_t *config,
 		maps[i++] = voptions;
 		cfgmaps[j++] = voptions;
 	}
+
 	if (options != NULL) {
 		maps[i++] = options;
 	}
@@ -7631,47 +7632,65 @@ static isc_result_t
 create_views(cfg_obj_t *config, cfg_aclconfctx_t *aclctx,
 	     dns_viewlist_t *viewlist) {
 	isc_result_t result = ISC_R_SUCCESS;
+	const cfg_obj_t *bindview = NULL;
 	const cfg_obj_t *views = NULL;
+	bool explicitviews = false;
+	dns_view_t *view = NULL;
 
 	APPLY_CONFIGURATION_SUBROUTINE_LOG;
 
 	(void)cfg_map_get(config, "view", &views);
 	CFG_LIST_FOREACH(views, element) {
 		cfg_obj_t *vconfig = cfg_listelt_value(element);
-		dns_view_t *view = NULL;
+		const char *vname = NULL;
+		dns_rdataclass_t vclass;
 
-		result = create_view(vconfig, viewlist, &view);
-		if (result != ISC_R_SUCCESS) {
-			return result;
+		/*
+		 * Skip the addition of the _bind/CHAOS zone until
+		 * after all the others.
+		 */
+		CHECK(get_viewinfo(vconfig, &vname, &vclass));
+
+		if (strcmp(vname, "_bind") == 0 &&
+		    vclass == dns_rdataclass_chaos)
+		{
+			INSIST(cfg_list_next(element) == NULL);
+			bindview = vconfig;
+			continue;
 		}
+
+		CHECK(create_view(vconfig, viewlist, &view));
 		INSIST(view != NULL);
 
 		result = setup_newzones(view, config, vconfig, aclctx);
-		dns_view_detach(&view);
+		explicitviews = true;
 
-		if (result != ISC_R_SUCCESS) {
-			return result;
-		}
+		dns_view_detach(&view);
 	}
 
 	/*
 	 * If there were no explicit views then we do the default
 	 * view here.
 	 */
-	if (views == NULL) {
-		dns_view_t *view = NULL;
-
-		result = create_view(NULL, viewlist, &view);
-		if (result != ISC_R_SUCCESS) {
-			return result;
-		}
+	if (explicitviews == false) {
+		CHECK(create_view(NULL, viewlist, &view));
 		INSIST(view != NULL);
 
-		result = setup_newzones(view, config, NULL, aclctx);
-
+		CHECK(setup_newzones(view, config, NULL, aclctx));
 		dns_view_detach(&view);
 	}
 
+	/*
+	 * Finally, add _bind/CHAOS.
+	 */
+	INSIST(bindview != NULL);
+	CHECK(create_view(bindview, viewlist, &view));
+	INSIST(view != NULL);
+
+cleanup:
+	if (view != NULL) {
+		dns_view_detach(&view);
+	}
 	return result;
 }
 
@@ -7685,6 +7704,7 @@ configure_views(cfg_obj_t *config, const cfg_obj_t *bindkeys,
 	isc_result_t result = ISC_R_SUCCESS;
 	const cfg_obj_t *views = NULL;
 	dns_viewlist_t tmpviewlist;
+	bool explicitviews = false;
 
 	APPLY_CONFIGURATION_SUBROUTINE_LOG;
 
@@ -7711,6 +7731,13 @@ configure_views(cfg_obj_t *config, const cfg_obj_t *bindkeys,
 			dns_view_detach(&view);
 			return result;
 		}
+
+		if (!(strcmp(view->name, "_bind") == 0 &&
+		      view->rdclass == dns_rdataclass_chaos))
+		{
+			explicitviews = true;
+		}
+
 		dns_view_freeze(view);
 		dns_view_detach(&view);
 	}
@@ -7719,7 +7746,7 @@ configure_views(cfg_obj_t *config, const cfg_obj_t *bindkeys,
 	 * Make sure we have a default view if and only if there
 	 * were no explicit views.
 	 */
-	if (views == NULL) {
+	if (explicitviews == false) {
 		dns_view_t *view = NULL;
 		result = find_view(NULL, viewlist, &view);
 		if (result != ISC_R_SUCCESS) {
@@ -7729,33 +7756,6 @@ configure_views(cfg_obj_t *config, const cfg_obj_t *bindkeys,
 					&server->cachelist, kasplist, bindkeys,
 					isc_g_mctx, aclctx, tlsctx_client_cache,
 					true, first_time);
-		if (result != ISC_R_SUCCESS) {
-			dns_view_detach(&view);
-			return result;
-		}
-		dns_view_freeze(view);
-		dns_view_detach(&view);
-	}
-
-	/*
-	 * Create (or recreate) the built-in views.
-	 */
-	views = NULL;
-	RUNTIME_CHECK(cfg_map_get(named_g_defaultconfig, "view", &views) ==
-		      ISC_R_SUCCESS);
-	CFG_LIST_FOREACH(views, element) {
-		cfg_obj_t *vconfig = cfg_listelt_value(element);
-		dns_view_t *view = NULL;
-
-		result = create_view(vconfig, viewlist, &view);
-		if (result != ISC_R_SUCCESS) {
-			return result;
-		}
-
-		result = configure_view(view, viewlist, config, vconfig,
-					cachelist, &server->cachelist, kasplist,
-					bindkeys, isc_g_mctx, aclctx,
-					tlsctx_client_cache, false, first_time);
 		if (result != ISC_R_SUCCESS) {
 			dns_view_detach(&view);
 			return result;

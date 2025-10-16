@@ -1197,6 +1197,11 @@ map_merge(cfg_obj_t *effectivemap, const cfg_obj_t *defaultmap) {
 }
 
 static void
+merge_append(cfg_obj_t *effectiveobj, const cfg_obj_t *defaultobj) {
+	cfg_list_addclone(effectiveobj, defaultobj, false);
+}
+
+static void
 options_merge_defaultacl(cfg_obj_t *effectiveoptions,
 			 const cfg_obj_t *defaultoptions, const char *aclname,
 			 bool needsdefault) {
@@ -1363,7 +1368,7 @@ static cfg_clausedef_t namedconf_clauses[] = {
 #endif
 	{ "template", &cfg_type_template, CFG_CLAUSEFLAG_MULTI },
 	{ "tls", &cfg_type_tlsconf, CFG_CLAUSEFLAG_MULTI },
-	{ "view", &cfg_type_view, CFG_CLAUSEFLAG_MULTI },
+	{ "view", &cfg_type_view, CFG_CLAUSEFLAG_MULTI, merge_append },
 	{ NULL, NULL, 0 }
 };
 
