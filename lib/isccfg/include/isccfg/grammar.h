@@ -118,11 +118,26 @@ struct cfg_printer {
 	int   flags;
 };
 
-/*% A clause definition. */
+/*%
+ * A clause definition and its optional merge method, which will be called
+ * when merging a default configuration with a user configuration, if
+ * provided.
+ *
+ * Note: the merge method is associated with the clause instead of
+ * the data representation, because different semantics may apply
+ * for different named.conf statements. For example, the user-defined
+ * options can't simply be merged with the default options as a normal
+ * cfg_rep_map, because the allow-query and allow-recursion ACLs have
+ * complex semantics that need to be preserved.
+ */
+typedef void (*cfg_mergefunc_t)(cfg_obj_t	*effectiveobj,
+				const cfg_obj_t *defaultobj);
+
 struct cfg_clausedef {
-	const char  *name;
-	cfg_type_t  *type;
-	unsigned int flags;
+	const char     *name;
+	cfg_type_t     *type;
+	unsigned int	flags;
+	cfg_mergefunc_t merge;
 };
 
 /*% A tuple field definition. */
