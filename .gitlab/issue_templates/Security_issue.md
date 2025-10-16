@@ -1,3 +1,20 @@
+<!--
+If you found the problem using generative AI tools and you have verified it
+yourself to be true: write the report yourself and explain the problem as you
+have learned it. This makes sure the AI-generated inaccuracies and invented
+issues are filtered out early before they waste more people's time.  Even if you
+write the report yourself, you must make sure to reveal the fact that the
+generative AI was used in your report.
+
+As we take security reports seriously, we investigate each report with
+priority. This work is both time- and energy-consuming and pulls us away from
+doing other meaningful work. Fake and otherwise made-up security problems
+effectively prevent us from doing real project work and make us waste time and
+resources.
+
+We ban users immediately who submit fake reports to the project.
+-->
+
 ### Summary
 <!--
 Concisely summarize the bug encountered,

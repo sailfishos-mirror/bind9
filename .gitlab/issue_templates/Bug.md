@@ -5,6 +5,17 @@ triggered repeatedly - then please make sure that you make the new issue
 confidential by clicking the checkbox at the bottom!
 -->
 
+<!--
+If you found the problem in BIND 9 using generative AI tools and you have verified it
+yourself to be true: write the report yourself and explain the problem as you
+have learned it. This makes sure the AI-generated inaccuracies and invented
+issues are filtered out early before they waste more people's time.  Even if you
+write the report yourself, you must make sure to reveal the fact that
+generative AI was used in your report.
+
+We ban users immediately who submit fake reports to the project.
+-->
+
 ### Summary
 
 <!-- Concisely summarize the bug encountered. -->
