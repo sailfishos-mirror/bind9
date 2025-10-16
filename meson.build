@@ -1001,6 +1001,9 @@ isccc_inc = include_directories('lib' / 'isccc' / 'include')
 isccfg_inc = include_directories('lib' / 'isccfg' / 'include')
 ns_inc = include_directories('lib' / 'ns' / 'include')
 
+# Headers common to several binaries
+bin_inc = include_directories('bin' / 'include')
+
 dns_inc_p = []
 isc_inc_p = []
 
@@ -1422,7 +1425,8 @@ executable(
     'named-checkconf',
     named_checkconf_src,
     export_dynamic: true,
-    implicit_include_directories: false,
+    implicit_include_directories: true,
+    include_directories: [bin_inc],
     install: true,
     dependencies: [
         libisc_dep,
@@ -1548,7 +1552,7 @@ executable(
     link_args: static_lto_link_args,
     export_dynamic: true,
     implicit_include_directories: true,
-    include_directories: named_inc,
+    include_directories: [named_inc, bin_inc],
     install: true,
     install_dir: sbindir,
     sources: bind_keys,

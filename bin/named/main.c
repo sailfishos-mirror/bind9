@@ -24,6 +24,8 @@
 #include <protobuf-c/protobuf-c.h>
 #endif
 
+#include <defaultconfig.h>
+
 #include <isc/attributes.h>
 #include <isc/backtrace.h>
 #include <isc/commandline.h>
@@ -832,7 +834,7 @@ parse_command_line(int argc, char *argv[]) {
 		case 'C':
 			printf("# Built-in default values. "
 			       "This is NOT the run-time configuration!\n");
-			printf("%s", named_config_getdefault());
+			printf("%s", common_named_defaultconf);
 			exit(EXIT_SUCCESS);
 		case 'd':
 			named_g_debuglevel = parse_int(isc_commandline_argument,

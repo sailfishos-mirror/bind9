@@ -22,16 +22,11 @@
 
 #include <isccfg/cfg.h>
 
-#define DEFAULT_IANA_ROOT_ZONE_PRIMARIES "_default_iana_root_zone_primaries"
-
 isc_result_t
 named_config_parsedefaults(cfg_obj_t **conf);
 
 isc_result_t
 named_config_parsefile(cfg_obj_t **conf);
-
-const char *
-named_config_getdefault(void);
 
 isc_result_t
 named_config_get(cfg_obj_t const *const *maps, const char *name,

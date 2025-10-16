@@ -11,6 +11,7 @@
  * information regarding copyright ownership.
  */
 
+#include <defaultconfig.h>
 #include <inttypes.h>
 #include <stdbool.h>
 
