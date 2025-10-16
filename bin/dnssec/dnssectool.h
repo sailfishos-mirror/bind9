@@ -112,7 +112,7 @@ key_collision(dst_key_t *dstkey, dns_name_t *name, const char *dir,
 	      isc_mem_t *mctx, uint16_t min, uint16_t max, bool *exact);
 
 bool
-isoptarg(const char *arg, char **argv, void (*usage)(void));
+isoptarg(const char *arg, char **argv, void (*usage)(int ret));
 
 void
 loadjournal(isc_mem_t *mctx, dns_db_t *db, const char *journal);

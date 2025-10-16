@@ -171,8 +171,11 @@ get_reverse(char *reverse, size_t len, char *value, bool strict);
 static isc_result_t
 parse_uint(uint32_t *uip, const char *value, uint32_t max, const char *desc);
 
+noreturn static void
+usage(int ret);
+
 static void
-usage(void) {
+usage(int ret) {
 	fprintf(stderr,
 		"Usage:  delv [@server] {q-opt} {d-opt} [domain] [q-type] "
 		"[q-class]\n"
@@ -256,7 +259,7 @@ usage(void) {
 		"process)\n"
 		"                 +[no]yaml           (Present the results as "
 		"YAML)\n");
-	exit(EXIT_FAILURE);
+	exit(ret);
 }
 
 noreturn static void
@@ -1438,7 +1441,7 @@ plus_option(char *option) {
 	invalid_option:
 	need_value:
 		fprintf(stderr, "Invalid option: +%s\n", option);
-		usage();
+		usage(EXIT_FAILURE);
 	}
 	return;
 }
@@ -1491,8 +1494,8 @@ dash_option(char *option, char *next, bool *open_type_class) {
 			}
 			break;
 		case 'h':
-			usage();
-			exit(EXIT_SUCCESS);
+			usage(EXIT_SUCCESS);
+
 		case 'i':
 			no_sigs = true;
 			root_validation = false;
@@ -1645,7 +1648,7 @@ dash_option(char *option, char *next, bool *open_type_class) {
 	invalid_option:
 	default:
 		fprintf(stderr, "Invalid option: -%s\n", option);
-		usage();
+		usage(EXIT_FAILURE);
 	}
 	UNREACHABLE();
 	return false;
