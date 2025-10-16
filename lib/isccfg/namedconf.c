@@ -2250,6 +2250,45 @@ prefetch_merge(cfg_obj_t *effectiveobj, const cfg_obj_t *defaultobj) {
 	}
 }
 
+static void
+checknames_merge(cfg_obj_t *effectiveobj, const cfg_obj_t *defaultobj) {
+	/*
+	 * Applies only to the top-level option `check-names` statement.
+	 * The view and zone-level versions aren't merged into the defaults
+	 * the way global options are.
+	 */
+	REQUIRE(cfg_obj_islist(effectiveobj));
+	REQUIRE(cfg_obj_islist(defaultobj));
+
+	CFG_LIST_FOREACH(defaultobj, delt) {
+		const cfg_obj_t *checkname = cfg_listelt_value(delt);
+		const cfg_obj_t *type = cfg_tuple_get(checkname, "type");
+		bool found = false;
+
+		CFG_LIST_FOREACH(effectiveobj, eelt) {
+			const cfg_obj_t *echeckname = cfg_listelt_value(eelt);
+			const cfg_obj_t *etype = cfg_tuple_get(echeckname,
+							       "type");
+
+			if (strcasecmp(type->value.string.base,
+				       etype->value.string.base) == 0)
+			{
+				found = true;
+				break;
+			}
+		}
+
+		if (found == false) {
+			cfg_listelt_t *eelt = isc_mem_get(effectiveobj->mctx,
+							  sizeof(*eelt));
+
+			*eelt = (cfg_listelt_t){ .link = ISC_LINK_INITIALIZER };
+			cfg_obj_clone(checkname, &eelt->obj);
+			ISC_LIST_APPEND(effectiveobj->value.list, eelt, link);
+		}
+	}
+}
+
 /*%
  * Clauses that can be found within the 'view' statement,
  * with defaults in the 'options' statement.
@@ -2273,7 +2312,8 @@ static cfg_clausedef_t view_clauses[] = {
 	{ "auth-nxdomain", &cfg_type_boolean, 0 },
 	{ "cache-file", NULL, CFG_CLAUSEFLAG_ANCIENT },
 	{ "catalog-zones", &cfg_type_catz, 0 },
-	{ "check-names", &cfg_type_checknames, CFG_CLAUSEFLAG_MULTI },
+	{ "check-names", &cfg_type_checknames, CFG_CLAUSEFLAG_MULTI,
+	  checknames_merge },
 	{ "cleaning-interval", NULL, CFG_CLAUSEFLAG_ANCIENT },
 	{ "clients-per-query", &cfg_type_uint32, 0 },
 	{ "deny-answer-addresses", &cfg_type_denyaddresses, 0 },
