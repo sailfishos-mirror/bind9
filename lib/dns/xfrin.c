@@ -352,14 +352,14 @@ axfr_apply(void *arg) {
 	uint64_t records;
 
 	if (atomic_load(&xfr->shuttingdown)) {
-		CHECK(ISC_R_SHUTTINGDOWN);
+		CLEANUP(ISC_R_SHUTTINGDOWN);
 	}
 
 	CHECK(dns_diff_load(&xfr->diff, &xfr->axfr));
 	if (xfr->maxrecords != 0U) {
 		result = dns_db_getsize(xfr->db, xfr->ver, &records, NULL);
 		if (result == ISC_R_SUCCESS && records > xfr->maxrecords) {
-			CHECK(DNS_R_TOOMANYRECORDS);
+			CLEANUP(DNS_R_TOOMANYRECORDS);
 		}
 	}
 
@@ -522,7 +522,7 @@ ixfr_apply_one(dns_xfrin_t *xfr, ixfr_apply_data_t *data) {
 	if (xfr->maxrecords != 0U) {
 		result = dns_db_getsize(xfr->db, xfr->ver, &records, NULL);
 		if (result == ISC_R_SUCCESS && records > xfr->maxrecords) {
-			CHECK(DNS_R_TOOMANYRECORDS);
+			CLEANUP(DNS_R_TOOMANYRECORDS);
 		}
 	}
 	if (xfr->ixfr.journal != NULL) {
@@ -684,7 +684,7 @@ xfr_rr(dns_xfrin_t *xfr, dns_name_t *name, uint32_t ttl, dns_rdata_t *rdata) {
 		dns_rdatatype_format(rdata->type, buf, sizeof(buf));
 		xfrin_log(xfr, ISC_LOG_NOTICE,
 			  "Unexpected %s record in zone transfer", buf);
-		CHECK(DNS_R_FORMERR);
+		CLEANUP(DNS_R_FORMERR);
 	}
 
 	/*
@@ -699,7 +699,7 @@ xfr_rr(dns_xfrin_t *xfr, dns_name_t *name, uint32_t ttl, dns_rdata_t *rdata) {
 		dns_name_format(name, namebuf, sizeof(namebuf));
 		xfrin_log(xfr, ISC_LOG_DEBUG(3), "SOA name mismatch: '%s'",
 			  namebuf);
-		CHECK(DNS_R_NOTZONETOP);
+		CLEANUP(DNS_R_NOTZONETOP);
 	}
 
 redo:
@@ -708,7 +708,7 @@ redo:
 		if (rdata->type != dns_rdatatype_soa) {
 			xfrin_log(xfr, ISC_LOG_NOTICE,
 				  "non-SOA response to SOA query");
-			CHECK(DNS_R_FORMERR);
+			CLEANUP(DNS_R_FORMERR);
 		}
 		end_serial = dns_soa_getserial(rdata);
 		atomic_store_relaxed(&xfr->end_serial, end_serial);
@@ -719,7 +719,7 @@ redo:
 				  "requested serial %u, "
 				  "primary has %" PRIuFAST32 ", not updating",
 				  xfr->ixfr.request_serial, end_serial);
-			CHECK(DNS_R_UPTODATE);
+			CLEANUP(DNS_R_UPTODATE);
 		}
 		atomic_store(&xfr->state, XFRST_GOTSOA);
 		break;
@@ -734,7 +734,7 @@ redo:
 		if (rdata->type != dns_rdatatype_soa) {
 			xfrin_log(xfr, ISC_LOG_NOTICE,
 				  "first RR in zone transfer must be SOA");
-			CHECK(DNS_R_FORMERR);
+			CLEANUP(DNS_R_FORMERR);
 		}
 		/*
 		 * Remember the serial number in the initial SOA.
@@ -755,7 +755,7 @@ redo:
 				  "requested serial %u, "
 				  "primary has %" PRIuFAST32 ", not updating",
 				  xfr->ixfr.request_serial, end_serial);
-			CHECK(DNS_R_UPTODATE);
+			CLEANUP(DNS_R_UPTODATE);
 		}
 		xfr->firstsoa = *rdata;
 		if (xfr->firstsoa_data != NULL) {
@@ -823,7 +823,7 @@ redo:
 					  "IXFR out of sync: "
 					  "expected serial %u, got %u",
 					  xfr->ixfr.current_serial, soa_serial);
-				CHECK(DNS_R_FORMERR);
+				CLEANUP(DNS_R_FORMERR);
 			} else {
 				CHECK(ixfr_commit(xfr));
 				atomic_store(&xfr->state, XFRST_IXFR_DELSOA);
@@ -833,7 +833,7 @@ redo:
 		if (rdata->type == dns_rdatatype_ns &&
 		    dns_name_iswildcard(name))
 		{
-			CHECK(DNS_R_INVALIDNS);
+			CLEANUP(DNS_R_INVALIDNS);
 		}
 		CHECK(ixfr_putdata(xfr, DNS_DIFFOP_ADD, name, ttl, rdata));
 		break;
@@ -858,7 +858,7 @@ redo:
 				xfrin_log(xfr, ISC_LOG_NOTICE,
 					  "start and ending SOA records "
 					  "mismatch");
-				CHECK(DNS_R_FORMERR);
+				CLEANUP(DNS_R_FORMERR);
 			}
 			axfr_commit(xfr);
 			atomic_store(&xfr->state, XFRST_AXFR_END);
@@ -867,7 +867,7 @@ redo:
 		break;
 	case XFRST_AXFR_END:
 	case XFRST_IXFR_END:
-		CHECK(DNS_R_EXTRADATA);
+		CLEANUP(DNS_R_EXTRADATA);
 		break;
 	default:
 		UNREACHABLE();
@@ -1288,7 +1288,7 @@ xfrin_start(dns_xfrin_t *xfr) {
 
 	dns_dispatchmgr_t *dispmgr = dns_view_getdispatchmgr(xfr->view);
 	if (dispmgr == NULL) {
-		CHECK(ISC_R_SHUTTINGDOWN);
+		CLEANUP(ISC_R_SHUTTINGDOWN);
 	}
 
 	primaries_timeout = isc_nm_getprimariestimeout();
@@ -1863,7 +1863,7 @@ xfrin_recv_done(isc_result_t result, isc_region_t *region, void *arg) {
 	if (msg->counts[DNS_SECTION_QUESTION] > 1) {
 		xfrin_log(xfr, ISC_LOG_NOTICE, "too many questions (%u)",
 			  msg->counts[DNS_SECTION_QUESTION]);
-		CHECK(DNS_R_FORMERR);
+		CLEANUP(DNS_R_FORMERR);
 	}
 
 	if ((atomic_load(&xfr->state) == XFRST_SOAQUERY ||
@@ -1871,7 +1871,7 @@ xfrin_recv_done(isc_result_t result, isc_region_t *region, void *arg) {
 	    msg->counts[DNS_SECTION_QUESTION] != 1)
 	{
 		xfrin_log(xfr, ISC_LOG_NOTICE, "missing question section");
-		CHECK(DNS_R_FORMERR);
+		CLEANUP(DNS_R_FORMERR);
 	}
 
 	MSG_SECTION_FOREACH(msg, DNS_SECTION_QUESTION, name) {
@@ -1882,19 +1882,19 @@ xfrin_recv_done(isc_result_t result, isc_region_t *region, void *arg) {
 		if (!dns_name_equal(name, &xfr->name)) {
 			xfrin_log(xfr, ISC_LOG_NOTICE,
 				  "question name mismatch");
-			CHECK(DNS_R_FORMERR);
+			CLEANUP(DNS_R_FORMERR);
 		}
 		rds = ISC_LIST_HEAD(name->list);
 		INSIST(rds != NULL);
 		if (rds->type != xfr->reqtype) {
 			xfrin_log(xfr, ISC_LOG_NOTICE,
 				  "question type mismatch");
-			CHECK(DNS_R_FORMERR);
+			CLEANUP(DNS_R_FORMERR);
 		}
 		if (rds->rdclass != xfr->rdclass) {
 			xfrin_log(xfr, ISC_LOG_NOTICE,
 				  "question class mismatch");
-			CHECK(DNS_R_FORMERR);
+			CLEANUP(DNS_R_FORMERR);
 		}
 	}
 
@@ -1916,7 +1916,7 @@ xfrin_recv_done(isc_result_t result, isc_region_t *region, void *arg) {
 	if (xfr->reqtype == dns_rdatatype_soa &&
 	    (msg->flags & DNS_MESSAGEFLAG_AA) == 0)
 	{
-		CHECK(DNS_R_NOTAUTHORITATIVE);
+		CLEANUP(DNS_R_NOTAUTHORITATIVE);
 	}
 
 	result = dns_message_checksig(msg, xfr->view);
@@ -1975,7 +1975,7 @@ xfrin_recv_done(isc_result_t result, isc_region_t *region, void *arg) {
 		    atomic_load(&xfr->state) == XFRST_AXFR_END ||
 		    atomic_load(&xfr->state) == XFRST_IXFR_END)
 		{
-			CHECK(DNS_R_EXPECTEDTSIG);
+			CLEANUP(DNS_R_EXPECTEDTSIG);
 		}
 	}
 

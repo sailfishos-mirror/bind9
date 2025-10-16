@@ -88,7 +88,7 @@
 		CHECK(result);                              \
 	} while ((*token).type != isc_tokentype_eol)
 
-#define BADTOKEN() CHECK(ISC_R_UNEXPECTEDTOKEN)
+#define BADTOKEN() CLEANUP(ISC_R_UNEXPECTEDTOKEN)
 
 static const char *numerictags[DST_MAX_NUMERIC] = {
 	[DST_NUM_PREDECESSOR] = "Predecessor:",
@@ -480,7 +480,7 @@ dst_key_fromfile(dns_name_t *name, dns_keytag_t id, unsigned int alg, int type,
 	if (!dns_name_equal(name, key->key_name) || id != key->key_id ||
 	    alg != key->key_alg)
 	{
-		CHECK(DST_R_INVALIDPRIVATEKEY);
+		CLEANUP(DST_R_INVALIDPRIVATEKEY);
 	}
 
 	*keyp = key;
@@ -569,7 +569,7 @@ dst_key_fromnamedfile(const char *filename, const char *dirname, int type,
 			     pubkey->key_ttl, mctx);
 
 	if (key->func->parse == NULL) {
-		CHECK(DST_R_UNSUPPORTEDALG);
+		CLEANUP(DST_R_UNSUPPORTEDALG);
 	}
 
 	newfilenamelen = strlen(filename) + 9;
@@ -603,7 +603,7 @@ dst_key_fromnamedfile(const char *filename, const char *dirname, int type,
 	CHECK(computeid(key));
 
 	if (pubkey->key_id != key->key_id) {
-		CHECK(DST_R_INVALIDPRIVATEKEY);
+		CLEANUP(DST_R_INVALIDPRIVATEKEY);
 	}
 
 	key->modified = false;

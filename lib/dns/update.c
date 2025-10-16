@@ -784,7 +784,7 @@ next_active(dns_update_log_t *log, dns_zone_t *zone, dns_db_t *db,
 			if (wraps == 2) {
 				update_log(log, zone, ISC_LOG_ERROR,
 					   "secure zone with no NSECs");
-				CHECK(DNS_R_BADZONE);
+				CLEANUP(DNS_R_BADZONE);
 			}
 		}
 		CHECK(dns_dbiterator_current(dbit, &node, newname));
@@ -1104,7 +1104,7 @@ add_sigs(dns_update_log_t *log, dns_zone_t *zone, dns_db_t *db,
 			/* Look up the signature in the SKR bundle */
 			dns_skrbundle_t *bundle = dns_zone_getskrbundle(zone);
 			if (bundle == NULL) {
-				CHECK(DNS_R_NOSKRBUNDLE);
+				CLEANUP(DNS_R_NOSKRBUNDLE);
 			}
 			CHECK(dns_skrbundle_getsig(bundle, keys[i], type,
 						   &sig_rdata));

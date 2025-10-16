@@ -442,12 +442,12 @@ control_recvmessage(isc_nmhandle_t *handle ISC_ATTR_UNUSED, isc_result_t result,
 	}
 
 	if (!match) {
-		CHECK(ISCCC_R_BADAUTH);
+		CLEANUP(ISCCC_R_BADAUTH);
 	}
 
 	/* We shouldn't be getting a reply. */
 	if (isccc_cc_isreply(conn->request)) {
-		CHECK(ISC_R_FAILURE);
+		CLEANUP(ISC_R_FAILURE);
 	}
 
 	conn->now = isc_stdtime_now();
@@ -457,17 +457,17 @@ control_recvmessage(isc_nmhandle_t *handle ISC_ATTR_UNUSED, isc_result_t result,
 	 */
 	conn->ctrl = isccc_alist_lookup(conn->request, "_ctrl");
 	if (!isccc_alist_alistp(conn->ctrl)) {
-		CHECK(ISC_R_FAILURE);
+		CLEANUP(ISC_R_FAILURE);
 	}
 
 	if (isccc_cc_lookupuint32(conn->ctrl, "_tim", &sent) == ISC_R_SUCCESS) {
 		if ((sent + CLOCKSKEW) < conn->now ||
 		    (sent - CLOCKSKEW) > conn->now)
 		{
-			CHECK(DNS_R_CLOCKSKEW);
+			CLEANUP(DNS_R_CLOCKSKEW);
 		}
 	} else {
-		CHECK(ISC_R_FAILURE);
+		CLEANUP(ISC_R_FAILURE);
 	}
 
 	/*
@@ -476,7 +476,7 @@ control_recvmessage(isc_nmhandle_t *handle ISC_ATTR_UNUSED, isc_result_t result,
 	if (isccc_cc_lookupuint32(conn->ctrl, "_exp", &exp) == ISC_R_SUCCESS &&
 	    conn->now > exp)
 	{
-		CHECK(DNS_R_EXPIRED);
+		CLEANUP(DNS_R_EXPIRED);
 	}
 
 	/*
@@ -499,7 +499,7 @@ control_recvmessage(isc_nmhandle_t *handle ISC_ATTR_UNUSED, isc_result_t result,
 		     ISC_R_SUCCESS ||
 	     conn->nonce != nonce))
 	{
-		CHECK(ISCCC_R_BADAUTH);
+		CLEANUP(ISCCC_R_BADAUTH);
 	}
 
 	isc_buffer_allocate(listener->mctx, &conn->text, 2 * 2048);
@@ -1076,7 +1076,7 @@ add_listener(named_controls_t *cp, controllistener_t **listenerp,
 	if ((pf == AF_INET && isc_net_probeipv4() != ISC_R_SUCCESS) ||
 	    (pf == AF_INET6 && isc_net_probeipv6() != ISC_R_SUCCESS))
 	{
-		CHECK(ISC_R_FAMILYNOSUPPORT);
+		CLEANUP(ISC_R_FAMILYNOSUPPORT);
 	}
 
 	CHECK(isc_nm_listentcp(ISC_NM_LISTEN_ONE, &listener->address,

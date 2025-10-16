@@ -720,7 +720,7 @@ isc__nm_tcp_read(isc_nmhandle_t *handle, isc_nm_recv_cb_t cb, void *cbarg) {
 	}
 
 	if (isc__nmsocket_closing(sock)) {
-		CHECK(ISC_R_CANCELED);
+		CLEANUP(ISC_R_CANCELED);
 	}
 
 	if (!sock->reading_throttled) {
@@ -912,7 +912,7 @@ accept_connection(isc_nmsocket_t *csock) {
 	 * isc__nm_tcp_close() can't handle uninitalized TCP nmsocket.
 	 */
 	if (isc__nmsocket_closing(csock)) {
-		CHECK(ISC_R_CANCELED);
+		CLEANUP(ISC_R_CANCELED);
 	}
 
 	r = uv_accept(&csock->server->uv_handle.stream,
@@ -936,7 +936,7 @@ accept_connection(isc_nmsocket_t *csock) {
 			 * it has expired. We cannot do anything better than
 			 * drop it on the floor at this point.
 			 */
-			CHECK(ISC_R_TIMEDOUT);
+			CLEANUP(ISC_R_TIMEDOUT);
 		} else {
 			/* Adjust the initial read timeout accordingly */
 			csock->read_timeout -= time_elapsed_ms;

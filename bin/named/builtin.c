@@ -1156,13 +1156,13 @@ create(isc_mem_t *mctx, const dns_name_t *origin, dns_dbtype_t type,
 
 	if (needargs) {
 		if (argc != 3) {
-			CHECK(DNS_R_SYNTAX);
+			CLEANUP(DNS_R_SYNTAX);
 		}
 
 		bdb->server = isc_mem_strdup(isc_g_mctx, argv[1]);
 		bdb->contact = isc_mem_strdup(isc_g_mctx, argv[2]);
 	} else if (argc != 1) {
-		CHECK(DNS_R_SYNTAX);
+		CLEANUP(DNS_R_SYNTAX);
 	}
 
 	bdb->common.magic = DNS_DB_MAGIC;

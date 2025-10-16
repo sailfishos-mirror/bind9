@@ -689,7 +689,7 @@ cfg_acl_fromconfig(const cfg_obj_t *acl_data, const cfg_obj_t *cctx,
 				transports = isc_nm_httpsocket;
 				encrypted = false;
 			} else {
-				CHECK(ISC_R_FAILURE);
+				CLEANUP(ISC_R_FAILURE);
 			}
 		}
 
@@ -880,7 +880,7 @@ cfg_acl_fromconfig(const cfg_obj_t *acl_data, const cfg_obj_t *cctx,
 			cfg_obj_log(ce, ISC_LOG_WARNING,
 				    "address match list contains "
 				    "unsupported element type");
-			CHECK(ISC_R_FAILURE);
+			CLEANUP(ISC_R_FAILURE);
 		}
 
 		/*

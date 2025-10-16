@@ -497,7 +497,7 @@ load_zones_fromconfig(const cfg_obj_t *config, bool list_zones) {
 		}
 
 		if (dns_rdataclass_ismeta(viewclass)) {
-			CHECK(ISC_R_FAILURE);
+			CLEANUP(ISC_R_FAILURE);
 		}
 
 		dns_rdataclass_format(viewclass, buf, sizeof(buf));
@@ -683,7 +683,7 @@ main(int argc, char **argv) {
 			fprintf(stderr, "%s: unhandled option -%c\n",
 				isc_commandline_progname,
 				isc_commandline_option);
-			CHECK(ISC_R_FAILURE);
+			CLEANUP(ISC_R_FAILURE);
 		}
 	}
 
@@ -695,12 +695,12 @@ main(int argc, char **argv) {
 	if (((flags & CFG_PRINTER_XKEY) != 0) && !print) {
 		fprintf(stderr, "%s: -x cannot be used without -p\n",
 			isc_commandline_progname);
-		CHECK(ISC_R_FAILURE);
+		CLEANUP(ISC_R_FAILURE);
 	}
 	if (print && list_zones) {
 		fprintf(stderr, "%s: -l cannot be used with -p\n",
 			isc_commandline_progname);
-		CHECK(ISC_R_FAILURE);
+		CLEANUP(ISC_R_FAILURE);
 	}
 
 	if (isc_commandline_index + 1 < argc) {

@@ -139,8 +139,7 @@ publish_zone(sample_instance_t *inst, dns_zone_t *zone) {
 		/* Zone has a view set -> view should contain the same zone. */
 		if (zone_in_view == zone) {
 			/* Zone is already published in the right view. */
-			result = ISC_R_SUCCESS;
-			goto cleanup;
+			CLEANUP(ISC_R_SUCCESS);
 		} else if (view_in_zone != inst->view) {
 			/*
 			 * Un-published inactive zone will have
@@ -150,7 +149,7 @@ publish_zone(sample_instance_t *inst, dns_zone_t *zone) {
 			dns_zone_log(zone, ISC_LOG_ERROR,
 				     "zone->view doesn't "
 				     "match data in the view");
-			CHECK(ISC_R_UNEXPECTED);
+			CLEANUP(ISC_R_UNEXPECTED);
 		}
 	}
 
@@ -158,7 +157,7 @@ publish_zone(sample_instance_t *inst, dns_zone_t *zone) {
 		dns_zone_log(zone, ISC_LOG_ERROR,
 			     "cannot publish zone: view already "
 			     "contains another zone with this name");
-		CHECK(ISC_R_UNEXPECTED);
+		CLEANUP(ISC_R_UNEXPECTED);
 	}
 
 	if (inst->view->frozen) {

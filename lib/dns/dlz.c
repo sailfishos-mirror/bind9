@@ -417,7 +417,7 @@ dns_dlz_writeablezone(dns_view_t *view, dns_dlzdb_t *dlzdb,
 	result = dns_view_findzone(view, origin, DNS_ZTFIND_EXACT, &dupzone);
 	if (result == ISC_R_SUCCESS) {
 		dns_zone_detach(&dupzone);
-		CHECK(ISC_R_EXISTS);
+		CLEANUP(ISC_R_EXISTS);
 	}
 	INSIST(dupzone == NULL);
 

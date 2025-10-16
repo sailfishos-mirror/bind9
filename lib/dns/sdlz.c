@@ -982,7 +982,7 @@ modrdataset(dns_db_t *db, dns_dbnode_t *node, dns_dbversion_t *version,
 					buffer));
 
 	if (isc_buffer_usedlength(buffer) < 1) {
-		CHECK(ISC_R_BADADDRESSFORM);
+		CLEANUP(ISC_R_BADADDRESSFORM);
 	}
 
 	rdatastr = isc_buffer_base(buffer);
@@ -1641,7 +1641,7 @@ dns_sdlz_putrr(dns_sdlzlookup_t *lookup, const char *type, dns_ttl_t ttl,
 	} while (result == ISC_R_NOSPACE);
 
 	if (result != ISC_R_SUCCESS) {
-		CHECK(DNS_R_SERVFAIL);
+		CLEANUP(DNS_R_SERVFAIL);
 	}
 
 	ISC_LIST_APPEND(rdatalist->rdata, rdata, link);

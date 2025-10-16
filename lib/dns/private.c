@@ -306,7 +306,7 @@ dns_private_totext(dns_rdata_t *private, isc_buffer_t *buf) {
 		if (!dns_nsec3param_fromprivate(private, &rdata, nsec3buf,
 						sizeof(nsec3buf)))
 		{
-			CHECK(ISC_R_FAILURE);
+			CLEANUP(ISC_R_FAILURE);
 		}
 
 		CHECK(dns_rdata_tostruct(&rdata, &nsec3param, NULL));

@@ -850,7 +850,7 @@ setup_text_key(void) {
 	secretsize = isc_buffer_usedlength(&secretbuf);
 
 	if (hmac_alg == DST_ALG_UNKNOWN) {
-		CHECK(DST_R_UNSUPPORTEDALG);
+		CLEANUP(DST_R_UNSUPPORTEDALG);
 	}
 
 	CHECK(dns_name_fromtext(keyname, namebuf, dns_rootname, 0));

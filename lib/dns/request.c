@@ -686,7 +686,7 @@ req_render(dns_message_t *message, isc_buffer_t **bufferp, unsigned int options,
 	 */
 	isc_buffer_usedregion(buf1, &r);
 	if ((options & DNS_REQUESTOPT_TCP) == 0 && r.length > 512) {
-		CHECK(DNS_R_USETCP);
+		CLEANUP(DNS_R_USETCP);
 	}
 	isc_buffer_allocate(mctx, &buf2, r.length);
 	CHECK(isc_buffer_copyregion(buf2, &r));

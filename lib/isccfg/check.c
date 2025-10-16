@@ -4900,7 +4900,7 @@ check_trust_anchor(const cfg_obj_t *key, unsigned int *flagsp) {
 		 * We can't interpret the trust anchor, so
 		 * we skip all other checks.
 		 */
-		CHECK(ISC_R_FAILURE);
+		CLEANUP(ISC_R_FAILURE);
 		UNREACHABLE();
 	}
 

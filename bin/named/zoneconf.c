@@ -364,7 +364,7 @@ configure_zone_ssutable(const cfg_obj_t *zconfig, const cfg_obj_t *tconfig,
 				      "failed to enable auto DDNS policy "
 				      "for zone %s: session key not found",
 				      zname);
-			CHECK(ISC_R_NOTFOUND);
+			CLEANUP(ISC_R_NOTFOUND);
 		}
 
 		dns_ssutable_addrule(
@@ -600,7 +600,7 @@ configure_staticstub(const cfg_obj_t *zconfig, const cfg_obj_t *tconfig,
 			      "No NS record is configured for a "
 			      "static-stub zone '%s'",
 			      zname);
-		CHECK(ISC_R_FAILURE);
+		CLEANUP(ISC_R_FAILURE);
 	}
 
 	/*

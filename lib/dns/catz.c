@@ -1208,14 +1208,14 @@ catz_process_coo(dns_catz_zone_t *catz, dns_label_t *mhash,
 	RETERR(dns_rdata_tostruct(&rdata, &ptr, NULL));
 
 	if (dns_name_countlabels(&ptr.ptr) == 0) {
-		CHECK(ISC_R_FAILURE);
+		CLEANUP(ISC_R_FAILURE);
 	}
 
 	CHECK(isc_ht_find(catz->entries, mhash->base, mhash->length,
 			  (void **)&entry));
 
 	if (dns_name_countlabels(&entry->name) == 0) {
-		CHECK(ISC_R_FAILURE);
+		CLEANUP(ISC_R_FAILURE);
 	}
 
 	catz_coo_add(catz, entry, &ptr.ptr);
@@ -1315,10 +1315,10 @@ catz_process_version(dns_catz_zone_t *catz, dns_rdataset_t *value) {
 
 	result = dns_rdata_txt_next(&rdatatxt);
 	if (result != ISC_R_NOMORE) {
-		CHECK(ISC_R_FAILURE);
+		CLEANUP(ISC_R_FAILURE);
 	}
 	if (rdatastr.length > 15) {
-		CHECK(ISC_R_BADNUMBER);
+		CLEANUP(ISC_R_BADNUMBER);
 	}
 	memmove(t, rdatastr.data, rdatastr.length);
 	t[rdatastr.length] = 0;
@@ -1946,7 +1946,7 @@ dns_catz_generate_zonecfg(dns_catz_zone_t *catz, dns_catz_entry_t *entry,
 				      "catz: zone '%s' uses an invalid primary "
 				      "(no IP address assigned)",
 				      zname);
-			CHECK(ISC_R_FAILURE);
+			CLEANUP(ISC_R_FAILURE);
 		}
 		isc_netaddr_fromsockaddr(&netaddr,
 					 &entry->opts.masters.addrs[i]);
@@ -2074,7 +2074,7 @@ dns_catz_dbupdate_callback(dns_db_t *db, void *fn_arg) {
 
 	LOCK(&catzs->lock);
 	if (catzs->zones == NULL) {
-		CHECK(ISC_R_SHUTTINGDOWN);
+		CLEANUP(ISC_R_SHUTTINGDOWN);
 	}
 	CHECK(isc_ht_find(catzs->zones, r.base, r.length, (void **)&catz));
 

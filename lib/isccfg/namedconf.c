@@ -1802,7 +1802,7 @@ parse_dtout(cfg_parser_t *pctx, const cfg_type_t *type, cfg_obj_t **ret) {
 			} else {
 				cfg_parser_error(pctx, CFG_LOG_NEAR,
 						 "unexpected token");
-				CHECK(ISC_R_UNEXPECTEDTOKEN);
+				CLEANUP(ISC_R_UNEXPECTEDTOKEN);
 			}
 		} else {
 			break;
@@ -1974,7 +1974,7 @@ cfg_parse_kv_tuple(cfg_parser_t *pctx, const cfg_type_t *type,
 			if (f->name == NULL) {
 				cfg_parser_error(pctx, 0, "unexpected '%s'",
 						 TOKEN_STRING(pctx));
-				CHECK(ISC_R_UNEXPECTEDTOKEN);
+				CLEANUP(ISC_R_UNEXPECTEDTOKEN);
 			}
 			if (obj->value.tuple[fn] == NULL &&
 			    strcasecmp(f->name, TOKEN_STRING(pctx)) == 0)
@@ -3162,7 +3162,7 @@ parse_sizeval(cfg_parser_t *pctx, const cfg_type_t *type, cfg_obj_t **ret) {
 
 	CHECK(cfg_gettoken(pctx, 0));
 	if (pctx->token.type != isc_tokentype_string) {
-		CHECK(ISC_R_UNEXPECTEDTOKEN);
+		CLEANUP(ISC_R_UNEXPECTEDTOKEN);
 	}
 	CHECK(parse_unitstring(TOKEN_STRING(pctx), &val));
 
@@ -3191,7 +3191,7 @@ parse_sizeval_percent(cfg_parser_t *pctx, const cfg_type_t *type,
 
 	CHECK(cfg_gettoken(pctx, 0));
 	if (pctx->token.type != isc_tokentype_string) {
-		CHECK(ISC_R_UNEXPECTEDTOKEN);
+		CLEANUP(ISC_R_UNEXPECTEDTOKEN);
 	}
 
 	percent = strtoull(TOKEN_STRING(pctx), &endp, 10);
@@ -3344,7 +3344,7 @@ parse_maybe_optional_keyvalue(cfg_parser_t *pctx, const cfg_type_t *type,
 		} else {
 			cfg_parser_error(pctx, CFG_LOG_NEAR, "expected '%s'",
 					 kw->name);
-			CHECK(ISC_R_UNEXPECTEDTOKEN);
+			CLEANUP(ISC_R_UNEXPECTEDTOKEN);
 		}
 	}
 

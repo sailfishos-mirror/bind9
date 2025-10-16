@@ -81,7 +81,7 @@ add_initial_keys(const cfg_obj_t *list, dns_tsigkeyring_t *ring,
 				    "key '%s': has a "
 				    "unsupported algorithm '%s'",
 				    keyid, algstr);
-			CHECK(DNS_R_BADALG);
+			CLEANUP(DNS_R_BADALG);
 		}
 
 		secretstr = cfg_obj_asstring(secretobj);

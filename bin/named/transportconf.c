@@ -147,7 +147,7 @@ add_tls_transports(const cfg_obj_t *transportlist, dns_transport_list_t *list) {
 		tlsid = cfg_obj_asstring(cfg_map_getname(tls));
 
 		if (!strcmp(tlsid, "ephemeral")) {
-			CHECK(ISC_R_UNEXPECTEDTOKEN);
+			CLEANUP(ISC_R_UNEXPECTEDTOKEN);
 		}
 
 		create_name(tlsid, tlsname);

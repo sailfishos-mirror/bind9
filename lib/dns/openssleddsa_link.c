@@ -33,12 +33,6 @@
 #include "dst_parse.h"
 #include "openssl_shim.h"
 
-#define DST_RET(a)            \
-	{                     \
-		result = a;   \
-		goto cleanup; \
-	}
-
 #ifndef NID_ED25519
 #error "Ed25519 group is not known (NID_ED25519)"
 #endif /* ifndef NID_ED25519 */
@@ -184,19 +178,19 @@ openssleddsa_sign(dst_context_t *dctx, isc_buffer_t *sig) {
 	siglen = alginfo->sig_size;
 	isc_buffer_availableregion(sig, &sigreg);
 	if (sigreg.length < (unsigned int)siglen) {
-		DST_RET(ISC_R_NOSPACE);
+		CLEANUP(ISC_R_NOSPACE);
 	}
 
 	isc_buffer_usedregion(buf, &tbsreg);
 
 	if (EVP_DigestSignInit(ctx, NULL, NULL, NULL, pkey) != 1) {
-		DST_RET(dst__openssl_toresult3(
+		CLEANUP(dst__openssl_toresult3(
 			dctx->category, "EVP_DigestSignInit", ISC_R_FAILURE));
 	}
 	if (EVP_DigestSign(ctx, sigreg.base, &siglen, tbsreg.base,
 			   tbsreg.length) != 1)
 	{
-		DST_RET(dst__openssl_toresult3(dctx->category, "EVP_DigestSign",
+		CLEANUP(dst__openssl_toresult3(dctx->category, "EVP_DigestSign",
 					       DST_R_SIGNFAILURE));
 	}
 	isc_buffer_add(sig, (unsigned int)siglen);
@@ -228,13 +222,13 @@ openssleddsa_verify(dst_context_t *dctx, const isc_region_t *sig) {
 	}
 
 	if (sig->length != alginfo->sig_size) {
-		DST_RET(DST_R_VERIFYFAILURE);
+		CLEANUP(DST_R_VERIFYFAILURE);
 	}
 
 	isc_buffer_usedregion(buf, &tbsreg);
 
 	if (EVP_DigestVerifyInit(ctx, NULL, NULL, NULL, pkey) != 1) {
-		DST_RET(dst__openssl_toresult3(
+		CLEANUP(dst__openssl_toresult3(
 			dctx->category, "EVP_DigestVerifyInit", ISC_R_FAILURE));
 	}
 
@@ -283,13 +277,13 @@ openssleddsa_generate(dst_key_t *key, int unused, void (*callback)(int)) {
 
 	status = EVP_PKEY_keygen_init(ctx);
 	if (status != 1) {
-		DST_RET(dst__openssl_toresult2("EVP_PKEY_keygen_init",
+		CLEANUP(dst__openssl_toresult2("EVP_PKEY_keygen_init",
 					       DST_R_OPENSSLFAILURE));
 	}
 
 	status = EVP_PKEY_keygen(ctx, &pkey);
 	if (status != 1) {
-		DST_RET(dst__openssl_toresult2("EVP_PKEY_keygen",
+		CLEANUP(dst__openssl_toresult2("EVP_PKEY_keygen",
 					       DST_R_OPENSSLFAILURE));
 	}
 
@@ -378,7 +372,7 @@ openssleddsa_tofile(const dst_key_t *key, const char *directory) {
 		if (EVP_PKEY_get_raw_private_key(key->keydata.pkeypair.priv,
 						 buf, &len) != 1)
 		{
-			DST_RET(dst__openssl_toresult(ISC_R_FAILURE));
+			CLEANUP(dst__openssl_toresult(ISC_R_FAILURE));
 		}
 		priv.elements[i].tag = TAG_EDDSA_PRIVATEKEY;
 		priv.elements[i].length = len;
@@ -421,16 +415,16 @@ openssleddsa_parse(dst_key_t *key, isc_lex_t *lexer, dst_key_t *pub) {
 
 	if (key->external) {
 		if (priv.nelements != 0) {
-			DST_RET(DST_R_INVALIDPRIVATEKEY);
+			CLEANUP(DST_R_INVALIDPRIVATEKEY);
 		}
 		if (pub == NULL) {
-			DST_RET(DST_R_INVALIDPRIVATEKEY);
+			CLEANUP(DST_R_INVALIDPRIVATEKEY);
 		}
 		key->keydata.pkeypair.priv = pub->keydata.pkeypair.priv;
 		key->keydata.pkeypair.pub = pub->keydata.pkeypair.pub;
 		pub->keydata.pkeypair.priv = NULL;
 		pub->keydata.pkeypair.pub = NULL;
-		DST_RET(ISC_R_SUCCESS);
+		CLEANUP(ISC_R_SUCCESS);
 	}
 
 	for (i = 0; i < priv.nelements; i++) {
@@ -455,13 +449,13 @@ openssleddsa_parse(dst_key_t *key, isc_lex_t *lexer, dst_key_t *pub) {
 		if (pub != NULL && EVP_PKEY_eq(key->keydata.pkeypair.pub,
 					       pub->keydata.pkeypair.pub) != 1)
 		{
-			DST_RET(DST_R_INVALIDPRIVATEKEY);
+			CLEANUP(DST_R_INVALIDPRIVATEKEY);
 		}
-		DST_RET(ISC_R_SUCCESS);
+		CLEANUP(ISC_R_SUCCESS);
 	}
 
 	if (privkey_index < 0) {
-		DST_RET(DST_R_INVALIDPRIVATEKEY);
+		CLEANUP(DST_R_INVALIDPRIVATEKEY);
 	}
 
 	len = priv.elements[privkey_index].length;
@@ -469,7 +463,7 @@ openssleddsa_parse(dst_key_t *key, isc_lex_t *lexer, dst_key_t *pub) {
 			      &len, &pkey));
 	/* Check that the public component matches if given */
 	if (pub != NULL && EVP_PKEY_eq(pkey, pub->keydata.pkeypair.pub) != 1) {
-		DST_RET(DST_R_INVALIDPRIVATEKEY);
+		CLEANUP(DST_R_INVALIDPRIVATEKEY);
 	}
 
 	key->keydata.pkeypair.priv = pkey;
@@ -567,7 +561,7 @@ check_algorithm(unsigned char algorithm) {
 	size_t key_len, sig_len;
 
 	if (evp_md_ctx == NULL) {
-		DST_RET(ISC_R_NOMEMORY);
+		CLEANUP(ISC_R_NOMEMORY);
 	}
 
 	switch (algorithm) {
@@ -588,7 +582,7 @@ check_algorithm(unsigned char algorithm) {
 		alginfo = openssleddsa_alg_info(algorithm);
 		break;
 	default:
-		DST_RET(ISC_R_NOTIMPLEMENTED);
+		CLEANUP(ISC_R_NOTIMPLEMENTED);
 	}
 
 	INSIST(alginfo != NULL);
@@ -601,7 +595,7 @@ check_algorithm(unsigned char algorithm) {
 	    EVP_DigestVerify(evp_md_ctx, sig, sig_len, test,
 			     sizeof(test) - 1) != 1)
 	{
-		DST_RET(ISC_R_NOTIMPLEMENTED);
+		CLEANUP(ISC_R_NOTIMPLEMENTED);
 	}
 
 cleanup:

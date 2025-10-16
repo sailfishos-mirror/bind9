@@ -1501,7 +1501,7 @@ sendstream(xfrout_ctx_t *xfr) {
 					   "(%d bytes)",
 					   size);
 				/* XXX DNS_R_RRTOOLARGE? */
-				CHECK(ISC_R_NOSPACE);
+				CLEANUP(ISC_R_NOSPACE);
 			}
 			break;
 		}

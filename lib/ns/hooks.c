@@ -150,7 +150,7 @@ load_plugin(isc_mem_t *mctx, const char *modpath, ns_plugin_t **pluginp) {
 			      ISC_LOG_ERROR,
 			      "failed to dlopen() plugin '%s': %s", modpath,
 			      errmsg);
-		CHECK(ISC_R_FAILURE);
+		CLEANUP(ISC_R_FAILURE);
 	}
 
 	CHECK(load_symbol(&plugin->handle, modpath, "plugin_version",
@@ -164,7 +164,7 @@ load_plugin(isc_mem_t *mctx, const char *modpath, ns_plugin_t **pluginp) {
 			      ISC_LOG_ERROR,
 			      "plugin API version mismatch: %d/%d", version,
 			      NS_PLUGIN_VERSION);
-		CHECK(ISC_R_FAILURE);
+		CLEANUP(ISC_R_FAILURE);
 	}
 
 	CHECK(load_symbol(&plugin->handle, modpath, "plugin_check",

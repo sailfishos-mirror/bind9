@@ -358,19 +358,19 @@ dns_tkey_processquery(dns_message_t *msg, dns_tkeyctx_t *tctx,
 	if (result != ISC_R_SUCCESS) {
 		tkey_log("dns_tkey_processquery: couldn't find a TKEY "
 			 "matching the question");
-		CHECK(DNS_R_FORMERR);
+		CLEANUP(DNS_R_FORMERR);
 	}
 
 	result = dns_rdataset_first(tkeyset);
 	if (result != ISC_R_SUCCESS) {
-		CHECK(DNS_R_FORMERR);
+		CLEANUP(DNS_R_FORMERR);
 	}
 
 	dns_rdataset_current(tkeyset, &rdata);
 	CHECK(dns_rdata_tostruct(&rdata, &tkeyin, NULL));
 
 	if (tkeyin.error != dns_rcode_noerror) {
-		CHECK(DNS_R_FORMERR);
+		CLEANUP(DNS_R_FORMERR);
 	}
 
 	/*
@@ -386,7 +386,7 @@ dns_tkey_processquery(dns_message_t *msg, dns_tkeyctx_t *tctx,
 	{
 		tkey_log("dns_tkey_processquery: query was not "
 			 "properly signed - rejecting");
-		CHECK(DNS_R_FORMERR);
+		CLEANUP(DNS_R_FORMERR);
 	}
 
 	tkeyout = (dns_rdata_tkey_t){
@@ -620,7 +620,7 @@ dns_tkey_gssnegotiate(dns_message_t *qmsg, dns_message_t *rmsg,
 	{
 		tkey_log("dns_tkey_gssnegotiate: tkey mode invalid "
 			 "or error set(4)");
-		CHECK(DNS_R_INVALIDTKEY);
+		CLEANUP(DNS_R_INVALIDTKEY);
 	}
 
 	isc_buffer_init(&intoken, rtkey.key, rtkey.keylen);

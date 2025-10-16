@@ -2405,7 +2405,7 @@ zone_jsonrender(dns_zone_t *zone, void *arg) {
 		if (zonestats != NULL) {
 			json_object *counters = json_object_new_object();
 			if (counters == NULL) {
-				CHECK(ISC_R_NOMEMORY);
+				CLEANUP(ISC_R_NOMEMORY);
 			}
 
 			result = dump_stats(zonestats, isc_statsformat_json,
@@ -2429,7 +2429,7 @@ zone_jsonrender(dns_zone_t *zone, void *arg) {
 		if (gluecachestats != NULL) {
 			json_object *counters = json_object_new_object();
 			if (counters == NULL) {
-				CHECK(ISC_R_NOMEMORY);
+				CLEANUP(ISC_R_NOMEMORY);
 			}
 
 			result = dump_stats(
@@ -2582,7 +2582,7 @@ xfrin_jsonrender(dns_zone_t *zone, void *arg) {
 	}
 
 	if (xfrinobj == NULL) {
-		CHECK(ISC_R_NOMEMORY);
+		CLEANUP(ISC_R_NOMEMORY);
 	}
 
 	result = dns_zone_getxfr(zone, &xfr, &is_firstrefresh, &is_running,
@@ -3650,7 +3650,7 @@ add_listener(named_server_t *server, named_statschannel_t **listenerp,
 	if ((pf == AF_INET && isc_net_probeipv4() != ISC_R_SUCCESS) ||
 	    (pf == AF_INET6 && isc_net_probeipv6() != ISC_R_SUCCESS))
 	{
-		CHECK(ISC_R_FAMILYNOSUPPORT);
+		CLEANUP(ISC_R_FAMILYNOSUPPORT);
 	}
 
 	CHECK(isc_httpdmgr_create(server->mctx, addr, client_ok,

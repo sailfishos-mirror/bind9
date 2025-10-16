@@ -314,7 +314,7 @@ dst_gssapi_initctx(const dns_name_t *name, isc_buffer_t *intoken,
 	gret = gss_import_name(&minor, &gnamebuf, GSS_C_NO_OID, &gname);
 	if (gret != GSS_S_COMPLETE) {
 		gss_err_message(mctx, gret, minor, err_message);
-		CHECK(ISC_R_FAILURE);
+		CLEANUP(ISC_R_FAILURE);
 	}
 
 	if (intoken != NULL) {
@@ -345,7 +345,7 @@ dst_gssapi_initctx(const dns_name_t *name, isc_buffer_t *intoken,
 			gss_log(3, "Failure initiating security context");
 		}
 
-		CHECK(ISC_R_FAILURE);
+		CLEANUP(ISC_R_FAILURE);
 	}
 
 	/*
@@ -480,7 +480,7 @@ dst_gssapi_acceptctx(const char *gssapi_keytab, isc_region_t *intoken,
 			gss_log(3, "failed gss_display_name: %s",
 				gss_error_tostring(gret, minor, buf,
 						   sizeof(buf)));
-			CHECK(ISC_R_FAILURE);
+			CLEANUP(ISC_R_FAILURE);
 		}
 
 		/*

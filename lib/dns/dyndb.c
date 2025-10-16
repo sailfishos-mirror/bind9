@@ -137,7 +137,7 @@ load_library(isc_mem_t *mctx, const char *filename, const char *instname,
 			      "failed to dlopen() DynDB instance '%s' driver "
 			      "'%s': %s",
 			      instname, filename, errmsg);
-		CHECK(ISC_R_FAILURE);
+		CLEANUP(ISC_R_FAILURE);
 	}
 
 	CHECK(load_symbol(&imp->handle, filename, "dyndb_version",
@@ -151,7 +151,7 @@ load_library(isc_mem_t *mctx, const char *filename, const char *instname,
 			      ISC_LOG_ERROR,
 			      "driver API version mismatch: %d/%d", version,
 			      DNS_DYNDB_VERSION);
-		CHECK(ISC_R_FAILURE);
+		CLEANUP(ISC_R_FAILURE);
 	}
 
 	CHECK(load_symbol(&imp->handle, filename, "dyndb_init",
@@ -207,7 +207,7 @@ dns_dyndb_load(const char *libname, const char *name, const char *parameters,
 
 	/* duplicate instance names are not allowed */
 	if (impfind(name) != NULL) {
-		CHECK(ISC_R_EXISTS);
+		CLEANUP(ISC_R_EXISTS);
 	}
 
 	CHECK(load_library(mctx, libname, name, &implementation));

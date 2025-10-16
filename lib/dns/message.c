@@ -967,7 +967,7 @@ getquestions(isc_buffer_t *source, dns_message_t *msg, dns_decompress_t dctx,
 		 */
 		isc_buffer_remainingregion(source, &r);
 		if (r.length < 4) {
-			CHECK(ISC_R_UNEXPECTEDEND);
+			CLEANUP(ISC_R_UNEXPECTEDEND);
 		}
 		rdtype = isc_buffer_getuint16(source);
 		rdclass = isc_buffer_getuint16(source);
@@ -1100,7 +1100,7 @@ getsection(isc_buffer_t *source, dns_message_t *msg, dns_decompress_t dctx,
 		 */
 		isc_buffer_remainingregion(source, &r);
 		if (r.length < 2 + 2 + 4 + 2) {
-			CHECK(ISC_R_UNEXPECTEDEND);
+			CLEANUP(ISC_R_UNEXPECTEDEND);
 		}
 		rdtype = isc_buffer_getuint16(source);
 		rdclass = isc_buffer_getuint16(source);
@@ -1209,7 +1209,7 @@ getsection(isc_buffer_t *source, dns_message_t *msg, dns_decompress_t dctx,
 		rdatalen = isc_buffer_getuint16(source);
 		r.length -= (2 + 2 + 4 + 2);
 		if (r.length < rdatalen) {
-			CHECK(ISC_R_UNEXPECTEDEND);
+			CLEANUP(ISC_R_UNEXPECTEDEND);
 		}
 
 		/*
@@ -1223,7 +1223,7 @@ getsection(isc_buffer_t *source, dns_message_t *msg, dns_decompress_t dctx,
 		    update(sectionid, rdclass))
 		{
 			if (rdatalen != 0) {
-				CHECK(DNS_R_FORMERR);
+				CLEANUP(DNS_R_FORMERR);
 			}
 			/*
 			 * When the rdata is empty, the data pointer is
@@ -1290,7 +1290,7 @@ getsection(isc_buffer_t *source, dns_message_t *msg, dns_decompress_t dctx,
 		if (rdtype == dns_rdatatype_nsec3 &&
 		    !dns_rdata_checkowner(name, msg->rdclass, rdtype, false))
 		{
-			CHECK(DNS_R_BADOWNERNAME);
+			CLEANUP(DNS_R_BADOWNERNAME);
 		}
 
 		/*
@@ -3586,7 +3586,7 @@ render_zoneversion(dns_message_t *msg, isc_buffer_t *optbuf,
 					if (isc_buffer_availablelength(target) <
 					    1)
 					{
-						CHECK(ISC_R_NOSPACE);
+						CLEANUP(ISC_R_NOSPACE);
 					}
 					isc_buffer_putmem(target, &data[i], 1);
 				} else {
@@ -4830,7 +4830,7 @@ buildopt(dns_message_t *message, dns_rdataset_t **rdatasetp) {
 		}
 
 		if (len > 0xffffU) {
-			CHECK(ISC_R_NOSPACE);
+			CLEANUP(ISC_R_NOSPACE);
 		}
 
 		isc_buffer_allocate(message->mctx, &buf, len);

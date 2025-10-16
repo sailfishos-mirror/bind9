@@ -2389,7 +2389,7 @@ load_raw(dns_loadctx_t *lctx) {
 			 sizeof(uint16_t) + sizeof(uint16_t) +
 			 sizeof(uint32_t) + sizeof(uint32_t);
 		if (totallen < minlen) {
-			CHECK(ISC_R_RANGE);
+			CLEANUP(ISC_R_RANGE);
 		}
 		totallen -= sizeof(totallen);
 
@@ -2424,14 +2424,14 @@ load_raw(dns_loadctx_t *lctx) {
 		dns_rdatalist_init(&rdatalist);
 		rdatalist.rdclass = isc_buffer_getuint16(&target);
 		if (lctx->zclass != rdatalist.rdclass) {
-			CHECK(DNS_R_BADCLASS);
+			CLEANUP(DNS_R_BADCLASS);
 		}
 		rdatalist.type = isc_buffer_getuint16(&target);
 		rdatalist.covers = isc_buffer_getuint16(&target);
 		rdatalist.ttl = isc_buffer_getuint32(&target);
 		rdcount = isc_buffer_getuint32(&target);
 		if (rdcount == 0 || rdcount > 0xffff) {
-			CHECK(ISC_R_RANGE);
+			CLEANUP(ISC_R_RANGE);
 		}
 		INSIST(isc_buffer_consumedlength(&target) <= readlen);
 
@@ -2440,7 +2440,7 @@ load_raw(dns_loadctx_t *lctx) {
 				     lctx->f, &totallen));
 		namelen = isc_buffer_getuint16(&target);
 		if (namelen > sizeof(namebuf)) {
-			CHECK(ISC_R_RANGE);
+			CLEANUP(ISC_R_RANGE);
 		}
 
 		CHECK(read_and_check(sequential_read, &target, namelen, lctx->f,
@@ -2457,7 +2457,7 @@ load_raw(dns_loadctx_t *lctx) {
 					   "TTL %d exceeds configured "
 					   "max-zone-ttl %d",
 					   rdatalist.ttl, lctx->maxttl);
-			CHECK(ISC_R_RANGE);
+			CLEANUP(ISC_R_RANGE);
 		}
 
 		/* Rdata contents. */
@@ -2534,7 +2534,7 @@ load_raw(dns_loadctx_t *lctx) {
 		 * or malformed data.
 		 */
 		if (isc_buffer_remaininglength(&target) != 0 || totallen != 0) {
-			CHECK(ISC_R_RANGE);
+			CLEANUP(ISC_R_RANGE);
 		}
 
 		ISC_LIST_APPEND(head, &rdatalist, link);

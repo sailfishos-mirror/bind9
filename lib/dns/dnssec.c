@@ -885,12 +885,12 @@ dns_dnssec_verifymessage(isc_buffer_t *source, dns_message_t *msg,
 	signeedsfree = true;
 
 	if (sig.labels != 0) {
-		CHECK(DNS_R_SIGINVALID);
+		CLEANUP(DNS_R_SIGINVALID);
 	}
 
 	if (isc_serial_lt(sig.timeexpire, sig.timesigned)) {
 		msg->sig0status = dns_tsigerror_badtime;
-		CHECK(DNS_R_SIGINVALID);
+		CLEANUP(DNS_R_SIGINVALID);
 	}
 
 	if (msg->fuzzing) {
@@ -901,15 +901,15 @@ dns_dnssec_verifymessage(isc_buffer_t *source, dns_message_t *msg,
 
 	if (isc_serial_lt((uint32_t)now, sig.timesigned)) {
 		msg->sig0status = dns_tsigerror_badtime;
-		CHECK(DNS_R_SIGFUTURE);
+		CLEANUP(DNS_R_SIGFUTURE);
 	} else if (isc_serial_lt(sig.timeexpire, (uint32_t)now)) {
 		msg->sig0status = dns_tsigerror_badtime;
-		CHECK(DNS_R_SIGEXPIRED);
+		CLEANUP(DNS_R_SIGEXPIRED);
 	}
 
 	if (!dns_name_equal(dst_key_name(key), &sig.signer)) {
 		msg->sig0status = dns_tsigerror_badkey;
-		CHECK(DNS_R_SIGINVALID);
+		CLEANUP(DNS_R_SIGINVALID);
 	}
 
 	CHECK(dst_context_create(key, mctx, DNS_LOGCATEGORY_DNSSEC, false,

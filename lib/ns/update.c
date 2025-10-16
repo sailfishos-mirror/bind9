@@ -1638,7 +1638,7 @@ send_update(ns_client_t *client, dns_zone_t *zone) {
 			}
 			result = dns_zone_checknames(zone, name, &rdata);
 			if (result != ISC_R_SUCCESS) {
-				CHECK(DNS_R_REFUSED);
+				CLEANUP(DNS_R_REFUSED);
 			}
 			if ((options & DNS_ZONEOPT_CHECKSVCB) != 0 &&
 			    rdata.type == dns_rdatatype_svcb)
@@ -1666,7 +1666,7 @@ send_update(ns_client_t *client, dns_zone_t *zone) {
 			update_log(client, zone, ISC_LOG_WARNING,
 				   "update RR has incorrect class %d",
 				   update_class);
-			CHECK(DNS_R_FORMERR);
+			CLEANUP(DNS_R_FORMERR);
 		}
 
 		/*
@@ -1795,7 +1795,7 @@ send_update(ns_client_t *client, dns_zone_t *zone) {
 			   isc_result_totext(result));
 		ns_stats_increment(client->manager->sctx->nsstats,
 				   ns_statscounter_updatequota);
-		CHECK(DNS_R_DROP);
+		CLEANUP(DNS_R_DROP);
 	}
 
 	uev = isc_mem_get(client->manager->mctx, sizeof(*uev));
@@ -2245,7 +2245,7 @@ check_dnssec(ns_client_t *client, dns_zone_t *zone, dns_db_t *db,
 	if (!dns_zone_check_dnskey_nsec3(zone, db, ver, diff, NULL, 0)) {
 		update_log(client, zone, ISC_LOG_ERROR,
 			   "NSEC only DNSKEYs and NSEC3 chains not allowed");
-		CHECK(DNS_R_REFUSED);
+		CLEANUP(DNS_R_REFUSED);
 	}
 
 	/* Verify NSEC3 params */
@@ -2253,7 +2253,7 @@ check_dnssec(ns_client_t *client, dns_zone_t *zone, dns_db_t *db,
 	if (iterations > dns_nsec3_maxiterations()) {
 		update_log(client, zone, ISC_LOG_ERROR,
 			   "too many NSEC3 iterations (%u)", iterations);
-		CHECK(DNS_R_REFUSED);
+		CLEANUP(DNS_R_REFUSED);
 	}
 
 cleanup:
@@ -3145,7 +3145,7 @@ update_action(void *arg) {
 			update_log(client, zone, LOGLEVEL_PROTOCOL,
 				   "update rejected: post update name server "
 				   "sanity check failed");
-			CHECK(DNS_R_REFUSED);
+			CLEANUP(DNS_R_REFUSED);
 		}
 	}
 	if (!ISC_LIST_EMPTY(diff.tuples) && is_signing) {
@@ -3154,7 +3154,7 @@ update_action(void *arg) {
 			update_log(client, zone, LOGLEVEL_PROTOCOL,
 				   "update rejected: bad %s RRset",
 				   result == DNS_R_BADCDS ? "CDS" : "CDNSKEY");
-			CHECK(DNS_R_REFUSED);
+			CLEANUP(DNS_R_REFUSED);
 		}
 		CHECK(result);
 	}
@@ -3228,7 +3228,7 @@ update_action(void *arg) {
 					   "records in zone (%" PRIu64
 					   ") exceeds max-records (%u)",
 					   records, maxrecords);
-				CHECK(DNS_R_TOOMANYRECORDS);
+				CLEANUP(DNS_R_TOOMANYRECORDS);
 			}
 		}
 

@@ -93,7 +93,7 @@ static int min_dh = 128;
 
 #define NEXTTOKEN(lex, opt, token) CHECK(isc_lex_gettoken(lex, opt, token))
 
-#define BADTOKEN() CHECK(ISC_R_UNEXPECTEDTOKEN)
+#define BADTOKEN() CLEANUP(ISC_R_UNEXPECTEDTOKEN)
 
 isc_bufferlist_t cleanup_list = ISC_LIST_INITIALIZER;
 

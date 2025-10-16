@@ -155,7 +155,7 @@ cfg_kaspkey_fromconfig(const cfg_obj_t *config, dns_kasp_t *kasp,
 						    "allowed when offline-ksk "
 						    "is enabled");
 				}
-				CHECK(ISC_R_FAILURE);
+				CLEANUP(ISC_R_FAILURE);
 			}
 			key->role |= DNS_KASP_KEY_ROLE_KSK;
 			key->role |= DNS_KASP_KEY_ROLE_ZSK;
@@ -177,14 +177,14 @@ cfg_kaspkey_fromconfig(const cfg_obj_t *config, dns_kasp_t *kasp,
 					    "not exist",
 					    keydir);
 			}
-			CHECK(ISC_R_FAILURE);
+			CLEANUP(ISC_R_FAILURE);
 		} else if (result != ISC_R_SUCCESS) {
 			if (log_errors) {
 				cfg_obj_log(obj, ISC_LOG_ERROR,
 					    "dnssec-policy: bad keystore %s",
 					    keydir);
 			}
-			CHECK(ISC_R_FAILURE);
+			CLEANUP(ISC_R_FAILURE);
 		}
 		INSIST(key->keystore != NULL);
 
@@ -221,7 +221,7 @@ cfg_kaspkey_fromconfig(const cfg_obj_t *config, dns_kasp_t *kasp,
 						    "takes to "
 						    "do a rollover");
 				}
-				CHECK(ISC_R_FAILURE);
+				CLEANUP(ISC_R_FAILURE);
 			}
 		}
 
@@ -236,7 +236,7 @@ cfg_kaspkey_fromconfig(const cfg_obj_t *config, dns_kasp_t *kasp,
 					    "dnssec-policy: bad algorithm %s",
 					    alg.base);
 			}
-			CHECK(DNS_R_BADALG);
+			CLEANUP(DNS_R_BADALG);
 		}
 		if (check_algorithms && isc_crypto_fips_mode() &&
 		    (key->algorithm == DST_ALG_RSASHA1 ||
@@ -249,7 +249,7 @@ cfg_kaspkey_fromconfig(const cfg_obj_t *config, dns_kasp_t *kasp,
 					    "in FIPS mode",
 					    alg.base);
 			}
-			CHECK(DNS_R_BADALG);
+			CLEANUP(DNS_R_BADALG);
 		}
 
 		if (check_algorithms &&
@@ -261,7 +261,7 @@ cfg_kaspkey_fromconfig(const cfg_obj_t *config, dns_kasp_t *kasp,
 					    "supported",
 					    alg.base);
 			}
-			CHECK(DNS_R_BADALG);
+			CLEANUP(DNS_R_BADALG);
 		}
 
 		switch (key->algorithm) {
@@ -306,7 +306,7 @@ cfg_kaspkey_fromconfig(const cfg_obj_t *config, dns_kasp_t *kasp,
 							    "key length %u",
 							    alg.base, size);
 					}
-					CHECK(ISC_R_RANGE);
+					CLEANUP(ISC_R_RANGE);
 				}
 				break;
 			case DST_ALG_ECDSA256:
@@ -340,7 +340,7 @@ cfg_kaspkey_fromconfig(const cfg_obj_t *config, dns_kasp_t *kasp,
 						    "dnssec-policy: tag-min "
 						    "too big");
 				}
-				CHECK(ISC_R_RANGE);
+				CLEANUP(ISC_R_RANGE);
 			}
 			obj = cfg_tuple_get(tagrange, "tag-max");
 			tag_max = cfg_obj_asuint32(obj);
@@ -350,7 +350,7 @@ cfg_kaspkey_fromconfig(const cfg_obj_t *config, dns_kasp_t *kasp,
 						    "dnssec-policy: tag-max "
 						    "too big");
 				}
-				CHECK(ISC_R_RANGE);
+				CLEANUP(ISC_R_RANGE);
 			}
 			if (tag_min >= tag_max) {
 				if (log_errors) {
@@ -358,7 +358,7 @@ cfg_kaspkey_fromconfig(const cfg_obj_t *config, dns_kasp_t *kasp,
 						    "dnssec-policy: tag-min >= "
 						    "tag_max");
 				}
-				CHECK(ISC_R_RANGE);
+				CLEANUP(ISC_R_RANGE);
 			}
 			key->tag_min = tag_min;
 			key->tag_max = tag_max;

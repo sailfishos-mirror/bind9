@@ -676,7 +676,7 @@ key_fromconfig(const cfg_obj_t *key, dns_client_t *client, dns_view_t *toview) {
 			delv_log(ISC_LOG_ERROR,
 				 "key '%s': invalid initialization method '%s'",
 				 keynamestr, atstr);
-			CHECK(ISC_R_FAILURE);
+			CLEANUP(ISC_R_FAILURE);
 		}
 	}
 
@@ -684,13 +684,13 @@ key_fromconfig(const cfg_obj_t *key, dns_client_t *client, dns_view_t *toview) {
 	isc_buffer_init(&rrdatabuf, rrdata, sizeof(rrdata));
 
 	if (rdata1 > 0xffff) {
-		CHECK(ISC_R_RANGE);
+		CLEANUP(ISC_R_RANGE);
 	}
 	if (rdata2 > 0xff) {
-		CHECK(ISC_R_RANGE);
+		CLEANUP(ISC_R_RANGE);
 	}
 	if (rdata3 > 0xff) {
-		CHECK(ISC_R_RANGE);
+		CLEANUP(ISC_R_RANGE);
 	}
 
 	switch (anchortype) {
@@ -741,17 +741,17 @@ key_fromconfig(const cfg_obj_t *key, dns_client_t *client, dns_view_t *toview) {
 		switch (ds.digest_type) {
 		case DNS_DSDIGEST_SHA1:
 			if (r.length != ISC_SHA1_DIGESTLENGTH) {
-				CHECK(ISC_R_UNEXPECTEDEND);
+				CLEANUP(ISC_R_UNEXPECTEDEND);
 			}
 			break;
 		case DNS_DSDIGEST_SHA256:
 			if (r.length != ISC_SHA256_DIGESTLENGTH) {
-				CHECK(ISC_R_UNEXPECTEDEND);
+				CLEANUP(ISC_R_UNEXPECTEDEND);
 			}
 			break;
 		case DNS_DSDIGEST_SHA384:
 			if (r.length != ISC_SHA384_DIGESTLENGTH) {
-				CHECK(ISC_R_UNEXPECTEDEND);
+				CLEANUP(ISC_R_UNEXPECTEDEND);
 			}
 			break;
 		}

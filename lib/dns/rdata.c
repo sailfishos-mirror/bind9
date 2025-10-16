@@ -1093,7 +1093,7 @@ unknown_fromtext(dns_rdataclass_t rdclass, dns_rdatatype_t type,
 		CHECK(isc_hex_tobuffer(lexer, buf,
 				       (unsigned int)token.value.as_ulong));
 		if (isc_buffer_usedlength(buf) != token.value.as_ulong) {
-			CHECK(ISC_R_UNEXPECTEDEND);
+			CLEANUP(ISC_R_UNEXPECTEDEND);
 		}
 	}
 

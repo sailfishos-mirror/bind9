@@ -6987,7 +6987,7 @@ resume_dslookup(void *arg) {
 		 * made.  Interrupt the DS chasing process, returning SERVFAIL.
 		 */
 		if (dns_name_equal(fctx->nsname, fetch->private->domain)) {
-			CHECK(DNS_R_SERVFAIL);
+			CLEANUP(DNS_R_SERVFAIL);
 		}
 
 		/* Get nameservers from fetch before we destroy it. */

@@ -29,7 +29,7 @@
 
 #define NEXTTOKEN(lex, opt, token) CHECK(isc_lex_gettoken(lex, opt, token))
 
-#define BADTOKEN() CHECK(ISC_R_UNEXPECTEDTOKEN)
+#define BADTOKEN() CLEANUP(ISC_R_UNEXPECTEDTOKEN)
 
 #define TOKENSIZ (8 * 1024)
 #define STR(t)	 ((t).value.as_textregion.base)
@@ -58,7 +58,7 @@ parse_rr(isc_lex_t *lex, isc_mem_t *mctx, char *owner, dns_name_t *origin,
 	isc_buffer_add(&b, strlen(owner));
 	CHECK(dns_name_fromtext(dname, &b, dns_rootname, 0));
 	if (dns_name_compare(dname, origin) != 0) {
-		CHECK(DNS_R_BADOWNERNAME);
+		CLEANUP(DNS_R_BADOWNERNAME);
 	}
 	isc_buffer_clear(&b);
 
@@ -248,7 +248,7 @@ dns_skr_read(isc_mem_t *mctx, const char *filename, dns_name_t *origin,
 		}
 
 		if (token.type != isc_tokentype_string) {
-			CHECK(DNS_R_SYNTAX);
+			CLEANUP(DNS_R_SYNTAX);
 		}
 
 		if (strcmp(STR(token), ";;") == 0) {
@@ -257,7 +257,7 @@ dns_skr_read(isc_mem_t *mctx, const char *filename, dns_name_t *origin,
 			if (token.type != isc_tokentype_string ||
 			    strcmp(STR(token), "SignedKeyResponse") != 0)
 			{
-				CHECK(DNS_R_SYNTAX);
+				CLEANUP(DNS_R_SYNTAX);
 			}
 
 			/* Version */
@@ -265,20 +265,20 @@ dns_skr_read(isc_mem_t *mctx, const char *filename, dns_name_t *origin,
 			if (token.type != isc_tokentype_string ||
 			    strcmp(STR(token), "1.0") != 0)
 			{
-				CHECK(DNS_R_SYNTAX);
+				CLEANUP(DNS_R_SYNTAX);
 			}
 
 			/* Date and time of bundle */
 			CHECK(isc_lex_gettoken(lex, opt, &token));
 			if (token.type != isc_tokentype_string) {
-				CHECK(DNS_R_SYNTAX);
+				CLEANUP(DNS_R_SYNTAX);
 			}
 			if (strcmp(STR(token), "generated") == 0) {
 				/* Final bundle */
 				goto readline;
 			}
 			if (token.type != isc_tokentype_string) {
-				CHECK(DNS_R_SYNTAX);
+				CLEANUP(DNS_R_SYNTAX);
 			}
 
 			/* Add previous bundle */
@@ -340,7 +340,7 @@ dns_skr_read(isc_mem_t *mctx, const char *filename, dns_name_t *origin,
 	}
 
 	if (result != ISC_R_EOF) {
-		CHECK(DNS_R_SYNTAX);
+		CLEANUP(DNS_R_SYNTAX);
 	}
 	result = ISC_R_SUCCESS;
 

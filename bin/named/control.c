@@ -124,7 +124,7 @@ named_control_docommand(isccc_sexpr_t *message, bool readonly,
 			      "rejecting restricted control channel "
 			      "command '%s'",
 			      cmdline);
-		CHECK(ISC_R_FAILURE);
+		CLEANUP(ISC_R_FAILURE);
 	}
 
 	isc_log_write(NAMED_LOGCATEGORY_GENERAL, NAMED_LOGMODULE_CONTROL,
