@@ -2222,6 +2222,34 @@ static cfg_type_t cfg_type_staleanswerclienttimeout = {
 	staleanswerclienttimeout_enums
 };
 
+static void
+prefetch_merge(cfg_obj_t *effectiveobj, const cfg_obj_t *defaultobj) {
+	cfg_obj_t *trigger = NULL;
+	cfg_obj_t *eligible = NULL;
+
+	trigger = (cfg_obj_t *)cfg_tuple_get(effectiveobj, "trigger");
+	INSIST(cfg_obj_isuint32(trigger));
+	if (cfg_obj_asuint32(trigger) > 10) {
+		trigger->value.uint32 = 10;
+	}
+
+	eligible = (cfg_obj_t *)cfg_tuple_get(effectiveobj, "eligible");
+	if (cfg_obj_isvoid(eligible)) {
+		const cfg_obj_t *defaulteligible = NULL;
+
+		defaulteligible = cfg_tuple_get(defaultobj, "eligible");
+		INSIST(cfg_obj_isuint32(defaulteligible));
+
+		eligible->value.uint32 = cfg_obj_asuint32(defaulteligible);
+		eligible->type = &cfg_type_uint32;
+	}
+
+	INSIST(cfg_obj_isuint32(eligible));
+	if (cfg_obj_asuint32(eligible) < cfg_obj_asuint32(trigger) + 6) {
+		eligible->value.uint32 = cfg_obj_asuint32(trigger) + 6;
+	}
+}
+
 /*%
  * Clauses that can be found within the 'view' statement,
  * with defaults in the 'options' statement.
@@ -2324,7 +2352,7 @@ static cfg_clausedef_t view_clauses[] = {
 	{ "nta-recheck", &cfg_type_duration, 0 },
 	{ "nxdomain-redirect", &cfg_type_astring, 0 },
 	{ "preferred-glue", &cfg_type_astring, 0 },
-	{ "prefetch", &cfg_type_prefetch, 0 },
+	{ "prefetch", &cfg_type_prefetch, 0, prefetch_merge },
 	{ "provide-ixfr", &cfg_type_boolean, 0 },
 	{ "qname-minimization", &cfg_type_qminmethod, 0 },
 	/*

@@ -5176,27 +5176,8 @@ configure_view(dns_view_t *view, dns_viewlist_t *viewlist, cfg_obj_t *config,
 	INSIST(result == ISC_R_SUCCESS);
 	prefetch_trigger = cfg_tuple_get(obj, "trigger");
 	view->prefetch_trigger = cfg_obj_asuint32(prefetch_trigger);
-	if (view->prefetch_trigger > 10) {
-		view->prefetch_trigger = 10;
-	}
 	prefetch_eligible = cfg_tuple_get(obj, "eligible");
-	if (cfg_obj_isvoid(prefetch_eligible)) {
-		int m;
-		for (m = 1; maps[m] != NULL; m++) {
-			obj = NULL;
-			result = named_config_get(&maps[m], "prefetch", &obj);
-			INSIST(result == ISC_R_SUCCESS);
-			prefetch_eligible = cfg_tuple_get(obj, "eligible");
-			if (cfg_obj_isuint32(prefetch_eligible)) {
-				break;
-			}
-		}
-		INSIST(cfg_obj_isuint32(prefetch_eligible));
-	}
 	view->prefetch_eligible = cfg_obj_asuint32(prefetch_eligible);
-	if (view->prefetch_eligible < view->prefetch_trigger + 6) {
-		view->prefetch_eligible = view->prefetch_trigger + 6;
-	}
 
 	/*
 	 * For now, there is only one kind of trusted keys, the
