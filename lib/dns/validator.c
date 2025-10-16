@@ -1872,13 +1872,18 @@ validate_async_done(dns_validator_t *val, isc_result_t result) {
 static isc_result_t
 check_signer(dns_validator_t *val, dns_rdata_t *keyrdata, uint16_t keyid,
 	     dns_secalg_t algorithm) {
+	isc_result_t result;
 	dns_rdata_rrsig_t sig;
 	dst_key_t *dstkey = NULL;
-	isc_result_t result = ISC_R_NOMORE;
 	dns_rdataset_t rdataset = DNS_RDATASET_INIT;
 
-	dns_rdataset_clone(val->sigrdataset, &rdataset);
+	result = dns_dnssec_keyfromrdata(val->name, keyrdata, val->view->mctx,
+					 &dstkey);
+	if (result != ISC_R_SUCCESS) {
+		return result;
+	}
 
+	dns_rdataset_clone(val->sigrdataset, &rdataset);
 	DNS_RDATASET_FOREACH(&rdataset) {
 		dns_rdata_t rdata = DNS_RDATA_INIT;
 
@@ -1888,28 +1893,18 @@ check_signer(dns_validator_t *val, dns_rdata_t *keyrdata, uint16_t keyid,
 		if (keyid != sig.keyid || algorithm != sig.algorithm) {
 			continue;
 		}
-		if (dstkey == NULL) {
-			result = dns_dnssec_keyfromrdata(
-				val->name, keyrdata, val->view->mctx, &dstkey);
-			if (result != ISC_R_SUCCESS) {
-				/*
-				 * This really shouldn't happen, but...
-				 */
-				continue;
-			}
-		}
 		result = verify(val, dstkey, &rdata, sig.keyid);
 		if (result == ISC_R_SUCCESS || result == ISC_R_QUOTA) {
-			break;
+			dns_rdataset_disassociate(&rdataset);
+			dst_key_free(&dstkey);
+			return result;
 		}
 	}
 
-	if (dstkey != NULL) {
-		dst_key_free(&dstkey);
-	}
 	dns_rdataset_disassociate(&rdataset);
+	dst_key_free(&dstkey);
 
-	return result;
+	return ISC_R_NOMORE;
 }
 
 /*
