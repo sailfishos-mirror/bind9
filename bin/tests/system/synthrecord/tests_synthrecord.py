@@ -24,7 +24,7 @@ from dns.reversename import ipv6_reverse_domain
 import isctest
 from isctest.hypothesis.strategies import dns_names
 
-from hypothesis import assume, given
+from hypothesis import assume, given, example
 from hypothesis.strategies import ip_addresses
 
 SERVER = "10.53.0.1"
@@ -287,9 +287,12 @@ def build_synthetic_name_v4(prefix, ip, domain):
 
 
 def build_synthetic_name_v6(prefix, ip, domain):
-    return dns.name.from_text(
-        "{0}{1}.{2}".format(prefix, format(ip).replace(":", "-"), domain)
-    )
+    ipencoded = format(ip).replace(":", "-")
+    if ipencoded[:1] == "-":
+        ipencoded = f"0{ipencoded}"
+    if ipencoded[-1:] == "-":
+        ipencoded = f"{ipencoded}0"
+    return dns.name.from_text(f"{prefix}{ipencoded}.{domain}")
 
 
 example_domain = dns.name.from_text("example.")
@@ -364,9 +367,13 @@ def test_synthreverse_idn_compat(addr, expected):
     ]
 
 
+# `@example(ip="::")` ensure the IP `::` is always generated. Just to make sure
+# the way we generate a name based on a prefix, IPv6 and domain is correct
+# regarding the expected generated value from the plugin: because of IDN, a
+# label can't have a leading or trailing '-'.
+@example(ip=IPv6Address("::"))
 @given(ip=ip_addresses(network="cafe:cafe::/32"))
 def test_sythreverse_noerror_hasdata_v6(ip):
-    assume(not ip == IPv6Address("cafe:cafe::"))
     query = dns.message.make_query(ip.reverse_pointer, "PTR")
     res = isctest.query.udp(query, SERVER)
     assert res.rcode() == dns.rcode.NOERROR
