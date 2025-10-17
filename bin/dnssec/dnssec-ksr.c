@@ -1012,10 +1012,11 @@ parse_dnskey(isc_lex_t *lex, char *owner, isc_buffer_t *buf, dns_ttl_t *ttl) {
 	isc_buffer_add(&b, strlen(owner));
 	ret = dns_name_fromtext(dname, &b, dns_rootname, 0, NULL);
 	if (ret != ISC_R_SUCCESS) {
-		return ret;
+		goto cleanup;
 	}
 	if (dns_name_compare(dname, name) != 0) {
-		return DNS_R_BADOWNERNAME;
+		ret = DNS_R_BADOWNERNAME;
+		goto cleanup;
 	}
 	isc_buffer_clear(&b);
 
