@@ -2434,11 +2434,12 @@ zone_load(dns_zone_t *zone, unsigned int flags, bool locked) {
 
 	INSIST(zone->type != dns_zone_none);
 
+	/* load was already in progress */
 	if (DNS_ZONE_FLAG(zone, DNS_ZONEFLG_LOADING)) {
 		if ((flags & DNS_ZONELOADFLAG_THAW) != 0) {
 			DNS_ZONE_SETFLAG(zone, DNS_ZONEFLG_THAW);
 		}
-		result = DNS_R_CONTINUE;
+		result = ISC_R_LOADING;
 		goto cleanup;
 	}
 
@@ -2705,7 +2706,7 @@ zone_asyncload(void *arg) {
 
 	LOCK_ZONE(zone);
 	result = zone_load(zone, asl->flags, true);
-	if (result != DNS_R_CONTINUE) {
+	if (result != DNS_R_CONTINUE && result != ISC_R_LOADING) {
 		DNS_ZONE_CLRFLAG(zone, DNS_ZONEFLG_LOADPENDING);
 	}
 	UNLOCK_ZONE(zone);
@@ -2779,6 +2780,7 @@ dns_zone_loadandthaw(dns_zone_t *zone) {
 
 	switch (result) {
 	case DNS_R_CONTINUE:
+	case ISC_R_LOADING:
 		/* Deferred thaw. */
 		break;
 	case DNS_R_UPTODATE:

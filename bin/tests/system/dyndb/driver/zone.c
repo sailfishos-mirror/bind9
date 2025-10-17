@@ -197,7 +197,8 @@ load_zone(dns_zone_t *zone) {
 
 	result = dns_zone_load(zone, false);
 	if (result != ISC_R_SUCCESS && result != DNS_R_UPTODATE &&
-	    result != DNS_R_DYNAMIC && result != DNS_R_CONTINUE)
+	    result != DNS_R_DYNAMIC && result != ISC_R_LOADING &&
+	    result != DNS_R_CONTINUE)
 	{
 		goto cleanup;
 	}
