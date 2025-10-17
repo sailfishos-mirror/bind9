@@ -553,14 +553,6 @@ mem_destroy(isc_mem_t *ctx) {
 	ISC_LIST_UNLINK(contexts, ctx, link);
 	UNLOCK(&contextslock);
 
-	if (ctx->checkfree) {
-		INSIST(isc_mem_inuse(ctx) == 0);
-	}
-
-	ctx->magic = 0;
-
-	INSIST(ISC_LIST_EMPTY(ctx->pools));
-
 #if ISC_MEM_TRACKLINES
 	if (ctx->debuglist != NULL) {
 		for (size_t i = 0; i < DEBUG_TABLE_COUNT; i++) {
@@ -581,6 +573,14 @@ mem_destroy(isc_mem_t *ctx) {
 			ctx->jemalloc_flags);
 	}
 #endif /* if ISC_MEM_TRACKLINES */
+
+	if (ctx->checkfree) {
+		INSIST(isc_mem_inuse(ctx) == 0);
+	}
+
+	ctx->magic = 0;
+
+	INSIST(ISC_LIST_EMPTY(ctx->pools));
 
 	free(ctx->name);
 
