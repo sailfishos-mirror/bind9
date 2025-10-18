@@ -547,6 +547,8 @@ mem_create(const char *name, isc_mem_t **ctxp, unsigned int debugging,
 
 static void
 mem_destroy(isc_mem_t *ctx) {
+	REQUIRE(VALID_CONTEXT(ctx));
+
 	isc_refcount_destroy(&ctx->references);
 
 	LOCK(&contextslock);
