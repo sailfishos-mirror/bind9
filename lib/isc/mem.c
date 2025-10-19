@@ -547,19 +547,13 @@ mem_create(const char *name, isc_mem_t **ctxp, unsigned int debugging,
 
 static void
 mem_destroy(isc_mem_t *ctx) {
+	REQUIRE(VALID_CONTEXT(ctx));
+
 	isc_refcount_destroy(&ctx->references);
 
 	LOCK(&contextslock);
 	ISC_LIST_UNLINK(contexts, ctx, link);
 	UNLOCK(&contextslock);
-
-	if (ctx->checkfree) {
-		INSIST(isc_mem_inuse(ctx) == 0);
-	}
-
-	ctx->magic = 0;
-
-	INSIST(ISC_LIST_EMPTY(ctx->pools));
 
 #if ISC_MEM_TRACKLINES
 	if (ctx->debuglist != NULL) {
@@ -581,6 +575,14 @@ mem_destroy(isc_mem_t *ctx) {
 			ctx->jemalloc_flags);
 	}
 #endif /* if ISC_MEM_TRACKLINES */
+
+	if (ctx->checkfree) {
+		INSIST(isc_mem_inuse(ctx) == 0);
+	}
+
+	ctx->magic = 0;
+
+	INSIST(ISC_LIST_EMPTY(ctx->pools));
 
 	free(ctx->name);
 
