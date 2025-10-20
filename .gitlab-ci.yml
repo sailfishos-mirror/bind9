@@ -622,6 +622,7 @@ misc:
     - bash util/xmllint-html.sh
     # Check dangling symlinks in the repository
     - if find . -xtype l | grep .; then exit 1; fi
+    - muon-meson analyze -Werror
   needs: []
   artifacts:
     paths:
