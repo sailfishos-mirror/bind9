@@ -1227,7 +1227,7 @@ findmatchingkeys(const char *directory, bool rrtypekey, char *namebuf,
 	isc_result_t result;
 	isc_dir_t dir;
 	bool dir_open = false, match = false;
-	unsigned int i, alg;
+	unsigned int i;
 	dns_dnsseckey_t *key = NULL;
 	dst_key_t *dstkey = NULL;
 
@@ -1247,13 +1247,10 @@ findmatchingkeys(const char *directory, bool rrtypekey, char *namebuf,
 			continue;
 		}
 
-		alg = 0;
 		for (i = len + 1 + 1; i < dir.entry.length; i++) {
 			if (!isdigit((unsigned char)dir.entry.name[i])) {
 				break;
 			}
-			alg *= 10;
-			alg += dir.entry.name[i] - '0';
 		}
 
 		/*
@@ -1291,19 +1288,9 @@ findmatchingkeys(const char *directory, bool rrtypekey, char *namebuf,
 		dstkey = NULL;
 		result = dst_key_fromnamedfile(dir.entry.name, directory, type,
 					       mctx, &dstkey);
-
-		switch (alg) {
-		case DST_ALG_HMACMD5:
-		case DST_ALG_HMACSHA1:
-		case DST_ALG_HMACSHA224:
-		case DST_ALG_HMACSHA256:
-		case DST_ALG_HMACSHA384:
-		case DST_ALG_HMACSHA512:
-			if (result == DST_R_BADKEYTYPE) {
-				continue;
-			}
+		if (result == DST_R_BADKEYTYPE) {
+			continue;
 		}
-
 		if (result != ISC_R_SUCCESS) {
 			isc_log_write(DNS_LOGCATEGORY_GENERAL,
 				      DNS_LOGMODULE_DNSSEC, ISC_LOG_WARNING,
