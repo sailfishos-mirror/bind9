@@ -755,6 +755,7 @@ coccinelle:
         - '**/*.c'
         - '**/*.h'
         - 'cocci/**'
+        - 'util/check-cocci.sh'
     - *rule_mr_manual
     - *rule_tag
     - *rule_source_other_than_mr
