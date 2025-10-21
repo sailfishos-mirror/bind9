@@ -192,7 +192,7 @@ ISC_RUN_TEST_IMPL(duration) {
 			assert_int_equal(cmp, 0);
 		}
 
-		cfg_obj_destroy(&c1);
+		cfg_obj_detach(&c1);
 		cfg_parser_destroy(&p1);
 	}
 }

@@ -999,7 +999,7 @@ main(int argc, char **argv) {
 
 	isccc_ccmsg_invalidate(&rndc_ccmsg);
 
-	cfg_obj_destroy(&config);
+	cfg_obj_detach(&config);
 	cfg_parser_destroy(&pctx);
 
 	isc_mem_put(isc_g_mctx, args, argslen);

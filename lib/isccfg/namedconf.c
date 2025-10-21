@@ -42,10 +42,10 @@
 	} while (0)
 
 /*% Clean up a configuration object if non-NULL. */
-#define CLEANUP_OBJ(obj)                         \
-	do {                                     \
-		if ((obj) != NULL)               \
-			cfg_obj_destroy(&(obj)); \
+#define CLEANUP_OBJ(obj)                        \
+	do {                                    \
+		if ((obj) != NULL)              \
+			cfg_obj_detach(&(obj)); \
 	} while (0)
 
 /*%

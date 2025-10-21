@@ -467,7 +467,7 @@ named_config_parsefile(cfg_parser_t *parser, cfg_obj_t **conf) {
 
 cleanup:
 	if (*conf) {
-		cfg_obj_destroy(conf);
+		cfg_obj_detach(conf);
 	}
 
 out:

@@ -1199,7 +1199,7 @@ main(int argc, char **argv) {
 			}
 
 			dns_kasp_detach(&kasp);
-			cfg_obj_destroy(&config);
+			cfg_obj_detach(&config);
 			cfg_parser_destroy(&parser);
 		}
 	} else {

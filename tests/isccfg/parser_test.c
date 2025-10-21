@@ -102,7 +102,7 @@ ISC_RUN_TEST_IMPL(addzoneconf) {
 		strlcat(buf, ";", sizeof(buf));
 		assert_string_equal(tests[i], buf);
 
-		cfg_obj_destroy(&conf);
+		cfg_obj_detach(&conf);
 		cfg_parser_reset(p);
 	}
 
@@ -141,8 +141,8 @@ ISC_RUN_TEST_IMPL(parse_buffer) {
 	assert_int_equal(result, ISC_R_SUCCESS);
 	assert_int_equal(p2->line, 104);
 
-	cfg_obj_destroy(&c1);
-	cfg_obj_destroy(&c2);
+	cfg_obj_detach(&c1);
+	cfg_obj_detach(&c2);
 
 	cfg_parser_destroy(&p1);
 	cfg_parser_destroy(&p2);

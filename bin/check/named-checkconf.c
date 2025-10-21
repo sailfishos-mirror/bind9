@@ -745,7 +745,7 @@ main(int argc, char **argv) {
 
 cleanup:
 	if (config != NULL) {
-		cfg_obj_destroy(&config);
+		cfg_obj_detach(&config);
 	}
 
 	if (parser != NULL) {

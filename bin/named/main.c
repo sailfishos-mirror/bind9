@@ -616,7 +616,7 @@ printversion(bool verbose) {
 	if (cfg_obj_isstring(obj)) {
 		printf("  geoip-directory:      %s\n", cfg_obj_asstring(obj));
 	}
-	cfg_obj_destroy(&config);
+	cfg_obj_detach(&config);
 	isc_mem_detach(&geoip_mctx);
 #endif /* HAVE_GEOIP2 */
 }

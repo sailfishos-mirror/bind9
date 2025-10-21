@@ -593,7 +593,7 @@ synthrecord_parseconfig(synthrecord_t *inst, const char *parameters,
 
 cleanup:
 	if (synthrecordcfg != NULL) {
-		cfg_obj_destroy(&synthrecordcfg);
+		cfg_obj_detach(&synthrecordcfg);
 	}
 
 	if (parser != NULL) {

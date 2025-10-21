@@ -88,10 +88,10 @@
 	} while (0)
 
 /* Clean up a configuration object if non-NULL. */
-#define CLEANUP_OBJ(obj)                         \
-	do {                                     \
-		if ((obj) != NULL)               \
-			cfg_obj_destroy(&(obj)); \
+#define CLEANUP_OBJ(obj)                        \
+	do {                                    \
+		if ((obj) != NULL)              \
+			cfg_obj_detach(&(obj)); \
 	} while (0)
 
 /* cfg_obj_t magic number */
@@ -1973,7 +1973,7 @@ create_listelt(cfg_parser_t *pctx, cfg_listelt_t **eltp) {
 static void
 free_listelt(isc_mem_t *mctx, cfg_listelt_t *elt) {
 	if (elt->obj != NULL) {
-		cfg_obj_destroy(&elt->obj);
+		cfg_obj_detach(&elt->obj);
 	}
 	isc_mem_put(mctx, elt, sizeof(*elt));
 }
@@ -2305,7 +2305,7 @@ cfg_parse_mapbody(cfg_parser_t *pctx, const cfg_type_t *type, cfg_obj_t **ret) {
 				CHECK(parser_openfile(pctx, g.gl_pathv[i]));
 			}
 
-			cfg_obj_destroy(&includename);
+			cfg_obj_detach(&includename);
 			globfree(&g);
 
 			goto redo;
@@ -2333,7 +2333,7 @@ cfg_parse_mapbody(cfg_parser_t *pctx, const cfg_type_t *type, cfg_obj_t **ret) {
 			 */
 			CHECK(cfg_parse_obj(pctx, &cfg_type_unsupported,
 					    &eltobj));
-			cfg_obj_destroy(&eltobj);
+			cfg_obj_detach(&eltobj);
 			CHECK(parse_semicolon(pctx));
 			continue;
 		}
@@ -3769,7 +3769,7 @@ map_symtabitem_destroy(char *key, unsigned int type, isc_symvalue_t symval,
 	UNUSED(type);
 	UNUSED(userarg);
 
-	cfg_obj_destroy(&obj);
+	cfg_obj_detach(&obj);
 }
 
 static isc_result_t
@@ -3812,36 +3812,24 @@ cfg_obj_istype(const cfg_obj_t *obj, const cfg_type_t *type) {
 /*
  * Destroy 'obj', a configuration object created in 'pctx'.
  */
-void
-cfg_obj_destroy(cfg_obj_t **objp) {
-	REQUIRE(objp != NULL && *objp != NULL);
-	REQUIRE((*objp)->magic == CFGOBJ_MAGIC);
+static void
+cfg__obj_destroy(cfg_obj_t *obj) {
+	REQUIRE(obj != NULL);
+	REQUIRE(obj->magic == CFGOBJ_MAGIC);
 
-	cfg_obj_t *obj = *objp;
-	*objp = NULL;
+	obj->magic = 0;
 
-	if (isc_refcount_decrement(&obj->references) == 1) {
-		obj->magic = 0;
-
-		if (obj->file != NULL) {
-			cfg_obj_destroy(&obj->file);
-		}
-
-		obj->type->rep->free(obj);
-
-		isc_refcount_destroy(&obj->references);
-		isc_mem_putanddetach(&obj->mctx, obj, sizeof(cfg_obj_t));
+	if (obj->file != NULL) {
+		cfg_obj_detach(&obj->file);
 	}
+
+	obj->type->rep->free(obj);
+
+	isc_refcount_destroy(&obj->references);
+	isc_mem_putanddetach(&obj->mctx, obj, sizeof(cfg_obj_t));
 }
 
-void
-cfg_obj_attach(cfg_obj_t *src, cfg_obj_t **dest) {
-	REQUIRE(src != NULL);
-	REQUIRE(dest != NULL && *dest == NULL);
-
-	isc_refcount_increment(&src->references);
-	*dest = src;
-}
+ISC_REFCOUNT_IMPL(cfg_obj, cfg__obj_destroy);
 
 static void
 free_noop(cfg_obj_t *obj) {

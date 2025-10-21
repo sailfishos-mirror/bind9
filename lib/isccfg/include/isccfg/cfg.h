@@ -551,23 +551,6 @@ cfg_obj_istype(const cfg_obj_t *obj, const cfg_type_t *type);
  */
 
 void
-cfg_obj_attach(cfg_obj_t *src, cfg_obj_t **dest);
-/*%<
- * Reference a configuration object.
- */
-
-void
-cfg_obj_destroy(cfg_obj_t **obj);
-/*%<
- * Delete a reference to a configuration object; destroy the object if
- * there are no more references.
- *
- * Require:
- * \li     '*obj' is a valid cfg_obj_t.
- * \li     'mctx' is a valid isc_mem_t.
- */
-
-void
 cfg_obj_log(const cfg_obj_t *obj, int level, const char *fmt, ...)
 	ISC_FORMAT_PRINTF(3, 4);
 /*%<
@@ -633,3 +616,5 @@ cfg_pluginlist_foreach(const cfg_obj_t *config, const cfg_obj_t *list,
  *     'list'
  * \li first 'callback' return value which was not #ISC_R_SUCCESS otherwise
  */
+
+ISC_REFCOUNT_DECL(cfg_obj);

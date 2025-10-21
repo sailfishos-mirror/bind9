@@ -146,7 +146,7 @@ main(int argc, char **argv) {
 
 		cfg_print(cfg, output, NULL);
 
-		cfg_obj_destroy(&cfg);
+		cfg_obj_detach(&cfg);
 
 		cfg_parser_destroy(&pctx);
 	}

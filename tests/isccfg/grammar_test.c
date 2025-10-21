@@ -144,7 +144,7 @@ test__query_source_print(const char *config, const char *expected) {
 	output_conf->type->print(&pctx, output_conf);
 	assert_text(expected);
 
-	cfg_obj_destroy(parser, &output_conf);
+	cfg_obj_detach(parser, &output_conf);
 	cfg_parser_reset(parser);
 	cfg_parser_destroy(&parser);
 }

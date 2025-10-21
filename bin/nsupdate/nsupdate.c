@@ -604,7 +604,7 @@ read_sessionkey(isc_mem_t *mctx) {
 cleanup:
 	if (pctx != NULL) {
 		if (sessionkey != NULL) {
-			cfg_obj_destroy(&sessionkey);
+			cfg_obj_detach(&sessionkey);
 		}
 		cfg_parser_destroy(&pctx);
 	}
