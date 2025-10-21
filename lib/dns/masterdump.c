@@ -250,7 +250,6 @@ struct dns_dumpctx {
 	isc_mutex_t lock;
 	isc_refcount_t references;
 	atomic_bool canceled;
-	bool do_date;
 	isc_stdtime_t now;
 	FILE *f;
 	dns_db_t *db;
@@ -1397,16 +1396,12 @@ dns_dumpctx_detach(dns_dumpctx_t **dctxp) {
 	}
 }
 
-dns_dbversion_t *
-dns_dumpctx_version(dns_dumpctx_t *dctx) {
+isc_result_t
+dns_dumpctx_serial(dns_dumpctx_t *dctx, uint32_t *serial) {
 	REQUIRE(DNS_DCTX_VALID(dctx));
-	return dctx->version;
-}
+	REQUIRE(!dns_db_iscache(dctx->db));
 
-dns_db_t *
-dns_dumpctx_db(dns_dumpctx_t *dctx) {
-	REQUIRE(DNS_DCTX_VALID(dctx));
-	return dctx->db;
+	return dns_db_getsoaserial(dctx->db, dctx->version, serial);
 }
 
 void
@@ -1573,10 +1568,13 @@ dumpctx_create(isc_mem_t *mctx, dns_db_t *db, dns_dbversion_t *version,
 	dctx->now = isc_stdtime_now();
 	dns_db_attach(db, &dctx->db);
 
-	dctx->do_date = dns_db_iscache(dctx->db);
-	if (dctx->do_date) {
+	if (dns_db_iscache(dctx->db)) {
 		(void)dns_db_getservestalettl(dctx->db,
 					      &dctx->tctx.serve_stale_ttl);
+	} else if (version != NULL) {
+		dns_db_attachversion(dctx->db, version, &dctx->version);
+	} else {
+		dns_db_currentversion(dctx->db, &dctx->version);
 	}
 
 	if (dctx->format == dns_masterformat_text &&
@@ -1592,12 +1590,6 @@ dumpctx_create(isc_mem_t *mctx, dns_db_t *db, dns_dbversion_t *version,
 	}
 
 	isc_mutex_init(&dctx->lock);
-
-	if (version != NULL) {
-		dns_db_attachversion(dctx->db, version, &dctx->version);
-	} else if (!dns_db_iscache(db)) {
-		dns_db_currentversion(dctx->db, &dctx->version);
-	}
 	isc_mem_attach(mctx, &dctx->mctx);
 
 	isc_refcount_init(&dctx->references, 1);
@@ -1639,7 +1631,7 @@ writeheader(dns_dumpctx_t *dctx) {
 		 * incompatible with pre-RFC2540 software, so we omit
 		 * it in the zone case.
 		 */
-		if (dctx->do_date) {
+		if (dns_db_iscache(dctx->db)) {
 			fprintf(dctx->f, "; using a %u second stale ttl\n",
 				dctx->tctx.serve_stale_ttl);
 			result = dns_time32_totext(dctx->now, &buffer);

@@ -224,22 +224,13 @@ dns_dumpctx_cancel(dns_dumpctx_t *dctx);
  *\li	'dctx' to be valid.
  */
 
-dns_dbversion_t *
-dns_dumpctx_version(dns_dumpctx_t *dctx);
-/*%<
- * Return the version handle (if any) of the database being dumped.
+isc_result_t
+dns_dumpctx_serial(dns_dumpctx_t *dctx, uint32_t *serial);
+/*
+ * Return the serial number of the database being dumped.
  *
  * Require:
- *\li	'dctx' to be valid.
- */
-
-dns_db_t *
-dns_dumpctx_db(dns_dumpctx_t *dctx);
-/*%<
- * Return the database being dumped.
- *
- * Require:
- *\li	'dctx' to be valid.
+ *\li	The database being dumped is a zone, not a cache.
  */
 
 /*@{*/
