@@ -361,15 +361,25 @@ remote-servers " DEFAULT_IANA_ROOT_ZONE_PRIMARIES " {\n\
 ";
 
 isc_result_t
-named_config_parsedefaults(cfg_parser_t *parser, cfg_obj_t **conf) {
+named_config_parsedefaults(cfg_obj_t **conf) {
 	isc_buffer_t b;
+	cfg_parser_t *parser = NULL;
+	isc_result_t result;
+
+	result = cfg_parser_create(isc_g_mctx, &parser);
+	if (result != ISC_R_SUCCESS) {
+		return result;
+	}
 
 	isc_buffer_init(&b, defaultconf, sizeof(defaultconf) - 1);
 	isc_buffer_add(&b, sizeof(defaultconf) - 1);
-	return cfg_parse_buffer(parser, &b, __FILE__, 0, &cfg_type_namedconf,
-				CFG_PCTX_NODEPRECATED | CFG_PCTX_NOOBSOLETE |
-					CFG_PCTX_NOEXPERIMENTAL,
-				conf);
+	result = cfg_parse_buffer(parser, &b, __FILE__, 0, &cfg_type_namedconf,
+				  CFG_PCTX_NODEPRECATED | CFG_PCTX_NOOBSOLETE |
+					  CFG_PCTX_NOEXPERIMENTAL,
+				  conf);
+
+	cfg_parser_destroy(&parser);
+	return result;
 }
 
 /*

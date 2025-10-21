@@ -9529,11 +9529,7 @@ run_server(void *arg) {
 	isc_timer_create(isc_loop_main(), pps_timer_tick, server,
 			 &server->pps_timer);
 
-	CHECKFATAL(cfg_parser_create(isc_g_mctx, &named_g_parser),
-		   "creating default configuration parser");
-
-	CHECKFATAL(named_config_parsedefaults(named_g_parser,
-					      &named_g_defaultconfig),
+	CHECKFATAL(named_config_parsedefaults(&named_g_defaultconfig),
 		   "unable to parse defaults config");
 
 	CHECKFATAL(cfg_map_get(named_g_defaultconfig, "options",
@@ -9595,7 +9591,6 @@ shutdown_server(void *arg) {
 	}
 
 	cfg_obj_destroy(&named_g_defaultconfig);
-	cfg_parser_destroy(&named_g_parser);
 	cfg_parser_destroy(&named_g_addparser);
 
 	(void)named_server_saventa(server);
