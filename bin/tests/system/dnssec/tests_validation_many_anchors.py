@@ -10,27 +10,33 @@
 # information regarding copyright ownership.
 
 from dns import edns
+
 import pytest
 
 import isctest
+from isctest.util import param
 
 
-@pytest.fixture(scope="module", autouse=True)
-def reconfigure(ns5, templates):
-    templates.render("ns5/named.conf", {"many_anchors": True})
-    with ns5.watch_log_from_here() as watcher:
-        ns5.reconfigure(log=False)
-        watcher.wait_for_line(
-            [
-                "ignoring static-key for 'disabled.trusted.': algorithm is disabled",
-                "ignoring static-key for 'disabled.managed.': algorithm is disabled",
-                "ignoring static-key for 'unsupported.trusted.': algorithm is unsupported",
-                "ignoring static-key for 'unsupported.managed.': algorithm is unsupported",
-                "ignoring static-key for 'unsupported.managed.': algorithm is unsupported",
-                "ignoring static-key for 'revoked.trusted.': bad key type",
-                "ignoring static-key for 'revoked.managed.': bad key type",
-            ]
-        )
+def bootstrap():
+    return {
+        "many_anchors": True,
+    }
+
+
+@pytest.mark.parametrize(
+    "zone, keytype, msg",
+    [
+        param("disabled.trusted.", "static-key", "algorithm is disabled"),
+        param("disabled.managed.", "initial-key", "algorithm is disabled"),
+        param("unsupported.trusted.", "static-key", "algorithm is unsupported"),
+        param("unsupported.managed.", "initial-key", "algorithm is unsupported"),
+        param("revoked.trusted.", "static-key", "bad key type"),
+        param("revoked.managed.", "initial-key", "bad key type"),
+    ],
+)
+def test_log_ignoring_key(zone, keytype, msg, ns5):
+    with ns5.watch_log_from_start() as watcher:
+        watcher.wait_for_line(f"ignoring {keytype} for '{zone}': {msg}")
 
 
 def test_trust_anchors():

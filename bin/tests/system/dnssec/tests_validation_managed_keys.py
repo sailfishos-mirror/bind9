@@ -12,17 +12,15 @@
 import os
 import shutil
 
-import pytest
-
 import isctest
 
 
-@pytest.fixture(scope="module", autouse=True)
-def reconfigure(ns4, templates):
-    assert os.path.exists("ns4/managed-keys.bind.jnl") is False
+def bootstrap():
+    assert not os.path.exists("ns4/managed-keys.bind.jnl")
     shutil.copyfile("ns4/managed-keys.bind.in", "ns4/managed-keys.bind")
-    templates.render("ns4/named.conf", {"managed_key": True})
-    ns4.reconfigure(log=False)
+    return {
+        "managed_key": True,
+    }
 
 
 # helper functions

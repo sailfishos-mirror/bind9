@@ -39,7 +39,7 @@ TIME_PASSED = 0  # set in reconfigure() fixture
 
 
 @pytest.fixture(scope="module", autouse=True)
-def reconfigure(ns6, templates):
+def after_servers_start(ns6, templates):
     global TIME_PASSED  # pylint: disable=global-statement
 
     isctest.kasp.wait_keymgr_done(ns6, "step1.csk-algorithm-roll.kasp")

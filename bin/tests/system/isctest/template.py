@@ -68,14 +68,14 @@ class TemplateEngine:
         stream = self.j2env.get_template(template).stream(data)
         stream.dump(output, encoding="utf-8")
 
-    def render_auto(self):
+    def render_auto(self, data: Optional[Dict[str, Any]] = None):
         """
-        Render all *.j2 templates with default values and write the output to
-        files without the .j2 extensions.
+        Render all *.j2 templates with default (and optionally the provided)
+        values and write the output to files without the .j2 extensions.
         """
         templates = [
             str(filepath.relative_to(self.directory))
             for filepath in self.directory.rglob("*.j2")
         ]
         for template in templates:
-            self.render(template[:-3])
+            self.render(template[:-3], data)

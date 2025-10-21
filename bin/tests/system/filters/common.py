@@ -25,14 +25,6 @@ ARTIFACTS = [
 ]
 
 
-def reconfigure_servers(ftype, family, servers, templates):
-    for server_id in ["ns1", "ns2", "ns3", "ns4"]:
-        templates.render(
-            f"{server_id}/named.conf", {"family": family, "filtertype": ftype}
-        )
-        servers[server_id].reconfigure(log=False)
-
-
 def check_filtertype_only(dest, source, qname, ftype, expected, adflag):
     qname = dns.name.from_text(qname)
 

@@ -555,14 +555,26 @@ def system_test(
             pytest.skip("Prerequisites missing.")
 
     def setup_test():
-        templates.render_auto()
-        try:
-            isctest.run.shell(f"{system_test_dir}/setup.sh")
-        except FileNotFoundError:
-            pass  # setup.sh is optional
-        except subprocess.CalledProcessError as exc:
-            isctest.log.error("Failed to run test setup")
-            pytest.fail(f"setup.sh exited with {exc.returncode}")
+        template_data = None
+        bootstrap_fn = getattr(request.module, "bootstrap", None)
+        if bootstrap_fn:
+            isctest.log.debug("Running test bootstrap()")
+            try:
+                template_data = bootstrap_fn()
+            except Exception as exc:  # pylint: disable=broad-exception-caught
+                isctest.log.error("Failed to run test bootstrap()")
+                kind = type(exc).__name__
+                pytest.fail(f"bootstrap() failed with {kind}")
+
+        templates.render_auto(template_data)
+
+        setup_sh_path = f"{system_test_dir}/setup.sh"
+        if os.path.exists(setup_sh_path):
+            try:
+                isctest.run.shell(f"{system_test_dir}/setup.sh")
+            except subprocess.CalledProcessError as exc:
+                isctest.log.error("Failed to run test setup.sh")
+                pytest.fail(f"setup.sh exited with {exc.returncode}")
 
     def start_servers():
         try:
