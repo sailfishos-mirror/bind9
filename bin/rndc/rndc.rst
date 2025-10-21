@@ -122,10 +122,10 @@ Currently supported commands are:
 
 .. option:: addzone zone [class [view]] configuration
 
-   This command adds a zone while the server is running. This command requires the
-   ``allow-new-zones`` option to be set to ``yes``. The configuration
-   string specified on the command line is the zone configuration text
-   that would ordinarily be placed in :iscman:`named.conf`.
+   This command adds a zone while the server is running. This command
+   requires the ``allow-new-zones`` option to be set to ``yes``. The
+   configuration string specified on the command line is the zone
+   configuration text that would ordinarily be placed in :iscman:`named.conf`.
 
    The configuration is saved in a file called ``viewname.nzf`` (or, if
    :iscman:`named` is compiled with liblmdb, an LMDB database file called
@@ -298,10 +298,10 @@ Currently supported commands are:
 
 .. option:: modzone zone [class [view]] configuration
 
-   This command modifies the configuration of a zone while the server is running. This
-   command requires the ``allow-new-zones`` option to be set to ``yes``.
-   As with ``addzone``, the configuration string specified on the
-   command line is the zone configuration text that would ordinarily be
+   This command modifies the configuration of a zone while the server is
+   running. This command requires the ``allow-new-zones`` option to be set
+   to ``yes``.  As with ``addzone``, the configuration string specified on
+   the command line is the zone configuration text that would ordinarily be
    placed in :iscman:`named.conf`.
 
    If the zone was originally added via :option:`rndc addzone`, the
@@ -480,9 +480,11 @@ Currently supported commands are:
 
 .. option:: showzone zone [class [view]]
 
-   This command prints the configuration of a running zone.
+   If the server is configured with ``allow-new-zones`` set to ``yes``,
+   then this command prints the configuration of a running zone.
 
-   See also :option:`rndc zonestatus`.
+   See also :option:`rndc addzone`, :option:`rndc modzone`.
+   and :option:`rndc delzone`.
 
 .. option:: sign zone [class [view]]
 
