@@ -13,6 +13,7 @@
 
 /*! \file */
 
+#include <defaultconfig.h>
 #include <errno.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -57,7 +58,7 @@ usage(void);
 static void
 usage(void) {
 	fprintf(stderr,
-		"usage: %s [-achijklvz] [-p [-x]] [-t directory] "
+		"usage: %s [-achijklvz] [-pe [-x]] [-t directory] "
 		"[named.conf]\n",
 		isc_commandline_progname);
 	exit(EXIT_SUCCESS);
@@ -554,6 +555,7 @@ main(int argc, char **argv) {
 	bool load_zones = false;
 	bool list_zones = false;
 	bool print = false;
+	bool effective = false;
 	unsigned int flags = 0;
 	unsigned int parserflags = 0;
 	unsigned int checkflags = BIND_CHECK_PLUGINS | BIND_CHECK_ALGORITHMS;
@@ -565,7 +567,7 @@ main(int argc, char **argv) {
 	/*
 	 * Process memory debugging argument first.
 	 */
-#define CMDLINE_FLAGS "acdhijklm:nt:pvxz"
+#define CMDLINE_FLAGS "acdehijklm:nt:pvxz"
 	while ((c = isc_commandline_parse(argc, argv, CMDLINE_FLAGS)) != -1) {
 		switch (c) {
 		case 'm':
@@ -638,6 +640,11 @@ main(int argc, char **argv) {
 			print = true;
 			break;
 
+		case 'e':
+			print = true;
+			effective = true;
+			break;
+
 		case 'v':
 			printf("%s\n", PACKAGE_VERSION);
 			result = ISC_R_SUCCESS;
@@ -699,6 +706,27 @@ main(int argc, char **argv) {
 	CHECK(isccfg_check_namedconf(config, checkflags, isc_g_mctx));
 	if (load_zones || list_zones) {
 		CHECK(load_zones_fromconfig(config, list_zones));
+	}
+
+	if (effective) {
+		cfg_obj_t *effectiveconf = NULL;
+		cfg_obj_t *defaultconfig = NULL;
+		isc_buffer_t b;
+
+		isc_buffer_constinit(&b, common_named_defaultconf,
+				     sizeof(common_named_defaultconf) - 1);
+		isc_buffer_add(&b, sizeof(common_named_defaultconf) - 1);
+
+		CHECK(cfg_parse_buffer(
+			isc_g_mctx, &b, __FILE__, 0, &cfg_type_namedconf,
+			CFG_PCTX_NODEPRECATED | CFG_PCTX_NOOBSOLETE |
+				CFG_PCTX_NOEXPERIMENTAL | CFG_PCTX_BUILTIN,
+			&defaultconfig));
+		effectiveconf = cfg_effective_config(config, defaultconfig);
+
+		cfg_obj_detach(&defaultconfig);
+		cfg_obj_detach(&config);
+		config = effectiveconf;
 	}
 
 	if (print) {

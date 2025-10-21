@@ -21,7 +21,7 @@ named-checkconf - named configuration file syntax checking tool
 Synopsis
 ~~~~~~~~
 
-:program:`named-checkconf` [**-achjklnvz**] [**-p** [**-x** ]] [**-t** directory] {filename}
+:program:`named-checkconf` [**-achjklnvz**] [**-pe** [**-x** ]] [**-t** directory] {filename}
 
 Description
 ~~~~~~~~~~~
@@ -47,6 +47,19 @@ Options
    those supported by the crypto provider.  This is useful when checking
    a `named.conf` intended to be run on another machine with possibly a
    different set of supported DNSSEC key algorithms.
+
+.. option:: -e
+
+   This option prints the effective server configuration that would
+   result from :iscman:`named.conf` and its included files, if no errors
+   were detected, in canonical form.
+
+   The effective configuration is the result of loading a configuration
+   file and applying it on top of the default settings for :iscman:`named`.
+   All configurable settings are included.
+
+   See also the :option:`-x` and :option:`-p` options.
+
 
 .. option:: -h
 
@@ -85,8 +98,9 @@ Options
 
 .. option:: -p
 
-   This option prints out the :iscman:`named.conf` and included files in canonical form if
-   no errors were detected. See also the :option:`-x` option.
+   This option prints the contents of :iscman:`named.conf` and all
+   included files in canonical form, if no errors were detected. See also
+   the :option:`-x` and :option:`-e` options.
 
 .. option:: -t directory
 
