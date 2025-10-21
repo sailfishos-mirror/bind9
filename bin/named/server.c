@@ -2544,7 +2544,7 @@ cleanup:
 		dns_zone_detach(&zone);
 	}
 	if (zoneconf != NULL) {
-		cfg_obj_destroy(cfg->add_parser, &zoneconf);
+		cfg_obj_destroy(&zoneconf);
 	}
 	if (dnsforwarders != NULL) {
 		dns_forwarders_detach(&dnsforwarders);
@@ -2783,7 +2783,7 @@ catz_reconfigure(dns_catz_entry_t *entry, void *arg1, void *arg2) {
 
 cleanup:
 	if (zoneconf != NULL) {
-		cfg_obj_destroy(cfg->add_parser, &zoneconf);
+		cfg_obj_destroy(&zoneconf);
 	}
 
 	dns_zone_detach(&zone);
@@ -7615,7 +7615,7 @@ data_to_cfg(dns_view_t *view, MDB_val *key, MDB_val *data, isc_buffer_t **text,
 
 cleanup:
 	if (zoneconf != NULL) {
-		cfg_obj_destroy(named_g_addparser, &zoneconf);
+		cfg_obj_destroy(&zoneconf);
 	}
 
 	return result;
@@ -7696,14 +7696,14 @@ for_all_newzone_cfgs(newzone_cfg_cb_t callback, cfg_obj_t *config,
 		/*
 		 * Destroy the configuration object created in this iteration.
 		 */
-		cfg_obj_destroy(named_g_addparser, &zconfigobj);
+		cfg_obj_destroy(&zconfigobj);
 	}
 
 	if (text != NULL) {
 		isc_buffer_free(&text);
 	}
 	if (zconfigobj != NULL) {
-		cfg_obj_destroy(named_g_addparser, &zconfigobj);
+		cfg_obj_destroy(&zconfigobj);
 	}
 	mdb_cursor_close(cursor);
 
@@ -7841,7 +7841,7 @@ cleanup:
 	UNLOCK(&view->new_zone_lock);
 
 	if (zoneconf != NULL) {
-		cfg_obj_destroy(named_g_addparser, &zoneconf);
+		cfg_obj_destroy(&zoneconf);
 	}
 	if (text != NULL) {
 		isc_buffer_free(&text);
@@ -9348,10 +9348,10 @@ load_configuration(named_server_t *server, bool first_time) {
 
 cleanup:
 	if (bindkeys != NULL) {
-		cfg_obj_destroy(parser, &bindkeys);
+		cfg_obj_destroy(&bindkeys);
 	}
 	if (config != NULL) {
-		cfg_obj_destroy(parser, &config);
+		cfg_obj_destroy(&config);
 	}
 	cfg_parser_destroy(&parser);
 
@@ -9594,7 +9594,7 @@ shutdown_server(void *arg) {
 		cfg_aclconfctx_detach(&server->aclctx);
 	}
 
-	cfg_obj_destroy(named_g_parser, &named_g_defaultconfig);
+	cfg_obj_destroy(&named_g_defaultconfig);
 	cfg_parser_destroy(&named_g_parser);
 	cfg_parser_destroy(&named_g_addparser);
 
@@ -13029,7 +13029,7 @@ cleanup:
 	}
 
 	if (nzf_config != NULL) {
-		cfg_obj_destroy(named_g_addparser, &nzf_config);
+		cfg_obj_destroy(&nzf_config);
 	}
 
 	return result;
@@ -13153,7 +13153,7 @@ newzone_parse(named_server_t *server, char *command, dns_view_t **viewp,
 
 cleanup:
 	if (zoneconf != NULL) {
-		cfg_obj_destroy(named_g_addparser, &zoneconf);
+		cfg_obj_destroy(&zoneconf);
 	}
 	if (view != NULL) {
 		dns_view_detach(&view);
@@ -13197,7 +13197,7 @@ delete_zoneconf(dns_view_t *view, cfg_parser_t *pctx, const cfg_obj_t *config,
 
 		e = UNCONST(elt);
 		ISC_LIST_UNLINK(*list, e, link);
-		cfg_obj_destroy(pctx, &e->obj);
+		cfg_obj_destroy(&e->obj);
 		isc_mem_put(pctx->mctx, e, sizeof(*e));
 		result = ISC_R_SUCCESS;
 		break;
@@ -13721,7 +13721,7 @@ cleanup:
 		(void)putnull(text);
 	}
 	if (zoneconf != NULL) {
-		cfg_obj_destroy(named_g_addparser, &zoneconf);
+		cfg_obj_destroy(&zoneconf);
 	}
 	if (view != NULL) {
 		dns_view_detach(&view);
@@ -14212,7 +14212,7 @@ named_server_showzone(named_server_t *server, isc_lex_t *lex,
 cleanup:
 #ifdef HAVE_LMDB
 	if (nzconfig != NULL) {
-		cfg_obj_destroy(named_g_addparser, &nzconfig);
+		cfg_obj_destroy(&nzconfig);
 	}
 #endif /* HAVE_LMDB */
 	if (isc_buffer_usedlength(*text) > 0) {
@@ -14232,16 +14232,16 @@ newzone_cfgctx_destroy(void **cfgp) {
 
 	if (cfg->conf_parser != NULL) {
 		if (cfg->config != NULL) {
-			cfg_obj_destroy(cfg->conf_parser, &cfg->config);
+			cfg_obj_destroy(&cfg->config);
 		}
 		if (cfg->vconfig != NULL) {
-			cfg_obj_destroy(cfg->conf_parser, &cfg->vconfig);
+			cfg_obj_destroy(&cfg->vconfig);
 		}
 		cfg_parser_destroy(&cfg->conf_parser);
 	}
 	if (cfg->add_parser != NULL) {
 		if (cfg->nzf_config != NULL) {
-			cfg_obj_destroy(cfg->add_parser, &cfg->nzf_config);
+			cfg_obj_destroy(&cfg->nzf_config);
 		}
 		cfg_parser_destroy(&cfg->add_parser);
 	}

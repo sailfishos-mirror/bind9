@@ -102,7 +102,7 @@ typedef isc_result_t (*cfg_parsefunc_t)(cfg_parser_t *, const cfg_type_t *type,
 					cfg_obj_t **);
 typedef void (*cfg_printfunc_t)(cfg_printer_t *, const cfg_obj_t *);
 typedef void (*cfg_docfunc_t)(cfg_printer_t *, const cfg_type_t *);
-typedef void (*cfg_freefunc_t)(cfg_parser_t *, cfg_obj_t *);
+typedef void (*cfg_freefunc_t)(cfg_obj_t *);
 
 /*
  * Structure definitions
@@ -180,6 +180,10 @@ struct cfg_rep {
  */
 
 struct cfg_obj {
+	unsigned int   magic;
+	isc_mem_t     *mctx;
+	isc_refcount_t references;
+
 	const cfg_type_t *type;
 	union {
 		uint32_t	 uint32;
@@ -197,10 +201,8 @@ struct cfg_obj {
 		cfg_netprefix_t	  netprefix;
 		isccfg_duration_t duration;
 	} value;
-	isc_refcount_t references; /*%< reference counter */
-	cfg_obj_t     *file;	   /*%< refcounted string */
-	unsigned int   line;
-	cfg_parser_t  *pctx;
+	cfg_obj_t   *file; /*%< separate string with its own refcount */
+	unsigned int line;
 };
 
 /*% A list element. */
@@ -354,7 +356,8 @@ cfg_ungettoken(cfg_parser_t *pctx);
 #define CFG_LEXOPT_QSTRING (ISC_LEXOPT_QSTRING | ISC_LEXOPT_QSTRINGMULTILINE)
 
 isc_result_t
-cfg_create_obj(cfg_parser_t *pctx, const cfg_type_t *type, cfg_obj_t **objp);
+cfg_create_obj(isc_mem_t *mctx, cfg_obj_t *file, size_t line,
+	       const cfg_type_t *type, cfg_obj_t **ret);
 
 void
 cfg_print_rawuint(cfg_printer_t *pctx, unsigned int u);

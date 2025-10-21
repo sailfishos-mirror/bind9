@@ -862,7 +862,7 @@ setup_dnsseckeys(dns_client_t *client, dns_view_t *toview) {
 
 cleanup:
 	if (bindkeys != NULL) {
-		cfg_obj_destroy(parser, &bindkeys);
+		cfg_obj_destroy(&bindkeys);
 	}
 	if (parser != NULL) {
 		cfg_parser_destroy(&parser);

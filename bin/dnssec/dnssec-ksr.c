@@ -187,7 +187,7 @@ getkasp(ksr_ctx_t *ksr, dns_kasp_t **kasp) {
 	if (ISC_LIST_EMPTY(dns_kasp_keys(*kasp))) {
 		fatal("dnssec-policy '%s' has no keys configured", ksr->policy);
 	}
-	cfg_obj_destroy(parser, &config);
+	cfg_obj_destroy(&config);
 	cfg_parser_destroy(&parser);
 }
 

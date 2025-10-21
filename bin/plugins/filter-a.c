@@ -300,7 +300,7 @@ parse_parameters(filter_instance_t *inst, const char *parameters,
 
 cleanup:
 	if (param_obj != NULL) {
-		cfg_obj_destroy(parser, &param_obj);
+		cfg_obj_destroy(&param_obj);
 	}
 	if (parser != NULL) {
 		cfg_parser_destroy(&parser);
@@ -383,7 +383,7 @@ plugin_check(const char *parameters, const void *cfg, const char *cfg_file,
 
 cleanup:
 	if (param_obj != NULL) {
-		cfg_obj_destroy(parser, &param_obj);
+		cfg_obj_destroy(&param_obj);
 	}
 	if (parser != NULL) {
 		cfg_parser_destroy(&parser);

@@ -861,7 +861,7 @@ cleanup:
 		free_controlkey(keyid, mctx);
 	}
 	if (config != NULL) {
-		cfg_obj_destroy(pctx, &config);
+		cfg_obj_destroy(&config);
 	}
 	if (pctx != NULL) {
 		cfg_parser_destroy(&pctx);

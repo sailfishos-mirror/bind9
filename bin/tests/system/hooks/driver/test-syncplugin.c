@@ -217,7 +217,7 @@ cleanup:
 	}
 
 	if (syncplugincfg != NULL) {
-		cfg_obj_destroy(parser, &syncplugincfg);
+		cfg_obj_destroy(&syncplugincfg);
 	}
 
 	if (parser != NULL) {

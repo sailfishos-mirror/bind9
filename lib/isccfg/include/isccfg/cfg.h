@@ -191,6 +191,13 @@ cfg_parser_destroy(cfg_parser_t **pctxp);
  * more references.
  */
 
+cfg_obj_t *
+cfg_parser_currentfile(cfg_parser_t *pctx);
+/*%<
+ * Returns the current file of a parser (as an cfg_obj_t qstring). NULL is non
+ * existent.
+ */
+
 bool
 cfg_obj_isvoid(const cfg_obj_t *obj);
 /*%<
@@ -550,14 +557,14 @@ cfg_obj_attach(cfg_obj_t *src, cfg_obj_t **dest);
  */
 
 void
-cfg_obj_destroy(cfg_parser_t *pctx, cfg_obj_t **obj);
+cfg_obj_destroy(cfg_obj_t **obj);
 /*%<
  * Delete a reference to a configuration object; destroy the object if
  * there are no more references.
  *
  * Require:
  * \li     '*obj' is a valid cfg_obj_t.
- * \li     'pctx' is a valid cfg_parser_t.
+ * \li     'mctx' is a valid isc_mem_t.
  */
 
 void

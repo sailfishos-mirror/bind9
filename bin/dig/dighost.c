@@ -1119,7 +1119,7 @@ read_confkey(void) {
 cleanup:
 	if (pctx != NULL) {
 		if (file != NULL) {
-			cfg_obj_destroy(pctx, &file);
+			cfg_obj_destroy(&file);
 		}
 		cfg_parser_destroy(&pctx);
 	}
