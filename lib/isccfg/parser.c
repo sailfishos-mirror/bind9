@@ -3610,24 +3610,23 @@ have_current_file(cfg_parser_t *pctx) {
 	return true;
 }
 
-static char *
+static cfg_obj_t *
 current_file(cfg_parser_t *pctx) {
-	static char none[] = "none";
 	cfg_listelt_t *elt;
 	cfg_obj_t *fileobj;
 
 	if (!have_current_file(pctx)) {
-		return none;
+		return NULL;
 	}
 
 	elt = ISC_LIST_TAIL(pctx->open_files->value.list);
 	if (elt == NULL) { /* shouldn't be possible, but... */
-		return none;
+		return NULL;
 	}
 
 	fileobj = elt->obj;
 	INSIST(fileobj->type == &cfg_type_qstring);
-	return fileobj->value.string.base;
+	return fileobj;
 }
 
 static void
@@ -3646,7 +3645,8 @@ parser_complain(cfg_parser_t *pctx, bool is_warning, unsigned int flags,
 
 	where[0] = '\0';
 	if (have_current_file(pctx)) {
-		snprintf(where, sizeof(where), "%s:%u: ", current_file(pctx),
+		snprintf(where, sizeof(where),
+			 "%s:%u: ", cfg_obj_asstring(current_file(pctx)),
 			 pctx->line);
 	} else if (pctx->buf_name != NULL) {
 		snprintf(where, sizeof(where), "%s: ", pctx->buf_name);
@@ -3714,8 +3714,8 @@ cfg_obj_log(const cfg_obj_t *obj, int level, const char *fmt, ...) {
 	va_end(ap);
 
 	if (obj->file != NULL) {
-		isc_log_write(CAT, MOD, level, "%s:%u: %s", obj->file,
-			      obj->line, msgbuf);
+		isc_log_write(CAT, MOD, level, "%s:%u: %s",
+			      cfg_obj_asstring(obj->file), obj->line, msgbuf);
 	} else {
 		isc_log_write(CAT, MOD, level, "%s", msgbuf);
 	}
@@ -3725,7 +3725,7 @@ const char *
 cfg_obj_file(const cfg_obj_t *obj) {
 	REQUIRE(obj != NULL);
 
-	return obj->file;
+	return cfg_obj_asstring(obj->file);
 }
 
 unsigned int
@@ -3738,17 +3738,20 @@ cfg_obj_line(const cfg_obj_t *obj) {
 isc_result_t
 cfg_create_obj(cfg_parser_t *pctx, const cfg_type_t *type, cfg_obj_t **ret) {
 	cfg_obj_t *obj;
+	cfg_obj_t *file = NULL;
 
 	REQUIRE(pctx != NULL);
 	REQUIRE(type != NULL);
 	REQUIRE(ret != NULL && *ret == NULL);
 
 	obj = isc_mem_get(pctx->mctx, sizeof(cfg_obj_t));
-	*obj = (cfg_obj_t){ .type = type,
-			    .file = current_file(pctx),
-			    .line = pctx->line,
-			    .pctx = pctx };
+	*obj = (cfg_obj_t){ .type = type, .line = pctx->line, .pctx = pctx };
 	isc_refcount_init(&obj->references, 1);
+
+	file = current_file(pctx);
+	if (file != NULL) {
+		cfg_obj_attach(file, &obj->file);
+	}
 
 	*ret = obj;
 
@@ -3815,6 +3818,10 @@ cfg_obj_destroy(cfg_parser_t *pctx, cfg_obj_t **objp) {
 	*objp = NULL;
 
 	if (isc_refcount_decrement(&obj->references) == 1) {
+		if (obj->file != NULL) {
+			cfg_obj_destroy(obj->file->pctx, &obj->file);
+		}
+
 		obj->type->rep->free(pctx, obj);
 		isc_refcount_destroy(&obj->references);
 		isc_mem_put(pctx->mctx, obj, sizeof(cfg_obj_t));

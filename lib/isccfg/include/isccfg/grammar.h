@@ -198,7 +198,7 @@ struct cfg_obj {
 		isccfg_duration_t duration;
 	} value;
 	isc_refcount_t references; /*%< reference counter */
-	const char    *file;
+	cfg_obj_t     *file;	   /*%< refcounted string */
 	unsigned int   line;
 	cfg_parser_t  *pctx;
 };
