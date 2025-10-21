@@ -3582,9 +3582,7 @@ isc__nm_base64url_to_base64(isc_mem_t *mem, const char *base64url,
 
 	INSIST(i == len);
 
-	if (res_len != NULL) {
-		*res_len = len;
-	}
+	SET_IF_NOT_NULL(res_len, len);
 
 	res[len] = '\0';
 
@@ -3635,9 +3633,7 @@ isc__nm_base64_to_base64url(isc_mem_t *mem, const char *base64,
 		}
 	}
 end:
-	if (res_len) {
-		*res_len = i;
-	}
+	SET_IF_NOT_NULL(res_len, i);
 
 	res[i] = '\0';
 
