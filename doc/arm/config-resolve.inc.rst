@@ -531,36 +531,3 @@ hierarchy (does not use the public network) for any recursive query for which:
 
 All other recursive queries will result in access to the DNS hierarchy to
 resolve the query.
-
-.. _load_balancing:
-
-Load Balancing
---------------
-
-A primitive form of load balancing can be achieved in the DNS by using multiple
-resource records (RRs) in a :ref:`zone file<zone_file>` (such as multiple A
-records) for one name.
-
-For example, assuming three HTTP servers with network addresses of
-10.0.0.1, 10.0.0.2, and 10.0.0.3, a set of records such as the following
-means that clients will connect to each machine one-third of the time:
-
-+-----------+------+----------+----------+----------------------------+
-| Name      | TTL  | CLASS    | TYPE     | Resource Record (RR) Data  |
-+-----------+------+----------+----------+----------------------------+
-| www       | 600  |   IN     |   A      |   10.0.0.1                 |
-+-----------+------+----------+----------+----------------------------+
-|           | 600  |   IN     |   A      |   10.0.0.2                 |
-+-----------+------+----------+----------+----------------------------+
-|           | 600  |   IN     |   A      |   10.0.0.3                 |
-+-----------+------+----------+----------+----------------------------+
-
-When a resolver queries for these records, BIND rotates them and
-responds to the query with the records in a random order. In the
-example above, clients randomly receive records in the order 1, 2,
-3; 2, 3, 1; and 3, 1, 2. Most clients use the first record returned
-and discard the rest.
-
-For more detail on ordering responses, refer to the
-:ref:`rrset-order<rrset_ordering>` statement in the
-:namedconf:ref:`options` block.
