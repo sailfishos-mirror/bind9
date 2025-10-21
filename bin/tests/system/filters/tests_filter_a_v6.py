@@ -18,17 +18,21 @@ from filters.common import (
     check_filter,
     check_filter_other_family,
     prime_cache,
-    reconfigure_servers,
 )
 
 
 pytestmark = pytest.mark.extra_artifacts(ARTIFACTS)
 
 
+def bootstrap():
+    return {
+        "family": "v6",
+        "filtertype": "a",
+    }
+
+
 @pytest.fixture(scope="module", autouse=True)
-def setup_filters(servers, templates):
-    isctest.log.info("configuring server to filter A on V6")
-    reconfigure_servers("a", "v6", servers, templates)
+def after_servers_start():
     prime_cache("fd92:7065:b8e:ffff::2")
     prime_cache("fd92:7065:b8e:ffff::3")
 

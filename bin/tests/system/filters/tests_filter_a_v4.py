@@ -18,17 +18,21 @@ from filters.common import (
     check_filter,
     check_filter_other_family,
     prime_cache,
-    reconfigure_servers,
 )
 
 
 pytestmark = pytest.mark.extra_artifacts(ARTIFACTS)
 
 
+def bootstrap():
+    return {
+        "family": "v4",
+        "filtertype": "a",
+    }
+
+
 @pytest.fixture(scope="module", autouse=True)
-def setup_filters(servers, templates):
-    isctest.log.info("configuring server to filter A on V4")
-    reconfigure_servers("a", "v4", servers, templates)
+def after_servers_start():
     prime_cache("10.53.0.2")
     prime_cache("10.53.0.3")
 
