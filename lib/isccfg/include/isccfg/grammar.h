@@ -47,11 +47,8 @@ enum {
 	/*% Clause is obsolete (logs a warning, but is not a fatal error) */
 	CFG_CLAUSEFLAG_OBSOLETE = 1 << 3,
 
-	/*%
-	 * Clause needs to be interpreted during parsing by calling a
-	 * callback function, like the "directory" option.
-	 */
-	CFG_CLAUSEFLAG_CALLBACK = 1 << 4,
+	/*% Clause indicates it must change the current directory */
+	CFG_CLAUSEFLAG_CHDIR = 1 << 4,
 
 	/*% Clause that is only used in testing. */
 	CFG_CLAUSEFLAG_TESTONLY = 1 << 5,
@@ -266,9 +263,6 @@ struct cfg_parser {
 
 	/*%< Reference counter */
 	isc_refcount_t references;
-
-	cfg_parsecallback_t callback;
-	void		   *callbackarg;
 };
 
 /* Parser context flags */
@@ -438,7 +432,8 @@ void
 cfg_doc_tuple(cfg_printer_t *pctx, const cfg_type_t *type);
 
 isc_result_t
-cfg_create_list(cfg_parser_t *pctx, const cfg_type_t *type, cfg_obj_t **objp);
+cfg_create_list(isc_mem_t *mctx, cfg_obj_t *file, size_t line,
+		const cfg_type_t *type, cfg_obj_t **objp);
 
 isc_result_t
 cfg_parse_listelt(cfg_parser_t *pctx, const cfg_type_t *elttype,

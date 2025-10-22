@@ -535,8 +535,7 @@ rndc_start(void *arg) {
 }
 
 static void
-parse_config(isc_mem_t *mctx, const char *keyname, cfg_parser_t **pctxp,
-	     cfg_obj_t **configp) {
+parse_config(isc_mem_t *mctx, const char *keyname, cfg_obj_t **configp) {
 	isc_result_t result;
 	const char *conffile = admin_conffile;
 	const cfg_obj_t *addresses = NULL;
@@ -577,12 +576,10 @@ parse_config(isc_mem_t *mctx, const char *keyname, cfg_parser_t **pctxp,
 			admin_keyfile, admin_conffile);
 	}
 
-	DO("create parser", cfg_parser_create(mctx, pctxp));
-
 	/*
 	 * The parser will output its own errors, so DO() is not used.
 	 */
-	result = cfg_parse_file(*pctxp, conffile, conftype, &config);
+	result = cfg_parse_file(mctx, conffile, conftype, 0, &config);
 	if (result != ISC_R_SUCCESS) {
 		fatal("could not load rndc configuration");
 	}
@@ -809,7 +806,6 @@ int
 main(int argc, char **argv) {
 	bool show_final_mem = false;
 	isc_logconfig_t *logconfig = NULL;
-	cfg_parser_t *pctx = NULL;
 	cfg_obj_t *config = NULL;
 	const char *keyname = NULL;
 	struct in_addr in;
@@ -963,7 +959,7 @@ main(int argc, char **argv) {
 		ISC_LOG_PRINTTAG | ISC_LOG_PRINTLEVEL, ISC_LOGCATEGORY_DEFAULT,
 		ISC_LOGMODULE_DEFAULT);
 
-	parse_config(isc_g_mctx, keyname, &pctx, &config);
+	parse_config(isc_g_mctx, keyname, &config);
 
 	isc_buffer_allocate(isc_g_mctx, &databuf, 2048);
 
@@ -1000,7 +996,6 @@ main(int argc, char **argv) {
 	isccc_ccmsg_invalidate(&rndc_ccmsg);
 
 	cfg_obj_detach(&config);
-	cfg_parser_destroy(&pctx);
 
 	isc_mem_put(isc_g_mctx, args, argslen);
 

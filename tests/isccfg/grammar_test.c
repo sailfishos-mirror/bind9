@@ -124,16 +124,12 @@ static void
 test__query_source_print(const char *config, const char *expected) {
 	isc_result_t result;
 	isc_buffer_t buffer;
-	cfg_parser_t *parser = NULL;
 	cfg_obj_t *output_conf = NULL;
-
-	result = cfg_parser_create(mctx, &parser);
-	assert_int_equal(result, ISC_R_SUCCESS);
 
 	isc_buffer_constinit(&buffer, config, strlen(config));
 	isc_buffer_add(&buffer, strlen(config));
 
-	result = cfg_parse_buffer(parser, &buffer, "text1", 0,
+	result = cfg_parse_buffer(isc_g_mctx, &buffer, "text1", 0,
 				  &cfg_type_namedconf, 0, &output_conf);
 	assert_int_equal(result, ISC_R_SUCCESS);
 	assert_non_null(output_conf);
@@ -144,9 +140,7 @@ test__query_source_print(const char *config, const char *expected) {
 	output_conf->type->print(&pctx, output_conf);
 	assert_text(expected);
 
-	cfg_obj_detach(parser, &output_conf);
-	cfg_parser_reset(parser);
-	cfg_parser_destroy(&parser);
+	cfg_obj_detach(&output_conf);
 }
 
 ISC_RUN_TEST_IMPL(query_source_print_none) {

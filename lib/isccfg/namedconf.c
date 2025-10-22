@@ -1232,7 +1232,7 @@ static cfg_clausedef_t options_clauses[] = {
 	{ "coresize", NULL, CFG_CLAUSEFLAG_ANCIENT },
 	{ "datasize", NULL, CFG_CLAUSEFLAG_ANCIENT },
 	{ "deallocate-on-exit", NULL, CFG_CLAUSEFLAG_ANCIENT },
-	{ "directory", &cfg_type_qstring, CFG_CLAUSEFLAG_CALLBACK },
+	{ "directory", &cfg_type_qstring, CFG_CLAUSEFLAG_CHDIR },
 	{ "dnsrps-library", &cfg_type_qstring, CFG_CLAUSEFLAG_OBSOLETE },
 #ifdef HAVE_DNSTAP
 	{ "dnstap-output", &cfg_type_dnstapoutput, CFG_CLAUSEFLAG_OPTIONAL },

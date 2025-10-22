@@ -50,6 +50,7 @@
 #include <isc/buffer.h>
 #include <isc/dir.h>
 #include <isc/errno.h>
+#include <isc/file.h>
 #include <isc/formatcheck.h>
 #include <isc/lex.h>
 #include <isc/log.h>
@@ -114,7 +115,7 @@ static void
 free_list(cfg_obj_t *obj);
 
 static isc_result_t
-create_listelt(cfg_parser_t *pctx, cfg_listelt_t **eltp);
+create_listelt(isc_mem_t *mctx, cfg_listelt_t **eltp);
 
 static isc_result_t
 create_string(cfg_parser_t *pctx, const char *contents, const cfg_type_t *type,
@@ -542,8 +543,6 @@ cfg_parser_create(isc_mem_t *mctx, cfg_parser_t **ret) {
 	pctx->open_files = NULL;
 	pctx->closed_files = NULL;
 	pctx->line = 0;
-	pctx->callback = NULL;
-	pctx->callbackarg = NULL;
 	pctx->token.type = isc_tokentype_unknown;
 	pctx->flags = 0;
 	pctx->buf_name = NULL;
@@ -563,8 +562,12 @@ cfg_parser_create(isc_mem_t *mctx, cfg_parser_t **ret) {
 						 ISC_LEXCOMMENT_CPLUSPLUS |
 						 ISC_LEXCOMMENT_SHELL);
 
-	CHECK(cfg_create_list(pctx, &cfg_type_filelist, &pctx->open_files));
-	CHECK(cfg_create_list(pctx, &cfg_type_filelist, &pctx->closed_files));
+	CHECK(cfg_create_list(pctx->mctx, cfg_parser_currentfile(pctx),
+			      pctx->line, &cfg_type_filelist,
+			      &pctx->open_files));
+	CHECK(cfg_create_list(pctx->mctx, cfg_parser_currentfile(pctx),
+			      pctx->line, &cfg_type_filelist,
+			      &pctx->closed_files));
 
 	*ret = pctx;
 	return ISC_R_SUCCESS;
@@ -604,7 +607,7 @@ parser_openfile(cfg_parser_t *pctx, const char *filename) {
 	}
 
 	CHECK(create_string(pctx, filename, &cfg_type_qstring, &stringobj));
-	CHECK(create_listelt(pctx, &elt));
+	CHECK(create_listelt(pctx->mctx, &elt));
 	elt->obj = stringobj;
 	ISC_LIST_APPEND(pctx->open_files->value.list, elt, link);
 
@@ -612,15 +615,6 @@ parser_openfile(cfg_parser_t *pctx, const char *filename) {
 cleanup:
 	CLEANUP_OBJ(stringobj);
 	return result;
-}
-
-void
-cfg_parser_setcallback(cfg_parser_t *pctx, cfg_parsecallback_t callback,
-		       void *arg) {
-	REQUIRE(pctx != NULL);
-
-	pctx->callback = callback;
-	pctx->callbackarg = arg;
 }
 
 void
@@ -674,16 +668,25 @@ cleanup:
 	return result;
 }
 
+#define REQUIRE_PCTX_FLAGS(flags)                                        \
+	REQUIRE((flags & ~(CFG_PCTX_NODEPRECATED | CFG_PCTX_NOOBSOLETE | \
+			   CFG_PCTX_NOEXPERIMENTAL)) == 0)
+
 isc_result_t
-cfg_parse_file(cfg_parser_t *pctx, const char *filename, const cfg_type_t *type,
-	       cfg_obj_t **ret) {
+cfg_parse_file(isc_mem_t *mctx, const char *filename, const cfg_type_t *type,
+	       unsigned int flags, cfg_obj_t **ret) {
 	isc_result_t result;
 	cfg_listelt_t *elt;
+	cfg_parser_t *pctx = NULL;
 
-	REQUIRE(pctx != NULL);
+	REQUIRE(mctx != NULL);
 	REQUIRE(filename != NULL);
 	REQUIRE(type != NULL);
 	REQUIRE(ret != NULL && *ret == NULL);
+	REQUIRE_PCTX_FLAGS(flags);
+
+	CHECK(cfg_parser_create(mctx, &pctx));
+	pctx->flags = flags;
 
 	CHECK(parser_openfile(pctx, filename));
 
@@ -696,22 +699,27 @@ cfg_parse_file(cfg_parser_t *pctx, const char *filename, const cfg_type_t *type,
 	ISC_LIST_APPEND(pctx->closed_files->value.list, elt, link);
 
 cleanup:
+	if (pctx != NULL) {
+		cfg_parser_destroy(&pctx);
+	}
+
 	return result;
 }
 
 isc_result_t
-cfg_parse_buffer(cfg_parser_t *pctx, isc_buffer_t *buffer, const char *file,
+cfg_parse_buffer(isc_mem_t *mctx, isc_buffer_t *buffer, const char *file,
 		 unsigned int line, const cfg_type_t *type, unsigned int flags,
 		 cfg_obj_t **ret) {
 	isc_result_t result;
+	cfg_parser_t *pctx = NULL;
 
-	REQUIRE(pctx != NULL);
+	REQUIRE(mctx != NULL);
 	REQUIRE(type != NULL);
 	REQUIRE(buffer != NULL);
 	REQUIRE(ret != NULL && *ret == NULL);
-	REQUIRE((flags & ~(CFG_PCTX_NODEPRECATED | CFG_PCTX_NOOBSOLETE |
-			   CFG_PCTX_NOEXPERIMENTAL)) == 0);
+	REQUIRE_PCTX_FLAGS(flags);
 
+	CHECK(cfg_parser_create(mctx, &pctx));
 	CHECK(isc_lex_openbuffer(pctx->lexer, buffer));
 
 	pctx->buf_name = file;
@@ -725,6 +733,10 @@ cfg_parse_buffer(cfg_parser_t *pctx, isc_buffer_t *buffer, const char *file,
 	pctx->buf_name = NULL;
 
 cleanup:
+	if (pctx != NULL) {
+		cfg_parser_destroy(&pctx);
+	}
+
 	return result;
 }
 
@@ -1945,25 +1957,25 @@ cfg_type_t cfg_type_boolean = { "boolean",	   cfg_parse_boolean,
  */
 
 isc_result_t
-cfg_create_list(cfg_parser_t *pctx, const cfg_type_t *type, cfg_obj_t **obj) {
+cfg_create_list(isc_mem_t *mctx, cfg_obj_t *file, size_t line,
+		const cfg_type_t *type, cfg_obj_t **obj) {
 	isc_result_t result;
 
-	REQUIRE(pctx != NULL);
+	REQUIRE(mctx != NULL);
 	REQUIRE(type != NULL);
 	REQUIRE(obj != NULL && *obj == NULL);
 
-	CHECK(cfg_create_obj(pctx->mctx, cfg_parser_currentfile(pctx),
-			     pctx->line, type, obj));
+	CHECK(cfg_create_obj(mctx, file, line, type, obj));
 	ISC_LIST_INIT((*obj)->value.list);
 cleanup:
 	return result;
 }
 
 static isc_result_t
-create_listelt(cfg_parser_t *pctx, cfg_listelt_t **eltp) {
+create_listelt(isc_mem_t *mctx, cfg_listelt_t **eltp) {
 	cfg_listelt_t *elt;
 
-	elt = isc_mem_get(pctx->mctx, sizeof(*elt));
+	elt = isc_mem_get(mctx, sizeof(*elt));
 	elt->obj = NULL;
 	ISC_LINK_INIT(elt, link);
 	*eltp = elt;
@@ -1996,7 +2008,7 @@ cfg_parse_listelt(cfg_parser_t *pctx, const cfg_type_t *elttype,
 	REQUIRE(elttype != NULL);
 	REQUIRE(ret != NULL && *ret == NULL);
 
-	CHECK(create_listelt(pctx, &elt));
+	CHECK(create_listelt(pctx->mctx, &elt));
 
 	result = cfg_parse_obj(pctx, elttype, &value);
 	if (result != ISC_R_SUCCESS) {
@@ -2024,7 +2036,8 @@ parse_list(cfg_parser_t *pctx, const cfg_type_t *listtype, cfg_obj_t **ret) {
 	isc_result_t result;
 	cfg_listelt_t *elt = NULL;
 
-	CHECK(cfg_create_list(pctx, listtype, &listobj));
+	CHECK(cfg_create_list(pctx->mctx, cfg_parser_currentfile(pctx),
+			      pctx->line, listtype, &listobj));
 
 	for (;;) {
 		CHECK(cfg_peektoken(pctx, 0));
@@ -2119,7 +2132,8 @@ cfg_parse_spacelist(cfg_parser_t *pctx, const cfg_type_t *listtype,
 
 	listof = listtype->of;
 
-	CHECK(cfg_create_list(pctx, listtype, &listobj));
+	CHECK(cfg_create_list(pctx->mctx, cfg_parser_currentfile(pctx),
+			      pctx->line, listtype, &listobj));
 
 	for (;;) {
 		cfg_listelt_t *elt = NULL;
@@ -2386,8 +2400,9 @@ cfg_parse_mapbody(cfg_parser_t *pctx, const cfg_type_t *type, cfg_obj_t **ret) {
 			/* Multivalued clause */
 			cfg_obj_t *listobj = NULL;
 
-			CHECK(cfg_create_list(pctx, &cfg_type_implicitlist,
-					      &listobj));
+			CHECK(cfg_create_list(
+				pctx->mctx, cfg_parser_currentfile(pctx),
+				pctx->line, &cfg_type_implicitlist, &listobj));
 			symval.as_pointer = listobj;
 			result = isc_symtab_define_and_return(
 				obj->value.map.symtab, clause->name,
@@ -2406,12 +2421,12 @@ cfg_parse_mapbody(cfg_parser_t *pctx, const cfg_type_t *type, cfg_obj_t **ret) {
 			ISC_LIST_APPEND(listobj->value.list, elt, link);
 		} else {
 			/* Single-valued clause */
-			bool callback = ((clause->flags &
-					  CFG_CLAUSEFLAG_CALLBACK) != 0);
+			bool chdir = ((clause->flags & CFG_CLAUSEFLAG_CHDIR) !=
+				      0);
 
-			result = parse_symtab_elt(
-				pctx, clause->name, clause->type,
-				obj->value.map.symtab, callback);
+			result = parse_symtab_elt(pctx, clause->name,
+						  clause->type,
+						  obj->value.map.symtab, chdir);
 			if (result == ISC_R_EXISTS) {
 				cfg_parser_error(pctx, CFG_LOG_NEAR,
 						 "'%s' redefined",
@@ -2438,16 +2453,59 @@ cleanup:
 }
 
 static isc_result_t
+change_directory(const char *clausename, const cfg_obj_t *obj) {
+	isc_result_t result;
+	const char *directory;
+
+	REQUIRE(strcasecmp("directory", clausename) == 0);
+
+	UNUSED(clausename);
+
+	/*
+	 * Change directory.
+	 */
+	directory = cfg_obj_asstring(obj);
+
+	if (!isc_file_ischdiridempotent(directory)) {
+		cfg_obj_log(obj, ISC_LOG_WARNING,
+			    "option 'directory' contains relative path '%s'",
+			    directory);
+	}
+
+	if (!isc_file_isdirwritable(directory)) {
+		cfg_obj_log(obj, ISC_LOG_ERROR,
+			    "directory '%s' is not writable", directory);
+		return ISC_R_NOPERM;
+	}
+
+	result = isc_dir_chdir(directory);
+	if (result != ISC_R_SUCCESS) {
+		cfg_obj_log(obj, ISC_LOG_ERROR,
+			    "change directory to '%s' failed: %s", directory,
+			    isc_result_totext(result));
+		return result;
+	}
+
+	char cwd[PATH_MAX];
+	if (getcwd(cwd, sizeof(cwd)) == cwd) {
+		cfg_obj_log(obj, ISC_LOG_INFO,
+			    "the working directory is now '%s'", cwd);
+	}
+
+	return ISC_R_SUCCESS;
+}
+
+static isc_result_t
 parse_symtab_elt(cfg_parser_t *pctx, const char *name, cfg_type_t *elttype,
-		 isc_symtab_t *symtab, bool callback) {
+		 isc_symtab_t *symtab, bool chdir) {
 	isc_result_t result;
 	cfg_obj_t *obj = NULL;
 	isc_symvalue_t symval;
 
 	CHECK(cfg_parse_obj(pctx, elttype, &obj));
 
-	if (callback && pctx->callback != NULL) {
-		CHECK(pctx->callback(name, obj, pctx->callbackarg));
+	if (chdir) {
+		CHECK(change_directory(name, obj));
 	}
 
 	symval.as_pointer = obj;
@@ -2857,7 +2915,8 @@ parse_unsupported(cfg_parser_t *pctx, const cfg_type_t *type, cfg_obj_t **ret) {
 	isc_result_t result;
 	int braces = 0;
 
-	CHECK(cfg_create_list(pctx, type, &listobj));
+	CHECK(cfg_create_list(pctx->mctx, cfg_parser_currentfile(pctx),
+			      pctx->line, type, &listobj));
 
 	for (;;) {
 		cfg_listelt_t *elt = NULL;
@@ -3868,17 +3927,15 @@ cfg_print_grammar(const cfg_type_t *type, unsigned int flags,
 }
 
 isc_result_t
-cfg_parser_mapadd(cfg_parser_t *pctx, cfg_obj_t *mapobj, cfg_obj_t *obj,
-		  const char *clausename) {
+cfg_parser_mapadd(cfg_obj_t *mapobj, cfg_obj_t *obj, const char *clausename) {
 	isc_result_t result = ISC_R_SUCCESS;
-	const cfg_map_t *map;
+	const cfg_map_t *map = NULL;
 	isc_symvalue_t symval;
 	cfg_obj_t *destobj = NULL;
 	cfg_listelt_t *elt = NULL;
-	const cfg_clausedef_t *const *clauseset;
-	const cfg_clausedef_t *clause;
+	const cfg_clausedef_t *const *clauseset = NULL;
+	const cfg_clausedef_t *clause = NULL;
 
-	REQUIRE(pctx != NULL);
 	REQUIRE(mapobj != NULL && mapobj->type->rep == &cfg_rep_map);
 	REQUIRE(obj != NULL);
 	REQUIRE(clausename != NULL);
@@ -3903,9 +3960,10 @@ breakout:
 				   &symval);
 	if (result == ISC_R_NOTFOUND) {
 		if ((clause->flags & CFG_CLAUSEFLAG_MULTI) != 0) {
-			CHECK(cfg_create_list(pctx, &cfg_type_implicitlist,
+			CHECK(cfg_create_list(mapobj->mctx, obj->file,
+					      obj->line, &cfg_type_implicitlist,
 					      &destobj));
-			CHECK(create_listelt(pctx, &elt));
+			CHECK(create_listelt(mapobj->mctx, &elt));
 			cfg_obj_attach(obj, &elt->obj);
 			ISC_LIST_APPEND(destobj->value.list, elt, link);
 			symval.as_pointer = destobj;
@@ -3923,7 +3981,7 @@ breakout:
 		INSIST(result == ISC_R_SUCCESS);
 
 		if (destobj2->type == &cfg_type_implicitlist) {
-			CHECK(create_listelt(pctx, &elt));
+			CHECK(create_listelt(mapobj->mctx, &elt));
 			cfg_obj_attach(obj, &elt->obj);
 			ISC_LIST_APPEND(destobj2->value.list, elt, link);
 		} else {
@@ -3936,7 +3994,7 @@ breakout:
 
 cleanup:
 	if (elt != NULL) {
-		free_listelt(pctx->mctx, elt);
+		free_listelt(mapobj->mctx, elt);
 	}
 	CLEANUP_OBJ(destobj);
 

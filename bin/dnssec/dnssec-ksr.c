@@ -170,11 +170,9 @@ checkparams(ksr_ctx_t *ksr, const char *command) {
 
 static void
 getkasp(ksr_ctx_t *ksr, dns_kasp_t **kasp) {
-	cfg_parser_t *parser = NULL;
 	cfg_obj_t *config = NULL;
 
-	RUNTIME_CHECK(cfg_parser_create(isc_g_mctx, &parser) == ISC_R_SUCCESS);
-	if (cfg_parse_file(parser, ksr->configfile, &cfg_type_namedconf,
+	if (cfg_parse_file(isc_g_mctx, ksr->configfile, &cfg_type_namedconf, 0,
 			   &config) != ISC_R_SUCCESS)
 	{
 		fatal("unable to load dnssec-policy '%s' from '%s'",
@@ -188,7 +186,6 @@ getkasp(ksr_ctx_t *ksr, dns_kasp_t **kasp) {
 		fatal("dnssec-policy '%s' has no keys configured", ksr->policy);
 	}
 	cfg_obj_detach(&config);
-	cfg_parser_destroy(&parser);
 }
 
 static int

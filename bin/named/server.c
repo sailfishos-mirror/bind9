@@ -2349,7 +2349,6 @@ catz_addmodzone_cb(void *arg) {
 	cfg_obj_t *zoneobj = NULL;
 	ns_cfgctx_t *cfg = NULL;
 	dns_zone_t *zone = NULL;
-	cfg_parser_t *parser = NULL;
 
 	if (isc_loop_shuttingdown(isc_loop_get(isc_tid()))) {
 		goto cleanup;
@@ -2464,10 +2463,8 @@ catz_addmodzone_cb(void *arg) {
 	confbuf = NULL;
 	result = dns_catz_generate_zonecfg(cz->origin, cz->entry, &confbuf);
 	if (result == ISC_R_SUCCESS) {
-		CHECK(cfg_parser_create(cfg->mctx, &parser));
-		result = cfg_parse_buffer(parser, confbuf, "catz", 0,
+		result = cfg_parse_buffer(cfg->mctx, confbuf, "catz", 0,
 					  &cfg_type_addzoneconf, 0, &zoneconf);
-		cfg_parser_destroy(&parser);
 		isc_buffer_free(&confbuf);
 	}
 	/*
@@ -2721,7 +2718,6 @@ catz_reconfigure(dns_catz_entry_t *entry, void *arg1, void *arg2) {
 	ns_cfgctx_t *cfg = NULL;
 	dns_zone_t *zone = NULL;
 	isc_result_t result;
-	cfg_parser_t *parser = NULL;
 
 	isc_buffer_init(&namebuf, nameb, DNS_NAME_FORMATSIZE);
 	dns_name_totext(dns_catz_entry_getname(entry), DNS_NAME_OMITFINALDOT,
@@ -2745,10 +2741,8 @@ catz_reconfigure(dns_catz_entry_t *entry, void *arg1, void *arg2) {
 
 	result = dns_catz_generate_zonecfg(data->catz, entry, &confbuf);
 	if (result == ISC_R_SUCCESS) {
-		CHECK(cfg_parser_create(cfg->mctx, &parser));
-		result = cfg_parse_buffer(parser, confbuf, "catz", 0,
+		result = cfg_parse_buffer(cfg->mctx, confbuf, "catz", 0,
 					  &cfg_type_addzoneconf, 0, &zoneconf);
-		cfg_parser_destroy(&parser);
 		isc_buffer_free(&confbuf);
 	}
 	/*
@@ -7558,7 +7552,6 @@ data_to_cfg(dns_view_t *view, MDB_val *key, MDB_val *data, isc_buffer_t **text,
 	size_t zone_config_len;
 	cfg_obj_t *zoneconf = NULL;
 	char bufname[DNS_NAME_FORMATSIZE];
-	cfg_parser_t *parser = NULL;
 
 	REQUIRE(view != NULL);
 	REQUIRE(key != NULL);
@@ -7596,10 +7589,8 @@ data_to_cfg(dns_view_t *view, MDB_val *key, MDB_val *data, isc_buffer_t **text,
 	snprintf(bufname, sizeof(bufname), "%.*s", (int)zone_name_len,
 		 zone_name);
 
-	CHECK(cfg_parser_create(view->mctx, &parser));
-	result = cfg_parse_buffer(parser, *text, bufname, 0,
+	result = cfg_parse_buffer(view->mctx, *text, bufname, 0,
 				  &cfg_type_addzoneconf, 0, &zoneconf);
-	cfg_parser_destroy(&parser);
 	if (result != ISC_R_SUCCESS) {
 		isc_log_write(NAMED_LOGCATEGORY_GENERAL, NAMED_LOGMODULE_SERVER,
 			      ISC_LOG_ERROR,
@@ -9232,14 +9223,12 @@ cleanup_aclctx:
 static isc_result_t
 load_configuration(named_server_t *server, bool first_time) {
 	isc_result_t result;
-	cfg_parser_t *parser = NULL;
 	cfg_obj_t *config = NULL, *bindkeys = NULL;
 
 	isc_log_write(NAMED_LOGCATEGORY_GENERAL, NAMED_LOGMODULE_SERVER,
 		      ISC_LOG_DEBUG(1), "load_configuration");
 
-	CHECK(cfg_parser_create(isc_g_mctx, &parser));
-	CHECK(named_config_parsefile(parser, &config));
+	CHECK(named_config_parsefile(&config));
 
 	if (named_g_bindkeysfile != NULL) {
 		/*
@@ -9255,9 +9244,9 @@ load_configuration(named_server_t *server, bool first_time) {
 				      "keys instead",
 				      named_g_bindkeysfile);
 		} else {
-			cfg_parser_reset(parser);
-			result = cfg_parse_file(parser, named_g_bindkeysfile,
-						&cfg_type_bindkeys, &bindkeys);
+			result = cfg_parse_file(
+				isc_g_mctx, named_g_bindkeysfile,
+				&cfg_type_bindkeys, 0, &bindkeys);
 			if (result != ISC_R_SUCCESS) {
 				isc_log_write(NAMED_LOGCATEGORY_GENERAL,
 					      NAMED_LOGMODULE_SERVER,
@@ -9274,9 +9263,6 @@ load_configuration(named_server_t *server, bool first_time) {
 	result = apply_configuration(config, bindkeys, server, first_time);
 
 cleanup:
-	if (parser != NULL) {
-		cfg_parser_destroy(&parser);
-	}
 	if (bindkeys != NULL) {
 		cfg_obj_detach(&bindkeys);
 	}
@@ -12466,9 +12452,8 @@ load_nzf(dns_view_t *view, ns_cfgctx_t *nzcfg) {
 	 * Parse the configuration in the NZF file.  This may be called in
 	 * multiple views, so we reset the parser each time.
 	 */
-	cfg_parser_reset(named_g_addparser);
-	result = cfg_parse_file(named_g_addparser, view->new_zone_file,
-				&cfg_type_addzoneconf, &nzcfg->nzf_config);
+	result = cfg_parse_file(nzcfg->mctx, view->new_zone_file,
+				&cfg_type_addzoneconf, 0, &nzcfg->nzf_config);
 	if (result != ISC_R_SUCCESS) {
 		isc_log_write(NAMED_LOGCATEGORY_GENERAL, NAMED_LOGMODULE_SERVER,
 			      ISC_LOG_ERROR, "Error parsing NZF file '%s': %s",
@@ -12816,7 +12801,6 @@ load_nzf(dns_view_t *view, ns_cfgctx_t *nzcfg) {
 	MDB_dbi dbi;
 	MDB_val key, data;
 	ns_dzarg_t dzarg;
-	cfg_parser_t *parser = NULL;
 
 	UNUSED(nzcfg);
 
@@ -12840,10 +12824,8 @@ load_nzf(dns_view_t *view, ns_cfgctx_t *nzcfg) {
 	 * config type, giving us a guarantee that valid configuration
 	 * will be written to DB.
 	 */
-	CHECK(cfg_parser_create(nzcfg->mctx, &parser));
-	result = cfg_parse_file(parser, view->new_zone_file,
-				&cfg_type_addzoneconf, &nzf_config);
-	cfg_parser_destroy(&parser);
+	result = cfg_parse_file(nzcfg->mctx, view->new_zone_file,
+				&cfg_type_addzoneconf, 0, &nzf_config);
 	if (result != ISC_R_SUCCESS) {
 		isc_log_write(NAMED_LOGCATEGORY_GENERAL, NAMED_LOGMODULE_SERVER,
 			      ISC_LOG_ERROR, "Error parsing NZF file '%s': %s",
@@ -12973,7 +12955,6 @@ newzone_parse(named_server_t *server, char *command, dns_view_t **viewp,
 	dns_rdataclass_t rdclass;
 	dns_view_t *view = NULL;
 	const char *bn = NULL;
-	cfg_parser_t *parser = NULL;
 
 	REQUIRE(viewp != NULL && *viewp == NULL);
 	REQUIRE(zoneobjp != NULL && *zoneobjp == NULL);
@@ -12998,10 +12979,8 @@ newzone_parse(named_server_t *server, char *command, dns_view_t **viewp,
 	 */
 	isc_buffer_forward(&argbuf, 3);
 
-	CHECK(cfg_parser_create(server->mctx, &parser));
-	CHECK(cfg_parse_buffer(parser, &argbuf, bn, 0, &cfg_type_addzoneconf, 0,
-			       &zoneconf));
-	cfg_parser_destroy(&parser);
+	CHECK(cfg_parse_buffer(server->mctx, &argbuf, bn, 0,
+			       &cfg_type_addzoneconf, 0, &zoneconf));
 
 	CHECK(cfg_map_get(zoneconf, "zone", &zlist));
 	if (!cfg_obj_islist(zlist)) {
@@ -13076,10 +13055,6 @@ newzone_parse(named_server_t *server, char *command, dns_view_t **viewp,
 	return ISC_R_SUCCESS;
 
 cleanup:
-	if (parser != NULL) {
-		cfg_parser_destroy(&parser);
-	}
-
 	if (zoneconf != NULL) {
 		cfg_obj_detach(&zoneconf);
 	}
@@ -13091,13 +13066,12 @@ cleanup:
 }
 
 static isc_result_t
-delete_zoneconf(dns_view_t *view, cfg_parser_t *pctx, const cfg_obj_t *config,
+delete_zoneconf(dns_view_t *view, const cfg_obj_t *config,
 		const dns_name_t *zname, nzfwriter_t nzfwriter) {
 	isc_result_t result = ISC_R_NOTFOUND;
 	const cfg_obj_t *zl = NULL;
 
 	REQUIRE(view != NULL);
-	REQUIRE(pctx != NULL);
 	REQUIRE(config != NULL);
 	REQUIRE(zname != NULL);
 
@@ -13126,7 +13100,6 @@ delete_zoneconf(dns_view_t *view, cfg_parser_t *pctx, const cfg_obj_t *config,
 		e = UNCONST(elt);
 		ISC_LIST_UNLINK(*list, e, link);
 		cfg_obj_detach(&e->obj);
-		isc_mem_put(pctx->mctx, e, sizeof(*e));
 		result = ISC_R_SUCCESS;
 		break;
 	}
@@ -13263,8 +13236,7 @@ do_addzone(named_server_t *server, ns_cfgctx_t *cfg, dns_view_t *view,
 		cfg_obj_attach(zoneconf, &cfg->nzf_config);
 	} else {
 		cfg_obj_t *z = UNCONST(zoneobj);
-		CHECK(cfg_parser_mapadd(cfg->add_parser, cfg->nzf_config, z,
-					"zone"));
+		CHECK(cfg_parser_mapadd(cfg->nzf_config, z, "zone"));
 	}
 	cleanup_config = true;
 #endif /* HAVE_LMDB */
@@ -13313,8 +13285,7 @@ cleanup:
 		(void)isc_stdio_close(fp);
 	}
 	if (result != ISC_R_SUCCESS && cleanup_config) {
-		tresult = delete_zoneconf(view, cfg->add_parser,
-					  cfg->nzf_config, name, NULL);
+		tresult = delete_zoneconf(view, cfg->nzf_config, name, NULL);
 		RUNTIME_CHECK(tresult == ISC_R_SUCCESS);
 	}
 #else  /* HAVE_LMDB */
@@ -13341,7 +13312,6 @@ do_modzone(named_server_t *server, ns_cfgctx_t *cfg, dns_view_t *view,
 	dns_zone_t *zone = NULL;
 	const cfg_obj_t *voptions = NULL;
 	bool added;
-	cfg_parser_t *parser = NULL;
 #ifndef HAVE_LMDB
 	FILE *fp = NULL;
 	cfg_obj_t *z;
@@ -13448,7 +13418,7 @@ do_modzone(named_server_t *server, ns_cfgctx_t *cfg, dns_view_t *view,
 #ifndef HAVE_LMDB
 	/* Remove old zone from configuration (and NZF file if applicable) */
 	if (added) {
-		result = delete_zoneconf(view, cfg->add_parser, cfg->nzf_config,
+		result = delete_zoneconf(view, cfg->nzf_config,
 					 dns_zone_getorigin(zone),
 					 nzf_writeconf);
 		if (result != ISC_R_SUCCESS) {
@@ -13461,18 +13431,15 @@ do_modzone(named_server_t *server, ns_cfgctx_t *cfg, dns_view_t *view,
 #endif /* HAVE_LMDB */
 
 	if (!added) {
-		TCHECK(cfg_parser_create(cfg->mctx, &parser));
 		if (cfg->vconfig == NULL) {
-			result = delete_zoneconf(view, parser, cfg->config,
+			result = delete_zoneconf(view, cfg->config,
 						 dns_zone_getorigin(zone),
 						 NULL);
 		} else {
 			voptions = cfg_tuple_get(cfg->vconfig, "options");
-			result = delete_zoneconf(view, parser, voptions,
-						 dns_zone_getorigin(zone),
-						 NULL);
+			result = delete_zoneconf(
+				view, voptions, dns_zone_getorigin(zone), NULL);
 		}
-		cfg_parser_destroy(&parser);
 
 		if (result != ISC_R_SUCCESS) {
 			TCHECK(putstr(text, "former zone configuration "
@@ -13520,7 +13487,7 @@ do_modzone(named_server_t *server, ns_cfgctx_t *cfg, dns_view_t *view,
 #ifndef HAVE_LMDB
 	/* Store the new zone configuration; also in NZF if applicable */
 	z = UNCONST(zoneobj);
-	CHECK(cfg_parser_mapadd(cfg->add_parser, cfg->nzf_config, z, "zone"));
+	CHECK(cfg_parser_mapadd(cfg->nzf_config, z, "zone"));
 #endif /* HAVE_LMDB */
 
 	if (added) {
@@ -13695,7 +13662,6 @@ rmzone(void *arg) {
 	dns_db_t *dbp = NULL;
 	bool added;
 	isc_result_t result;
-	cfg_parser_t *parser = NULL;
 #ifdef HAVE_LMDB
 	MDB_txn *txn = NULL;
 	MDB_dbi dbi;
@@ -13746,7 +13712,7 @@ rmzone(void *arg) {
 		}
 		UNLOCK(&view->new_zone_lock);
 #else  /* ifdef HAVE_LMDB */
-		result = delete_zoneconf(view, cfg->add_parser, cfg->nzf_config,
+		result = delete_zoneconf(view, cfg->nzf_config,
 					 dns_zone_getorigin(zone),
 					 nzf_writeconf);
 		if (result != ISC_R_SUCCESS) {
@@ -13759,24 +13725,17 @@ rmzone(void *arg) {
 	}
 
 	if (!added && cfg != NULL) {
-		result = cfg_parser_create(cfg->mctx, &parser);
-		INSIST(result == ISC_R_SUCCESS); /* colin: this is just a
-						    shortcut until the
-						    initialization function of
-						    the parser can't fails */
-
 		if (cfg->vconfig != NULL) {
 			const cfg_obj_t *voptions = cfg_tuple_get(cfg->vconfig,
 								  "options");
-			result = delete_zoneconf(view, parser, voptions,
-						 dns_zone_getorigin(zone),
-						 NULL);
+			result = delete_zoneconf(
+				view, voptions, dns_zone_getorigin(zone), NULL);
 		} else {
-			result = delete_zoneconf(view, parser, cfg->config,
+			result = delete_zoneconf(view, cfg->config,
 						 dns_zone_getorigin(zone),
 						 NULL);
 		}
-		cfg_parser_destroy(&parser);
+
 		if (result != ISC_R_SUCCESS) {
 			isc_log_write(NAMED_LOGCATEGORY_GENERAL,
 				      NAMED_LOGMODULE_SERVER, ISC_LOG_ERROR,

@@ -275,16 +275,13 @@ parse_parameters(filter_instance_t *inst, const char *parameters,
 		 const void *cfg, const char *cfg_file, unsigned long cfg_line,
 		 isc_mem_t *mctx, void *aclctx) {
 	isc_result_t result = ISC_R_SUCCESS;
-	cfg_parser_t *parser = NULL;
 	cfg_obj_t *param_obj = NULL;
 	const cfg_obj_t *obj = NULL;
 	isc_buffer_t b;
 
-	CHECK(cfg_parser_create(mctx, &parser));
-
 	isc_buffer_constinit(&b, parameters, strlen(parameters));
 	isc_buffer_add(&b, strlen(parameters));
-	CHECK(cfg_parse_buffer(parser, &b, cfg_file, cfg_line,
+	CHECK(cfg_parse_buffer(mctx, &b, cfg_file, cfg_line,
 			       &cfg_type_parameters, 0, &param_obj));
 
 	CHECK(parse_filter_aaaa_on(param_obj, "filter-aaaa-on-v4",
@@ -304,9 +301,6 @@ parse_parameters(filter_instance_t *inst, const char *parameters,
 cleanup:
 	if (param_obj != NULL) {
 		cfg_obj_detach(&param_obj);
-	}
-	if (parser != NULL) {
-		cfg_parser_destroy(&parser);
 	}
 	return result;
 }
@@ -372,15 +366,12 @@ plugin_check(const char *parameters, const void *cfg, const char *cfg_file,
 	     unsigned long cfg_line, isc_mem_t *mctx, void *aclctx,
 	     const ns_pluginctx_t *ctx ISC_ATTR_UNUSED) {
 	isc_result_t result = ISC_R_SUCCESS;
-	cfg_parser_t *parser = NULL;
 	cfg_obj_t *param_obj = NULL;
 	isc_buffer_t b;
 
-	CHECK(cfg_parser_create(mctx, &parser));
-
 	isc_buffer_constinit(&b, parameters, strlen(parameters));
 	isc_buffer_add(&b, strlen(parameters));
-	CHECK(cfg_parse_buffer(parser, &b, cfg_file, cfg_line,
+	CHECK(cfg_parse_buffer(mctx, &b, cfg_file, cfg_line,
 			       &cfg_type_parameters, 0, &param_obj));
 
 	CHECK(check_syntax(param_obj, cfg, mctx, aclctx));
@@ -388,9 +379,6 @@ plugin_check(const char *parameters, const void *cfg, const char *cfg_file,
 cleanup:
 	if (param_obj != NULL) {
 		cfg_obj_detach(&param_obj);
-	}
-	if (parser != NULL) {
-		cfg_parser_destroy(&parser);
 	}
 	return result;
 }

@@ -52,7 +52,6 @@ int
 main(int argc, char **argv) {
 	isc_result_t result;
 	isc_mem_t *mctx = NULL;
-	cfg_parser_t *pctx = NULL;
 	cfg_obj_t *cfg = NULL;
 	cfg_type_t *type = NULL;
 	bool grammar = false;
@@ -134,9 +133,7 @@ main(int argc, char **argv) {
 		if (type == NULL || filename == NULL) {
 			usage();
 		}
-		RUNTIME_CHECK(cfg_parser_create(mctx, &pctx) == ISC_R_SUCCESS);
-
-		result = cfg_parse_file(pctx, filename, type, &cfg);
+		result = cfg_parse_file(mctx, filename, type, 0, &cfg);
 
 		fprintf(stderr, "read config: %s\n", isc_result_totext(result));
 
@@ -147,8 +144,6 @@ main(int argc, char **argv) {
 		cfg_print(cfg, output, NULL);
 
 		cfg_obj_detach(&cfg);
-
-		cfg_parser_destroy(&pctx);
 	}
 
 	if (memstats) {

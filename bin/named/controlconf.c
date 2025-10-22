@@ -787,7 +787,6 @@ register_keys(const cfg_obj_t *control, const cfg_obj_t *keylist,
 static isc_result_t
 get_rndckey(isc_mem_t *mctx, controlkeylist_t *keyids) {
 	isc_result_t result;
-	cfg_parser_t *pctx = NULL;
 	cfg_obj_t *config = NULL;
 	const cfg_obj_t *key = NULL;
 	const cfg_obj_t *algobj = NULL;
@@ -806,8 +805,7 @@ get_rndckey(isc_mem_t *mctx, controlkeylist_t *keyids) {
 		return ISC_R_FILENOTFOUND;
 	}
 
-	CHECK(cfg_parser_create(mctx, &pctx));
-	CHECK(cfg_parse_file(pctx, named_g_keyfile, &cfg_type_rndckey,
+	CHECK(cfg_parse_file(mctx, named_g_keyfile, &cfg_type_rndckey, 0,
 			     &config));
 	CHECK(cfg_map_get(config, "key", &key));
 
@@ -862,9 +860,6 @@ cleanup:
 	}
 	if (config != NULL) {
 		cfg_obj_detach(&config);
-	}
-	if (pctx != NULL) {
-		cfg_parser_destroy(&pctx);
 	}
 	return result;
 }

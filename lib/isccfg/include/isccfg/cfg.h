@@ -113,25 +113,12 @@ cfg_parser_setflags(cfg_parser_t *pctx, unsigned int flags, bool turn_on);
  *\li 	"pctx" is not NULL.
  */
 
-void
-cfg_parser_setcallback(cfg_parser_t *pctx, cfg_parsecallback_t callback,
-		       void *arg);
-/*%<
- * Make the parser call 'callback' whenever it encounters
- * a configuration clause with the callback attribute,
- * passing it the clause name, the clause value,
- * and 'arg' as arguments.
- *
- * To restore the default of not invoking callbacks, pass
- * callback==NULL and arg==NULL.
- */
+isc_result_t
+cfg_parse_file(isc_mem_t *mctx, const char *file, const cfg_type_t *type,
+	       unsigned int flags, cfg_obj_t **ret);
 
 isc_result_t
-cfg_parse_file(cfg_parser_t *pctx, const char *file, const cfg_type_t *type,
-	       cfg_obj_t **ret);
-
-isc_result_t
-cfg_parse_buffer(cfg_parser_t *pctx, isc_buffer_t *buffer, const char *file,
+cfg_parse_buffer(isc_mem_t *mctx, isc_buffer_t *buffer, const char *file,
 		 unsigned int line, const cfg_type_t *type, unsigned int flags,
 		 cfg_obj_t **ret);
 /*%<
@@ -152,8 +139,9 @@ cfg_parse_buffer(cfg_parser_t *pctx, isc_buffer_t *buffer, const char *file,
  * Returns an error if the file or buffer does not parse correctly.
  *
  * Requires:
- *\li 	"filename" is valid.
- *\li 	"mem" is valid.
+ *\li 	"file" is valid.
+ *\li   "buffer" is valid.
+ *\li 	"mctx" is valid.
  *\li	"type" is valid.
  *\li 	"cfg" is non-NULL and "*cfg" is NULL.
  *\li   "flags" be one or more of CFG_PCTX_NODEPRECATED or zero.
@@ -165,8 +153,7 @@ cfg_parse_buffer(cfg_parser_t *pctx, isc_buffer_t *buffer, const char *file,
  */
 
 isc_result_t
-cfg_parser_mapadd(cfg_parser_t *pctx, cfg_obj_t *mapobj, cfg_obj_t *obj,
-		  const char *clause);
+cfg_parser_mapadd(cfg_obj_t *mapobj, cfg_obj_t *obj, const char *clause);
 /*%<
  * Add the object 'obj' to the specified clause in mapbody 'mapobj'.
  * Used for adding new zones.
@@ -174,7 +161,6 @@ cfg_parser_mapadd(cfg_parser_t *pctx, cfg_obj_t *mapobj, cfg_obj_t *obj,
  * Require:
  * \li     'obj' is a valid cfg_obj_t.
  * \li     'mapobj' is a valid cfg_obj_t of type map.
- * \li     'pctx' is a valid cfg_parser_t.
  */
 
 void
