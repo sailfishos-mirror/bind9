@@ -331,10 +331,10 @@ emits(bool showall, bool cds, dns_rdata_t *rdata) {
 }
 
 noreturn static void
-usage(void);
+usage(int ret);
 
 static void
-usage(void) {
+usage(int ret) {
 	fprintf(stderr, "Usage:\n");
 	fprintf(stderr, "    %s [options] keyfile\n\n", program);
 	fprintf(stderr, "    %s [options] -f zonefile [zonename]\n\n", program);
@@ -361,7 +361,7 @@ usage(void) {
 			"    -V: print version information\n");
 	fprintf(stderr, "Output: DS or CDS RRs\n");
 
-	exit(EXIT_FAILURE);
+	exit(ret);
 }
 
 int
@@ -381,7 +381,7 @@ main(int argc, char **argv) {
 	dns_rdata_init(&rdata);
 
 	if (argc == 1) {
-		usage();
+		usage(EXIT_FAILURE);
 	}
 
 	isc_mem_create(&mctx);
@@ -451,10 +451,12 @@ main(int argc, char **argv) {
 				fprintf(stderr, "%s: invalid argument -%c\n",
 					program, isc_commandline_option);
 			}
-			FALLTHROUGH;
+			/* Does not return. */
+			usage(EXIT_FAILURE);
+
 		case 'h':
 			/* Does not return. */
-			usage();
+			usage(EXIT_SUCCESS);
 
 		case 'V':
 			/* Does not return. */

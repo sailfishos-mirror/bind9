@@ -264,10 +264,10 @@ emit(const char *dir, dns_rdata_t *rdata) {
 }
 
 noreturn static void
-usage(void);
+usage(int ret);
 
 static void
-usage(void) {
+usage(int ret) {
 	fprintf(stderr, "Usage:\n");
 	fprintf(stderr, "    %s options [-K dir] keyfile\n\n", program);
 	fprintf(stderr, "    %s options -f file [keyname]\n\n", program);
@@ -290,7 +290,7 @@ usage(void) {
 	fprintf(stderr, "    -D sync date/[+-]offset/none: set/unset "
 			"CDS and CDNSKEY deletion date\n");
 
-	exit(EXIT_FAILURE);
+	exit(ret);
 }
 
 int
@@ -308,7 +308,7 @@ main(int argc, char **argv) {
 	dns_rdata_init(&rdata);
 
 	if (argc == 1) {
-		usage();
+		usage(EXIT_FAILURE);
 	}
 
 	isc_mem_create(&mctx);
@@ -384,10 +384,11 @@ main(int argc, char **argv) {
 				fprintf(stderr, "%s: invalid argument -%c\n",
 					program, isc_commandline_option);
 			}
-			FALLTHROUGH;
+			usage(EXIT_FAILURE);
+
 		case 'h':
 			/* Does not return. */
-			usage();
+			usage(EXIT_SUCCESS);
 
 		case 'V':
 			/* Does not return. */

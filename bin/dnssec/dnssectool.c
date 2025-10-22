@@ -574,13 +574,13 @@ try_key:
 }
 
 bool
-isoptarg(const char *arg, char **argv, void (*usage)(void)) {
+isoptarg(const char *arg, char **argv, void (*usage)(int ret)) {
 	if (!strcasecmp(isc_commandline_argument, arg)) {
 		if (argv[isc_commandline_index] == NULL) {
 			fprintf(stderr, "%s: missing argument -%c %s\n",
 				program, isc_commandline_option,
 				isc_commandline_argument);
-			usage();
+			usage(EXIT_FAILURE);
 		}
 		isc_commandline_argument = argv[isc_commandline_index];
 		/* skip to next argument */
