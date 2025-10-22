@@ -37,10 +37,10 @@
 #include "dnssectool.h"
 
 ISC_NORETURN static void
-usage(void);
+usage(int ret);
 
 static void
-usage(void) {
+usage(int ret) {
 	fprintf(stderr, "Usage:\n");
 	fprintf(stderr, "    %s [options] keyfile\n\n",
 		isc_commandline_progname);
@@ -56,7 +56,7 @@ usage(void) {
 	fprintf(stderr, "     K<name>+<alg>+<new id>.key, "
 			"K<name>+<alg>+<new id>.private\n");
 
-	exit(EXIT_FAILURE);
+	exit(ret);
 }
 
 int
@@ -78,7 +78,7 @@ main(int argc, char **argv) {
 	isc_commandline_init(argc, argv);
 
 	if (argc == 1) {
-		usage();
+		usage(EXIT_FAILURE);
 	}
 
 	isc_commandline_errprint = false;
@@ -117,10 +117,12 @@ main(int argc, char **argv) {
 					isc_commandline_progname,
 					isc_commandline_option);
 			}
-			FALLTHROUGH;
+			/* Does not return. */
+			usage(EXIT_FAILURE);
+
 		case 'h':
 			/* Does not return. */
-			usage();
+			usage(EXIT_SUCCESS);
 
 		case 'V':
 			/* Does not return. */

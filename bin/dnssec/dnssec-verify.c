@@ -135,10 +135,10 @@ loadzone(char *file, char *origin, dns_rdataclass_t rdclass, dns_db_t **db) {
 }
 
 ISC_NORETURN static void
-usage(void);
+usage(int ret);
 
 static void
-usage(void) {
+usage(int ret) {
 	fprintf(stderr, "Usage:\n");
 	fprintf(stderr, "\t%s [options] zonefile [keys]\n",
 		isc_commandline_progname);
@@ -159,7 +159,7 @@ usage(void) {
 	fprintf(stderr, "\t-x:\tDNSKEY record signed with KSKs only, "
 			"not ZSKs\n");
 	fprintf(stderr, "\t-z:\tAll records signed with KSKs\n");
-	exit(EXIT_SUCCESS);
+	exit(ret);
 }
 
 int
@@ -254,11 +254,12 @@ main(int argc, char *argv[]) {
 					isc_commandline_progname,
 					isc_commandline_option);
 			}
-			FALLTHROUGH;
+			/* Does not return. */
+			usage(EXIT_FAILURE);
 
 		case 'h':
 			/* Does not return. */
-			usage();
+			usage(EXIT_SUCCESS);
 
 		case 'V':
 			/* Does not return. */
@@ -282,7 +283,7 @@ main(int argc, char *argv[]) {
 	argv += isc_commandline_index;
 
 	if (argc < 1) {
-		usage();
+		usage(EXIT_FAILURE);
 	}
 
 	file = argv[0];
