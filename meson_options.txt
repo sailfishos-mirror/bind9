@@ -18,13 +18,6 @@ option(
 )
 
 option(
-    'cap',
-    type: 'feature',
-    value: 'auto',
-    description: 'Enable libcap-based capability support',
-)
-
-option(
     'dnstap',
     type: 'feature',
     value: 'auto',
