@@ -3174,7 +3174,7 @@ check_keydir(const cfg_obj_t *config, const cfg_obj_t *zconfig,
 
 		ISC_LIST_INIT(keys);
 		ret = dns_dnssec_findmatchingkeys(origin, kasp, keydir, &kslist,
-						  now, mctx, &keys);
+						  now, false, mctx, &keys);
 		if (ret != ISC_R_SUCCESS) {
 			result = ret;
 		}

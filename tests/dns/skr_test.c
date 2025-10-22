@@ -453,8 +453,9 @@ ISC_RUN_TEST_IMPL(skr_read) {
 
 	/* Get the KSK */
 	ISC_LIST_INIT(keys);
-	result = dns_dnssec_findmatchingkeys(
-		dname, NULL, TESTS_DIR "/testdata/skr/", NULL, 0, mctx, &keys);
+	result = dns_dnssec_findmatchingkeys(dname, NULL,
+					     TESTS_DIR "/testdata/skr/", NULL,
+					     0, false, mctx, &keys);
 	assert_int_equal(result, ISC_R_SUCCESS);
 
 	/* Create/read the SKR file */

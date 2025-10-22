@@ -1068,8 +1068,8 @@ find_zone_keys(dns_zone_t *zone, isc_mem_t *mctx, unsigned int maxkeys,
 
 	dns_zone_lock_keyfiles(zone);
 	result = dns_dnssec_findmatchingkeys(dns_zone_getorigin(zone), kasp,
-					     keydir, keystores, now, mctx,
-					     &keylist);
+					     keydir, keystores, now, false,
+					     mctx, &keylist);
 	dns_zone_unlock_keyfiles(zone);
 
 	if (result != ISC_R_SUCCESS) {

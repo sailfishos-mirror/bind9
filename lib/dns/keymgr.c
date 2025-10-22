@@ -500,7 +500,8 @@ static isc_result_t
 keymgr_createkey(dns_kasp_key_t *kkey, const dns_name_t *origin,
 		 dns_kasp_t *kasp, dns_rdataclass_t rdclass, isc_mem_t *mctx,
 		 const char *keydir, dns_dnsseckeylist_t *keylist,
-		 dns_dnsseckeylist_t *newkeys, dst_key_t **dst_key) {
+		 isc_stdtime_t now, dns_dnsseckeylist_t *newkeys,
+		 dst_key_t **dst_key) {
 	isc_result_t result = ISC_R_SUCCESS;
 	bool conflict = false;
 	int flags = DNS_KEYOWNER_ZONE;
@@ -509,9 +510,21 @@ keymgr_createkey(dns_kasp_key_t *kkey, const dns_name_t *origin,
 	dns_keystore_t *keystore = dns_kasp_key_keystore(kkey);
 	const char *dir = NULL;
 	int size = dns_kasp_key_size(kkey);
+	dns_dnsseckeylist_t keykeys;
+
+	ISC_LIST_INIT(keykeys);
 
 	if (dns_kasp_key_ksk(kkey)) {
 		flags |= DNS_KEYFLAG_KSK;
+	}
+
+	/*
+	 * We also need to check against K* files for KEYs.
+	 */
+	result = dns_dnssec_findmatchingkeys(origin, NULL, keydir, NULL, now,
+					     true, mctx, &keykeys);
+	if (result != ISC_R_SUCCESS && result != ISC_R_NOTFOUND) {
+		goto failure;
 	}
 
 	do {
@@ -528,6 +541,10 @@ keymgr_createkey(dns_kasp_key_t *kkey, const dns_name_t *origin,
 		/* Key collision? */
 		conflict = keymgr_keyid_conflict(newkey, kkey->tag_min,
 						 kkey->tag_max, keylist);
+		if (!conflict) {
+			conflict = keymgr_keyid_conflict(
+				newkey, kkey->tag_min, kkey->tag_max, &keykeys);
+		}
 		if (!conflict) {
 			conflict = keymgr_keyid_conflict(
 				newkey, kkey->tag_min, kkey->tag_max, newkeys);
@@ -552,9 +569,14 @@ keymgr_createkey(dns_kasp_key_t *kkey, const dns_name_t *origin,
 		dst_key_setdirectory(newkey, dir);
 	}
 	*dst_key = newkey;
-	return ISC_R_SUCCESS;
+	result = ISC_R_SUCCESS;
 
 failure:
+	while (!ISC_LIST_EMPTY(keykeys)) {
+		dns_dnsseckey_t *key = ISC_LIST_HEAD(keykeys);
+		ISC_LIST_UNLINK(keykeys, key, link);
+		dns_dnsseckey_destroy(mctx, &key);
+	}
 	return result;
 }
 
@@ -1945,9 +1967,9 @@ keymgr_key_rollover(dns_kasp_key_t *kaspkey, dns_dnsseckey_t *active_key,
 		bool csk = (dns_kasp_key_ksk(kaspkey) &&
 			    dns_kasp_key_zsk(kaspkey));
 
-		isc_result_t result =
-			keymgr_createkey(kaspkey, origin, kasp, rdclass, mctx,
-					 keydir, keyring, newkeys, &dst_key);
+		isc_result_t result = keymgr_createkey(
+			kaspkey, origin, kasp, rdclass, mctx, keydir, keyring,
+			now, newkeys, &dst_key);
 		if (result != ISC_R_SUCCESS) {
 			return result;
 		}
