@@ -13236,7 +13236,7 @@ do_addzone(named_server_t *server, ns_cfgctx_t *cfg, dns_view_t *view,
 		cfg_obj_attach(zoneconf, &cfg->nzf_config);
 	} else {
 		cfg_obj_t *z = UNCONST(zoneobj);
-		CHECK(cfg_parser_mapadd(cfg->nzf_config, z, "zone"));
+		CHECK(cfg_map_add(cfg->nzf_config, z, "zone"));
 	}
 	cleanup_config = true;
 #endif /* HAVE_LMDB */
@@ -13487,7 +13487,7 @@ do_modzone(named_server_t *server, ns_cfgctx_t *cfg, dns_view_t *view,
 #ifndef HAVE_LMDB
 	/* Store the new zone configuration; also in NZF if applicable */
 	z = UNCONST(zoneobj);
-	CHECK(cfg_parser_mapadd(cfg->nzf_config, z, "zone"));
+	CHECK(cfg_map_add(cfg->nzf_config, z, "zone"));
 #endif /* HAVE_LMDB */
 
 	if (added) {

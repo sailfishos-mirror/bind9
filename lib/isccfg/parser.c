@@ -519,8 +519,8 @@ static cfg_type_t cfg_type_filelist = { "filelist",    NULL,
 					print_list,    NULL,
 					&cfg_rep_list, &cfg_type_qstring };
 
-isc_result_t
-cfg_parser_create(isc_mem_t *mctx, cfg_parser_t **ret) {
+static isc_result_t
+parser_create(isc_mem_t *mctx, cfg_parser_t **ret) {
 	isc_result_t result;
 	cfg_parser_t *pctx;
 	isc_lexspecials_t specials;
@@ -582,14 +582,24 @@ cleanup:
 	return result;
 }
 
-void
-cfg_parser_setflags(cfg_parser_t *pctx, unsigned int flags, bool turn_on) {
-	REQUIRE(pctx != NULL);
+static void
+parser_destroy(cfg_parser_t **pctxp) {
+	cfg_parser_t *pctx;
 
-	if (turn_on) {
-		pctx->flags |= flags;
-	} else {
-		pctx->flags &= ~flags;
+	REQUIRE(pctxp != NULL && *pctxp != NULL);
+	pctx = *pctxp;
+	*pctxp = NULL;
+
+	if (isc_refcount_decrement(&pctx->references) == 1) {
+		isc_lex_destroy(&pctx->lexer);
+		/*
+		 * Cleaning up open_files does not
+		 * close the files; that was already done
+		 * by closing the lexer.
+		 */
+		CLEANUP_OBJ(pctx->open_files);
+		CLEANUP_OBJ(pctx->closed_files);
+		isc_mem_putanddetach(&pctx->mctx, pctx, sizeof(*pctx));
 	}
 }
 
@@ -615,21 +625,6 @@ parser_openfile(cfg_parser_t *pctx, const char *filename) {
 cleanup:
 	CLEANUP_OBJ(stringobj);
 	return result;
-}
-
-void
-cfg_parser_reset(cfg_parser_t *pctx) {
-	REQUIRE(pctx != NULL);
-
-	if (pctx->lexer != NULL) {
-		isc_lex_close(pctx->lexer);
-	}
-
-	pctx->seen_eof = false;
-	pctx->ungotten = false;
-	pctx->errors = 0;
-	pctx->warnings = 0;
-	pctx->line = 0;
 }
 
 /*
@@ -685,7 +680,7 @@ cfg_parse_file(isc_mem_t *mctx, const char *filename, const cfg_type_t *type,
 	REQUIRE(ret != NULL && *ret == NULL);
 	REQUIRE_PCTX_FLAGS(flags);
 
-	CHECK(cfg_parser_create(mctx, &pctx));
+	CHECK(parser_create(mctx, &pctx));
 	pctx->flags = flags;
 
 	CHECK(parser_openfile(pctx, filename));
@@ -700,7 +695,7 @@ cfg_parse_file(isc_mem_t *mctx, const char *filename, const cfg_type_t *type,
 
 cleanup:
 	if (pctx != NULL) {
-		cfg_parser_destroy(&pctx);
+		parser_destroy(&pctx);
 	}
 
 	return result;
@@ -719,7 +714,7 @@ cfg_parse_buffer(isc_mem_t *mctx, isc_buffer_t *buffer, const char *file,
 	REQUIRE(ret != NULL && *ret == NULL);
 	REQUIRE_PCTX_FLAGS(flags);
 
-	CHECK(cfg_parser_create(mctx, &pctx));
+	CHECK(parser_create(mctx, &pctx));
 	CHECK(isc_lex_openbuffer(pctx->lexer, buffer));
 
 	pctx->buf_name = file;
@@ -734,40 +729,10 @@ cfg_parse_buffer(isc_mem_t *mctx, isc_buffer_t *buffer, const char *file,
 
 cleanup:
 	if (pctx != NULL) {
-		cfg_parser_destroy(&pctx);
+		parser_destroy(&pctx);
 	}
 
 	return result;
-}
-
-void
-cfg_parser_attach(cfg_parser_t *src, cfg_parser_t **dest) {
-	REQUIRE(src != NULL);
-	REQUIRE(dest != NULL && *dest == NULL);
-
-	isc_refcount_increment(&src->references);
-	*dest = src;
-}
-
-void
-cfg_parser_destroy(cfg_parser_t **pctxp) {
-	cfg_parser_t *pctx;
-
-	REQUIRE(pctxp != NULL && *pctxp != NULL);
-	pctx = *pctxp;
-	*pctxp = NULL;
-
-	if (isc_refcount_decrement(&pctx->references) == 1) {
-		isc_lex_destroy(&pctx->lexer);
-		/*
-		 * Cleaning up open_files does not
-		 * close the files; that was already done
-		 * by closing the lexer.
-		 */
-		CLEANUP_OBJ(pctx->open_files);
-		CLEANUP_OBJ(pctx->closed_files);
-		isc_mem_putanddetach(&pctx->mctx, pctx, sizeof(*pctx));
-	}
 }
 
 /*
@@ -3927,7 +3892,7 @@ cfg_print_grammar(const cfg_type_t *type, unsigned int flags,
 }
 
 isc_result_t
-cfg_parser_mapadd(cfg_obj_t *mapobj, cfg_obj_t *obj, const char *clausename) {
+cfg_map_add(cfg_obj_t *mapobj, cfg_obj_t *obj, const char *clausename) {
 	isc_result_t result = ISC_R_SUCCESS;
 	const cfg_map_t *map = NULL;
 	isc_symvalue_t symval;
