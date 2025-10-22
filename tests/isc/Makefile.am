@@ -29,7 +29,6 @@ check_PROGRAMS =	\
 	pool_test	\
 	quota_test	\
 	radix_test	\
-	random_test	\
 	regex_test	\
 	result_test	\
 	safe_test	\
@@ -88,10 +87,6 @@ netmgr_test_LDADD =	\
 netmgr_test_SOURCES =	\
 	netmgr_test.c	\
 	uv_wrap.h
-
-random_test_LDADD =	\
-	$(LDADD)	\
-	-lm
 
 task_test_CPPFLAGS =	\
 	$(AM_CPPFLAGS)
