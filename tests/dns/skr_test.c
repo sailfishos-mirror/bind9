@@ -448,7 +448,7 @@ ISC_RUN_TEST_IMPL(skr_read) {
 	ISC_LIST_INIT(keys);
 	result = dns_dnssec_findmatchingkeys(dname, NULL,
 					     TESTS_DIR "/testdata/skr/", NULL,
-					     0, isc_g_mctx, &keys);
+					     0, false, isc_g_mctx, &keys);
 	assert_int_equal(result, ISC_R_SUCCESS);
 
 	/* Create/read the SKR file */

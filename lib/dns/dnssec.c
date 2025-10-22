@@ -1221,13 +1221,13 @@ dns_dnssec_get_hints(dns_dnsseckey_t *key, isc_stdtime_t now) {
 }
 
 static isc_result_t
-findmatchingkeys(const char *directory, char *namebuf, unsigned int len,
-		 isc_mem_t *mctx, isc_stdtime_t now,
+findmatchingkeys(const char *directory, bool rrtypekey, char *namebuf,
+		 unsigned int len, isc_mem_t *mctx, isc_stdtime_t now,
 		 dns_dnsseckeylist_t *list) {
-	isc_result_t result = ISC_R_SUCCESS;
+	isc_result_t result;
 	isc_dir_t dir;
-	bool dir_open = false;
-	unsigned int i, alg;
+	bool dir_open = false, match = false;
+	unsigned int i;
 	dns_dnsseckey_t *key = NULL;
 	dst_key_t *dstkey = NULL;
 
@@ -1235,6 +1235,7 @@ findmatchingkeys(const char *directory, char *namebuf, unsigned int len,
 	if (directory == NULL) {
 		directory = ".";
 	}
+
 	RETERR(isc_dir_open(&dir, directory));
 	dir_open = true;
 
@@ -1246,13 +1247,10 @@ findmatchingkeys(const char *directory, char *namebuf, unsigned int len,
 			continue;
 		}
 
-		alg = 0;
 		for (i = len + 1 + 1; i < dir.entry.length; i++) {
 			if (!isdigit((unsigned char)dir.entry.name[i])) {
 				break;
 			}
-			alg *= 10;
-			alg += dir.entry.name[i] - '0';
 		}
 
 		/*
@@ -1283,24 +1281,16 @@ findmatchingkeys(const char *directory, char *namebuf, unsigned int len,
 			continue;
 		}
 
-		dstkey = NULL;
-		result = dst_key_fromnamedfile(
-			dir.entry.name, directory,
-			DST_TYPE_PUBLIC | DST_TYPE_PRIVATE | DST_TYPE_STATE,
-			mctx, &dstkey);
-
-		switch (alg) {
-		case DST_ALG_HMACMD5:
-		case DST_ALG_HMACSHA1:
-		case DST_ALG_HMACSHA224:
-		case DST_ALG_HMACSHA256:
-		case DST_ALG_HMACSHA384:
-		case DST_ALG_HMACSHA512:
-			if (result == DST_R_BADKEYTYPE) {
-				continue;
-			}
+		int type = DST_TYPE_PUBLIC | DST_TYPE_PRIVATE | DST_TYPE_STATE;
+		if (rrtypekey) {
+			type |= DST_TYPE_KEY;
 		}
-
+		dstkey = NULL;
+		result = dst_key_fromnamedfile(dir.entry.name, directory, type,
+					       mctx, &dstkey);
+		if (result == DST_R_BADKEYTYPE) {
+			continue;
+		}
 		if (result != ISC_R_SUCCESS) {
 			isc_log_write(DNS_LOGCATEGORY_GENERAL,
 				      DNS_LOGMODULE_DNSSEC, ISC_LOG_WARNING,
@@ -1319,9 +1309,11 @@ findmatchingkeys(const char *directory, char *namebuf, unsigned int len,
 			dns_dnsseckey_destroy(mctx, &key);
 		} else {
 			ISC_LIST_APPEND(*list, key, link);
+			match = true;
 			key = NULL;
 		}
 	}
+	result = match ? ISC_R_SUCCESS : ISC_R_NOTFOUND;
 
 failure:
 	if (dir_open) {
@@ -1334,12 +1326,13 @@ failure:
 }
 
 /*%
- * Get a list of DNSSEC keys from the key repository.
+ * Get a list of KEY or DNSKEY keys from the key repository. If rrtypekey
+ * is true KEY keys will be returned otherwise DNSSEC keys.
  */
 isc_result_t
 dns_dnssec_findmatchingkeys(const dns_name_t *origin, dns_kasp_t *kasp,
 			    const char *keydir, dns_keystorelist_t *keystores,
-			    isc_stdtime_t now, isc_mem_t *mctx,
+			    isc_stdtime_t now, bool rrtypekey, isc_mem_t *mctx,
 			    dns_dnsseckeylist_t *keylist) {
 	isc_result_t result = ISC_R_SUCCESS;
 	dns_dnsseckeylist_t list;
@@ -1358,8 +1351,8 @@ dns_dnssec_findmatchingkeys(const dns_name_t *origin, dns_kasp_t *kasp,
 	if (kasp == NULL || (strcmp(dns_kasp_getname(kasp), "none") == 0) ||
 	    (strcmp(dns_kasp_getname(kasp), "insecure") == 0))
 	{
-		RETERR(findmatchingkeys(keydir, namebuf, len, mctx, now,
-					&list));
+		RETERR(findmatchingkeys(keydir, rrtypekey, namebuf, len, mctx,
+					now, &list));
 	} else if (keystores != NULL) {
 		ISC_LIST_FOREACH(*keystores, keystore, link) {
 			ISC_LIST_FOREACH(dns_kasp_keys(kasp), kkey, link) {
@@ -1368,8 +1361,8 @@ dns_dnssec_findmatchingkeys(const dns_name_t *origin, dns_kasp_t *kasp,
 						dns_keystore_directory(keystore,
 								       keydir);
 					RETERR(findmatchingkeys(
-						directory, namebuf, len, mctx,
-						now, &list));
+						directory, rrtypekey, namebuf,
+						len, mctx, now, &list));
 					break;
 				}
 			}

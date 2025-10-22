@@ -2738,7 +2738,8 @@ findkeys:
 	 * Find keys that match this zone in the key repository.
 	 */
 	result = dns_dnssec_findmatchingkeys(gorigin, NULL, directory, NULL,
-					     now, isc_g_mctx, &matchkeys);
+					     now, false, isc_g_mctx,
+					     &matchkeys);
 	if (result == ISC_R_NOTFOUND) {
 		result = ISC_R_SUCCESS;
 	}
