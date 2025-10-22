@@ -7546,7 +7546,7 @@ cleanup:
 	return result;
 }
 
-#else /* HAVE_LMDB */
+#else  /* HAVE_LMDB */
 
 static isc_result_t
 data_to_cfg(dns_view_t *view, MDB_val *key, MDB_val *data, isc_buffer_t **text,
@@ -7786,70 +7786,6 @@ configure_newzones(dns_view_t *view, cfg_obj_t *config, cfg_obj_t *vconfig,
 
 	return result;
 }
-
-static isc_result_t
-get_newzone_config(dns_view_t *view, const char *zonename,
-		   cfg_obj_t **zoneconfig) {
-	isc_result_t result;
-	int status;
-	cfg_obj_t *zoneconf = NULL;
-	isc_buffer_t *text = NULL;
-	MDB_txn *txn = NULL;
-	MDB_dbi dbi;
-	MDB_val key, data;
-	char zname[DNS_NAME_FORMATSIZE];
-	dns_fixedname_t fname;
-	dns_name_t *name;
-	isc_buffer_t b;
-
-	INSIST(zoneconfig != NULL && *zoneconfig == NULL);
-
-	LOCK(&view->new_zone_lock);
-
-	CHECK(nzd_open(view, MDB_RDONLY, &txn, &dbi));
-
-	isc_log_write(NAMED_LOGCATEGORY_GENERAL, NAMED_LOGMODULE_SERVER,
-		      ISC_LOG_INFO,
-		      "loading NZD config from '%s' "
-		      "for zone '%s'",
-		      view->new_zone_db, zonename);
-
-	/* Normalize zone name */
-	isc_buffer_constinit(&b, zonename, strlen(zonename));
-	isc_buffer_add(&b, strlen(zonename));
-	name = dns_fixedname_initname(&fname);
-	CHECK(dns_name_fromtext(name, &b, dns_rootname, DNS_NAME_DOWNCASE));
-	dns_name_format(name, zname, sizeof(zname));
-
-	key.mv_data = zname;
-	key.mv_size = strlen(zname);
-
-	status = mdb_get(txn, dbi, &key, &data);
-	if (status != MDB_SUCCESS) {
-		CHECK(ISC_R_FAILURE);
-	}
-
-	CHECK(data_to_cfg(view, &key, &data, &text, &zoneconf));
-
-	*zoneconfig = zoneconf;
-	zoneconf = NULL;
-	result = ISC_R_SUCCESS;
-
-cleanup:
-	(void)nzd_close(&txn, false);
-
-	UNLOCK(&view->new_zone_lock);
-
-	if (zoneconf != NULL) {
-		cfg_obj_detach(&zoneconf);
-	}
-	if (text != NULL) {
-		isc_buffer_free(&text);
-	}
-
-	return result;
-}
-
 #endif /* HAVE_LMDB */
 
 #define APPLY_CONFIGURATION_SUBROUTINE_LOG                               \
@@ -14045,72 +13981,6 @@ cleanup:
 	return result;
 }
 
-static const cfg_obj_t *
-find_name_in_list_from_map(const cfg_obj_t *config,
-			   const char *map_key_for_list, const char *name,
-			   bool redirect) {
-	const cfg_obj_t *list = NULL;
-	const cfg_obj_t *obj = NULL;
-	dns_fixedname_t fixed1, fixed2;
-	dns_name_t *name1 = NULL, *name2 = NULL;
-	isc_result_t result;
-
-	if (strcmp(map_key_for_list, "zone") == 0) {
-		name1 = dns_fixedname_initname(&fixed1);
-		name2 = dns_fixedname_initname(&fixed2);
-		result = dns_name_fromstring(name1, name, dns_rootname, 0,
-					     NULL);
-		RUNTIME_CHECK(result == ISC_R_SUCCESS);
-	}
-
-	cfg_map_get(config, map_key_for_list, &list);
-	CFG_LIST_FOREACH(list, element) {
-		const char *vname = NULL;
-
-		obj = cfg_listelt_value(element);
-		INSIST(obj != NULL);
-		vname = cfg_obj_asstring(cfg_tuple_get(obj, "name"));
-		if (vname == NULL) {
-			obj = NULL;
-			continue;
-		}
-
-		if (name1 != NULL) {
-			result = dns_name_fromstring(name2, vname, dns_rootname,
-						     0, NULL);
-			if (result == ISC_R_SUCCESS &&
-			    dns_name_equal(name1, name2))
-			{
-				const cfg_obj_t *zoptions =
-					cfg_tuple_get(obj, "options");
-				const cfg_obj_t *typeobj = NULL;
-
-				if (zoptions != NULL) {
-					const cfg_obj_t *toptions =
-						named_zone_templateopts(
-							config, zoptions);
-					named_config_findopt(zoptions, toptions,
-							     "type", &typeobj);
-				}
-				if (redirect && typeobj != NULL &&
-				    strcasecmp(cfg_obj_asstring(typeobj),
-					       "redirect") == 0)
-				{
-					break;
-				} else if (!redirect) {
-					break;
-				}
-			}
-		} else if (strcasecmp(vname, name) == 0) {
-			break;
-		}
-
-		obj = NULL;
-	}
-
-	return obj;
-}
-
 static void
 emitzone(void *arg, const char *buf, int len) {
 	ns_dzarg_t *dzarg = arg;
@@ -14130,16 +14000,9 @@ isc_result_t
 named_server_showzone(named_server_t *server, isc_lex_t *lex,
 		      isc_buffer_t **text) {
 	isc_result_t result;
-	const cfg_obj_t *vconfig = NULL, *zconfig = NULL;
+	const cfg_obj_t *zconfig = NULL;
 	char zonename[DNS_NAME_FORMATSIZE];
-	const cfg_obj_t *map;
-	dns_view_t *view = NULL;
 	dns_zone_t *zone = NULL;
-	ns_cfgctx_t *cfg = NULL;
-#ifdef HAVE_LMDB
-	cfg_obj_t *nzconfig = NULL;
-#endif /* HAVE_LMDB */
-	bool added, redirect;
 	ns_dzarg_t dzarg;
 
 	REQUIRE(text != NULL);
@@ -14151,50 +14014,8 @@ named_server_showzone(named_server_t *server, isc_lex_t *lex,
 		goto cleanup;
 	}
 
-	redirect = dns_zone_gettype(zone) == dns_zone_redirect;
-	added = dns_zone_getadded(zone);
-	view = dns_zone_getview(zone);
+	zconfig = dns_zone_getcfg(zone);
 	dns_zone_detach(&zone);
-
-	cfg = (ns_cfgctx_t *)view->new_zone_config;
-	if (cfg == NULL) {
-		result = ISC_R_FAILURE;
-		goto cleanup;
-	}
-
-	if (!added) {
-		/* Find the view statement */
-		vconfig = find_name_in_list_from_map(cfg->config, "view",
-						     view->name, false);
-
-		/* Find the zone statement */
-		if (vconfig != NULL) {
-			map = cfg_tuple_get(vconfig, "options");
-		} else {
-			map = cfg->config;
-		}
-
-		zconfig = find_name_in_list_from_map(map, "zone", zonename,
-						     redirect);
-	}
-
-#ifndef HAVE_LMDB
-	if (zconfig == NULL && cfg->nzf_config != NULL) {
-		zconfig = find_name_in_list_from_map(cfg->nzf_config, "zone",
-						     zonename, redirect);
-	}
-#else  /* HAVE_LMDB */
-	if (zconfig == NULL) {
-		const cfg_obj_t *zlist = NULL;
-		CHECK(get_newzone_config(view, zonename, &nzconfig));
-		CHECK(cfg_map_get(nzconfig, "zone", &zlist));
-		if (!cfg_obj_islist(zlist)) {
-			CHECK(ISC_R_FAILURE);
-		}
-
-		zconfig = cfg_listelt_value(cfg_list_first(zlist));
-	}
-#endif /* HAVE_LMDB */
 
 	if (zconfig == NULL) {
 		CHECK(ISC_R_NOTFOUND);
@@ -14212,11 +14033,6 @@ named_server_showzone(named_server_t *server, isc_lex_t *lex,
 	result = ISC_R_SUCCESS;
 
 cleanup:
-#ifdef HAVE_LMDB
-	if (nzconfig != NULL) {
-		cfg_obj_detach(&nzconfig);
-	}
-#endif /* HAVE_LMDB */
 	if (isc_buffer_usedlength(*text) > 0) {
 		(void)putnull(text);
 	}

@@ -2777,6 +2777,25 @@ dns_zone_unloadplugins(dns_zone_t *zone);
  * \li	'zone' to be a valid zone.
  */
 
+void
+dns_zone_setcfg(dns_zone_t *zone, void *cfg, void (*cfg_detach)(void *));
+/*%<
+ * Set a pointer to the configuration object for 'zone', which can be
+ * used later to dump the configuration status.
+ *
+ * Requires:
+ * \li	'zone' to be a valid zone.
+ */
+void *
+dns_zone_getcfg(dns_zone_t *zone);
+/*%<
+ * Return a pointer to the configuration object for 'zone', that was
+ * previously set using _setcfg().
+ *
+ * Requires:
+ * \li	'zone' to be a valid zone.
+ */
+
 #if DNS_ZONE_TRACE
 #define dns_zone_ref(ptr)   dns_zone__ref(ptr, __func__, __FILE__, __LINE__)
 #define dns_zone_unref(ptr) dns_zone__unref(ptr, __func__, __FILE__, __LINE__)
