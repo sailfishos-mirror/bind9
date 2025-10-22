@@ -23,7 +23,7 @@ run_spatch() {
   echo "Applying semantic patch $spatch..."
   spatch --jobs "${TEST_PARALLEL_JOBS:-1}" --sp-file "$spatch" --use-gitgrep --dir "." --include-headers $spatchargs >>"$patch" 2>cocci.stderr
   cat cocci.stderr
-  if grep -q -e "parse error" cocci.stderr; then
+  if grep -q -e "parse error" -e "EXN: Failure" cocci.stderr; then
     ret=1
   fi
   if [ "$(wc <"$patch" -l)" -gt "0" ]; then

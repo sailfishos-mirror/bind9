@@ -2,5 +2,5 @@
 expression e;
 @@
 -DNS_TYPEPAIR_VALUE(dns_rdatatype_rrsig,
-+DNS_SIGTYPE(
++DNS_SIGTYPEPAIR(
              e)
