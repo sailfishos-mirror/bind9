@@ -13089,7 +13089,6 @@ delete_zoneconf(dns_view_t *view, const cfg_obj_t *config,
 		dns_name_t *myname = dns_fixedname_initname(&myfixed);
 		const cfg_obj_t *zconf = cfg_listelt_value(elt);
 		const char *zn = NULL;
-		cfg_listelt_t *e = NULL;
 
 		zn = cfg_obj_asstring(cfg_tuple_get(zconf, "name"));
 		result = dns_name_fromstring(myname, zn, dns_rootname, 0, NULL);
@@ -13097,9 +13096,8 @@ delete_zoneconf(dns_view_t *view, const cfg_obj_t *config,
 			continue;
 		}
 
-		e = UNCONST(elt);
-		ISC_LIST_UNLINK(*list, e, link);
-		cfg_obj_detach(&e->obj);
+		cfg_obj_t *zones = UNCONST(zl);
+		cfg_list_unlink(zones, elt);
 		result = ISC_R_SUCCESS;
 		break;
 	}

@@ -114,20 +114,22 @@ print_list(cfg_printer_t *pctx, const cfg_obj_t *obj);
 static void
 free_list(cfg_obj_t *obj);
 
-static isc_result_t
-create_listelt(isc_mem_t *mctx, cfg_listelt_t **eltp);
+static void
+create_list(isc_mem_t *mctx, cfg_obj_t *file, size_t line,
+	    const cfg_type_t *type, cfg_obj_t **obj);
+static void
+create_listelt(cfg_obj_t *list, cfg_listelt_t **eltp);
 
-static isc_result_t
+static void
 create_string(cfg_parser_t *pctx, const char *contents, const cfg_type_t *type,
 	      cfg_obj_t **ret);
-
 static void
 free_string(cfg_obj_t *obj);
 
 static void
 free_sockaddrtls(cfg_obj_t *obj);
 
-static isc_result_t
+static void
 create_map(cfg_parser_t *pctx, const cfg_type_t *type, cfg_obj_t **objp);
 
 static void
@@ -303,9 +305,8 @@ cfg_printx(const cfg_obj_t *obj, unsigned int flags,
 
 /* Tuples. */
 
-isc_result_t
-cfg_create_tuple(cfg_parser_t *pctx, const cfg_type_t *type, cfg_obj_t **ret) {
-	isc_result_t result;
+void
+cfg_tuple_create(cfg_parser_t *pctx, const cfg_type_t *type, cfg_obj_t **ret) {
 	const cfg_tuplefielddef_t *fields;
 	const cfg_tuplefielddef_t *f;
 	cfg_obj_t *obj = NULL;
@@ -322,21 +323,14 @@ cfg_create_tuple(cfg_parser_t *pctx, const cfg_type_t *type, cfg_obj_t **ret) {
 		nfields++;
 	}
 
-	CHECK(cfg_create_obj(pctx->mctx, cfg_parser_currentfile(pctx),
-			     pctx->line, type, &obj));
+	cfg_obj_create(pctx->mctx, cfg_parser_currentfile(pctx), pctx->line,
+		       type, &obj);
 	obj->value.tuple = isc_mem_cget(pctx->mctx, nfields,
 					sizeof(cfg_obj_t *));
 	for (f = fields, i = 0; f->name != NULL; f++, i++) {
 		obj->value.tuple[i] = NULL;
 	}
 	*ret = obj;
-	return ISC_R_SUCCESS;
-
-cleanup:
-	if (obj != NULL) {
-		isc_mem_put(pctx->mctx, obj, sizeof(*obj));
-	}
-	return result;
 }
 
 isc_result_t
@@ -353,7 +347,7 @@ cfg_parse_tuple(cfg_parser_t *pctx, const cfg_type_t *type, cfg_obj_t **ret) {
 
 	fields = type->of;
 
-	CHECK(cfg_create_tuple(pctx, type, &obj));
+	cfg_tuple_create(pctx, type, &obj);
 	for (f = fields, i = 0; f->name != NULL; f++, i++) {
 		CHECK(cfg_parse_obj(pctx, f->type, &obj->value.tuple[i]));
 	}
@@ -519,9 +513,8 @@ static cfg_type_t cfg_type_filelist = { "filelist",    NULL,
 					print_list,    NULL,
 					&cfg_rep_list, &cfg_type_qstring };
 
-static isc_result_t
+static void
 parser_create(isc_mem_t *mctx, cfg_parser_t **ret) {
-	isc_result_t result;
 	cfg_parser_t *pctx;
 	isc_lexspecials_t specials;
 
@@ -562,24 +555,12 @@ parser_create(isc_mem_t *mctx, cfg_parser_t **ret) {
 						 ISC_LEXCOMMENT_CPLUSPLUS |
 						 ISC_LEXCOMMENT_SHELL);
 
-	CHECK(cfg_create_list(pctx->mctx, cfg_parser_currentfile(pctx),
-			      pctx->line, &cfg_type_filelist,
-			      &pctx->open_files));
-	CHECK(cfg_create_list(pctx->mctx, cfg_parser_currentfile(pctx),
-			      pctx->line, &cfg_type_filelist,
-			      &pctx->closed_files));
+	create_list(pctx->mctx, cfg_parser_currentfile(pctx), pctx->line,
+		    &cfg_type_filelist, &pctx->open_files);
+	create_list(pctx->mctx, cfg_parser_currentfile(pctx), pctx->line,
+		    &cfg_type_filelist, &pctx->closed_files);
 
 	*ret = pctx;
-	return ISC_R_SUCCESS;
-
-cleanup:
-	if (pctx->lexer != NULL) {
-		isc_lex_destroy(&pctx->lexer);
-	}
-	CLEANUP_OBJ(pctx->open_files);
-	CLEANUP_OBJ(pctx->closed_files);
-	isc_mem_putanddetach(&pctx->mctx, pctx, sizeof(*pctx));
-	return result;
 }
 
 static void
@@ -616,8 +597,8 @@ parser_openfile(cfg_parser_t *pctx, const char *filename) {
 		goto cleanup;
 	}
 
-	CHECK(create_string(pctx, filename, &cfg_type_qstring, &stringobj));
-	CHECK(create_listelt(pctx->mctx, &elt));
+	create_string(pctx, filename, &cfg_type_qstring, &stringobj);
+	create_listelt(pctx->open_files, &elt);
 	elt->obj = stringobj;
 	ISC_LIST_APPEND(pctx->open_files->value.list, elt, link);
 
@@ -680,7 +661,7 @@ cfg_parse_file(isc_mem_t *mctx, const char *filename, const cfg_type_t *type,
 	REQUIRE(ret != NULL && *ret == NULL);
 	REQUIRE_PCTX_FLAGS(flags);
 
-	CHECK(parser_create(mctx, &pctx));
+	parser_create(mctx, &pctx);
 	pctx->flags = flags;
 
 	CHECK(parser_openfile(pctx, filename));
@@ -714,7 +695,7 @@ cfg_parse_buffer(isc_mem_t *mctx, isc_buffer_t *buffer, const char *file,
 	REQUIRE(ret != NULL && *ret == NULL);
 	REQUIRE_PCTX_FLAGS(flags);
 
-	CHECK(parser_create(mctx, &pctx));
+	parser_create(mctx, &pctx);
 	CHECK(isc_lex_openbuffer(pctx->lexer, buffer));
 
 	pctx->buf_name = file;
@@ -745,8 +726,9 @@ cfg_parse_void(cfg_parser_t *pctx, const cfg_type_t *type, cfg_obj_t **ret) {
 
 	UNUSED(type);
 
-	return cfg_create_obj(pctx->mctx, cfg_parser_currentfile(pctx),
-			      pctx->line, &cfg_type_void, ret);
+	cfg_obj_create(pctx->mctx, cfg_parser_currentfile(pctx), pctx->line,
+		       &cfg_type_void, ret);
+	return ISC_R_SUCCESS;
 }
 
 void
@@ -804,8 +786,8 @@ cfg_parse_percentage(cfg_parser_t *pctx, const cfg_type_t *type,
 		return ISC_R_UNEXPECTEDTOKEN;
 	}
 
-	CHECK(cfg_create_obj(pctx->mctx, cfg_parser_currentfile(pctx),
-			     pctx->line, &cfg_type_percentage, &obj));
+	cfg_obj_create(pctx->mctx, cfg_parser_currentfile(pctx), pctx->line,
+		       &cfg_type_percentage, &obj);
 	obj->value.uint32 = (uint32_t)percent;
 	*ret = obj;
 
@@ -878,8 +860,8 @@ cfg_parse_fixedpoint(cfg_parser_t *pctx, const cfg_type_t *type,
 		return ISC_R_UNEXPECTEDTOKEN;
 	}
 
-	CHECK(cfg_create_obj(pctx->mctx, cfg_parser_currentfile(pctx),
-			     pctx->line, &cfg_type_fixedpoint, &obj));
+	cfg_obj_create(pctx->mctx, cfg_parser_currentfile(pctx), pctx->line,
+		       &cfg_type_fixedpoint, &obj);
 
 	obj->value.uint32 = strtoul(p, NULL, 10) * 100;
 	switch (n3) {
@@ -945,8 +927,8 @@ cfg_parse_uint32(cfg_parser_t *pctx, const cfg_type_t *type, cfg_obj_t **ret) {
 		return ISC_R_UNEXPECTEDTOKEN;
 	}
 
-	CHECK(cfg_create_obj(pctx->mctx, cfg_parser_currentfile(pctx),
-			     pctx->line, &cfg_type_uint32, &obj));
+	cfg_obj_create(pctx->mctx, cfg_parser_currentfile(pctx), pctx->line,
+		       &cfg_type_uint32, &obj);
 
 	obj->value.uint32 = pctx->token.value.as_ulong;
 	*ret = obj;
@@ -1167,8 +1149,8 @@ parse_duration(cfg_parser_t *pctx, cfg_obj_t **ret) {
 		goto cleanup;
 	}
 
-	CHECK(cfg_create_obj(pctx->mctx, cfg_parser_currentfile(pctx),
-			     pctx->line, &cfg_type_duration, &obj));
+	cfg_obj_create(pctx->mctx, cfg_parser_currentfile(pctx), pctx->line,
+		       &cfg_type_duration, &obj);
 	obj->value.duration = duration;
 	*ret = obj;
 
@@ -1223,8 +1205,8 @@ cfg_parse_duration_or_unlimited(cfg_parser_t *pctx, const cfg_type_t *type,
 		duration.iso8601 = false;
 		duration.unlimited = true;
 
-		CHECK(cfg_create_obj(pctx->mctx, cfg_parser_currentfile(pctx),
-				     pctx->line, &cfg_type_duration, &obj));
+		cfg_obj_create(pctx->mctx, cfg_parser_currentfile(pctx),
+			       pctx->line, &cfg_type_duration, &obj);
 		obj->value.duration = duration;
 		*ret = obj;
 		return ISC_R_SUCCESS;
@@ -1269,28 +1251,21 @@ cfg_type_t cfg_type_duration_or_unlimited = { "duration_or_unlimited",
  */
 
 /* Create a string object from a null-terminated C string. */
-static isc_result_t
+static void
 create_string(cfg_parser_t *pctx, const char *contents, const cfg_type_t *type,
 	      cfg_obj_t **ret) {
-	isc_result_t result;
 	cfg_obj_t *obj = NULL;
 	int len;
 
-	CHECK(cfg_create_obj(pctx->mctx, cfg_parser_currentfile(pctx),
-			     pctx->line, type, &obj));
+	cfg_obj_create(pctx->mctx, cfg_parser_currentfile(pctx), pctx->line,
+		       type, &obj);
 	len = strlen(contents);
 	obj->value.string.length = len;
 	obj->value.string.base = isc_mem_get(pctx->mctx, len + 1);
-	if (obj->value.string.base == 0) {
-		isc_mem_put(pctx->mctx, obj, sizeof(*obj));
-		return ISC_R_NOMEMORY;
-	}
 	memmove(obj->value.string.base, contents, len);
 	obj->value.string.base[len] = '\0';
 
 	*ret = obj;
-cleanup:
-	return result;
 }
 
 isc_result_t
@@ -1307,7 +1282,9 @@ cfg_parse_qstring(cfg_parser_t *pctx, const cfg_type_t *type, cfg_obj_t **ret) {
 		cfg_parser_error(pctx, CFG_LOG_NEAR, "expected quoted string");
 		return ISC_R_UNEXPECTEDTOKEN;
 	}
-	return create_string(pctx, TOKEN_STRING(pctx), &cfg_type_qstring, ret);
+	create_string(pctx, TOKEN_STRING(pctx), &cfg_type_qstring, ret);
+	return ISC_R_SUCCESS;
+
 cleanup:
 	return result;
 }
@@ -1324,7 +1301,9 @@ parse_ustring(cfg_parser_t *pctx, const cfg_type_t *type, cfg_obj_t **ret) {
 				 "expected unquoted string");
 		return ISC_R_UNEXPECTEDTOKEN;
 	}
-	return create_string(pctx, TOKEN_STRING(pctx), &cfg_type_ustring, ret);
+	create_string(pctx, TOKEN_STRING(pctx), &cfg_type_ustring, ret);
+	return ISC_R_SUCCESS;
+
 cleanup:
 	return result;
 }
@@ -1339,7 +1318,9 @@ cfg_parse_astring(cfg_parser_t *pctx, const cfg_type_t *type, cfg_obj_t **ret) {
 	UNUSED(type);
 
 	CHECK(cfg_getstringtoken(pctx));
-	return create_string(pctx, TOKEN_STRING(pctx), &cfg_type_qstring, ret);
+	create_string(pctx, TOKEN_STRING(pctx), &cfg_type_qstring, ret);
+	return ISC_R_SUCCESS;
+
 cleanup:
 	return result;
 }
@@ -1354,7 +1335,9 @@ cfg_parse_sstring(cfg_parser_t *pctx, const cfg_type_t *type, cfg_obj_t **ret) {
 	UNUSED(type);
 
 	CHECK(cfg_getstringtoken(pctx));
-	return create_string(pctx, TOKEN_STRING(pctx), &cfg_type_sstring, ret);
+	create_string(pctx, TOKEN_STRING(pctx), &cfg_type_sstring, ret);
+	return ISC_R_SUCCESS;
+
 cleanup:
 	return result;
 }
@@ -1370,8 +1353,9 @@ parse_btext(cfg_parser_t *pctx, const cfg_type_t *type, cfg_obj_t **ret) {
 		cfg_parser_error(pctx, CFG_LOG_NEAR, "expected bracketed text");
 		return ISC_R_UNEXPECTEDTOKEN;
 	}
-	return create_string(pctx, TOKEN_STRING(pctx), &cfg_type_bracketed_text,
-			     ret);
+	create_string(pctx, TOKEN_STRING(pctx), &cfg_type_bracketed_text, ret);
+	return ISC_R_SUCCESS;
+
 cleanup:
 	return result;
 }
@@ -1640,7 +1624,7 @@ parse_geoip(cfg_parser_t *pctx, const cfg_type_t *type, cfg_obj_t **ret) {
 	cfg_obj_t *obj = NULL;
 	const cfg_tuplefielddef_t *fields = type->of;
 
-	CHECK(cfg_create_tuple(pctx, type, &obj));
+	cfg_tuple_create(pctx, type, &obj);
 	CHECK(cfg_parse_void(pctx, NULL, &obj->value.tuple[0]));
 
 	/* Parse the optional "db" field. */
@@ -1887,18 +1871,15 @@ cfg_parse_boolean(cfg_parser_t *pctx, const cfg_type_t *type, cfg_obj_t **ret) {
 		goto bad_boolean;
 	}
 
-	CHECK(cfg_create_obj(pctx->mctx, cfg_parser_currentfile(pctx),
-			     pctx->line, &cfg_type_boolean, &obj));
+	cfg_obj_create(pctx->mctx, cfg_parser_currentfile(pctx), pctx->line,
+		       &cfg_type_boolean, &obj);
 	obj->value.boolean = value;
 	*ret = obj;
-	return result;
+	return ISC_R_SUCCESS;
 
 bad_boolean:
 	cfg_parser_error(pctx, CFG_LOG_NEAR, "boolean expected");
 	return ISC_R_UNEXPECTEDTOKEN;
-
-cleanup:
-	return result;
 }
 
 void
@@ -1921,73 +1902,64 @@ cfg_type_t cfg_type_boolean = { "boolean",	   cfg_parse_boolean,
  * Lists.
  */
 
-isc_result_t
-cfg_create_list(isc_mem_t *mctx, cfg_obj_t *file, size_t line,
-		const cfg_type_t *type, cfg_obj_t **obj) {
-	isc_result_t result;
-
+static void
+create_list(isc_mem_t *mctx, cfg_obj_t *file, size_t line,
+	    const cfg_type_t *type, cfg_obj_t **obj) {
 	REQUIRE(mctx != NULL);
 	REQUIRE(type != NULL);
 	REQUIRE(obj != NULL && *obj == NULL);
 
-	CHECK(cfg_create_obj(mctx, file, line, type, obj));
+	cfg_obj_create(mctx, file, line, type, obj);
 	ISC_LIST_INIT((*obj)->value.list);
-cleanup:
-	return result;
-}
-
-static isc_result_t
-create_listelt(isc_mem_t *mctx, cfg_listelt_t **eltp) {
-	cfg_listelt_t *elt;
-
-	elt = isc_mem_get(mctx, sizeof(*elt));
-	elt->obj = NULL;
-	ISC_LINK_INIT(elt, link);
-	*eltp = elt;
-	return ISC_R_SUCCESS;
 }
 
 static void
-free_listelt(isc_mem_t *mctx, cfg_listelt_t *elt) {
+create_listelt(cfg_obj_t *list, cfg_listelt_t **eltp) {
+	cfg_listelt_t *elt = isc_mem_get(list->mctx, sizeof(*elt));
+	*elt = (cfg_listelt_t){ .link = ISC_LINK_INITIALIZER };
+	*eltp = elt;
+}
+
+static void
+free_listelt(cfg_obj_t *list, cfg_listelt_t **eltp) {
+	cfg_listelt_t *elt = *eltp;
+	*eltp = NULL;
+
 	if (elt->obj != NULL) {
 		cfg_obj_detach(&elt->obj);
 	}
-	isc_mem_put(mctx, elt, sizeof(*elt));
+	isc_mem_put(list->mctx, elt, sizeof(*elt));
 }
 
 static void
 free_list(cfg_obj_t *obj) {
 	ISC_LIST_FOREACH(obj->value.list, elt, link) {
-		free_listelt(obj->mctx, elt);
+		free_listelt(obj, &elt);
 	}
 }
 
 isc_result_t
-cfg_parse_listelt(cfg_parser_t *pctx, const cfg_type_t *elttype,
-		  cfg_listelt_t **ret) {
+cfg_parse_listelt(cfg_parser_t *pctx, cfg_obj_t *list,
+		  const cfg_type_t *elttype, cfg_listelt_t **ret) {
 	isc_result_t result;
 	cfg_listelt_t *elt = NULL;
 	cfg_obj_t *value = NULL;
 
 	REQUIRE(pctx != NULL);
+	REQUIRE(list != NULL);
 	REQUIRE(elttype != NULL);
 	REQUIRE(ret != NULL && *ret == NULL);
 
-	CHECK(create_listelt(pctx->mctx, &elt));
-
 	result = cfg_parse_obj(pctx, elttype, &value);
 	if (result != ISC_R_SUCCESS) {
-		goto cleanup;
+		return result;
 	}
 
+	create_listelt(list, &elt);
 	elt->obj = value;
-
 	*ret = elt;
-	return ISC_R_SUCCESS;
 
-cleanup:
-	isc_mem_put(pctx->mctx, elt, sizeof(*elt));
-	return result;
+	return ISC_R_SUCCESS;
 }
 
 /*
@@ -2001,8 +1973,8 @@ parse_list(cfg_parser_t *pctx, const cfg_type_t *listtype, cfg_obj_t **ret) {
 	isc_result_t result;
 	cfg_listelt_t *elt = NULL;
 
-	CHECK(cfg_create_list(pctx->mctx, cfg_parser_currentfile(pctx),
-			      pctx->line, listtype, &listobj));
+	create_list(pctx->mctx, cfg_parser_currentfile(pctx), pctx->line,
+		    listtype, &listobj);
 
 	for (;;) {
 		CHECK(cfg_peektoken(pctx, 0));
@@ -2011,7 +1983,7 @@ parse_list(cfg_parser_t *pctx, const cfg_type_t *listtype, cfg_obj_t **ret) {
 		{
 			break;
 		}
-		CHECK(cfg_parse_listelt(pctx, listof, &elt));
+		CHECK(cfg_parse_listelt(pctx, listobj, listof, &elt));
 		CHECK(parse_semicolon(pctx));
 		ISC_LIST_APPEND(listobj->value.list, elt, link);
 		elt = NULL;
@@ -2021,7 +1993,7 @@ parse_list(cfg_parser_t *pctx, const cfg_type_t *listtype, cfg_obj_t **ret) {
 
 cleanup:
 	if (elt != NULL) {
-		free_listelt(pctx->mctx, elt);
+		free_listelt(listobj, &elt);
 	}
 	CLEANUP_OBJ(listobj);
 	return result;
@@ -2097,8 +2069,8 @@ cfg_parse_spacelist(cfg_parser_t *pctx, const cfg_type_t *listtype,
 
 	listof = listtype->of;
 
-	CHECK(cfg_create_list(pctx->mctx, cfg_parser_currentfile(pctx),
-			      pctx->line, listtype, &listobj));
+	create_list(pctx->mctx, cfg_parser_currentfile(pctx), pctx->line,
+		    listtype, &listobj);
 
 	for (;;) {
 		cfg_listelt_t *elt = NULL;
@@ -2109,7 +2081,7 @@ cfg_parse_spacelist(cfg_parser_t *pctx, const cfg_type_t *listtype,
 		{
 			break;
 		}
-		CHECK(cfg_parse_listelt(pctx, listof, &elt));
+		CHECK(cfg_parse_listelt(pctx, listobj, listof, &elt));
 		ISC_LIST_APPEND(listobj->value.list, elt, link);
 	}
 	*ret = listobj;
@@ -2156,6 +2128,12 @@ const cfg_listelt_t *
 cfg_list_next(const cfg_listelt_t *elt) {
 	REQUIRE(elt != NULL);
 	return ISC_LIST_NEXT(elt, link);
+}
+
+void
+cfg_list_unlink(cfg_obj_t *list, cfg_listelt_t *elt) {
+	ISC_LIST_UNLINK(list->value.list, elt, link);
+	free_listelt(list, &elt);
 }
 
 /*
@@ -2218,14 +2196,11 @@ cfg_parse_mapbody(cfg_parser_t *pctx, const cfg_type_t *type, cfg_obj_t **ret) {
 
 	clausesets = type->of;
 
-	CHECK(create_map(pctx, type, &obj));
+	create_map(pctx, type, &obj);
 
 	obj->value.map.clausesets = clausesets;
 
 	for (;;) {
-		cfg_listelt_t *elt;
-
-	redo:
 		/*
 		 * Parse the option name and see if it is known.
 		 */
@@ -2287,7 +2262,7 @@ cfg_parse_mapbody(cfg_parser_t *pctx, const cfg_type_t *type, cfg_obj_t **ret) {
 			cfg_obj_detach(&includename);
 			globfree(&g);
 
-			goto redo;
+			continue;
 		}
 
 		clause = NULL;
@@ -2364,26 +2339,25 @@ cfg_parse_mapbody(cfg_parser_t *pctx, const cfg_type_t *type, cfg_obj_t **ret) {
 		if ((clause->flags & CFG_CLAUSEFLAG_MULTI) != 0) {
 			/* Multivalued clause */
 			cfg_obj_t *listobj = NULL;
+			cfg_listelt_t *elt = NULL;
 
-			CHECK(cfg_create_list(
-				pctx->mctx, cfg_parser_currentfile(pctx),
-				pctx->line, &cfg_type_implicitlist, &listobj));
+			create_list(pctx->mctx, cfg_parser_currentfile(pctx),
+				    pctx->line, &cfg_type_implicitlist,
+				    &listobj);
 			symval.as_pointer = listobj;
 			result = isc_symtab_define_and_return(
 				obj->value.map.symtab, clause->name,
 				SYMTAB_DUMMY_TYPE, symval, isc_symexists_reject,
 				&symval);
-
 			if (result == ISC_R_EXISTS) {
 				CLEANUP_OBJ(listobj);
 				listobj = symval.as_pointer;
 			}
 
-			elt = NULL;
-			CHECK(cfg_parse_listelt(pctx, clause->type, &elt));
-			CHECK(parse_semicolon(pctx));
-
+			CHECK(cfg_parse_listelt(pctx, listobj, clause->type,
+						&elt));
 			ISC_LIST_APPEND(listobj->value.list, elt, link);
+			CHECK(parse_semicolon(pctx));
 		} else {
 			/* Single-valued clause */
 			bool chdir = ((clause->flags & CFG_CLAUSEFLAG_CHDIR) !=
@@ -2840,8 +2814,8 @@ parse_token(cfg_parser_t *pctx, const cfg_type_t *type, cfg_obj_t **ret) {
 
 	UNUSED(type);
 
-	CHECK(cfg_create_obj(pctx->mctx, cfg_parser_currentfile(pctx),
-			     pctx->line, &cfg_type_token, &obj));
+	cfg_obj_create(pctx->mctx, cfg_parser_currentfile(pctx), pctx->line,
+		       &cfg_type_token, &obj);
 	CHECK(cfg_gettoken(pctx, CFG_LEXOPT_QSTRING));
 	if (pctx->token.type == isc_tokentype_eof) {
 		cfg_ungettoken(pctx);
@@ -2880,8 +2854,8 @@ parse_unsupported(cfg_parser_t *pctx, const cfg_type_t *type, cfg_obj_t **ret) {
 	isc_result_t result;
 	int braces = 0;
 
-	CHECK(cfg_create_list(pctx->mctx, cfg_parser_currentfile(pctx),
-			      pctx->line, type, &listobj));
+	create_list(pctx->mctx, cfg_parser_currentfile(pctx), pctx->line, type,
+		    &listobj);
 
 	for (;;) {
 		cfg_listelt_t *elt = NULL;
@@ -2905,7 +2879,7 @@ parse_unsupported(cfg_parser_t *pctx, const cfg_type_t *type, cfg_obj_t **ret) {
 			goto cleanup;
 		}
 
-		CHECK(cfg_parse_listelt(pctx, &cfg_type_token, &elt));
+		CHECK(cfg_parse_listelt(pctx, listobj, &cfg_type_token, &elt));
 		ISC_LIST_APPEND(listobj->value.list, elt, link);
 	}
 	INSIST(braces == 0);
@@ -3112,8 +3086,8 @@ parse_netaddr(cfg_parser_t *pctx, const cfg_type_t *type, cfg_obj_t **ret) {
 	isc_netaddr_t netaddr;
 	unsigned int flags = *(const unsigned int *)type->of;
 
-	CHECK(cfg_create_obj(pctx->mctx, cfg_parser_currentfile(pctx),
-			     pctx->line, type, &obj));
+	cfg_obj_create(pctx->mctx, cfg_parser_currentfile(pctx), pctx->line,
+		       type, &obj);
 	CHECK(cfg_parse_rawaddr(pctx, flags, &netaddr));
 	isc_sockaddr_fromnetaddr(&obj->value.sockaddr, &netaddr, 0);
 	*ret = obj;
@@ -3242,8 +3216,8 @@ cfg_parse_netprefix(cfg_parser_t *pctx, const cfg_type_t *type,
 		}
 		prefixlen = addrlen;
 	}
-	CHECK(cfg_create_obj(pctx->mctx, cfg_parser_currentfile(pctx),
-			     pctx->line, &cfg_type_netprefix, &obj));
+	cfg_obj_create(pctx->mctx, cfg_parser_currentfile(pctx), pctx->line,
+		       &cfg_type_netprefix, &obj);
 	obj->value.netprefix.address = netaddr;
 	obj->value.netprefix.prefixlen = prefixlen;
 	*ret = obj;
@@ -3371,8 +3345,8 @@ parse_sockaddrsub(cfg_parser_t *pctx, const cfg_type_t *type, int flags,
 		goto cleanup;
 	}
 
-	CHECK(cfg_create_obj(pctx->mctx, cfg_parser_currentfile(pctx),
-			     pctx->line, type, &obj));
+	cfg_obj_create(pctx->mctx, cfg_parser_currentfile(pctx), pctx->line,
+		       type, &obj);
 	if (have_tls == 1) {
 		obj->value.sockaddrtls.tls = tls;
 	}
@@ -3761,8 +3735,8 @@ cfg_obj_line(const cfg_obj_t *obj) {
 	return obj->line;
 }
 
-isc_result_t
-cfg_create_obj(isc_mem_t *mctx, cfg_obj_t *file, size_t line,
+void
+cfg_obj_create(isc_mem_t *mctx, cfg_obj_t *file, size_t line,
 	       const cfg_type_t *type, cfg_obj_t **ret) {
 	cfg_obj_t *obj;
 
@@ -3780,8 +3754,6 @@ cfg_create_obj(isc_mem_t *mctx, cfg_obj_t *file, size_t line,
 	}
 
 	*ret = obj;
-
-	return ISC_R_SUCCESS;
 }
 
 static void
@@ -3796,27 +3768,19 @@ map_symtabitem_destroy(char *key, unsigned int type, isc_symvalue_t symval,
 	cfg_obj_detach(&obj);
 }
 
-static isc_result_t
+static void
 create_map(cfg_parser_t *pctx, const cfg_type_t *type, cfg_obj_t **ret) {
-	isc_result_t result;
 	isc_symtab_t *symtab = NULL;
 	cfg_obj_t *obj = NULL;
 
-	CHECK(cfg_create_obj(pctx->mctx, cfg_parser_currentfile(pctx),
-			     pctx->line, type, &obj));
+	cfg_obj_create(pctx->mctx, cfg_parser_currentfile(pctx), pctx->line,
+		       type, &obj);
 	isc_symtab_create(pctx->mctx, map_symtabitem_destroy, pctx, false,
 			  &symtab);
 	obj->value.map.symtab = symtab;
 	obj->value.map.id = NULL;
 
 	*ret = obj;
-	return ISC_R_SUCCESS;
-
-cleanup:
-	if (obj != NULL) {
-		isc_mem_put(pctx->mctx, obj, sizeof(*obj));
-	}
-	return result;
 }
 
 static void
@@ -3834,7 +3798,7 @@ cfg_obj_istype(const cfg_obj_t *obj, const cfg_type_t *type) {
 }
 
 /*
- * Destroy 'obj', a configuration object created in 'pctx'.
+ * Destroy 'obj'.
  */
 static void
 cfg__obj_destroy(cfg_obj_t *obj) {
@@ -3896,8 +3860,6 @@ cfg_map_add(cfg_obj_t *mapobj, cfg_obj_t *obj, const char *clausename) {
 	isc_result_t result = ISC_R_SUCCESS;
 	const cfg_map_t *map = NULL;
 	isc_symvalue_t symval;
-	cfg_obj_t *destobj = NULL;
-	cfg_listelt_t *elt = NULL;
 	const cfg_clausedef_t *const *clauseset = NULL;
 	const cfg_clausedef_t *clause = NULL;
 
@@ -3925,10 +3887,12 @@ breakout:
 				   &symval);
 	if (result == ISC_R_NOTFOUND) {
 		if ((clause->flags & CFG_CLAUSEFLAG_MULTI) != 0) {
-			CHECK(cfg_create_list(mapobj->mctx, obj->file,
-					      obj->line, &cfg_type_implicitlist,
-					      &destobj));
-			CHECK(create_listelt(mapobj->mctx, &elt));
+			cfg_obj_t *destobj = NULL;
+			cfg_listelt_t *elt = NULL;
+
+			create_list(mapobj->mctx, obj->file, obj->line,
+				    &cfg_type_implicitlist, &destobj);
+			create_listelt(destobj, &elt);
 			cfg_obj_attach(obj, &elt->obj);
 			ISC_LIST_APPEND(destobj->value.list, elt, link);
 			symval.as_pointer = destobj;
@@ -3941,27 +3905,19 @@ breakout:
 					   isc_symexists_reject);
 		INSIST(result == ISC_R_SUCCESS);
 	} else {
-		cfg_obj_t *destobj2 = symval.as_pointer;
+		cfg_obj_t *destobj = symval.as_pointer;
+		cfg_listelt_t *elt = NULL;
 
 		INSIST(result == ISC_R_SUCCESS);
 
-		if (destobj2->type == &cfg_type_implicitlist) {
-			CHECK(create_listelt(mapobj->mctx, &elt));
+		if (destobj->type == &cfg_type_implicitlist) {
+			create_listelt(destobj, &elt);
 			cfg_obj_attach(obj, &elt->obj);
-			ISC_LIST_APPEND(destobj2->value.list, elt, link);
+			ISC_LIST_APPEND(destobj->value.list, elt, link);
 		} else {
 			result = ISC_R_EXISTS;
 		}
 	}
-
-	destobj = NULL;
-	elt = NULL;
-
-cleanup:
-	if (elt != NULL) {
-		free_listelt(mapobj->mctx, elt);
-	}
-	CLEANUP_OBJ(destobj);
 
 	return result;
 }

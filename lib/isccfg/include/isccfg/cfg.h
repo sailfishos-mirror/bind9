@@ -441,6 +441,13 @@ cfg_list_length(const cfg_obj_t *obj, bool recurse);
  * all contained lists.
  */
 
+void
+cfg_list_unlink(cfg_obj_t *list, cfg_listelt_t *elt);
+/*%<
+ * Unlink 'elt' from the list object 'list', and free the memory associated
+ * with 'elt'.
+ */
+
 cfg_obj_t *
 cfg_listelt_value(const cfg_listelt_t *elt);
 /*%<

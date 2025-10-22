@@ -349,8 +349,8 @@ cfg_ungettoken(cfg_parser_t *pctx);
 
 #define CFG_LEXOPT_QSTRING (ISC_LEXOPT_QSTRING | ISC_LEXOPT_QSTRINGMULTILINE)
 
-isc_result_t
-cfg_create_obj(isc_mem_t *mctx, cfg_obj_t *file, size_t line,
+void
+cfg_obj_create(isc_mem_t *mctx, cfg_obj_t *file, size_t line,
 	       const cfg_type_t *type, cfg_obj_t **ret);
 
 void
@@ -419,8 +419,8 @@ isc_result_t
 cfg_parse_special(cfg_parser_t *pctx, int special);
 /*%< Parse a required special character 'special'. */
 
-isc_result_t
-cfg_create_tuple(cfg_parser_t *pctx, const cfg_type_t *type, cfg_obj_t **objp);
+void
+cfg_tuple_create(cfg_parser_t *pctx, const cfg_type_t *type, cfg_obj_t **objp);
 
 isc_result_t
 cfg_parse_tuple(cfg_parser_t *pctx, const cfg_type_t *type, cfg_obj_t **ret);
@@ -432,12 +432,8 @@ void
 cfg_doc_tuple(cfg_printer_t *pctx, const cfg_type_t *type);
 
 isc_result_t
-cfg_create_list(isc_mem_t *mctx, cfg_obj_t *file, size_t line,
-		const cfg_type_t *type, cfg_obj_t **objp);
-
-isc_result_t
-cfg_parse_listelt(cfg_parser_t *pctx, const cfg_type_t *elttype,
-		  cfg_listelt_t **ret);
+cfg_parse_listelt(cfg_parser_t *pctx, cfg_obj_t *list,
+		  const cfg_type_t *elttype, cfg_listelt_t **ret);
 
 isc_result_t
 cfg_parse_bracketed_list(cfg_parser_t *pctx, const cfg_type_t *type,
