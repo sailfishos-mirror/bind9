@@ -51,8 +51,7 @@ isc_random32(void) {
 #if FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
 	/*
 	 * A fixed stream of numbers helps with problem reproduction when
-	 * fuzzing.  The first result needs to be non-zero as expected by
-	 * random_test.c (it starts with ISC_RANDOM_BUFSIZE, see above).
+	 * fuzzing.
 	 */
 	return (uint32_t)(isc__random_pos++);
 #endif /* if FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION */
