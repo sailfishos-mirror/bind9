@@ -730,7 +730,7 @@ dns_notify_find_address(dns_notify_t *notify) {
 
 	result = dns_adb_createfind(adb, loop, process_notify_adb_event, notify,
 				    &notify->ns, options, 0, view->dstport, 0,
-				    NULL, NULL, &notify->find);
+				    NULL, NULL, NULL, &notify->find);
 	dns_adb_detach(&adb);
 
 	/* Something failed? */
