@@ -77,6 +77,13 @@
 #include <dns/types.h>
 #include <dns/zt.h>
 
+/*
+ * These are opaque types that will be used by named to save
+ * newzones configuration in the view.
+ */
+typedef struct cfg_obj cfg_obj_t;
+typedef struct MDB_env MDB_env;
+
 struct dns_view {
 	/* Unlocked. */
 	unsigned int	   magic;
@@ -203,28 +210,26 @@ struct dns_view {
 	ISC_LINK(struct dns_view) link;
 	dns_viewlist_t *viewlist;
 
-	dns_zone_t *managed_keys;
-	dns_zone_t *redirect;
-	dns_name_t *redirectzone; /* points to
-				   * redirectfixed
-				   * when valid */
+	dns_zone_t     *managed_keys;
+	dns_zone_t     *redirect;
+	dns_name_t     *redirectzone; /* points to redirectfixed when valid */
 	dns_fixedname_t redirectfixed;
 
 	/*
-	 * File and configuration data for zones added at runtime
-	 * (only used in BIND9).
-	 *
-	 * XXX: This should be a pointer to an opaque type that
-	 * named implements.
+	 * File and configuration data for zones added at runtime.
 	 */
-	char	*new_zone_dir;
-	char	*new_zone_file;
-	char	*new_zone_db;
-	void	*new_zone_dbenv;
-	uint64_t new_zone_mapsize;
-	void	*new_zone_config;
-	void (*cfg_destroy)(void **);
-	isc_mutex_t new_zone_lock;
+	struct {
+		bool	   allowed;
+		char	  *dir;
+		char	  *file;
+		char	  *db;
+		MDB_env	  *dbenv;
+		uint64_t   mapsize;
+		cfg_obj_t *vconfig;
+		cfg_obj_t *nzconfig;
+		void (*cleanup)(dns_view_t *);
+		isc_mutex_t lock;
+	} newzone;
 
 	unsigned char secret[32]; /* Client secret */
 	unsigned int  v6bias;
@@ -1045,44 +1050,6 @@ dns_view_istrusted(dns_view_t *view, const dns_name_t *keyname,
  * \li	'view' is valid.
  * \li	'keyname' is valid.
  * \li	'dnskey' is valid.
- */
-
-isc_result_t
-dns_view_setnewzones(dns_view_t *view, bool allow, void *cfgctx,
-		     void (*cfg_destroy)(void **), uint64_t mapsize);
-/*%<
- * Set whether or not to allow zones to be created or deleted at runtime.
- *
- * If 'allow' is true, determines the filename into which new zone
- * configuration will be written.  Preserves the configuration context
- * (a pointer to which is passed in 'cfgctx') for use when parsing new
- * zone configuration.  'cfg_destroy' points to a callback routine to
- * destroy the configuration context when the view is destroyed.  (This
- * roundabout method is used in order to avoid libdns having a dependency
- * on libisccfg and libbind9.)
- *
- * If 'allow' is false, removes any existing references to
- * configuration context and frees any memory.
- *
- * Requires:
- * \li 'view' is valid.
- *
- * Returns:
- * \li ISC_R_SUCCESS
- * \li ISC_R_NOSPACE
- */
-
-void
-dns_view_setnewzonedir(dns_view_t *view, const char *dir);
-const char *
-dns_view_getnewzonedir(dns_view_t *view);
-/*%<
- * Set/get the path to the directory in which NZF or NZD files should
- * be stored. If the path was previously set to a non-NULL value,
- * the previous value is freed.
- *
- * Requires:
- * \li 'view' is valid.
  */
 
 void

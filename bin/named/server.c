@@ -302,18 +302,6 @@ typedef struct matching_view_ctx {
 } matching_view_ctx_t;
 
 /*%
- * Configuration context to retain for each view that allows
- * new zones to be added at runtime.
- */
-typedef struct ns_cfgctx {
-	isc_mem_t *mctx;
-	cfg_obj_t *config;
-	cfg_obj_t *vconfig;
-	cfg_obj_t *nzf_config;
-	cfg_aclconfctx_t *aclctx;
-} ns_cfgctx_t;
-
-/*%
  * A function to write out added-zone configuration to the new_zone_file
  * specified in 'view'. Maybe called by delete_zoneconf().
  */
@@ -509,9 +497,6 @@ find_maplist(const cfg_obj_t *config, const char *listname, const char *name);
 static isc_result_t
 add_keydata_zone(dns_view_t *view, const char *directory, isc_mem_t *mctx);
 
-static void
-newzone_cfgctx_destroy(void **cfgp);
-
 static isc_result_t
 putstr(isc_buffer_t **b, const char *str);
 
@@ -545,7 +530,7 @@ nzf_append(dns_view_t *view, const cfg_obj_t *zconfig);
 #endif /* ifdef HAVE_LMDB */
 
 static isc_result_t
-load_nzf(dns_view_t *view, ns_cfgctx_t *nzcfg);
+load_nzf(dns_view_t *view);
 
 /*%
  * Configure a single view ACL at '*aclp'.  Get its configuration from
@@ -2339,20 +2324,11 @@ catz_addmodzone_cb(void *arg) {
 	const cfg_obj_t *zlist = NULL;
 	cfg_obj_t *zoneconf = NULL;
 	cfg_obj_t *zoneobj = NULL;
-	ns_cfgctx_t *cfg = NULL;
 	dns_zone_t *zone = NULL;
+	dns_view_t *view = cz->view;
 
 	if (isc_loop_shuttingdown(isc_loop_get(isc_tid()))) {
 		goto cleanup;
-	}
-
-	/*
-	 * A non-empty 'catalog-zones' statement implies that 'allow-new-zones'
-	 * is true, so this is expected to be non-NULL.
-	 */
-	cfg = (ns_cfgctx_t *)cz->view->new_zone_config;
-	if (cfg == NULL) {
-		CHECK(ISC_R_FAILURE);
 	}
 
 	name = dns_catz_entry_getname(cz->entry);
@@ -2361,7 +2337,7 @@ catz_addmodzone_cb(void *arg) {
 	dns_name_totext(name, DNS_NAME_OMITFINALDOT, &namebuf);
 	isc_buffer_putuint8(&namebuf, 0);
 
-	result = dns_fwdtable_find(cz->view->fwdtable, name, &dnsforwarders);
+	result = dns_fwdtable_find(view->fwdtable, name, &dnsforwarders);
 	if (result == ISC_R_SUCCESS &&
 	    dnsforwarders->fwdpolicy == dns_fwdpolicy_only)
 	{
@@ -2374,7 +2350,7 @@ catz_addmodzone_cb(void *arg) {
 		goto cleanup;
 	}
 
-	result = dns_view_findzone(cz->view, name, DNS_ZTFIND_EXACT, &zone);
+	result = dns_view_findzone(view, name, DNS_ZTFIND_EXACT, &zone);
 
 	if (cz->mod) {
 		dns_catz_zone_t *parentcatz;
@@ -2455,7 +2431,7 @@ catz_addmodzone_cb(void *arg) {
 	confbuf = NULL;
 	result = dns_catz_generate_zonecfg(cz->origin, cz->entry, &confbuf);
 	if (result == ISC_R_SUCCESS) {
-		result = cfg_parse_buffer(cfg->mctx, confbuf, "catz", 0,
+		result = cfg_parse_buffer(isc_g_mctx, confbuf, "catz", 0,
 					  &cfg_type_addzoneconf, 0, &zoneconf);
 		isc_buffer_free(&confbuf);
 	}
@@ -2481,12 +2457,12 @@ catz_addmodzone_cb(void *arg) {
 
 	/* Mark view unfrozen so that zone can be added */
 	isc_loopmgr_pause();
-	dns_view_thaw(cz->view);
-	result = configure_zone(cfg->config, zoneobj, cfg->vconfig, cz->view,
-				&cz->cbd->server->viewlist,
-				&cz->cbd->server->kasplist, cfg->aclctx, true,
-				false, true, cz->mod);
-	dns_view_freeze(cz->view);
+	dns_view_thaw(view);
+	result = configure_zone(
+		cz->cbd->server->config, zoneobj, view->newzone.vconfig, view,
+		&cz->cbd->server->viewlist, &cz->cbd->server->kasplist,
+		cz->cbd->server->aclctx, true, false, true, cz->mod);
+	dns_view_freeze(view);
 	isc_loopmgr_resume();
 
 	if (result != ISC_R_SUCCESS) {
@@ -2498,7 +2474,7 @@ catz_addmodzone_cb(void *arg) {
 	}
 
 	/* Is it there yet? */
-	CHECK(dns_view_findzone(cz->view, name, DNS_ZTFIND_EXACT, &zone));
+	CHECK(dns_view_findzone(view, name, DNS_ZTFIND_EXACT, &zone));
 
 	/*
 	 * Load the zone from the master file.	If this fails, we'll
@@ -2520,7 +2496,7 @@ catz_addmodzone_cb(void *arg) {
 		}
 
 		/* Remove the zone from the zone table */
-		dns_view_delzone(cz->view, zone);
+		dns_view_delzone(view, zone);
 		goto cleanup;
 	}
 
@@ -2540,7 +2516,7 @@ cleanup:
 	}
 	dns_catz_entry_detach(cz->origin, &cz->entry);
 	dns_catz_zone_detach(&cz->origin);
-	dns_view_weakdetach(&cz->view);
+	dns_view_weakdetach(&view);
 	isc_mem_putanddetach(&cz->mctx, cz, sizeof(*cz));
 }
 
@@ -2707,7 +2683,6 @@ catz_reconfigure(dns_catz_entry_t *entry, void *arg1, void *arg2) {
 	char nameb[DNS_NAME_FORMATSIZE];
 	cfg_obj_t *zoneconf = NULL;
 	cfg_obj_t *zoneobj = NULL;
-	ns_cfgctx_t *cfg = NULL;
 	dns_zone_t *zone = NULL;
 	isc_result_t result;
 
@@ -2722,18 +2697,9 @@ catz_reconfigure(dns_catz_entry_t *entry, void *arg1, void *arg2) {
 		return;
 	}
 
-	/*
-	 * A non-empty 'catalog-zones' statement implies that 'allow-new-zones'
-	 * is true, so this is expected to be non-NULL.
-	 */
-	cfg = (ns_cfgctx_t *)view->new_zone_config;
-	if (cfg == NULL) {
-		CHECK(ISC_R_FAILURE);
-	}
-
 	result = dns_catz_generate_zonecfg(data->catz, entry, &confbuf);
 	if (result == ISC_R_SUCCESS) {
-		result = cfg_parse_buffer(cfg->mctx, confbuf, "catz", 0,
+		result = cfg_parse_buffer(isc_g_mctx, confbuf, "catz", 0,
 					  &cfg_type_addzoneconf, 0, &zoneconf);
 		isc_buffer_free(&confbuf);
 	}
@@ -2756,10 +2722,10 @@ catz_reconfigure(dns_catz_entry_t *entry, void *arg1, void *arg2) {
 	}
 	zoneobj = cfg_listelt_value(cfg_list_first(zlist));
 
-	result = configure_zone(data->config, zoneobj, cfg->vconfig, view,
-				&data->cbd->server->viewlist,
-				&data->cbd->server->kasplist, cfg->aclctx, true,
-				false, true, true);
+	result = configure_zone(
+		data->config, zoneobj, view->newzone.vconfig, view,
+		&data->cbd->server->viewlist, &data->cbd->server->kasplist,
+		data->cbd->server->aclctx, true, false, true, true);
 	if (result != ISC_R_SUCCESS) {
 		isc_log_write(NAMED_LOGCATEGORY_GENERAL, NAMED_LOGMODULE_SERVER,
 			      ISC_LOG_ERROR,
@@ -7156,22 +7122,82 @@ cleanup:
 	return result;
 }
 
+static void
+newzone_cleanup(dns_view_t *view) {
+	if (view->newzone.vconfig != NULL) {
+		cfg_obj_detach(&view->newzone.vconfig);
+	}
+	if (view->newzone.nzconfig != NULL) {
+		cfg_obj_detach(&view->newzone.nzconfig);
+	}
+
+#ifdef HAVE_LMDB
+	if (view->newzone.dbenv != NULL) {
+		mdb_env_close(view->newzone.dbenv);
+		view->newzone.dbenv = NULL;
+	}
+#endif /* ifdef HAVE_LMDB */
+
+	if (view->newzone.file != NULL) {
+		isc_mem_free(view->mctx, view->newzone.file);
+	}
+	if (view->newzone.dir != NULL) {
+		isc_mem_free(view->mctx, view->newzone.dir);
+	}
+	if (view->newzone.db != NULL) {
+		isc_mem_free(view->mctx, view->newzone.db);
+	}
+
+	view->newzone.allowed = false;
+}
+
 static isc_result_t
-setup_newzones(dns_view_t *view, cfg_obj_t *config, cfg_obj_t *vconfig,
-	       cfg_aclconfctx_t *aclctx) {
+nz_filename(dns_view_t *view, const char *suffix, char *buffer, size_t buflen) {
+	isc_result_t result;
+	char newbuf[PATH_MAX];
+
+	result = isc_file_sanitize(view->newzone.dir, view->name, suffix,
+				   buffer, buflen);
+	if (result != ISC_R_SUCCESS) {
+		return result;
+	} else if (view->newzone.dir == NULL || isc_file_exists(buffer)) {
+		return ISC_R_SUCCESS;
+	} else {
+		/* Save buffer */
+		strlcpy(newbuf, buffer, sizeof(newbuf));
+	}
+
+	/*
+	 * It isn't in the specified directory; check CWD.
+	 */
+	result = isc_file_sanitize(NULL, view->name, suffix, buffer, buflen);
+	if (result != ISC_R_SUCCESS || isc_file_exists(buffer)) {
+		return result;
+	}
+
+	/*
+	 * File does not exist in either 'directory' or CWD,
+	 * so use the path in 'directory'.
+	 */
+	strlcpy(buffer, newbuf, buflen);
+	return ISC_R_SUCCESS;
+}
+
+static isc_result_t
+setup_newzones(dns_view_t *view, cfg_obj_t *config, cfg_obj_t *vconfig) {
 	isc_result_t result = ISC_R_SUCCESS;
-	bool allow = false;
-	ns_cfgctx_t *nzcfg = NULL;
 	const cfg_obj_t *maps[4];
 	const cfg_obj_t *options = NULL, *voptions = NULL;
 	const cfg_obj_t *nz = NULL;
-	const cfg_obj_t *nzdir = NULL;
 	const char *dir = NULL;
 	const cfg_obj_t *obj = NULL;
+	char buffer[1024];
 	int i = 0;
-	uint64_t mapsize = 0ULL;
 
 	REQUIRE(config != NULL);
+
+	/* Unnecessary but harmless */
+	newzone_cleanup(view);
 
 	if (vconfig != NULL) {
 		voptions = cfg_tuple_get(vconfig, "options");
@@ -7187,11 +7213,26 @@ setup_newzones(dns_view_t *view, cfg_obj_t *config, cfg_obj_t *vconfig,
 
 	result = named_config_get(maps, "allow-new-zones", &nz);
 	if (result == ISC_R_SUCCESS) {
-		allow = cfg_obj_asboolean(nz);
+		view->newzone.allowed = cfg_obj_asboolean(nz);
 	}
-	result = named_config_get(maps, "new-zones-directory", &nzdir);
+	if (!view->newzone.allowed) {
+		/*
+		 * A non-empty catalog-zones statement implies allow-new-zones
+		 */
+		const cfg_obj_t *cz = NULL;
+		result = named_config_get(maps, "catalog-zones", &cz);
+		if (result == ISC_R_SUCCESS) {
+			const cfg_listelt_t *e =
+				cfg_list_first(cfg_tuple_get(cz, "zone list"));
+			if (e != NULL) {
+				view->newzone.allowed = true;
+			}
+		}
+	}
+
+	result = named_config_get(maps, "new-zones-directory", &obj);
 	if (result == ISC_R_SUCCESS) {
-		dir = cfg_obj_asstring(nzdir);
+		dir = cfg_obj_asstring(obj);
 		result = isc_file_isdirectory(dir);
 		if (result != ISC_R_SUCCESS) {
 			isc_log_write(DNS_LOGCATEGORY_SECURITY,
@@ -7209,78 +7250,86 @@ setup_newzones(dns_view_t *view, cfg_obj_t *config, cfg_obj_t *vconfig,
 			return ISC_R_NOPERM;
 		}
 
-		dns_view_setnewzonedir(view, dir);
+		view->newzone.dir = isc_mem_strdup(view->mctx, dir);
 	}
 
+	CHECK(nz_filename(view, "nzf", buffer, sizeof(buffer)));
+	view->newzone.file = isc_mem_strdup(view->mctx, buffer);
+
 #ifdef HAVE_LMDB
+	uint64_t mapsize = 0ULL;
+
+	obj = NULL;
 	result = named_config_get(maps, "lmdb-mapsize", &obj);
 	if (result == ISC_R_SUCCESS && obj != NULL) {
 		mapsize = cfg_obj_asuint64(obj);
 		if (mapsize < (1ULL << 20)) { /* 1 megabyte */
 			cfg_obj_log(obj, ISC_LOG_ERROR,
-				    "'lmdb-mapsize "
-				    "%" PRId64 "' "
-				    "is too small",
+				    "'lmdb-mapsize %" PRId64 "' is too small",
 				    mapsize);
 			return ISC_R_FAILURE;
 		} else if (mapsize > (1ULL << 40)) { /* 1 terabyte */
 			cfg_obj_log(obj, ISC_LOG_ERROR,
-				    "'lmdb-mapsize "
-				    "%" PRId64 "' "
-				    "is too large",
+				    "'lmdb-mapsize %" PRId64 "' is too large",
 				    mapsize);
 			return ISC_R_FAILURE;
 		}
 	}
-#else  /* ifdef HAVE_LMDB */
-	UNUSED(obj);
+
+	if (view->newzone.allowed) {
+		CHECK(nz_filename(view, "nzd", buffer, sizeof(buffer)));
+		view->newzone.db = isc_mem_strdup(view->mctx, buffer);
+
+		MDB_env *env = NULL;
+		int status = mdb_env_create(&env);
+		if (status != MDB_SUCCESS) {
+			isc_log_write(DNS_LOGCATEGORY_GENERAL,
+				      ISC_LOGMODULE_OTHER, ISC_LOG_ERROR,
+				      "mdb_env_create failed: %s",
+				      mdb_strerror(status));
+			CHECK(ISC_R_FAILURE);
+		}
+
+		if (mapsize != 0ULL) {
+			status = mdb_env_set_mapsize(env, mapsize);
+			if (status != MDB_SUCCESS) {
+				isc_log_write(DNS_LOGCATEGORY_GENERAL,
+					      ISC_LOGMODULE_OTHER,
+					      ISC_LOG_ERROR,
+					      "mdb_env_set_mapsize failed: %s",
+					      mdb_strerror(status));
+				CHECK(ISC_R_FAILURE);
+			}
+			view->newzone.mapsize = mapsize;
+		}
+
+		status = mdb_env_open(env, view->newzone.db, DNS_LMDB_FLAGS,
+				      0600);
+		if (status != MDB_SUCCESS) {
+			isc_log_write(DNS_LOGCATEGORY_GENERAL,
+				      ISC_LOGMODULE_OTHER, ISC_LOG_ERROR,
+				      "mdb_env_open of '%s' failed: %s",
+				      view->newzone.db, mdb_strerror(status));
+			CHECK(ISC_R_FAILURE);
+		}
+
+		view->newzone.dbenv = env;
+		env = NULL;
+	}
 #endif /* HAVE_LMDB */
 
-	/*
-	 * A non-empty catalog-zones statement implies allow-new-zones
-	 */
-	if (!allow) {
-		const cfg_obj_t *cz = NULL;
-		result = named_config_get(maps, "catalog-zones", &cz);
-		if (result == ISC_R_SUCCESS) {
-			const cfg_listelt_t *e =
-				cfg_list_first(cfg_tuple_get(cz, "zone list"));
-			if (e != NULL) {
-				allow = true;
-			}
-		}
-	}
-
-	if (!allow) {
-		dns_view_setnewzones(view, false, NULL, NULL, 0ULL);
-		return ISC_R_SUCCESS;
-	}
-
-	nzcfg = isc_mem_get(view->mctx, sizeof(*nzcfg));
-	*nzcfg = (ns_cfgctx_t){ 0 };
-
-	/*
-	 * We attach the parser that will be used for added zones to avoid
-	 * a shutdown race later.
-	 */
-	isc_mem_attach(view->mctx, &nzcfg->mctx);
-	cfg_aclconfctx_attach(aclctx, &nzcfg->aclctx);
-
-	result = dns_view_setnewzones(view, true, nzcfg, newzone_cfgctx_destroy,
-				      mapsize);
-	if (result != ISC_R_SUCCESS) {
-		cfg_aclconfctx_detach(&nzcfg->aclctx);
-		isc_mem_putanddetach(&nzcfg->mctx, nzcfg, sizeof(*nzcfg));
-		dns_view_setnewzones(view, false, NULL, NULL, 0ULL);
-		return result;
-	}
-
-	cfg_obj_attach(config, &nzcfg->config);
+	view->newzone.cleanup = newzone_cleanup;
 	if (vconfig != NULL) {
-		cfg_obj_attach(vconfig, &nzcfg->vconfig);
+		cfg_obj_attach(vconfig, &view->newzone.vconfig);
 	}
 
-	result = load_nzf(view, nzcfg);
+	if (view->newzone.allowed) {
+		result = load_nzf(view);
+	}
+	return result;
+
+cleanup:
+	newzone_cleanup(view);
 	return result;
 }
 
@@ -7330,11 +7379,10 @@ static isc_result_t
 configure_newzones(dns_view_t *view, cfg_obj_t *config, cfg_obj_t *vconfig,
 		   cfg_aclconfctx_t *aclctx, dns_kasplist_t *kasplist) {
 	isc_result_t result;
-	ns_cfgctx_t *nzctx = NULL;
 	const cfg_obj_t *zonelist = NULL;
 
-	nzctx = view->new_zone_config;
-	if (nzctx == NULL || nzctx->nzf_config == NULL) {
+	if (!view->newzone.allowed || view->newzone.nzconfig == NULL) {
+		/* New zones are disallowed, or the NZF file is empty */
 		return ISC_R_SUCCESS;
 	}
 
@@ -7343,7 +7391,7 @@ configure_newzones(dns_view_t *view, cfg_obj_t *config, cfg_obj_t *vconfig,
 		      view->name);
 
 	zonelist = NULL;
-	cfg_map_get(nzctx->nzf_config, "zone", &zonelist);
+	cfg_map_get(view->newzone.nzconfig, "zone", &zonelist);
 
 	CFG_LIST_FOREACH(zonelist, element) {
 		const cfg_obj_t *zconfig = cfg_listelt_value(element);
@@ -7412,14 +7460,14 @@ data_to_cfg(dns_view_t *view, MDB_val *key, MDB_val *data, isc_buffer_t **text,
 	snprintf(bufname, sizeof(bufname), "%.*s", (int)zone_name_len,
 		 zone_name);
 
-	result = cfg_parse_buffer(view->mctx, *text, bufname, 0,
+	result = cfg_parse_buffer(isc_g_mctx, *text, bufname, 0,
 				  &cfg_type_addzoneconf, 0, &zoneconf);
 	if (result != ISC_R_SUCCESS) {
 		isc_log_write(NAMED_LOGCATEGORY_GENERAL, NAMED_LOGMODULE_SERVER,
 			      ISC_LOG_ERROR,
 			      "parsing config for zone '%.*s' in "
 			      "NZD database '%s' failed",
-			      (int)zone_name_len, zone_name, view->new_zone_db);
+			      (int)zone_name_len, zone_name, view->newzone.db);
 		goto cleanup;
 	}
 
@@ -7453,7 +7501,7 @@ typedef isc_result_t (*newzone_cfg_cb_t)(const cfg_obj_t *zconfig,
  * transforming NZD data into a zone configuration object or if "callback"
  * returns an error.
  *
- * Caller must hold 'view->new_zone_lock'.
+ * Caller must hold 'view->newzone.lock'.
  */
 static isc_result_t
 for_all_newzone_cfgs(newzone_cfg_cb_t callback, cfg_obj_t *config,
@@ -7560,23 +7608,22 @@ configure_newzones(dns_view_t *view, cfg_obj_t *config, cfg_obj_t *vconfig,
 	MDB_txn *txn = NULL;
 	MDB_dbi dbi;
 
-	if (view->new_zone_config == NULL) {
+	if (!view->newzone.allowed) {
 		return ISC_R_SUCCESS;
 	}
 
-	LOCK(&view->new_zone_lock);
+	LOCK(&view->newzone.lock);
 
 	result = nzd_open(view, MDB_RDONLY, &txn, &dbi);
 	if (result != ISC_R_SUCCESS) {
-		UNLOCK(&view->new_zone_lock);
+		UNLOCK(&view->newzone.lock);
 		return ISC_R_SUCCESS;
 	}
 
 	isc_log_write(NAMED_LOGCATEGORY_GENERAL, NAMED_LOGMODULE_SERVER,
 		      ISC_LOG_INFO,
-		      "loading NZD configs from '%s' "
-		      "for view '%s'",
-		      view->new_zone_db, view->name);
+		      "loading NZD configs from '%s' for view '%s'",
+		      view->newzone.db, view->name);
 
 	result = for_all_newzone_cfgs(configure_newzone, config, vconfig, view,
 				      aclctx, kasplist, txn, dbi);
@@ -7596,7 +7643,7 @@ configure_newzones(dns_view_t *view, cfg_obj_t *config, cfg_obj_t *vconfig,
 
 	(void)nzd_close(&txn, false);
 
-	UNLOCK(&view->new_zone_lock);
+	UNLOCK(&view->newzone.lock);
 
 	return result;
 }
@@ -7607,8 +7654,7 @@ configure_newzones(dns_view_t *view, cfg_obj_t *config, cfg_obj_t *vconfig,
 		      ISC_LOG_DEBUG(1), "apply_configuration: %s", __func__);
 
 static isc_result_t
-create_views(cfg_obj_t *config, cfg_aclconfctx_t *aclctx,
-	     dns_viewlist_t *viewlist) {
+create_views(cfg_obj_t *config, dns_viewlist_t *viewlist) {
 	isc_result_t result = ISC_R_SUCCESS;
 	const cfg_obj_t *bindview = NULL;
 	const cfg_obj_t *views = NULL;
@@ -7640,9 +7686,8 @@ create_views(cfg_obj_t *config, cfg_aclconfctx_t *aclctx,
 		CHECK(create_view(vconfig, viewlist, &view));
 		INSIST(view != NULL);
 
-		result = setup_newzones(view, config, vconfig, aclctx);
+		CHECK(setup_newzones(view, config, vconfig));
 		explicitviews = true;
-
 		dns_view_detach(&view);
 	}
 
@@ -7654,7 +7699,7 @@ create_views(cfg_obj_t *config, cfg_aclconfctx_t *aclctx,
 		CHECK(create_view(NULL, viewlist, &view));
 		INSIST(view != NULL);
 
-		CHECK(setup_newzones(view, config, NULL, aclctx));
+		CHECK(setup_newzones(view, config, NULL));
 		dns_view_detach(&view);
 	}
 
@@ -7919,7 +7964,7 @@ apply_configuration(cfg_obj_t *config, cfg_obj_t *bindkeys,
 		goto cleanup_kasplist;
 	}
 
-	result = create_views(config, aclctx, &viewlist);
+	result = create_views(config, &viewlist);
 	if (result != ISC_R_SUCCESS) {
 		goto cleanup_viewlist;
 	}
@@ -8903,6 +8948,11 @@ apply_configuration(cfg_obj_t *config, cfg_obj_t *bindkeys,
 	 */
 	named_g_defaultconfigtime = isc_time_now();
 
+	if (server->config != NULL) {
+		cfg_obj_detach(&server->config);
+	}
+	cfg_obj_attach(config, &server->config);
+
 	isc_loopmgr_resume();
 	exclusive = false;
 
@@ -9699,6 +9749,10 @@ named_server_destroy(named_server_t **serverp) {
 
 	if (server->tlsctx_client_cache != NULL) {
 		isc_tlsctx_cache_detach(&server->tlsctx_client_cache);
+	}
+
+	if (server->config != NULL) {
+		cfg_obj_detach(&server->config);
 	}
 
 	server->magic = 0;
@@ -12147,9 +12201,9 @@ nzf_append(dns_view_t *view, const cfg_obj_t *zconfig) {
 	FILE *fp = NULL;
 	bool offsetok = false;
 
-	LOCK(&view->new_zone_lock);
+	LOCK(&view->newzone.lock);
 
-	CHECK(isc_stdio_open(view->new_zone_file, "a", &fp));
+	CHECK(isc_stdio_open(view->newzone.file, "a", &fp));
 	CHECK(isc_stdio_seek(fp, 0, SEEK_END));
 
 	CHECK(isc_stdio_tell(fp, &offset));
@@ -12171,8 +12225,7 @@ cleanup:
 		if (offsetok) {
 			isc_result_t result2;
 
-			result2 = isc_file_truncate(view->new_zone_file,
-						    offset);
+			result2 = isc_file_truncate(view->newzone.file, offset);
 			if (result2 != ISC_R_SUCCESS) {
 				isc_log_write(NAMED_LOGCATEGORY_GENERAL,
 					      NAMED_LOGMODULE_SERVER,
@@ -12180,12 +12233,12 @@ cleanup:
 					      "Error truncating NZF file '%s' "
 					      "during rollback from append: "
 					      "%s",
-					      view->new_zone_file,
+					      view->newzone.file,
 					      isc_result_totext(result2));
 			}
 		}
 	}
-	UNLOCK(&view->new_zone_lock);
+	UNLOCK(&view->newzone.lock);
 	return result;
 }
 
@@ -12197,7 +12250,7 @@ nzf_writeconf(const cfg_obj_t *config, dns_view_t *view) {
 	char tmp[1024];
 	isc_result_t result;
 
-	result = isc_file_template(view->new_zone_file, "nzf-XXXXXXXX", tmp,
+	result = isc_file_template(view->newzone.file, "nzf-XXXXXXXX", tmp,
 				   sizeof(tmp));
 	if (result == ISC_R_SUCCESS) {
 		result = isc_file_openunique(tmp, &fp);
@@ -12229,7 +12282,7 @@ nzf_writeconf(const cfg_obj_t *config, dns_view_t *view) {
 	if (result != ISC_R_SUCCESS) {
 		goto cleanup;
 	}
-	CHECK(isc_file_rename(tmp, view->new_zone_file));
+	CHECK(isc_file_rename(tmp, view->newzone.file));
 	return result;
 
 cleanup:
@@ -12241,24 +12294,24 @@ cleanup:
 }
 
 static isc_result_t
-load_nzf(dns_view_t *view, ns_cfgctx_t *nzcfg) {
+load_nzf(dns_view_t *view) {
 	isc_result_t result;
 
 	/* The new zone file may not exist. That is OK. */
-	if (!isc_file_exists(view->new_zone_file)) {
+	if (!isc_file_exists(view->newzone.file)) {
 		return ISC_R_SUCCESS;
 	}
 
 	/*
-	 * Parse the configuration in the NZF file.  This may be called in
-	 * multiple views, so we reset the parser each time.
+	 * Parse the configuration in the NZF file.
 	 */
-	result = cfg_parse_file(nzcfg->mctx, view->new_zone_file,
-				&cfg_type_addzoneconf, 0, &nzcfg->nzf_config);
+	result = cfg_parse_file(view->mctx, view->newzone.file,
+				&cfg_type_addzoneconf, 0,
+				&view->newzone.nzconfig);
 	if (result != ISC_R_SUCCESS) {
 		isc_log_write(NAMED_LOGCATEGORY_GENERAL, NAMED_LOGMODULE_SERVER,
 			      ISC_LOG_ERROR, "Error parsing NZF file '%s': %s",
-			      view->new_zone_file, isc_result_totext(result));
+			      view->newzone.file, isc_result_totext(result));
 	}
 
 	return result;
@@ -12393,7 +12446,7 @@ cleanup:
 /*
  * Check whether the new zone database for 'view' can be opened for writing.
  *
- * Caller must hold 'view->new_zone_lock'.
+ * Caller must hold 'view->newzone.lock'.
  */
 static isc_result_t
 nzd_writable(dns_view_t *view) {
@@ -12404,7 +12457,7 @@ nzd_writable(dns_view_t *view) {
 
 	REQUIRE(view != NULL);
 
-	status = mdb_txn_begin((MDB_env *)view->new_zone_dbenv, 0, 0, &txn);
+	status = mdb_txn_begin(view->newzone.dbenv, 0, 0, &txn);
 	if (status != MDB_SUCCESS) {
 		isc_log_write(NAMED_LOGCATEGORY_GENERAL, NAMED_LOGMODULE_SERVER,
 			      ISC_LOG_WARNING, "mdb_txn_begin: %s",
@@ -12427,7 +12480,7 @@ nzd_writable(dns_view_t *view) {
 /*
  * Open the new zone database for 'view' and start a transaction for it.
  *
- * Caller must hold 'view->new_zone_lock'.
+ * Caller must hold 'view->newzone.lock'.
  */
 static isc_result_t
 nzd_open(dns_view_t *view, unsigned int flags, MDB_txn **txnp, MDB_dbi *dbi) {
@@ -12438,7 +12491,7 @@ nzd_open(dns_view_t *view, unsigned int flags, MDB_txn **txnp, MDB_dbi *dbi) {
 	REQUIRE(txnp != NULL && *txnp == NULL);
 	REQUIRE(dbi != NULL);
 
-	status = mdb_txn_begin((MDB_env *)view->new_zone_dbenv, 0, flags, &txn);
+	status = mdb_txn_begin(view->newzone.dbenv, 0, flags, &txn);
 	if (status != MDB_SUCCESS) {
 		isc_log_write(NAMED_LOGCATEGORY_GENERAL, NAMED_LOGMODULE_SERVER,
 			      ISC_LOG_WARNING, "mdb_txn_begin: %s",
@@ -12468,7 +12521,7 @@ cleanup:
 }
 
 /*
- * nzd_env_close() and nzd_env_reopen are a kluge to address the
+ * nzd_env_close() and nzd_env_reopen() are a kluge to address the
  * problem of an NZD file possibly being created before we drop
  * root privileges.
  */
@@ -12479,15 +12532,15 @@ nzd_env_close(dns_view_t *view) {
 	char lockpath[PATH_MAX];
 	int status, ret;
 
-	if (view->new_zone_dbenv == NULL) {
+	if (view->newzone.dbenv == NULL) {
 		return;
 	}
 
-	status = mdb_env_get_path(view->new_zone_dbenv, &dbpath);
+	status = mdb_env_get_path(view->newzone.dbenv, &dbpath);
 	INSIST(status == MDB_SUCCESS);
 	snprintf(lockpath, sizeof(lockpath), "%s-lock", dbpath);
 	strlcpy(dbpath_copy, dbpath, sizeof(dbpath_copy));
-	mdb_env_close((MDB_env *)view->new_zone_dbenv);
+	mdb_env_close(view->newzone.dbenv);
 
 	/*
 	 * Database files must be owned by the eventual user, not by root.
@@ -12501,7 +12554,7 @@ nzd_env_close(dns_view_t *view) {
 	 */
 	(void)isc_file_remove(lockpath);
 
-	view->new_zone_dbenv = NULL;
+	view->newzone.dbenv = NULL;
 }
 
 static isc_result_t
@@ -12510,7 +12563,7 @@ nzd_env_reopen(dns_view_t *view) {
 	MDB_env *env = NULL;
 	int status;
 
-	if (view->new_zone_db == NULL) {
+	if (view->newzone.db == NULL) {
 		return ISC_R_SUCCESS;
 	}
 
@@ -12524,8 +12577,8 @@ nzd_env_reopen(dns_view_t *view) {
 		CHECK(ISC_R_FAILURE);
 	}
 
-	if (view->new_zone_mapsize != 0ULL) {
-		status = mdb_env_set_mapsize(env, view->new_zone_mapsize);
+	if (view->newzone.mapsize != 0ULL) {
+		status = mdb_env_set_mapsize(env, view->newzone.mapsize);
 		if (status != MDB_SUCCESS) {
 			isc_log_write(DNS_LOGCATEGORY_GENERAL,
 				      ISC_LOGMODULE_OTHER, ISC_LOG_ERROR,
@@ -12535,15 +12588,15 @@ nzd_env_reopen(dns_view_t *view) {
 		}
 	}
 
-	status = mdb_env_open(env, view->new_zone_db, DNS_LMDB_FLAGS, 0600);
+	status = mdb_env_open(env, view->newzone.db, DNS_LMDB_FLAGS, 0600);
 	if (status != MDB_SUCCESS) {
 		isc_log_write(DNS_LOGCATEGORY_GENERAL, ISC_LOGMODULE_OTHER,
 			      ISC_LOG_ERROR, "mdb_env_open of '%s' failed: %s",
-			      view->new_zone_db, mdb_strerror(status));
+			      view->newzone.db, mdb_strerror(status));
 		CHECK(ISC_R_FAILURE);
 	}
 
-	view->new_zone_dbenv = env;
+	view->newzone.dbenv = env;
 	env = NULL;
 	result = ISC_R_SUCCESS;
 
@@ -12558,7 +12611,7 @@ cleanup:
  * If 'commit' is true, commit the new zone database transaction pointed to by
  * 'txnp'; otherwise, abort that transaction.
  *
- * Caller must hold 'view->new_zone_lock' for the view that the transaction
+ * Caller must hold 'view->newzone.lock' for the view that the transaction
  * pointed to by 'txnp' was started for.
  */
 static isc_result_t
@@ -12587,10 +12640,10 @@ nzd_close(MDB_txn **txnp, bool commit) {
  * If there's an existing NZF file, load it and migrate its data
  * to the NZD.
  *
- * Caller must hold view->new_zone_lock.
+ * Caller must hold view->newzone.lock.
  */
 static isc_result_t
-load_nzf(dns_view_t *view, ns_cfgctx_t *nzcfg) {
+load_nzf(dns_view_t *view) {
 	isc_result_t result;
 	cfg_obj_t *nzf_config = NULL;
 	int status;
@@ -12603,13 +12656,11 @@ load_nzf(dns_view_t *view, ns_cfgctx_t *nzcfg) {
 	MDB_val key, data;
 	ns_dzarg_t dzarg;
 
-	UNUSED(nzcfg);
-
 	/*
 	 * If NZF file doesn't exist, or NZD DB exists and already
 	 * has data, return without attempting migration.
 	 */
-	if (!isc_file_exists(view->new_zone_file)) {
+	if (!isc_file_exists(view->newzone.file)) {
 		result = ISC_R_SUCCESS;
 		goto cleanup;
 	}
@@ -12618,19 +12669,19 @@ load_nzf(dns_view_t *view, ns_cfgctx_t *nzcfg) {
 		      ISC_LOG_INFO,
 		      "Migrating zones from NZF file '%s' to "
 		      "NZD database '%s'",
-		      view->new_zone_file, view->new_zone_db);
+		      view->newzone.file, view->newzone.db);
 	/*
 	 * Instead of blindly copying lines, we parse the NZF file using
 	 * the configuration parser, because it validates it against the
 	 * config type, giving us a guarantee that valid configuration
 	 * will be written to DB.
 	 */
-	result = cfg_parse_file(nzcfg->mctx, view->new_zone_file,
+	result = cfg_parse_file(isc_g_mctx, view->newzone.file,
 				&cfg_type_addzoneconf, 0, &nzf_config);
 	if (result != ISC_R_SUCCESS) {
 		isc_log_write(NAMED_LOGCATEGORY_GENERAL, NAMED_LOGMODULE_SERVER,
 			      ISC_LOG_ERROR, "Error parsing NZF file '%s': %s",
-			      view->new_zone_file, isc_result_totext(result));
+			      view->newzone.file, isc_result_totext(result));
 		goto cleanup;
 	}
 
@@ -12715,10 +12766,10 @@ load_nzf(dns_view_t *view, ns_cfgctx_t *nzcfg) {
 	 * if an NZD database is found for the view. But we rename NZF file
 	 * to a backup name here.
 	 */
-	strlcpy(tempname, view->new_zone_file, sizeof(tempname));
+	strlcpy(tempname, view->newzone.file, sizeof(tempname));
 	if (strlen(tempname) < sizeof(tempname) - 1) {
 		strlcat(tempname, "~", sizeof(tempname));
-		isc_file_rename(view->new_zone_file, tempname);
+		isc_file_rename(view->newzone.file, tempname);
 	}
 
 cleanup:
@@ -12876,7 +12927,7 @@ delete_zoneconf(dns_view_t *view, const cfg_obj_t *config,
 	REQUIRE(config != NULL);
 	REQUIRE(zname != NULL);
 
-	LOCK(&view->new_zone_lock);
+	LOCK(&view->newzone.lock);
 
 	cfg_map_get(config, "zone", &zl);
 
@@ -12906,19 +12957,19 @@ delete_zoneconf(dns_view_t *view, const cfg_obj_t *config,
 	/*
 	 * Write config to NZF file if appropriate
 	 */
-	if (nzfwriter != NULL && view->new_zone_file != NULL) {
+	if (nzfwriter != NULL && view->newzone.file != NULL) {
 		result = nzfwriter(config, view);
 	}
 
 cleanup:
-	UNLOCK(&view->new_zone_lock);
+	UNLOCK(&view->newzone.lock);
 	return result;
 }
 
 static isc_result_t
-do_addzone(named_server_t *server, ns_cfgctx_t *cfg, dns_view_t *view,
-	   dns_name_t *name, cfg_obj_t *zoneconf, const cfg_obj_t *zoneobj,
-	   bool redirect, isc_buffer_t **text) {
+do_addzone(named_server_t *server, dns_view_t *view, dns_name_t *name,
+	   cfg_obj_t *zoneconf, const cfg_obj_t *zoneobj, bool redirect,
+	   isc_buffer_t **text) {
 	isc_result_t result, tresult;
 	dns_zone_t *zone = NULL;
 	const cfg_obj_t *voptions = NULL;
@@ -12932,6 +12983,12 @@ do_addzone(named_server_t *server, ns_cfgctx_t *cfg, dns_view_t *view,
 
 	UNUSED(zoneconf);
 #endif
+
+	if (!view->newzone.allowed) {
+		result = ISC_R_NOPERM;
+		TCHECK(putstr(text, "new zone configuration is not allowed"));
+		goto cleanup;
+	}
 
 	/* Zone shouldn't already exist */
 	if (redirect) {
@@ -12953,11 +13010,11 @@ do_addzone(named_server_t *server, ns_cfgctx_t *cfg, dns_view_t *view,
 	/*
 	 * Make sure we can open the configuration save file
 	 */
-	result = isc_stdio_open(view->new_zone_file, "a", &fp);
+	result = isc_stdio_open(view->newzone.file, "a", &fp);
 	if (result != ISC_R_SUCCESS) {
 		isc_loopmgr_resume();
 		TCHECK(putstr(text, "unable to create '"));
-		TCHECK(putstr(text, view->new_zone_file));
+		TCHECK(putstr(text, view->newzone.file));
 		TCHECK(putstr(text, "': "));
 		TCHECK(putstr(text, isc_result_totext(result)));
 		goto cleanup;
@@ -12966,14 +13023,14 @@ do_addzone(named_server_t *server, ns_cfgctx_t *cfg, dns_view_t *view,
 	(void)isc_stdio_close(fp);
 	fp = NULL;
 #else  /* HAVE_LMDB */
-	LOCK(&view->new_zone_lock);
+	LOCK(&view->newzone.lock);
 	locked = true;
 	/* Make sure we can open the NZD database */
 	result = nzd_writable(view);
 	if (result != ISC_R_SUCCESS) {
 		isc_loopmgr_resume();
 		TCHECK(putstr(text, "unable to open NZD database for '"));
-		TCHECK(putstr(text, view->new_zone_db));
+		TCHECK(putstr(text, view->newzone.db));
 		TCHECK(putstr(text, "'"));
 		result = ISC_R_FAILURE;
 		goto cleanup;
@@ -12981,13 +13038,13 @@ do_addzone(named_server_t *server, ns_cfgctx_t *cfg, dns_view_t *view,
 #endif /* HAVE_LMDB */
 
 	/* Check zone syntax */
-	if (cfg->vconfig != NULL) {
-		voptions = cfg_tuple_get(cfg->vconfig, "options");
+	if (view->newzone.vconfig != NULL) {
+		voptions = cfg_tuple_get(view->newzone.vconfig, "options");
 	}
-	result = isccfg_check_zoneconf(zoneobj, voptions, cfg->config, NULL,
+	result = isccfg_check_zoneconf(zoneobj, voptions, server->config, NULL,
 				       NULL, NULL, NULL, view->name,
 				       view->rdclass, BIND_CHECK_PLUGINS,
-				       cfg->aclctx, cfg->mctx);
+				       server->aclctx, isc_g_mctx);
 	if (result != ISC_R_SUCCESS) {
 		isc_loopmgr_resume();
 		goto cleanup;
@@ -12995,9 +13052,9 @@ do_addzone(named_server_t *server, ns_cfgctx_t *cfg, dns_view_t *view,
 
 	/* Mark view unfrozen and configure zone */
 	dns_view_thaw(view);
-	result = configure_zone(cfg->config, zoneobj, cfg->vconfig, view,
-				&server->viewlist, &server->kasplist,
-				cfg->aclctx, true, false, false, false);
+	result = configure_zone(server->config, zoneobj, view->newzone.vconfig,
+				view, &server->viewlist, &server->kasplist,
+				server->aclctx, true, false, false, false);
 	dns_view_freeze(view);
 
 	isc_loopmgr_resume();
@@ -13031,11 +13088,11 @@ do_addzone(named_server_t *server, ns_cfgctx_t *cfg, dns_view_t *view,
 	 * we've created. If there was a previous one, merge the new
 	 * zone into it.
 	 */
-	if (cfg->nzf_config == NULL) {
-		cfg_obj_attach(zoneconf, &cfg->nzf_config);
+	if (view->newzone.nzconfig == NULL) {
+		cfg_obj_attach(zoneconf, &view->newzone.nzconfig);
 	} else {
 		cfg_obj_t *z = UNCONST(zoneobj);
-		CHECK(cfg_map_add(cfg->nzf_config, z, "zone"));
+		CHECK(cfg_map_add(view->newzone.nzconfig, z, "zone"));
 	}
 	cleanup_config = true;
 #endif /* HAVE_LMDB */
@@ -13084,7 +13141,8 @@ cleanup:
 		(void)isc_stdio_close(fp);
 	}
 	if (result != ISC_R_SUCCESS && cleanup_config) {
-		tresult = delete_zoneconf(view, cfg->nzf_config, name, NULL);
+		tresult = delete_zoneconf(view, view->newzone.nzconfig, name,
+					  NULL);
 		RUNTIME_CHECK(tresult == ISC_R_SUCCESS);
 	}
 #else  /* HAVE_LMDB */
@@ -13092,7 +13150,7 @@ cleanup:
 		(void)nzd_close(&txn, false);
 	}
 	if (locked) {
-		UNLOCK(&view->new_zone_lock);
+		UNLOCK(&view->newzone.lock);
 	}
 #endif /* HAVE_LMDB */
 
@@ -13104,9 +13162,9 @@ cleanup:
 }
 
 static isc_result_t
-do_modzone(named_server_t *server, ns_cfgctx_t *cfg, dns_view_t *view,
-	   dns_name_t *name, const char *zname, const cfg_obj_t *zoneobj,
-	   bool redirect, isc_buffer_t **text) {
+do_modzone(named_server_t *server, dns_view_t *view, dns_name_t *name,
+	   const char *zname, const cfg_obj_t *zoneobj, bool redirect,
+	   isc_buffer_t **text) {
 	isc_result_t result, tresult;
 	dns_zone_t *zone = NULL;
 	const cfg_obj_t *voptions = NULL;
@@ -13119,6 +13177,12 @@ do_modzone(named_server_t *server, ns_cfgctx_t *cfg, dns_view_t *view,
 	MDB_dbi dbi;
 	bool locked = false;
 #endif /* HAVE_LMDB */
+
+	if (!view->newzone.allowed) {
+		result = ISC_R_NOPERM;
+		TCHECK(putstr(text, "new zone configuration is not allowed"));
+		goto cleanup;
+	}
 
 	/* Zone must already exist */
 	if (redirect) {
@@ -13138,22 +13202,14 @@ do_modzone(named_server_t *server, ns_cfgctx_t *cfg, dns_view_t *view,
 	added = dns_zone_getadded(zone);
 	dns_zone_detach(&zone);
 
-#ifndef HAVE_LMDB
-	cfg = (ns_cfgctx_t *)view->new_zone_config;
-	if (cfg == NULL) {
-		TCHECK(putstr(text, "new zone config is not set"));
-		CHECK(ISC_R_FAILURE);
-	}
-#endif /* ifndef HAVE_LMDB */
-
 	isc_loopmgr_pause();
 
 #ifndef HAVE_LMDB
 	/* Make sure we can open the configuration save file */
-	result = isc_stdio_open(view->new_zone_file, "a", &fp);
+	result = isc_stdio_open(view->newzone.file, "a", &fp);
 	if (result != ISC_R_SUCCESS) {
 		TCHECK(putstr(text, "unable to open '"));
-		TCHECK(putstr(text, view->new_zone_file));
+		TCHECK(putstr(text, view->newzone.file));
 		TCHECK(putstr(text, "': "));
 		TCHECK(putstr(text, isc_result_totext(result)));
 		isc_loopmgr_resume();
@@ -13162,13 +13218,13 @@ do_modzone(named_server_t *server, ns_cfgctx_t *cfg, dns_view_t *view,
 	(void)isc_stdio_close(fp);
 	fp = NULL;
 #else  /* HAVE_LMDB */
-	LOCK(&view->new_zone_lock);
+	LOCK(&view->newzone.lock);
 	locked = true;
 	/* Make sure we can open the NZD database */
 	result = nzd_writable(view);
 	if (result != ISC_R_SUCCESS) {
 		TCHECK(putstr(text, "unable to open NZD database for '"));
-		TCHECK(putstr(text, view->new_zone_db));
+		TCHECK(putstr(text, view->newzone.db));
 		TCHECK(putstr(text, "'"));
 		result = ISC_R_FAILURE;
 		isc_loopmgr_resume();
@@ -13177,13 +13233,13 @@ do_modzone(named_server_t *server, ns_cfgctx_t *cfg, dns_view_t *view,
 #endif /* HAVE_LMDB */
 
 	/* Check zone syntax */
-	if (cfg->vconfig != NULL) {
-		voptions = cfg_tuple_get(cfg->vconfig, "options");
+	if (view->newzone.vconfig != NULL) {
+		voptions = cfg_tuple_get(view->newzone.vconfig, "options");
 	}
-	result = isccfg_check_zoneconf(zoneobj, voptions, cfg->config, NULL,
+	result = isccfg_check_zoneconf(zoneobj, voptions, server->config, NULL,
 				       NULL, NULL, NULL, view->name,
 				       view->rdclass, BIND_CHECK_PLUGINS,
-				       cfg->aclctx, cfg->mctx);
+				       server->aclctx, isc_g_mctx);
 	if (result != ISC_R_SUCCESS) {
 		isc_loopmgr_resume();
 		goto cleanup;
@@ -13191,9 +13247,9 @@ do_modzone(named_server_t *server, ns_cfgctx_t *cfg, dns_view_t *view,
 
 	/* Reconfigure the zone */
 	dns_view_thaw(view);
-	result = configure_zone(cfg->config, zoneobj, cfg->vconfig, view,
-				&server->viewlist, &server->kasplist,
-				cfg->aclctx, true, false, false, true);
+	result = configure_zone(server->config, zoneobj, view->newzone.vconfig,
+				view, &server->viewlist, &server->kasplist,
+				server->aclctx, true, false, false, true);
 	dns_view_freeze(view);
 
 	isc_loopmgr_resume();
@@ -13217,7 +13273,7 @@ do_modzone(named_server_t *server, ns_cfgctx_t *cfg, dns_view_t *view,
 #ifndef HAVE_LMDB
 	/* Remove old zone from configuration (and NZF file if applicable) */
 	if (added) {
-		result = delete_zoneconf(view, cfg->nzf_config,
+		result = delete_zoneconf(view, view->newzone.nzconfig,
 					 dns_zone_getorigin(zone),
 					 nzf_writeconf);
 		if (result != ISC_R_SUCCESS) {
@@ -13230,12 +13286,12 @@ do_modzone(named_server_t *server, ns_cfgctx_t *cfg, dns_view_t *view,
 #endif /* HAVE_LMDB */
 
 	if (!added) {
-		if (cfg->vconfig == NULL) {
-			result = delete_zoneconf(view, cfg->config,
+		if (view->newzone.vconfig == NULL) {
+			result = delete_zoneconf(view, server->config,
 						 dns_zone_getorigin(zone),
 						 NULL);
 		} else {
-			voptions = cfg_tuple_get(cfg->vconfig, "options");
+			voptions = cfg_tuple_get(server->config, "options");
 			result = delete_zoneconf(
 				view, voptions, dns_zone_getorigin(zone), NULL);
 		}
@@ -13286,7 +13342,7 @@ do_modzone(named_server_t *server, ns_cfgctx_t *cfg, dns_view_t *view,
 #ifndef HAVE_LMDB
 	/* Store the new zone configuration; also in NZF if applicable */
 	z = UNCONST(zoneobj);
-	CHECK(cfg_map_add(cfg->nzf_config, z, "zone"));
+	CHECK(cfg_map_add(view->newzone.nzconfig, z, "zone"));
 #endif /* HAVE_LMDB */
 
 	if (added) {
@@ -13322,7 +13378,7 @@ cleanup:
 		(void)nzd_close(&txn, false);
 	}
 	if (locked) {
-		UNLOCK(&view->new_zone_lock);
+		UNLOCK(&view->newzone.lock);
 	}
 #endif /* HAVE_LMDB */
 
@@ -13342,7 +13398,6 @@ named_server_changezone(named_server_t *server, char *command,
 	isc_result_t result;
 	bool addzone;
 	bool redirect = false;
-	ns_cfgctx_t *cfg = NULL;
 	cfg_obj_t *zoneconf = NULL;
 	const cfg_obj_t *zoneobj = NULL;
 	const char *zonename;
@@ -13365,20 +13420,15 @@ named_server_changezone(named_server_t *server, char *command,
 
 	/* Are we accepting new zones in this view? */
 #ifdef HAVE_LMDB
-	if (view->new_zone_db == NULL)
+	if (view->newzone.db == NULL)
 #else  /* ifdef HAVE_LMDB */
-	if (view->new_zone_file == NULL)
+	if (view->newzone.file == NULL)
 #endif /* HAVE_LMDB */
 	{
 		(void)putstr(text, "Not allowing new zones in view '");
 		(void)putstr(text, view->name);
 		(void)putstr(text, "'");
 		CHECK(ISC_R_NOPERM);
-	}
-
-	cfg = (ns_cfgctx_t *)view->new_zone_config;
-	if (cfg == NULL) {
-		CHECK(ISC_R_FAILURE);
 	}
 
 	zonename = cfg_obj_asstring(cfg_tuple_get(zoneobj, "name"));
@@ -13397,10 +13447,10 @@ named_server_changezone(named_server_t *server, char *command,
 	}
 
 	if (addzone) {
-		CHECK(do_addzone(server, cfg, view, dnsname, zoneconf, zoneobj,
+		CHECK(do_addzone(server, view, dnsname, zoneconf, zoneobj,
 				 redirect, text));
 	} else {
-		CHECK(do_modzone(server, cfg, view, dnsname, zonename, zoneobj,
+		CHECK(do_modzone(server, view, dnsname, zonename, zoneobj,
 				 redirect, text));
 	}
 
@@ -13444,6 +13494,7 @@ inuse(const char *file, bool first, isc_buffer_t **text) {
 
 typedef struct {
 	dns_zone_t *zone;
+	named_server_t *server;
 	bool cleanup;
 } ns_dzctx_t;
 
@@ -13457,7 +13508,6 @@ rmzone(void *arg) {
 	dns_catz_zone_t *catz = NULL;
 	char zonename[DNS_NAME_FORMATSIZE];
 	dns_view_t *view = NULL;
-	ns_cfgctx_t *cfg = NULL;
 	dns_db_t *dbp = NULL;
 	bool added;
 	isc_result_t result;
@@ -13471,7 +13521,6 @@ rmzone(void *arg) {
 	/* Dig out configuration for this zone */
 	zone = dz->zone;
 	view = dns_zone_getview(zone);
-	cfg = (ns_cfgctx_t *)view->new_zone_config;
 	dns_name_format(dns_zone_getorigin(zone), zonename, sizeof(zonename));
 
 	isc_log_write(NAMED_LOGCATEGORY_GENERAL, NAMED_LOGMODULE_SERVER,
@@ -13485,16 +13534,16 @@ rmzone(void *arg) {
 	added = dns_zone_getadded(zone);
 	catz = dns_zone_get_parentcatz(zone);
 
-	if (added && catz == NULL && cfg != NULL) {
+	if (added && catz == NULL) {
 #ifdef HAVE_LMDB
 		/* Make sure we can open the NZD database */
-		LOCK(&view->new_zone_lock);
+		LOCK(&view->newzone.lock);
 		result = nzd_open(view, 0, &txn, &dbi);
 		if (result != ISC_R_SUCCESS) {
 			isc_log_write(NAMED_LOGCATEGORY_GENERAL,
 				      NAMED_LOGMODULE_SERVER, ISC_LOG_ERROR,
 				      "unable to open NZD database for '%s'",
-				      view->new_zone_db);
+				      view->newzone.db);
 		} else {
 			result = nzd_save(&txn, dbi, zone, NULL);
 		}
@@ -13509,9 +13558,9 @@ rmzone(void *arg) {
 		if (txn != NULL) {
 			(void)nzd_close(&txn, false);
 		}
-		UNLOCK(&view->new_zone_lock);
+		UNLOCK(&view->newzone.lock);
 #else  /* ifdef HAVE_LMDB */
-		result = delete_zoneconf(view, cfg->nzf_config,
+		result = delete_zoneconf(view, view->newzone.nzconfig,
 					 dns_zone_getorigin(zone),
 					 nzf_writeconf);
 		if (result != ISC_R_SUCCESS) {
@@ -13523,14 +13572,14 @@ rmzone(void *arg) {
 #endif /* HAVE_LMDB */
 	}
 
-	if (!added && cfg != NULL) {
-		if (cfg->vconfig != NULL) {
-			const cfg_obj_t *voptions = cfg_tuple_get(cfg->vconfig,
-								  "options");
+	if (!added) {
+		if (view->newzone.vconfig != NULL) {
+			const cfg_obj_t *voptions =
+				cfg_tuple_get(view->newzone.vconfig, "options");
 			result = delete_zoneconf(
 				view, voptions, dns_zone_getorigin(zone), NULL);
 		} else {
-			result = delete_zoneconf(view, cfg->config,
+			result = delete_zoneconf(view, dz->server->config,
 						 dns_zone_getorigin(zone),
 						 NULL);
 		}
@@ -13659,6 +13708,12 @@ named_server_delzone(named_server_t *server, isc_lex_t *lex,
 	}
 
 	view = dns_zone_getview(zone);
+
+	if (!view->newzone.allowed) {
+		TCHECK(putstr(text, "new zone configuration is not allowed"));
+		CHECK(ISC_R_NOPERM);
+	}
+
 	if (dns_zone_gettype(zone) == dns_zone_redirect) {
 		dns_zone_detach(&view->redirect);
 	} else {
@@ -13669,6 +13724,7 @@ named_server_delzone(named_server_t *server, isc_lex_t *lex,
 	dz = isc_mem_get(isc_g_mctx, sizeof(*dz));
 	*dz = (ns_dzctx_t){
 		.cleanup = cleanup,
+		.server = server,
 	};
 	dns_zone_attach(zone, &dz->zone);
 	isc_async_run(dns_zone_getloop(zone), rmzone, dz);
@@ -13796,32 +13852,6 @@ cleanup:
 	}
 
 	return result;
-}
-
-static void
-newzone_cfgctx_destroy(void **cfgp) {
-	ns_cfgctx_t *cfg;
-
-	REQUIRE(cfgp != NULL && *cfgp != NULL);
-
-	cfg = *cfgp;
-
-	if (cfg->config != NULL) {
-		cfg_obj_detach(&cfg->config);
-	}
-	if (cfg->vconfig != NULL) {
-		cfg_obj_detach(&cfg->vconfig);
-	}
-	if (cfg->nzf_config != NULL) {
-		cfg_obj_detach(&cfg->nzf_config);
-	}
-
-	if (cfg->aclctx != NULL) {
-		cfg_aclconfctx_detach(&cfg->aclctx);
-	}
-
-	isc_mem_putanddetach(&cfg->mctx, cfg, sizeof(*cfg));
-	*cfgp = NULL;
 }
 
 isc_result_t

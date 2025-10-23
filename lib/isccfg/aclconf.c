@@ -58,32 +58,17 @@ cfg_aclconfctx_create(isc_mem_t *mctx, cfg_aclconfctx_t **aclctxp) {
 	return ISC_R_SUCCESS;
 }
 
-void
-cfg_aclconfctx_attach(cfg_aclconfctx_t *src, cfg_aclconfctx_t **dest) {
-	REQUIRE(src != NULL);
-	REQUIRE(dest != NULL && *dest == NULL);
-
-	isc_refcount_increment(&src->references);
-	*dest = src;
-}
-
-void
-cfg_aclconfctx_detach(cfg_aclconfctx_t **aclctxp) {
-	REQUIRE(aclctxp != NULL && *aclctxp != NULL);
-
-	cfg_aclconfctx_t *aclctx = *aclctxp;
-	*aclctxp = NULL;
-
-	if (isc_refcount_decrement(&aclctx->references) == 1) {
-		isc_refcount_destroy(&aclctx->references);
-		ISC_LIST_FOREACH(aclctx->named_acl_cache, dacl, nextincache) {
-			ISC_LIST_UNLINK(aclctx->named_acl_cache, dacl,
-					nextincache);
-			dns_acl_detach(&dacl);
-		}
-		isc_mem_putanddetach(&aclctx->mctx, aclctx, sizeof(*aclctx));
+static void
+destroy_aclctx(cfg_aclconfctx_t *aclctx) {
+	isc_refcount_destroy(&aclctx->references);
+	ISC_LIST_FOREACH(aclctx->named_acl_cache, dacl, nextincache) {
+		ISC_LIST_UNLINK(aclctx->named_acl_cache, dacl, nextincache);
+		dns_acl_detach(&dacl);
 	}
+	isc_mem_putanddetach(&aclctx->mctx, aclctx, sizeof(*aclctx));
 }
+
+ISC_REFCOUNT_IMPL(cfg_aclconfctx, destroy_aclctx);
 
 /*
  * Find the definition of the named acl whose name is "name".
