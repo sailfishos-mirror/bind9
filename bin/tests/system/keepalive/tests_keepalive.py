@@ -28,7 +28,7 @@ def test_dig_tcp_keepalive_handling(named_port, ns2):
                     options_received = line.split()[0]
         return int(options_received)
 
-    dig = isctest.run.Dig(f"-p {str(named_port)}")
+    dig = isctest.run.EnvCmd("DIG", f"-p {str(named_port)}")
 
     isctest.log.info("check that dig handles TCP keepalive in query")
     assert "; TCP-KEEPALIVE" in dig("+qr +keepalive foo.example. @10.53.0.2").out
