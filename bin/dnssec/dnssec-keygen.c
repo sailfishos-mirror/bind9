@@ -1147,14 +1147,11 @@ main(int argc, char **argv) {
 
 			keygen(&ctx, argc, argv);
 		} else {
-			cfg_parser_t *parser = NULL;
 			cfg_obj_t *config = NULL;
 			dns_kasp_t *kasp = NULL;
 
-			RUNTIME_CHECK(cfg_parser_create(isc_g_mctx, &parser) ==
-				      ISC_R_SUCCESS);
-			if (cfg_parse_file(parser, ctx.configfile,
-					   &cfg_type_namedconf,
+			if (cfg_parse_file(isc_g_mctx, ctx.configfile,
+					   &cfg_type_namedconf, 0,
 					   &config) != ISC_R_SUCCESS)
 			{
 				fatal("unable to load dnssec-policy '%s' from "
@@ -1199,8 +1196,7 @@ main(int argc, char **argv) {
 			}
 
 			dns_kasp_detach(&kasp);
-			cfg_obj_destroy(parser, &config);
-			cfg_parser_destroy(&parser);
+			cfg_obj_detach(&config);
 		}
 	} else {
 		keygen(&ctx, argc, argv);

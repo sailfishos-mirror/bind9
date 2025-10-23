@@ -11,6 +11,7 @@
 
 foreach unit : [
     'duration',
+    'grammar',
     'parser',
 ]
     test_bin = executable(

@@ -85,53 +85,12 @@ typedef isc_result_t (*cfg_parsecallback_t)(const char	    *clausename,
  *** Functions
  ***/
 
-void
-cfg_parser_attach(cfg_parser_t *src, cfg_parser_t **dest);
-/*%<
- * Reference a parser object.
- */
+isc_result_t
+cfg_parse_file(isc_mem_t *mctx, const char *file, const cfg_type_t *type,
+	       unsigned int flags, cfg_obj_t **ret);
 
 isc_result_t
-cfg_parser_create(isc_mem_t *mctx, cfg_parser_t **ret);
-/*%<
- * Create a configuration file parser.  Any warning and error
- * messages will be logged.
- *
- * The parser object returned can be used for a single call
- * to cfg_parse_file() or cfg_parse_buffer().  It must not
- * be reused for parsing multiple files or buffers.
- */
-
-void
-cfg_parser_setflags(cfg_parser_t *pctx, unsigned int flags, bool turn_on);
-/*%<
- * Set parser context flags. The flags are not checked for sensibility.
- * If 'turn_on' is 'true' the flags will be set, otherwise the flags will
- * be cleared.
- *
- * Requires:
- *\li 	"pctx" is not NULL.
- */
-
-void
-cfg_parser_setcallback(cfg_parser_t *pctx, cfg_parsecallback_t callback,
-		       void *arg);
-/*%<
- * Make the parser call 'callback' whenever it encounters
- * a configuration clause with the callback attribute,
- * passing it the clause name, the clause value,
- * and 'arg' as arguments.
- *
- * To restore the default of not invoking callbacks, pass
- * callback==NULL and arg==NULL.
- */
-
-isc_result_t
-cfg_parse_file(cfg_parser_t *pctx, const char *file, const cfg_type_t *type,
-	       cfg_obj_t **ret);
-
-isc_result_t
-cfg_parse_buffer(cfg_parser_t *pctx, isc_buffer_t *buffer, const char *file,
+cfg_parse_buffer(isc_mem_t *mctx, isc_buffer_t *buffer, const char *file,
 		 unsigned int line, const cfg_type_t *type, unsigned int flags,
 		 cfg_obj_t **ret);
 /*%<
@@ -152,8 +111,9 @@ cfg_parse_buffer(cfg_parser_t *pctx, isc_buffer_t *buffer, const char *file,
  * Returns an error if the file or buffer does not parse correctly.
  *
  * Requires:
- *\li 	"filename" is valid.
- *\li 	"mem" is valid.
+ *\li 	"file" is valid.
+ *\li   "buffer" is valid.
+ *\li 	"mctx" is valid.
  *\li	"type" is valid.
  *\li 	"cfg" is non-NULL and "*cfg" is NULL.
  *\li   "flags" be one or more of CFG_PCTX_NODEPRECATED or zero.
@@ -164,31 +124,11 @@ cfg_parse_buffer(cfg_parser_t *pctx, isc_buffer_t *buffer, const char *file,
  *\li      others	                      - file contains errors
  */
 
-isc_result_t
-cfg_parser_mapadd(cfg_parser_t *pctx, cfg_obj_t *mapobj, cfg_obj_t *obj,
-		  const char *clause);
+cfg_obj_t *
+cfg_parser_currentfile(cfg_parser_t *pctx);
 /*%<
- * Add the object 'obj' to the specified clause in mapbody 'mapobj'.
- * Used for adding new zones.
- *
- * Require:
- * \li     'obj' is a valid cfg_obj_t.
- * \li     'mapobj' is a valid cfg_obj_t of type map.
- * \li     'pctx' is a valid cfg_parser_t.
- */
-
-void
-cfg_parser_reset(cfg_parser_t *pctx);
-/*%<
- * Reset an existing parser so it can be re-used for a new file or
- * buffer.
- */
-
-void
-cfg_parser_destroy(cfg_parser_t **pctxp);
-/*%<
- * Remove a reference to a configuration parser; destroy it if there are no
- * more references.
+ * Returns the current file of a parser (as an cfg_obj_t qstring). NULL is non
+ * existent.
  */
 
 bool
@@ -230,6 +170,17 @@ cfg_map_get(const cfg_obj_t *mapobj, const char *name, const cfg_obj_t **obj);
  * Returns:
  * \li     #ISC_R_SUCCESS                  - success
  * \li     #ISC_R_NOTFOUND                 - name not found in map
+ */
+
+isc_result_t
+cfg_map_add(cfg_obj_t *mapobj, cfg_obj_t *obj, const char *clause);
+/*%<
+ * Add the object 'obj' to the specified clause in mapbody 'mapobj'.
+ * Used for adding new zones.
+ *
+ * Require:
+ * \li     'obj' is a valid cfg_obj_t.
+ * \li     'mapobj' is a valid cfg_obj_t of type map.
  */
 
 const cfg_obj_t *
@@ -490,6 +441,13 @@ cfg_list_length(const cfg_obj_t *obj, bool recurse);
  * all contained lists.
  */
 
+void
+cfg_list_unlink(cfg_obj_t *list, cfg_listelt_t *elt);
+/*%<
+ * Unlink 'elt' from the list object 'list', and free the memory associated
+ * with 'elt'.
+ */
+
 cfg_obj_t *
 cfg_listelt_value(const cfg_listelt_t *elt);
 /*%<
@@ -541,23 +499,6 @@ bool
 cfg_obj_istype(const cfg_obj_t *obj, const cfg_type_t *type);
 /*%<
  * Return true iff 'obj' is of type 'type'.
- */
-
-void
-cfg_obj_attach(cfg_obj_t *src, cfg_obj_t **dest);
-/*%<
- * Reference a configuration object.
- */
-
-void
-cfg_obj_destroy(cfg_parser_t *pctx, cfg_obj_t **obj);
-/*%<
- * Delete a reference to a configuration object; destroy the object if
- * there are no more references.
- *
- * Require:
- * \li     '*obj' is a valid cfg_obj_t.
- * \li     'pctx' is a valid cfg_parser_t.
  */
 
 void
@@ -626,3 +567,5 @@ cfg_pluginlist_foreach(const cfg_obj_t *config, const cfg_obj_t *list,
  *     'list'
  * \li first 'callback' return value which was not #ISC_R_SUCCESS otherwise
  */
+
+ISC_REFCOUNT_DECL(cfg_obj);

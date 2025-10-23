@@ -120,7 +120,6 @@ ISC_RUN_TEST_IMPL(duration) {
 			    "T99999999999H99999999999M99999999999S" },
 	};
 	isc_buffer_t buf1;
-	cfg_parser_t *p1 = NULL;
 	cfg_obj_t *c1 = NULL;
 	bool must_fail = false;
 
@@ -144,14 +143,10 @@ ISC_RUN_TEST_IMPL(duration) {
 		isc_buffer_add(&buf1, strlen(conf) - 1);
 
 		/* Parse with default line numbering */
-		result = cfg_parser_create(isc_g_mctx, &p1);
-		assert_int_equal(result, ISC_R_SUCCESS);
-
-		result = cfg_parse_buffer(p1, &buf1, "text1", 0,
+		result = cfg_parse_buffer(isc_g_mctx, &buf1, "text1", 0,
 					  &cfg_type_namedconf, 0, &c1);
 		if (must_fail) {
 			assert_int_equal(result, DNS_R_BADTTL);
-			cfg_parser_destroy(&p1);
 			continue;
 		}
 		assert_int_equal(result, ISC_R_SUCCESS);
@@ -192,8 +187,7 @@ ISC_RUN_TEST_IMPL(duration) {
 			assert_int_equal(cmp, 0);
 		}
 
-		cfg_obj_destroy(p1, &c1);
-		cfg_parser_destroy(&p1);
+		cfg_obj_detach(&c1);
 	}
 }
 

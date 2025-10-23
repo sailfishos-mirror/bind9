@@ -555,7 +555,6 @@ failure:
  */
 static isc_result_t
 read_sessionkey(isc_mem_t *mctx) {
-	cfg_parser_t *pctx = NULL;
 	cfg_obj_t *sessionkey = NULL;
 	const cfg_obj_t *key = NULL;
 	const cfg_obj_t *secretobj = NULL;
@@ -570,12 +569,7 @@ read_sessionkey(isc_mem_t *mctx) {
 		return ISC_R_FILENOTFOUND;
 	}
 
-	result = cfg_parser_create(mctx, &pctx);
-	if (result != ISC_R_SUCCESS) {
-		goto cleanup;
-	}
-
-	result = cfg_parse_file(pctx, keyfile, &cfg_type_sessionkey,
+	result = cfg_parse_file(mctx, keyfile, &cfg_type_sessionkey, 0,
 				&sessionkey);
 	if (result != ISC_R_SUCCESS) {
 		goto cleanup;
@@ -602,11 +596,8 @@ read_sessionkey(isc_mem_t *mctx) {
 	setup_keystr();
 
 cleanup:
-	if (pctx != NULL) {
-		if (sessionkey != NULL) {
-			cfg_obj_destroy(pctx, &sessionkey);
-		}
-		cfg_parser_destroy(&pctx);
+	if (sessionkey != NULL) {
+		cfg_obj_detach(&sessionkey);
 	}
 
 	if (keystr != NULL) {

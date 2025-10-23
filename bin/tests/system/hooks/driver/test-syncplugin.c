@@ -116,7 +116,6 @@ plugin_register(const char *parameters, const void *cfg, const char *cfgfile,
 		ns_hooktable_t *hooktable, const ns_pluginctx_t *ctx,
 		void **instp) {
 	isc_result_t result;
-	cfg_parser_t *parser = NULL;
 	cfg_obj_t *syncplugincfg = NULL;
 	const cfg_obj_t *obj = NULL;
 	isc_buffer_t b;
@@ -135,12 +134,10 @@ plugin_register(const char *parameters, const void *cfg, const char *cfgfile,
 	*inst = (syncplugin_t){ .mctx = mctx };
 	*instp = inst;
 
-	CHECK(cfg_parser_create(mctx, &parser));
-
 	isc_buffer_constinit(&b, parameters, strlen(parameters));
 	isc_buffer_add(&b, strlen(parameters));
 
-	CHECK(cfg_parse_buffer(parser, &b, cfgfile, cfgline,
+	CHECK(cfg_parse_buffer(mctx, &b, cfgfile, cfgline,
 			       &syncplugin__cfgparams, 0, &syncplugincfg));
 
 	CHECK(syncplugin__parse_rcode(syncplugincfg, &inst->rcode));
@@ -217,11 +214,7 @@ cleanup:
 	}
 
 	if (syncplugincfg != NULL) {
-		cfg_obj_destroy(parser, &syncplugincfg);
-	}
-
-	if (parser != NULL) {
-		cfg_parser_destroy(&parser);
+		cfg_obj_detach(&syncplugincfg);
 	}
 
 	return result;

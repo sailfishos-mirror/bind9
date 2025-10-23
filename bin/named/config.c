@@ -361,81 +361,30 @@ remote-servers " DEFAULT_IANA_ROOT_ZONE_PRIMARIES " {\n\
 ";
 
 isc_result_t
-named_config_parsedefaults(cfg_parser_t *parser, cfg_obj_t **conf) {
+named_config_parsedefaults(cfg_obj_t **conf) {
 	isc_buffer_t b;
 
 	isc_buffer_init(&b, defaultconf, sizeof(defaultconf) - 1);
 	isc_buffer_add(&b, sizeof(defaultconf) - 1);
-	return cfg_parse_buffer(parser, &b, __FILE__, 0, &cfg_type_namedconf,
+	return cfg_parse_buffer(isc_g_mctx, &b, __FILE__, 0,
+				&cfg_type_namedconf,
 				CFG_PCTX_NODEPRECATED | CFG_PCTX_NOOBSOLETE |
 					CFG_PCTX_NOEXPERIMENTAL,
 				conf);
 }
 
-/*
- * This function is called as soon as the 'directory' statement has been
- * parsed.  This can be extended to support other options if necessary.
- */
-static isc_result_t
-directory_callback(const char *clausename, const cfg_obj_t *obj, void *arg) {
-	isc_result_t result;
-	const char *directory;
-
-	REQUIRE(strcasecmp("directory", clausename) == 0);
-
-	UNUSED(arg);
-	UNUSED(clausename);
-
-	/*
-	 * Change directory.
-	 */
-	directory = cfg_obj_asstring(obj);
-
-	if (!isc_file_ischdiridempotent(directory)) {
-		cfg_obj_log(obj, ISC_LOG_WARNING,
-			    "option 'directory' contains relative path '%s'",
-			    directory);
-	}
-
-	if (!isc_file_isdirwritable(directory)) {
-		isc_log_write(NAMED_LOGCATEGORY_GENERAL, NAMED_LOGMODULE_SERVER,
-			      ISC_LOG_ERROR, "directory '%s' is not writable",
-			      directory);
-		return ISC_R_NOPERM;
-	}
-
-	result = isc_dir_chdir(directory);
-	if (result != ISC_R_SUCCESS) {
-		cfg_obj_log(obj, ISC_LOG_ERROR,
-			    "change directory to '%s' failed: %s", directory,
-			    isc_result_totext(result));
-		return result;
-	}
-
-	char cwd[PATH_MAX];
-	if (getcwd(cwd, sizeof(cwd)) == cwd) {
-		isc_log_write(NAMED_LOGCATEGORY_GENERAL, NAMED_LOGMODULE_SERVER,
-			      ISC_LOG_INFO, "the working directory is now '%s'",
-			      cwd);
-	}
-
-	return ISC_R_SUCCESS;
-}
-
 isc_result_t
-named_config_parsefile(cfg_parser_t *parser, cfg_obj_t **conf) {
+named_config_parsefile(cfg_obj_t **conf) {
 	isc_result_t result;
 
-	REQUIRE(parser);
 	REQUIRE(conf && *conf == NULL);
 
 	isc_log_write(NAMED_LOGCATEGORY_GENERAL, NAMED_LOGMODULE_SERVER,
 		      ISC_LOG_INFO, "parsing user configuration from '%s'",
 		      named_g_conffile);
 
-	cfg_parser_setcallback(parser, directory_callback, NULL);
-	result = cfg_parse_file(parser, named_g_conffile, &cfg_type_namedconf,
-				conf);
+	result = cfg_parse_file(isc_g_mctx, named_g_conffile,
+				&cfg_type_namedconf, 0, conf);
 	if (result != ISC_R_SUCCESS) {
 		goto cleanup;
 	}
@@ -457,7 +406,7 @@ named_config_parsefile(cfg_parser_t *parser, cfg_obj_t **conf) {
 
 cleanup:
 	if (*conf) {
-		cfg_obj_destroy(parser, conf);
+		cfg_obj_detach(conf);
 	}
 
 out:

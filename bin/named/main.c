@@ -513,7 +513,6 @@ printversion(bool verbose) {
 	isc_buffer_t b;
 	char buf[512];
 #if defined(HAVE_GEOIP2)
-	cfg_parser_t *parser = NULL;
 	cfg_obj_t *config = NULL;
 	const cfg_obj_t *defaults = NULL, *obj = NULL;
 #endif /* if defined(HAVE_GEOIP2) */
@@ -611,15 +610,13 @@ printversion(bool verbose) {
 #define RTC(x) RUNTIME_CHECK((x) == ISC_R_SUCCESS)
 	isc_mem_t *geoip_mctx = NULL;
 	isc_mem_create("geoip", &geoip_mctx);
-	RTC(cfg_parser_create(geoip_mctx, &parser));
-	RTC(named_config_parsedefaults(parser, &config));
+	RTC(named_config_parsedefaults(&config));
 	RTC(cfg_map_get(config, "options", &defaults));
 	RTC(cfg_map_get(defaults, "geoip-directory", &obj));
 	if (cfg_obj_isstring(obj)) {
 		printf("  geoip-directory:      %s\n", cfg_obj_asstring(obj));
 	}
-	cfg_obj_destroy(parser, &config);
-	cfg_parser_destroy(&parser);
+	cfg_obj_detach(&config);
 	isc_mem_detach(&geoip_mctx);
 #endif /* HAVE_GEOIP2 */
 }

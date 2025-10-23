@@ -538,6 +538,10 @@ struct dns_zone {
 	void (*plugins_free)(isc_mem_t *, void **);
 	void *hooktable;
 	void (*hooktable_free)(isc_mem_t *, void **);
+
+	/* Configuration object */
+	void *cfg;
+	void (*cfg_detach)(void *);
 };
 
 #define zonediff_init(z, d)                \
@@ -15343,6 +15347,9 @@ zone_shutdown(void *arg) {
 		dns_zonemgr_releasezone(zone->zmgr, zone);
 	}
 
+	/* Detach the zone configuration pointer */
+	dns_zone_setcfg(zone, NULL, NULL);
+
 	LOCK_ZONE(zone);
 	INSIST(zone != zone->raw);
 
@@ -24907,4 +24914,23 @@ dns_zone_unloadplugins(dns_zone_t *zone) {
 		INSIST(zone->plugins == NULL);
 		zone->plugins_free = NULL;
 	}
+}
+
+void
+dns_zone_setcfg(dns_zone_t *zone, void *cfg, void (*cfg_detach)(void *)) {
+	REQUIRE(DNS_ZONE_VALID(zone));
+
+	if (zone->cfg != NULL && zone->cfg_detach != NULL) {
+		zone->cfg_detach(zone->cfg);
+		zone->cfg = NULL;
+	}
+	zone->cfg = cfg;
+	zone->cfg_detach = cfg_detach;
+}
+
+void *
+dns_zone_getcfg(dns_zone_t *zone) {
+	REQUIRE(DNS_ZONE_VALID(zone));
+
+	return zone->cfg;
 }

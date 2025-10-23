@@ -17,7 +17,6 @@ cp -f ns1/redirect.db.1 ns1/redirect.db
 cp -f ns2/redirect.db.1 ns2/redirect.db
 cp -f ns3/redirect.db.1 ns3/redirect.db
 
-copy_setports ns1/named.conf.in ns1/named.conf
 copy_setports ns2/named1.conf.in ns2/named.conf
 copy_setports ns3/named1.conf.in ns3/named.conf
 

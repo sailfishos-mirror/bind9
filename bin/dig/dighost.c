@@ -1072,7 +1072,6 @@ parse_hmac(const char *algname) {
  */
 static isc_result_t
 read_confkey(void) {
-	cfg_parser_t *pctx = NULL;
 	cfg_obj_t *file = NULL;
 	const cfg_obj_t *keyobj = NULL;
 	const cfg_obj_t *secretobj = NULL;
@@ -1086,12 +1085,8 @@ read_confkey(void) {
 		return ISC_R_FILENOTFOUND;
 	}
 
-	result = cfg_parser_create(isc_g_mctx, &pctx);
-	if (result != ISC_R_SUCCESS) {
-		goto cleanup;
-	}
-
-	result = cfg_parse_file(pctx, keyfile, &cfg_type_sessionkey, &file);
+	result = cfg_parse_file(isc_g_mctx, keyfile, &cfg_type_sessionkey, 0,
+				&file);
 	if (result != ISC_R_SUCCESS) {
 		goto cleanup;
 	}
@@ -1117,11 +1112,8 @@ read_confkey(void) {
 	setup_text_key();
 
 cleanup:
-	if (pctx != NULL) {
-		if (file != NULL) {
-			cfg_obj_destroy(pctx, &file);
-		}
-		cfg_parser_destroy(&pctx);
+	if (file != NULL) {
+		cfg_obj_detach(&file);
 	}
 
 	return result;

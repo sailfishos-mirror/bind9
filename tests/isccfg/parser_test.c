@@ -60,7 +60,6 @@ append(void *arg, const char *str, int len) {
 ISC_RUN_TEST_IMPL(addzoneconf) {
 	isc_result_t result;
 	isc_buffer_t b;
-	cfg_parser_t *p = NULL;
 	const char *tests[] = {
 		"zone \"test4.baz\" { type primary; file \"e.db\"; };",
 		"zone \"test/.baz\" { type primary; file \"e.db\"; };",
@@ -73,9 +72,6 @@ ISC_RUN_TEST_IMPL(addzoneconf) {
 	char buf[1024];
 
 	/* Parse with default line numbering */
-	result = cfg_parser_create(isc_g_mctx, &p);
-	assert_int_equal(result, ISC_R_SUCCESS);
-
 	for (size_t i = 0; i < ARRAY_SIZE(tests); i++) {
 		cfg_obj_t *conf = NULL;
 		const cfg_obj_t *obj = NULL, *zlist = NULL;
@@ -83,7 +79,7 @@ ISC_RUN_TEST_IMPL(addzoneconf) {
 		isc_buffer_constinit(&b, tests[i], strlen(tests[i]));
 		isc_buffer_add(&b, strlen(tests[i]));
 
-		result = cfg_parse_buffer(p, &b, "text1", 0,
+		result = cfg_parse_buffer(isc_g_mctx, &b, "text1", 0,
 					  &cfg_type_namedconf, 0, &conf);
 		assert_int_equal(result, ISC_R_SUCCESS);
 
@@ -102,50 +98,78 @@ ISC_RUN_TEST_IMPL(addzoneconf) {
 		strlcat(buf, ";", sizeof(buf));
 		assert_string_equal(tests[i], buf);
 
-		cfg_obj_destroy(p, &conf);
-		cfg_parser_reset(p);
+		cfg_obj_detach(&conf);
 	}
-
-	cfg_parser_destroy(&p);
 }
 
 /* test cfg_parse_buffer() */
 ISC_RUN_TEST_IMPL(parse_buffer) {
 	isc_result_t result;
-	unsigned char text[] = "options\n{\nrecursion yes;\n};\n";
-	isc_buffer_t buf1, buf2;
-	cfg_parser_t *p1 = NULL, *p2 = NULL;
-	cfg_obj_t *c1 = NULL, *c2 = NULL;
+	int fresult;
+	unsigned char text[] = "options\n{\nidonotexists yes;\n};\n";
+	char logfilebuf[512];
+	size_t logfilelen;
+	isc_buffer_t buf;
+	cfg_obj_t *c = NULL;
 
-	isc_buffer_init(&buf1, &text[0], sizeof(text) - 1);
-	isc_buffer_add(&buf1, sizeof(text) - 1);
+	/*
+	 * Redirect parser errors into a specific file for checking the output
+	 * later.
+	 */
+	constexpr char logfilename[] = "./cfglog.out";
+	FILE *logfile = fopen(logfilename, "w+");
+	assert_non_null(logfile);
 
-	/* Parse with default line numbering */
-	result = cfg_parser_create(isc_g_mctx, &p1);
-	assert_int_equal(result, ISC_R_SUCCESS);
+	isc_logdestination_t *logdest = ISC_LOGDESTINATION_FILE(logfile);
+	isc_logconfig_t *logconfig = isc_logconfig_get();
+	isc_log_createandusechannel(logconfig, "default_stderr",
+				    ISC_LOG_TOFILEDESC, ISC_LOG_DYNAMIC,
+				    logdest, 0, ISC_LOGCATEGORY_DEFAULT,
+				    ISC_LOGMODULE_DEFAULT);
 
-	result = cfg_parse_buffer(p1, &buf1, "text1", 0, &cfg_type_namedconf, 0,
-				  &c1);
-	assert_int_equal(result, ISC_R_SUCCESS);
-	assert_int_equal(p1->line, 5);
+	/* Parse with default line numbering. */
+	isc_buffer_init(&buf, &text[0], sizeof(text) - 1);
+	isc_buffer_add(&buf, sizeof(text) - 1);
+	result = cfg_parse_buffer(isc_g_mctx, &buf, "text1", 0,
+				  &cfg_type_namedconf, 0, &c);
+	assert_int_equal(result, ISC_R_FAILURE);
+	assert_null(c);
 
-	isc_buffer_init(&buf2, &text[0], sizeof(text) - 1);
-	isc_buffer_add(&buf2, sizeof(text) - 1);
+	/* Parse with changed line number. */
+	isc_buffer_first(&buf);
+	result = cfg_parse_buffer(isc_g_mctx, &buf, "text2", 100,
+				  &cfg_type_namedconf, 0, &c);
+	assert_int_equal(result, ISC_R_FAILURE);
+	assert_null(c);
 
-	/* Parse with changed line number */
-	result = cfg_parser_create(isc_g_mctx, &p2);
-	assert_int_equal(result, ISC_R_SUCCESS);
+	/* Parse with changed line number and no name. */
+	isc_buffer_first(&buf);
+	result = cfg_parse_buffer(isc_g_mctx, &buf, NULL, 100,
+				  &cfg_type_namedconf, 0, &c);
+	assert_int_equal(result, ISC_R_FAILURE);
+	assert_null(c);
 
-	result = cfg_parse_buffer(p2, &buf2, "text2", 100, &cfg_type_namedconf,
-				  0, &c2);
-	assert_int_equal(result, ISC_R_SUCCESS);
-	assert_int_equal(p2->line, 104);
+	/* Check log values (and, specifically, line numbers). */
+	logfilelen = ftell(logfile);
+	assert_in_range(logfilelen, 0, sizeof(logfilebuf));
 
-	cfg_obj_destroy(p1, &c1);
-	cfg_obj_destroy(p2, &c2);
+	fresult = fseek(logfile, 0, SEEK_SET);
+	assert_int_equal(fresult, 0);
 
-	cfg_parser_destroy(&p1);
-	cfg_parser_destroy(&p2);
+	fresult = fread(logfilebuf, 1, logfilelen, logfile);
+	assert_int_equal(fresult, logfilelen);
+
+	logfilebuf[logfilelen] = 0;
+
+	assert_non_null(
+		strstr(logfilebuf, "text1:3: unknown option 'idonotexists'"));
+	assert_non_null(
+		strstr(logfilebuf, "text2:102: unknown option 'idonotexists'"));
+	assert_non_null(
+		strstr(logfilebuf, "none:102: unknown option 'idonotexists'"));
+
+	fclose(logfile);
+	remove(logfilename);
 }
 
 /* test cfg_map_firstclause() */

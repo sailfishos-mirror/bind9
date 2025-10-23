@@ -573,16 +573,13 @@ synthrecord_parseconfig(synthrecord_t *inst, const char *parameters,
 			const dns_name_t *zname) {
 	isc_result_t result;
 	isc_mem_t *mctx = inst->mctx;
-	cfg_parser_t *parser = NULL;
 	cfg_obj_t *synthrecordcfg = NULL;
 	isc_buffer_t b;
-
-	CHECK(cfg_parser_create(mctx, &parser));
 
 	isc_buffer_constinit(&b, parameters, strlen(parameters));
 	isc_buffer_add(&b, strlen(parameters));
 
-	CHECK(cfg_parse_buffer(parser, &b, cfgfile, cfgline,
+	CHECK(cfg_parse_buffer(mctx, &b, cfgfile, cfgline,
 			       &synthrecord_cfgparams, 0, &synthrecordcfg));
 
 	synthrecord_setconfigmode(inst, zname);
@@ -593,11 +590,7 @@ synthrecord_parseconfig(synthrecord_t *inst, const char *parameters,
 
 cleanup:
 	if (synthrecordcfg != NULL) {
-		cfg_obj_destroy(parser, &synthrecordcfg);
-	}
-
-	if (parser != NULL) {
-		cfg_parser_destroy(&parser);
+		cfg_obj_detach(&synthrecordcfg);
 	}
 
 	return result;

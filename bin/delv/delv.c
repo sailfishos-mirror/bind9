@@ -808,7 +808,6 @@ cleanup:
 static isc_result_t
 setup_dnsseckeys(dns_client_t *client, dns_view_t *toview) {
 	isc_result_t result;
-	cfg_parser_t *parser = NULL;
 	const cfg_obj_t *trust_anchors = NULL;
 	cfg_obj_t *bindkeys = NULL;
 
@@ -824,15 +823,13 @@ setup_dnsseckeys(dns_client_t *client, dns_view_t *toview) {
 		CHECK(convert_name(&afn, &anchor_name, trust_anchor));
 	}
 
-	CHECK(cfg_parser_create(isc_g_mctx, &parser));
-
 	if (anchorfile != NULL) {
 		if (access(anchorfile, R_OK) != 0) {
 			fatal("Unable to read key file '%s'", anchorfile);
 		}
 
-		result = cfg_parse_file(parser, anchorfile, &cfg_type_bindkeys,
-					&bindkeys);
+		result = cfg_parse_file(isc_g_mctx, anchorfile,
+					&cfg_type_bindkeys, 0, &bindkeys);
 		if (result != ISC_R_SUCCESS) {
 			fatal("Unable to load keys from '%s'", anchorfile);
 		}
@@ -841,8 +838,7 @@ setup_dnsseckeys(dns_client_t *client, dns_view_t *toview) {
 
 		isc_buffer_init(&b, anchortext, sizeof(anchortext) - 1);
 		isc_buffer_add(&b, sizeof(anchortext) - 1);
-		cfg_parser_reset(parser);
-		result = cfg_parse_buffer(parser, &b, NULL, 0,
+		result = cfg_parse_buffer(isc_g_mctx, &b, NULL, 0,
 					  &cfg_type_bindkeys, 0, &bindkeys);
 		if (result != ISC_R_SUCCESS) {
 			fatal("Unable to parse built-in keys");
@@ -862,10 +858,7 @@ setup_dnsseckeys(dns_client_t *client, dns_view_t *toview) {
 
 cleanup:
 	if (bindkeys != NULL) {
-		cfg_obj_destroy(parser, &bindkeys);
-	}
-	if (parser != NULL) {
-		cfg_parser_destroy(&parser);
+		cfg_obj_detach(&bindkeys);
 	}
 	if (result != ISC_R_SUCCESS) {
 		delv_log(ISC_LOG_ERROR, "setup_dnsseckeys: %s",

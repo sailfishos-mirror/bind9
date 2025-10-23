@@ -63,32 +63,6 @@ usage(void) {
 	exit(EXIT_SUCCESS);
 }
 
-/*% directory callback */
-static isc_result_t
-directory_callback(const char *clausename, const cfg_obj_t *obj, void *arg) {
-	isc_result_t result;
-	const char *directory;
-
-	REQUIRE(strcasecmp("directory", clausename) == 0);
-
-	UNUSED(arg);
-	UNUSED(clausename);
-
-	/*
-	 * Change directory.
-	 */
-	directory = cfg_obj_asstring(obj);
-	result = isc_dir_chdir(directory);
-	if (result != ISC_R_SUCCESS) {
-		cfg_obj_log(obj, ISC_LOG_ERROR,
-			    "change directory to '%s' failed: %s\n", directory,
-			    isc_result_totext(result));
-		return result;
-	}
-
-	return ISC_R_SUCCESS;
-}
-
 static bool
 get_maps(const cfg_obj_t **maps, const char *name, const cfg_obj_t **obj) {
 	int i;
@@ -574,16 +548,14 @@ output(void *closure, const char *text, int textlen) {
 int
 main(int argc, char **argv) {
 	int c;
-	cfg_parser_t *parser = NULL;
 	cfg_obj_t *config = NULL;
 	const char *conffile = NULL;
 	isc_result_t result = ISC_R_SUCCESS;
 	bool load_zones = false;
 	bool list_zones = false;
 	bool print = false;
-	bool nodeprecate = false;
-	bool allconfigs = false;
 	unsigned int flags = 0;
+	unsigned int parserflags = 0;
 	unsigned int checkflags = BIND_CHECK_PLUGINS | BIND_CHECK_ALGORITHMS;
 
 	isc_commandline_init(argc, argv);
@@ -631,7 +603,7 @@ main(int argc, char **argv) {
 			break;
 
 		case 'i':
-			nodeprecate = true;
+			parserflags |= CFG_PCTX_NODEPRECATED;
 			break;
 
 		case 'j':
@@ -650,7 +622,7 @@ main(int argc, char **argv) {
 			break;
 
 		case 'n':
-			allconfigs = true;
+			parserflags |= CFG_PCTX_ALLCONFIGS;
 			break;
 
 		case 't':
@@ -722,18 +694,8 @@ main(int argc, char **argv) {
 	}
 
 	CHECK(setup_logging(stdout));
-
-	CHECK(cfg_parser_create(isc_g_mctx, &parser));
-
-	if (nodeprecate) {
-		cfg_parser_setflags(parser, CFG_PCTX_NODEPRECATED, true);
-	}
-	if (allconfigs) {
-		cfg_parser_setflags(parser, CFG_PCTX_ALLCONFIGS, true);
-	}
-	cfg_parser_setcallback(parser, directory_callback, NULL);
-
-	CHECK(cfg_parse_file(parser, conffile, &cfg_type_namedconf, &config));
+	CHECK(cfg_parse_file(isc_g_mctx, conffile, &cfg_type_namedconf,
+			     parserflags, &config));
 	CHECK(isccfg_check_namedconf(config, checkflags, isc_g_mctx));
 	if (load_zones || list_zones) {
 		CHECK(load_zones_fromconfig(config, list_zones));
@@ -745,11 +707,7 @@ main(int argc, char **argv) {
 
 cleanup:
 	if (config != NULL) {
-		cfg_obj_destroy(parser, &config);
-	}
-
-	if (parser != NULL) {
-		cfg_parser_destroy(&parser);
+		cfg_obj_detach(&config);
 	}
 
 	return result == ISC_R_SUCCESS ? 0 : 1;

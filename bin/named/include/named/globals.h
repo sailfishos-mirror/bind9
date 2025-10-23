@@ -61,8 +61,6 @@ EXTERN bool named_g_run_done INIT(false);
  *         for really short timers, another for client timers, and one
  *         for zone timers.
  */
-EXTERN cfg_parser_t *named_g_parser	     INIT(NULL);
-EXTERN cfg_parser_t *named_g_addparser	     INIT(NULL);
 EXTERN const char *named_g_version	     INIT(PACKAGE_VERSION);
 EXTERN const char *named_g_product	     INIT(PACKAGE_NAME);
 EXTERN const char *named_g_description	     INIT(PACKAGE_DESCRIPTION);

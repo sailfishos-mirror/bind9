@@ -47,11 +47,8 @@ enum {
 	/*% Clause is obsolete (logs a warning, but is not a fatal error) */
 	CFG_CLAUSEFLAG_OBSOLETE = 1 << 3,
 
-	/*%
-	 * Clause needs to be interpreted during parsing by calling a
-	 * callback function, like the "directory" option.
-	 */
-	CFG_CLAUSEFLAG_CALLBACK = 1 << 4,
+	/*% Clause indicates it must change the current directory */
+	CFG_CLAUSEFLAG_CHDIR = 1 << 4,
 
 	/*% Clause that is only used in testing. */
 	CFG_CLAUSEFLAG_TESTONLY = 1 << 5,
@@ -102,7 +99,7 @@ typedef isc_result_t (*cfg_parsefunc_t)(cfg_parser_t *, const cfg_type_t *type,
 					cfg_obj_t **);
 typedef void (*cfg_printfunc_t)(cfg_printer_t *, const cfg_obj_t *);
 typedef void (*cfg_docfunc_t)(cfg_printer_t *, const cfg_type_t *);
-typedef void (*cfg_freefunc_t)(cfg_parser_t *, cfg_obj_t *);
+typedef void (*cfg_freefunc_t)(cfg_obj_t *);
 
 /*
  * Structure definitions
@@ -180,6 +177,10 @@ struct cfg_rep {
  */
 
 struct cfg_obj {
+	unsigned int   magic;
+	isc_mem_t     *mctx;
+	isc_refcount_t references;
+
 	const cfg_type_t *type;
 	union {
 		uint32_t	 uint32;
@@ -197,10 +198,8 @@ struct cfg_obj {
 		cfg_netprefix_t	  netprefix;
 		isccfg_duration_t duration;
 	} value;
-	isc_refcount_t references; /*%< reference counter */
-	const char    *file;
-	unsigned int   line;
-	cfg_parser_t  *pctx;
+	cfg_obj_t   *file; /*%< separate string with its own refcount */
+	unsigned int line;
 };
 
 /*% A list element. */
@@ -264,9 +263,6 @@ struct cfg_parser {
 
 	/*%< Reference counter */
 	isc_refcount_t references;
-
-	cfg_parsecallback_t callback;
-	void		   *callbackarg;
 };
 
 /* Parser context flags */
@@ -353,8 +349,9 @@ cfg_ungettoken(cfg_parser_t *pctx);
 
 #define CFG_LEXOPT_QSTRING (ISC_LEXOPT_QSTRING | ISC_LEXOPT_QSTRINGMULTILINE)
 
-isc_result_t
-cfg_create_obj(cfg_parser_t *pctx, const cfg_type_t *type, cfg_obj_t **objp);
+void
+cfg_obj_create(isc_mem_t *mctx, cfg_obj_t *file, size_t line,
+	       const cfg_type_t *type, cfg_obj_t **ret);
 
 void
 cfg_print_rawuint(cfg_printer_t *pctx, unsigned int u);
@@ -422,8 +419,8 @@ isc_result_t
 cfg_parse_special(cfg_parser_t *pctx, int special);
 /*%< Parse a required special character 'special'. */
 
-isc_result_t
-cfg_create_tuple(cfg_parser_t *pctx, const cfg_type_t *type, cfg_obj_t **objp);
+void
+cfg_tuple_create(cfg_parser_t *pctx, const cfg_type_t *type, cfg_obj_t **objp);
 
 isc_result_t
 cfg_parse_tuple(cfg_parser_t *pctx, const cfg_type_t *type, cfg_obj_t **ret);
@@ -435,11 +432,8 @@ void
 cfg_doc_tuple(cfg_printer_t *pctx, const cfg_type_t *type);
 
 isc_result_t
-cfg_create_list(cfg_parser_t *pctx, const cfg_type_t *type, cfg_obj_t **objp);
-
-isc_result_t
-cfg_parse_listelt(cfg_parser_t *pctx, const cfg_type_t *elttype,
-		  cfg_listelt_t **ret);
+cfg_parse_listelt(cfg_parser_t *pctx, cfg_obj_t *list,
+		  const cfg_type_t *elttype, cfg_listelt_t **ret);
 
 isc_result_t
 cfg_parse_bracketed_list(cfg_parser_t *pctx, const cfg_type_t *type,
