@@ -381,14 +381,13 @@ def test_cdnskey_signing():
 )
 def test_rndc_signing_except(cmd, ns3):
     # check that 'rndc signing' errors are handled
-    with pytest.raises(isctest.rndc.RNDCException):
-        ns3.rndc(cmd, log=False)
-    ns3.rndc("status", log=False)
+    ret = ns3.rndc(cmd, raise_on_exception=False)
+    assert ret.rc != 0
 
 
 def test_rndc_signing_output(ns3):
-    response = ns3.rndc("signing -list dynamic.example", log=False)
-    assert "No signing records found" in response
+    response = ns3.rndc("signing -list dynamic.example")
+    assert "No signing records found" in response.out
 
 
 def test_zonestatus_signing(ns3):
@@ -398,14 +397,14 @@ def test_zonestatus_signing(ns3):
     # for the name and type, and check that the resigning time is
     # after the inception and before the expiration.
 
-    response = ns3.rndc("zonestatus secure.example", log=False)
+    response = ns3.rndc("zonestatus secure.example")
 
     # next resign node: secure.example/DNSKEY
-    nrn = [r for r in response.splitlines() if "next resign node" in r][0]
+    nrn = [r for r in response.out.splitlines() if "next resign node" in r][0]
     rdname, rdtype = nrn.split()[3].split("/")
 
     # next resign time: Thu, 24 Apr 2014 10:38:16 GMT
-    nrt = [r for r in response.splitlines() if "next resign time" in r][0]
+    nrt = [r for r in response.out.splitlines() if "next resign time" in r][0]
     rtime = " ".join(nrt.split()[3:])
     rt = time.strptime(rtime, "%a, %d %b %Y %H:%M:%S %Z")
     when = int(time.strftime("%s", rt))
@@ -469,7 +468,7 @@ def test_offline_ksk_signing(ns2):
     def loadkeys():
         pattern = Re(f"{zone}/IN.*next key event")
         with ns2.watch_log_from_here() as watcher:
-            ns2.rndc(f"loadkeys {zone}", log=False)
+            ns2.rndc(f"loadkeys {zone}")
             watcher.wait_for_line(pattern)
 
     ksk_only_types = ["DNSKEY", "CDNSKEY", "CDS"]
@@ -506,7 +505,7 @@ def test_offline_ksk_signing(ns2):
     ZSKID2 = getkeyid(ZSK2)
 
     isctest.log.info("prepublish new ZSK")
-    ns2.rndc(f"dnssec -rollover -key {ZSKID} {zone}", log=False)
+    ns2.rndc(f"dnssec -rollover -key {ZSKID} {zone}")
     isctest.run.retry_with_timeout(check_zskcount, 5)
 
     isctest.log.info("make the new ZSK active")
@@ -561,7 +560,7 @@ def test_offline_ksk_signing(ns2):
     settime("-sKns2", "-k", "HIDDEN", "now", "-z", "HIDDEN", "now", "-Dnow", ZSK)
     settime("-sKns2", "-k", "OMNIPRESENT", "now", "-z", "OMNIPRESENT", "now", ZSK2)
     loadkeys()
-    ns2.rndc(f"dnssec -rollover -key {ZSKID2} {zone}", log=False)
+    ns2.rndc(f"dnssec -rollover -key {ZSKID2} {zone}")
 
     with ns2.watch_log_from_start() as watcher:
         watcher.wait_for_line(f"{ZSKID3} (ZSK) is now published")

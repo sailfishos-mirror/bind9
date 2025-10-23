@@ -189,33 +189,6 @@ def keystate_check(server, zone, key):
         assert val != 0
 
 
-def rekey(zone):
-    rndc = os.getenv("RNDC")
-    assert rndc is not None
-
-    port = os.getenv("CONTROLPORT")
-    assert port is not None
-
-    # rndc loadkeys.
-    rndc_cmd = [
-        rndc,
-        "-c",
-        "../_common/rndc.conf",
-        "-p",
-        port,
-        "-s",
-        "10.53.0.9",
-        "loadkeys",
-        zone,
-    ]
-    controller = isctest.run.cmd(rndc_cmd)
-
-    if controller.rc != 0:
-        isctest.log.error(f"rndc loadkeys {zone} failed")
-
-    assert controller.rc == 0
-
-
 class CheckDSTest(NamedTuple):
     zone: str
     logs_to_wait_for: Tuple[str]
@@ -472,7 +445,7 @@ def test_checkds(ns2, ns9, params):
     for log_string in params.logs_to_wait_for:
         line = f"zone {params.zone}/IN (signed): checkds: {log_string}"
         while line not in ns9.log:
-            rekey(params.zone)
+            ns9.rndc(f"loadkeys {params.zone}")
             time_remaining -= 1
             assert time_remaining, f'Timed out waiting for "{log_string}" to be logged'
             time.sleep(1)

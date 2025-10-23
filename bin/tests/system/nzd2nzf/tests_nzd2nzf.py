@@ -34,7 +34,7 @@ def test_nzd2nzf(ns1):
     isctest.check.refused(res)
 
     # add new zone into the default NZD using "rndc addzone"
-    ns1.rndc(f"addzone {zone_data}", log=False)
+    ns1.rndc(f"addzone {zone_data}")
 
     # query for existing zone data
     res = isctest.query.tcp(msg, ns1.ip)

@@ -58,7 +58,6 @@ def test_secure_roots(ns4):
     # check that "rndc secroots" dumps the trusted keys with multiple views
     key = int(getfrom("ns1/managed.key.id"))
     alg = os.environ["DEFAULT_ALGORITHM"]
-    expected = f"./{alg}/{key} ; static"
-    response = ns4.rndc("secroots -", log=False).splitlines()
-    assert expected in response, response
-    assert len(response) == 17
+    response = ns4.rndc("secroots -")
+    assert f"./{alg}/{key} ; static" in response.out
+    assert len(response.out.splitlines()) == 17

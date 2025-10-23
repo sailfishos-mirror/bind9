@@ -224,7 +224,7 @@ def test_zsk_prepub_step3(tld, alg, size, ns3):
 
     # Force full resign and check all signatures have been replaced.
     with ns3.watch_log_from_here() as watcher:
-        ns3.rndc(f"sign {zone}", log=False)
+        ns3.rndc(f"sign {zone}")
         watcher.wait_for_line(f"zone_needdump: zone {zone}/IN (signed): enter")
 
     step["smooth"] = False

@@ -11,8 +11,6 @@
 
 from re import compile as Re
 
-import isctest
-
 
 def test_configloading_log(ns1):
     """
@@ -38,11 +36,11 @@ def test_configloading_log(ns1):
         watcher.wait_for_sequence(log_sequence)
 
     with ns1.watch_log_from_here() as watcher:
-        ns1.rndc("reconfig", log=False)
+        ns1.rndc("reconfig")
         watcher.wait_for_sequence(log_sequence)
 
     with ns1.watch_log_from_here() as watcher:
-        ns1.rndc("reload", log=False)
+        ns1.rndc("reload")
         watcher.wait_for_sequence(log_sequence)
 
 
@@ -66,8 +64,6 @@ def test_reload_fails_log(ns1, templates):
 
     with ns1.watch_log_from_here() as watcher:
         templates.render("ns1/named.conf", {"wrongoption": True})
-        try:
-            ns1.rndc("reload", log=False)
-            assert False
-        except isctest.rndc.RNDCException:
-            watcher.wait_for_sequence(log_sequence)
+        cmd = ns1.rndc("reload", raise_on_exception=False)
+        assert cmd.rc != 0
+        watcher.wait_for_sequence(log_sequence)

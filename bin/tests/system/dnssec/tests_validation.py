@@ -134,10 +134,9 @@ def test_secure_root(ns4):
     # check that "rndc secroots" dumps the trusted keys
     key = int(getfrom("ns1/managed.key.id"))
     alg = os.environ["DEFAULT_ALGORITHM"]
-    expected = f"./{alg}/{key} ; static"
-    response = ns4.rndc("secroots -", log=False).splitlines()
-    assert expected in response
-    assert len(response) == 10
+    response = ns4.rndc("secroots -")
+    assert f"./{alg}/{key} ; static" in response.out
+    assert len(response.out.splitlines()) == 10
 
 
 def test_positive_validation_nsec():
@@ -709,7 +708,7 @@ def test_negative_validation_optout():
 
 def test_cache(ns4):
     # check that key id's are logged when dumping the cache
-    ns4.rndc("dumpdb -cache", log=False)
+    ns4.rndc("dumpdb -cache")
     dumpdb = isctest.text.TextFile("ns4/named_dump.db")
     assert "; key id = " in dumpdb
 
@@ -811,7 +810,7 @@ def test_insecure_proof_nsec(ns4):
     isctest.check.noadflag(res2)
 
     # insecurity proof using negative cache
-    ns4.rndc("flush", log=False)
+    ns4.rndc("flush")
     msg = isctest.query.create("insecure.example", "DS", cd=True)
     isctest.query.tcp(msg, "10.53.0.4")
 
@@ -941,7 +940,7 @@ def test_validation_recovery(ns2, ns4):
     msg = isctest.query.create("target.peer-ns-spoof", "A", cd=True)
     res = isctest.query.tcp(msg, "10.53.0.4")
     isctest.check.servfail(res)
-    ns4.rndc("dumpdb", log=False)
+    ns4.rndc("dumpdb")
     dumpdb = isctest.text.TextFile("ns4/named_dump.db")
     assert "10.53.0.100" in dumpdb
 
@@ -950,7 +949,7 @@ def test_validation_recovery(ns2, ns4):
         "ns2/peer.peer-ns-spoof.db.next", "ns2/peer.peer-ns-spoof.db.signed"
     )
     with ns2.watch_log_from_here() as watcher:
-        ns2.rndc("reload peer.peer-ns-spoof", log=False)
+        ns2.rndc("reload peer.peer-ns-spoof")
         watcher.wait_for_line("zone peer.peer-ns-spoof/IN: loaded serial 2000042408")
 
     # and check we can resolve with the correct server address
@@ -971,7 +970,7 @@ def test_validation_recovery(ns2, ns4):
         "ns2/dnskey-rrsigs-stripped.db.next", "ns2/dnskey-rrsigs-stripped.db.signed"
     )
     with ns2.watch_log_from_here() as watcher:
-        ns2.rndc("reload dnskey-rrsigs-stripped", log=False)
+        ns2.rndc("reload dnskey-rrsigs-stripped")
         watcher.wait_for_line(
             "zone dnskey-rrsigs-stripped/IN: loaded serial 2000042408"
         )
@@ -995,7 +994,7 @@ def test_validation_recovery(ns2, ns4):
         "ns2/ds-rrsigs-stripped.db.next", "ns2/ds-rrsigs-stripped.db.signed"
     )
     with ns2.watch_log_from_here() as watcher:
-        ns2.rndc("reload ds-rrsigs-stripped", log=False)
+        ns2.rndc("reload ds-rrsigs-stripped")
         watcher.wait_for_line("zone ds-rrsigs-stripped/IN: loaded serial 2000042408")
 
     # and check we can now resolve with the correct server address
@@ -1006,7 +1005,7 @@ def test_validation_recovery(ns2, ns4):
     isctest.check.adflag(res2)
 
     # check recovery with mismatching NS
-    ns4.rndc("flush", log=False)
+    ns4.rndc("flush")
     msg = isctest.query.create("inconsistent", "NS", dnssec=False, cd=True)
     res = isctest.query.tcp(msg, "10.53.0.4")
     isctest.check.noadflag(res)
@@ -1074,7 +1073,7 @@ def test_transitions():
 
 def test_validating_forwarder(ns4, ns9):
     # check validating forwarder behavior with mismatching NS
-    ns4.rndc("flush", log=False)
+    ns4.rndc("flush")
     msg = isctest.query.create("inconsistent", "NS", dnssec=False, cd=True)
     res = isctest.query.tcp(msg, "10.53.0.9")
     isctest.check.noerror(res)
@@ -1098,7 +1097,7 @@ def test_validating_forwarder(ns4, ns9):
     isctest.check.adflag(res)
 
     # check validating forwarder sends CD to validate with a local trust anchor
-    ns4.rndc("flush", log=False)
+    ns4.rndc("flush")
     msg = isctest.query.create("localkey.example", "SOA")
     res = isctest.query.tcp(msg, "10.53.0.4")
     isctest.check.servfail(res)
@@ -1144,7 +1143,7 @@ def test_expired_signatures(ns4):
     isctest.check.noerror(res)
 
     # test TTL is capped at RRSIG expiry time
-    ns4.rndc("flush", log=False)
+    ns4.rndc("flush")
     msg = isctest.query.create("expiring.example", "SOA", cd=True)
     res1 = isctest.query.tcp(msg, "10.53.0.4")
     msg = isctest.query.create("expiring.example", "SOA")
@@ -1155,7 +1154,7 @@ def test_expired_signatures(ns4):
         assert rrset.ttl <= 60
 
     # test TTL is capped at RRSIG expiry time in the additional section (NS)
-    ns4.rndc("flush", log=False)
+    ns4.rndc("flush")
     msg = isctest.query.create("expiring.example", "NS", cd=True)
     res1 = isctest.query.tcp(msg, "10.53.0.4")
     msg = isctest.query.create("expiring.example", "NS")
@@ -1166,7 +1165,7 @@ def test_expired_signatures(ns4):
         assert rrset.ttl <= 60
 
     # test TTL is capped at RRSIG expiry time in the additional section (MX)
-    ns4.rndc("flush", log=False)
+    ns4.rndc("flush")
     msg = isctest.query.create("expiring.example", "MX", cd=True)
     res1 = isctest.query.tcp(msg, "10.53.0.4")
     msg = isctest.query.create("expiring.example", "MX")
@@ -1254,7 +1253,7 @@ def test_pending_ds(ns4):
     # a negative cache entry with trust level "pending" for the DS.  prime
     # with a +cd DS query to produce the negative cache entry, then send a
     # query that uses that entry as part of the validation process.
-    ns4.rndc("flush", log=False)
+    ns4.rndc("flush")
     msg = isctest.query.create("insecure.example", "DS", cd=True)
     res = isctest.query.tcp(msg, "10.53.0.4")
     isctest.check.noerror(res)

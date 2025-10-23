@@ -20,7 +20,7 @@ pytestmark = pytest.mark.extra_artifacts(
 
 def test_dig_tcp_keepalive_handling(named_port, ns2):
     def get_keepalive_options_received():
-        ns2.rndc("stats", log=False)
+        ns2.rndc("stats")
         options_received = 0
         with open("ns2/named.stats", "r", encoding="utf-8") as ns2_stats_file:
             for line in ns2_stats_file:
@@ -55,12 +55,12 @@ def test_dig_tcp_keepalive_handling(named_port, ns2):
     )
 
     isctest.log.info("check a re-configured keepalive value")
-    response = ns2.rndc("tcp-timeouts 300 300 300 200 100", log=False)
-    assert "tcp-initial-timeout=300" in response
-    assert "tcp-idle-timeout=300" in response
-    assert "tcp-keepalive-timeout=300" in response
-    assert "tcp-advertised-timeout=200" in response
-    assert "tcp-primaries-timeout=100" in response
+    response = ns2.rndc("tcp-timeouts 300 300 300 200 100")
+    assert "tcp-initial-timeout=300" in response.out
+    assert "tcp-idle-timeout=300" in response.out
+    assert "tcp-keepalive-timeout=300" in response.out
+    assert "tcp-advertised-timeout=200" in response.out
+    assert "tcp-primaries-timeout=100" in response.out
     assert (
         "; TCP-KEEPALIVE: 20.0 secs"
         in dig("+tcp +keepalive foo.example. @10.53.0.2").out
