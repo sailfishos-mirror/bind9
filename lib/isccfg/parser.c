@@ -136,8 +136,8 @@ static void
 free_map(cfg_obj_t *obj);
 
 static isc_result_t
-parse_symtab_elt(cfg_parser_t *pctx, const char *name, cfg_type_t *elttype,
-		 isc_symtab_t *symtab, bool callback);
+parse_symtab_elt(cfg_parser_t *pctx, const cfg_clausedef_t *clause,
+		 isc_symtab_t *symtab);
 
 static void
 free_noop(cfg_obj_t *obj);
@@ -2360,12 +2360,8 @@ cfg_parse_mapbody(cfg_parser_t *pctx, const cfg_type_t *type, cfg_obj_t **ret) {
 			CHECK(parse_semicolon(pctx));
 		} else {
 			/* Single-valued clause */
-			bool chdir = ((clause->flags & CFG_CLAUSEFLAG_CHDIR) !=
-				      0);
-
-			result = parse_symtab_elt(pctx, clause->name,
-						  clause->type,
-						  obj->value.map.symtab, chdir);
+			result = parse_symtab_elt(pctx, clause,
+						  obj->value.map.symtab);
 			if (result == ISC_R_EXISTS) {
 				cfg_parser_error(pctx, CFG_LOG_NEAR,
 						 "'%s' redefined",
@@ -2392,19 +2388,13 @@ cleanup:
 }
 
 static isc_result_t
-change_directory(const char *clausename, const cfg_obj_t *obj) {
+change_directory(const cfg_obj_t *obj) {
 	isc_result_t result;
-	const char *directory;
-
-	REQUIRE(strcasecmp("directory", clausename) == 0);
-
-	UNUSED(clausename);
+	const char *directory = cfg_obj_asstring(obj);
 
 	/*
 	 * Change directory.
 	 */
-	directory = cfg_obj_asstring(obj);
-
 	if (!isc_file_ischdiridempotent(directory)) {
 		cfg_obj_log(obj, ISC_LOG_WARNING,
 			    "option 'directory' contains relative path '%s'",
@@ -2425,30 +2415,24 @@ change_directory(const char *clausename, const cfg_obj_t *obj) {
 		return result;
 	}
 
-	char cwd[PATH_MAX];
-	if (getcwd(cwd, sizeof(cwd)) == cwd) {
-		cfg_obj_log(obj, ISC_LOG_INFO,
-			    "the working directory is now '%s'", cwd);
-	}
-
 	return ISC_R_SUCCESS;
 }
 
 static isc_result_t
-parse_symtab_elt(cfg_parser_t *pctx, const char *name, cfg_type_t *elttype,
-		 isc_symtab_t *symtab, bool chdir) {
+parse_symtab_elt(cfg_parser_t *pctx, const cfg_clausedef_t *clause,
+		 isc_symtab_t *symtab) {
 	isc_result_t result;
 	cfg_obj_t *obj = NULL;
 	isc_symvalue_t symval;
 
-	CHECK(cfg_parse_obj(pctx, elttype, &obj));
+	CHECK(cfg_parse_obj(pctx, clause->type, &obj));
 
-	if (chdir) {
-		CHECK(change_directory(name, obj));
+	if ((clause->flags & CFG_CLAUSEFLAG_CHDIR) != 0) {
+		CHECK(change_directory(obj));
 	}
 
 	symval.as_pointer = obj;
-	CHECK(isc_symtab_define(symtab, name, SYMTAB_DUMMY_TYPE, symval,
+	CHECK(isc_symtab_define(symtab, clause->name, SYMTAB_DUMMY_TYPE, symval,
 				isc_symexists_reject));
 	return ISC_R_SUCCESS;
 

@@ -8143,8 +8143,7 @@ apply_configuration(cfg_obj_t *config, cfg_obj_t *bindkeys,
 		if (getcwd(cwd, sizeof(cwd)) == cwd) {
 			isc_log_write(NAMED_LOGCATEGORY_GENERAL,
 				      NAMED_LOGMODULE_SERVER, ISC_LOG_INFO,
-				      "the initial working directory is '%s'",
-				      cwd);
+				      "the working directory is now '%s'", cwd);
 		}
 	}
 
