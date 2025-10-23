@@ -81,6 +81,19 @@ def cmd(
         return CmdResult(exc)
 
 
+class EnvCmd:
+    """Helper for executing binaries from env with optional base parameters."""
+
+    def __init__(self, name: str, base_params: str = ""):
+        self.bin_path = os.environ[name]
+        self.base_params = base_params.split()
+
+    def __call__(self, params: str, **kwargs) -> CmdResult:
+        """Call the command. Keyword arguments from isctest.run.cmd() are supported."""
+        args = self.base_params + params.split()
+        return cmd([self.bin_path] + args, **kwargs)
+
+
 def _run_script(
     interpreter: str,
     script: str,
@@ -114,17 +127,6 @@ def _run_script(
         if returncode:
             raise subprocess.CalledProcessError(returncode, command)
         isctest.log.debug("  exited with %d", returncode)
-
-
-class Dig:
-    def __init__(self, base_params: str = ""):
-        self.base_params = base_params
-
-    def __call__(self, params: str) -> CmdResult:
-        """Run the dig command with the given parameters."""
-        return cmd(
-            [os.environ.get("DIG")] + f"{self.base_params} {params}".split(),
-        )
 
 
 def shell(script: str, args: Optional[List[str]] = None) -> None:
