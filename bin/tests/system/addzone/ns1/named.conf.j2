@@ -10,6 +10,7 @@
  * See the COPYRIGHT file distributed with this work for additional
  * information regarding copyright ownership.
  */
+{% set allownewzones = allownewzones | default(True) %}
 
 key rndc_key {
 	secret "1234abcd8765";
@@ -27,7 +28,11 @@ options {
 	listen-on-v6 { none; };
 	allow-transfer { any; };
 	allow-query { any; };
+{% if allownewzones %}
 	allow-new-zones yes;
+{% else %}
+	allow-new-zones no;
+{% endif %}
 	recursion no;
 	dnssec-validation no;
 };
