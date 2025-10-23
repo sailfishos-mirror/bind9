@@ -69,19 +69,19 @@ if [ $ret != 0 ]; then echo_i "failed"; fi
 status=$((status + ret))
 
 nextpart ns2/named.run >/dev/null
-echo_i "checking addzone errors are logged correctly"
+echo_i "checking addzone errors are logged correctly ($n)"
 ret=0
 $RNDCCMD 10.53.0.2 addzone bad.example '{ type mister; };' 2>&1 | grep 'unexpected token' >/dev/null 2>&1 || ret=1
-wait_for_log_peek 20 "addzone: 'mister' unexpected" ns2/named.run || ret=1
+wait_for_log_peek 20 "addzone:1: 'mister' unexpected" ns2/named.run || ret=1
 n=$((n + 1))
 if [ $ret != 0 ]; then echo_i "failed"; fi
 status=$((status + ret))
 
 nextpart ns2/named.run >/dev/null
-echo_i "checking modzone errors are logged correctly"
+echo_i "checking modzone errors are logged correctly ($n)"
 ret=0
 $RNDCCMD 10.53.0.2 modzone added.example '{ type mister; };' 2>&1 | grep 'unexpected token' >/dev/null 2>&1 || ret=1
-wait_for_log_peek 20 "modzone: 'mister' unexpected" ns2/named.run || ret=1
+wait_for_log_peek 20 "modzone:1: 'mister' unexpected" ns2/named.run || ret=1
 n=$((n + 1))
 if [ $ret != 0 ]; then echo_i "failed"; fi
 status=$((status + ret))

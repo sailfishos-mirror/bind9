@@ -3648,8 +3648,10 @@ parser_complain(cfg_parser_t *pctx, bool is_warning, unsigned int flags,
 	if (file != NULL) {
 		snprintf(where, sizeof(where),
 			 "%s:%u: ", cfg_obj_asstring(file), pctx->line);
-	} else if (pctx->buf_name != NULL) {
-		snprintf(where, sizeof(where), "%s: ", pctx->buf_name);
+	} else {
+		snprintf(where, sizeof(where), "%s:%u: ",
+			 pctx->buf_name == NULL ? "none" : pctx->buf_name,
+			 pctx->line);
 	}
 
 	len = vsnprintf(message, sizeof(message), format, args);
@@ -3717,7 +3719,7 @@ cfg_obj_log(const cfg_obj_t *obj, int level, const char *fmt, ...) {
 		isc_log_write(CAT, MOD, level, "%s:%u: %s",
 			      cfg_obj_asstring(obj->file), obj->line, msgbuf);
 	} else {
-		isc_log_write(CAT, MOD, level, "%s", msgbuf);
+		isc_log_write(CAT, MOD, level, "%u: %s", obj->line, msgbuf);
 	}
 }
 
