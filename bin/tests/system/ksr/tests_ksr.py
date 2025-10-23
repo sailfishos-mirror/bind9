@@ -740,13 +740,12 @@ def test_ksr_common(ns1):
         f"addzone {zone} "
         + "{ type primary; file "
         + f'"{zone}.db"; dnssec-policy {policy}; '
-        + "};",
-        log=False,
+        + "};"
     )
 
     # import skr
     shutil.copyfile(skr_fname, f"ns1/{skr_fname}")
-    ns1.rndc(f"skr -import {skr_fname} {zone}", log=False)
+    ns1.rndc(f"skr -import {skr_fname} {zone}")
 
     # test zone is correctly signed
     # - check rndc dnssec -status output
@@ -815,12 +814,11 @@ def test_ksr_lastbundle(ns1):
         + "{ type primary; file "
         + f'"{zone}.db"; dnssec-policy {policy}; '
         + "};",
-        log=False,
     )
 
     # import skr
     shutil.copyfile(skr_fname, f"ns1/{skr_fname}")
-    ns1.rndc(f"skr -import {skr_fname} {zone}", log=False)
+    ns1.rndc(f"skr -import {skr_fname} {zone}")
 
     # test zone is correctly signed
     # - check rndc dnssec -status output
@@ -894,12 +892,11 @@ def test_ksr_inthemiddle(ns1):
         + "{ type primary; file "
         + f'"{zone}.db"; dnssec-policy {policy}; '
         + "};",
-        log=False,
     )
 
     # import skr
     shutil.copyfile(skr_fname, f"ns1/{skr_fname}")
-    ns1.rndc(f"skr -import {skr_fname} {zone}", log=False)
+    ns1.rndc(f"skr -import {skr_fname} {zone}")
 
     # test zone is correctly signed
     # - check rndc dnssec -status output
@@ -965,12 +962,11 @@ def check_ksr_rekey_logs_error(server, zone, policy, offset, end):
         + "{ type primary; file "
         + f'"{zone}.db"; dnssec-policy {policy}; '
         + "};",
-        log=False,
     )
 
     # import skr
     shutil.copyfile(skr_fname, f"ns1/{skr_fname}")
-    server.rndc(f"skr -import {skr_fname} {zone}", log=False)
+    server.rndc(f"skr -import {skr_fname} {zone}")
 
     # test that rekey logs error
     time_remaining = 10
@@ -1088,12 +1084,11 @@ def test_ksr_unlimited(ns1):
         + "{ type primary; file "
         + f'"{zone}.db"; dnssec-policy {policy}; '
         + "};",
-        log=False,
     )
 
     # import skr
     shutil.copyfile(skr_fname, f"ns1/{skr_fname}")
-    ns1.rndc(f"skr -import {skr_fname} {zone}", log=False)
+    ns1.rndc(f"skr -import {skr_fname} {zone}")
 
     # test zone is correctly signed
     # - check rndc dnssec -status output
@@ -1199,12 +1194,11 @@ def test_ksr_twotone(ns1):
         + "{ type primary; file "
         + f'"{zone}.db"; dnssec-policy {policy}; '
         + "};",
-        log=False,
     )
 
     # import skr
     shutil.copyfile(skr_fname, f"ns1/{skr_fname}")
-    ns1.rndc(f"skr -import {skr_fname} {zone}", log=False)
+    ns1.rndc(f"skr -import {skr_fname} {zone}")
 
     # test zone is correctly signed
     # - check rndc dnssec -status output
@@ -1278,12 +1272,11 @@ def test_ksr_kskroll(ns1):
         + "{ type primary; file "
         + f'"{zone}.db"; dnssec-policy {policy}; '
         + "};",
-        log=False,
     )
 
     # import skr
     shutil.copyfile(skr_fname, f"ns1/{skr_fname}")
-    ns1.rndc(f"skr -import {skr_fname} {zone}", log=False)
+    ns1.rndc(f"skr -import {skr_fname} {zone}")
 
     # test zone is correctly signed
     # - check rndc dnssec -status output

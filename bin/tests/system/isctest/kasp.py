@@ -838,19 +838,19 @@ def check_dnssecstatus(server, zone, keys, policy=None, view=None):
     # policy name is returned, and if all expected keys are listed.
     response = ""
     if view is None:
-        response = server.rndc(f"dnssec -status {zone}", log=False)
+        response = server.rndc(f"dnssec -status {zone}")
     else:
-        response = server.rndc(f"dnssec -status {zone} in {view}", log=False)
+        response = server.rndc(f"dnssec -status {zone} in {view}")
 
     if policy is None:
-        assert "Zone does not have dnssec-policy" in response
+        assert "Zone does not have dnssec-policy" in response.out
         return
 
-    assert f"dnssec-policy: {policy}" in response
+    assert f"dnssec-policy: {policy}" in response.out
 
     for key in keys:
         if not key.external:
-            assert f"key: {key.tag}" in response
+            assert f"key: {key.tag}" in response.out
 
 
 def _check_signatures(
