@@ -9,7 +9,7 @@
 # See the COPYRIGHT file distributed with this work for additional
 # information regarding copyright ownership.
 
-if fuzz_opt.enabled()
+if fuzzing_opt.disabled()
     subdir_done()
 endif
 

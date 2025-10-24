@@ -176,6 +176,12 @@ option(
 )
 
 option(
+    'oss-fuzz-args',
+    type: 'string',
+    description: 'Fuzzing linking arguments for OSS-Fuzz',
+)
+
+option(
     'trace-logging',
     type: 'array',
     value: [],

@@ -12,7 +12,7 @@
 # information regarding copyright ownership.
 
 .[]
-    | select((.section == "user") and (.name | IN("rcu-flavor", "geoip", "fuzzing", "doh", "fips", "trace-logging") | not))
+    | select((.section == "user") and (.name | IN("rcu-flavor", "fuzzing", "fuzzing-backend", "oss-fuzz-args", "fips", "trace-logging") | not))
     | ["\(.name):", "-D\(.name)=\(.choices[]),"]
     | join(" ")
     | .[:-1]
