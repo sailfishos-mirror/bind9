@@ -53,7 +53,7 @@ To build BIND 9, the following packages must be installed:
 - ``perl``
 - ``pkg-config`` / ``pkgconfig`` / ``pkgconf``
 
-BIND 9 requires ``meson`` 0.61 or higher to configure and ``ninja``/``samurai``
+BIND 9 requires ``meson`` 1.3.0 or higher to configure and ``ninja``/``samurai``
 to build from source.
 
 BIND 9.20 requires ``libuv`` 1.37.0 or higher; using ``libuv`` >= 1.40.0 is

@@ -431,7 +431,7 @@ stages:
     - *check_readline_setup
     - meson compile -C build
     - meson compile -C build system-test-dependencies
-    - test -z "${NO_BUILD_TEST_PREREQ}" && ninja -C build meson-test-prereq
+    - ninja -C build meson-test-prereq
     - test -z "${RUN_MESON_INSTALL}" || meson install -C build --destdir=$INSTALL_PATH
     - test -z "${RUN_MESON_INSTALL}" || DESTDIR="${INSTALL_PATH}" sh build/util/check-make-install.sh
     #- test -z "${CROSS_COMPILATION}" || grep -F -A 1 "checking whether we are cross compiling" config.log | grep -q "result.*yes"
@@ -622,6 +622,7 @@ misc:
     - bash util/xmllint-html.sh
     # Check dangling symlinks in the repository
     - if find . -xtype l | grep .; then exit 1; fi
+    - muon-meson analyze -Werror
   needs: []
   artifacts:
     paths:
@@ -1356,7 +1357,6 @@ gcc:jammy:amd64:
     CC: gcc
     CFLAGS: "${CFLAGS_COMMON}"
     EXTRA_CONFIGURE: "-Dgeoip=disabled -Didn=enabled -Ddoh=disabled -Dcmocka=disabled -Ddnstap=disabled -Dgssapi=disabled"
-    NO_BUILD_TEST_PREREQ: 1  # remove this variable after removing this particular distro
   <<: *ubuntu_jammy_amd64_image
   <<: *build_job
 
