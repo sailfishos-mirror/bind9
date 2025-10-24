@@ -50,7 +50,6 @@ meson_lto = get_option('b_lto')
 trace_logging = get_option('trace-logging')
 rcu_flavor = get_option('rcu-flavor')
 
-cap_opt = get_option('cap')
 cmocka_opt = get_option('cmocka')
 dnstap_opt = get_option('dnstap')
 doc_opt = get_option('doc')
@@ -818,11 +817,9 @@ endif
 
 ## libcap
 cap_dep = null_dep
-if cap_opt.allowed()
-    cap_dep = dependency('libcap', required: cap_opt)
-    if cap_dep.found()
-        config.set('HAVE_LIBCAP', 1)
-    endif
+cap_dep = dependency('libcap', required: host_machine.system() == 'linux')
+if cap_dep.found()
+    config.set('HAVE_LIBCAP', 1)
 endif
 
 ## IDN
