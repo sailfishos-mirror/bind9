@@ -36,7 +36,6 @@ isc_test = [
     'proxyudp',
     'quota',
     'radix',
-    'random',
     'ratelimiter',
     'regex',
     'result',
@@ -59,7 +58,6 @@ isc_test = [
 
 flaky_isc_test = [
     'proxystream',
-    'random',
 ]
 
 if config.has('HAVE_LIBNGHTTP2')
