@@ -4,6 +4,12 @@ variables:
   # Locale settings do not affect the build, but might affect tests.
   LC_ALL: C
 
+  # automated commits will inherit identification from pipeline trigger
+  GIT_AUTHOR_NAME: "$GITLAB_USER_NAME (GitLab job $CI_JOB_ID)"
+  GIT_AUTHOR_EMAIL: "$GITLAB_USER_EMAIL"
+  GIT_COMMITTER_NAME: "$GIT_AUTHOR_NAME"
+  GIT_COMMITTER_EMAIL: "$GIT_AUTHOR_EMAIL"
+
   CI_REGISTRY_IMAGE: registry.gitlab.isc.org/isc-projects/images/bind9
   CCACHE_DIR: "/ccache"
 
@@ -298,13 +304,13 @@ stages:
     allow_failure: true  # don't block the pipeline or the pipeline result
 
 .rule_tag: &rule_tag
-  - if: '$CI_COMMIT_TAG != null'
+  - if: '$CI_PROJECT_NAMESPACE == "isc-private" && $CI_COMMIT_TAG != null'
 
 .rule_source_other_than_mr: &rule_source_other_than_mr
-  - if: '$CI_PIPELINE_SOURCE =~ /^(api|pipeline|schedule|trigger|web)$/'
+  - if: '$CI_PIPELINE_SOURCE =~ /^(api|pipeline|schedule|trigger|web)$/ && $REBASE_ONLY != "1"'
 
 .rule_source_all: &rule_source_all
-  - if: '$CI_PIPELINE_SOURCE =~ /^(api|merge_request_event|pipeline|schedule|trigger|web)$/'
+  - if: '$CI_PIPELINE_SOURCE =~ /^(api|merge_request_event|pipeline|schedule|trigger|web)$/ && $REBASE_ONLY != "1"'
 
 .api-pipelines-schedules-tags-triggers-web-triggering-rules: &api_pipelines_schedules_tags_triggers_web_triggering_rules
   rules:
@@ -466,11 +472,11 @@ stages:
       when: manual  # don't run on each MR unless requested
       allow_failure: true
     # - &shotgun_rule_tag
-    #   if: '$CI_COMMIT_TAG != null'
+    #   if: '$CI_PROJECT_NAMESPACE == "isc-private" && $CI_COMMIT_TAG != null'
     #   variables:
     #     SHOTGUN_ROUNDS: 3
     # - &shotgun_rule_other
-    #   if: '$CI_PIPELINE_SOURCE =~ /^(api|pipeline|schedule|trigger|web)$/'
+    #   if: '$CI_PIPELINE_SOURCE =~ /^(api|pipeline|schedule|trigger|web)$/ && $REBASE_ONLY != "1"'
   # when using data from a single run, the overall instability of the results
   # causes quite high false positive rate, rerun the test to attemp to reduce those
   retry: 1
@@ -819,11 +825,6 @@ changelog:
   <<: *docs_job
   rules:
     - if: '$CI_MERGE_REQUEST_TITLE =~ /\s(dev|usr|pkg):/'
-  variables:
-    GIT_AUTHOR_NAME: $GITLAB_USER_NAME
-    GIT_AUTHOR_EMAIL: $GITLAB_USER_EMAIL
-    GIT_COMMITTER_NAME: $GITLAB_USER_NAME
-    GIT_COMMITTER_EMAIL: $GITLAB_USER_EMAIL
   before_script:
     - echo -e "$CI_MERGE_REQUEST_TITLE\n" > commitmsg
     - sed -i 's/^Draft:\s*//' commitmsg
@@ -1634,7 +1635,7 @@ release:
     - job: docs
       artifacts: true
   rules:
-    - if: '$CI_COMMIT_TAG != null'
+    - *rule_tag
   artifacts:
     paths:
       - "*-release"
@@ -1678,7 +1679,7 @@ sign:
     - job: release
       artifacts: true
   rules:
-    - if: '$CI_COMMIT_TAG != null'
+    - *rule_tag
   when: manual
   allow_failure: false
 
@@ -1740,7 +1741,7 @@ customer-git:branch:
     - if: '$CI_PROJECT_NAMESPACE == "isc-private" && $CI_PIPELINE_SOURCE == "merge_request_event"'
       variables:
         BRANCH: '$CI_MERGE_REQUEST_SOURCE_BRANCH_NAME'
-    - if: '$CI_PROJECT_NAMESPACE == "isc-private" && $CI_PIPELINE_SOURCE =~ /^(api|pipeline|trigger|web)$/'
+    - if: '$CI_PROJECT_NAMESPACE == "isc-private" && $CI_PIPELINE_SOURCE =~ /^(api|pipeline|trigger|web)$/ && $REBASE_ONLY != "1"'
       variables:
         BRANCH: '$CI_COMMIT_BRANCH'
   before_script:
@@ -1756,7 +1757,7 @@ customer-git:tag:
     - job: release
       artifacts: false
   rules:
-    - if: '$CI_PROJECT_NAMESPACE == "isc-private" && $CI_COMMIT_TAG != null'
+    - *rule_tag
   before_script:
     - git clone --depth 1 https://gitlab.isc.org/isc-projects/bind9-qa.git
     - git clone --depth 1 "https://token:${ISC_CUSTOMERS_WRITE_TOKEN}@gitlab.isc.org/isc-customers/isc-customer-settings.git"
@@ -1950,8 +1951,8 @@ stress-test-child-pipeline:
     - if: '$CI_MERGE_REQUEST_DIFF_BASE_SHA != null'
       when: manual  # don't run on each MR unless requested
       allow_failure: true
-    - if: '$CI_COMMIT_TAG != null'
-    - if: '$CI_PIPELINE_SOURCE =~ /^(api|pipeline|schedule|trigger|web)$/'
+    - *rule_tag
+    - if: '$CI_PIPELINE_SOURCE =~ /^(api|pipeline|schedule|trigger|web)$/ && $REBASE_ONLY != "1"'
   trigger:
     include:
       - artifact: stress-test-configs.yml
@@ -2047,9 +2048,6 @@ pairwise:
   # post-merge processes should run even if another MR was merged while the job was running (or queued)
   interruptible: false
   variables:
-    # automated commits will inherit identification from the user who pressed Merge button
-    GIT_COMMITTER_NAME: $GITLAB_USER_NAME
-    GIT_COMMITTER_EMAIL: $GITLAB_USER_EMAIL
     # avoid leftover branches from previous jobs
     GIT_STRATEGY: clone
     # assumed max depth of a MR for backport or a rebased force-push
@@ -2059,12 +2057,12 @@ pairwise:
     - >
       echo "previous branch tip: $CI_COMMIT_BEFORE_SHA"
     - set +o pipefail; git log --format='%H' | grep --silent "$CI_COMMIT_BEFORE_SHA" && PREVIOUS_TIP_REACHABLE=1
-    - test "$PREVIOUS_TIP_REACHABLE" != "1" && echo "force-push detected, stop" && exit 1
+    - test "$PREVIOUS_TIP_REACHABLE" != "1" && echo "force-push detected, stop" && exit 0
     # non-fast-forward merges are disabled so we have to have merge commit on top
     - MERGE_REQUEST_ID="$(git log -1 --format='%b' | sed --silent -e "s|^See merge request ${CI_PROJECT_PATH}\!||p")"
     - >
       : stop if this is not a merge request in the current project\'s namespace
-    - test -n "$MERGE_REQUEST_ID"
+    - test -n "$MERGE_REQUEST_ID" || exit 0
     - git clone --depth 1 https://gitlab.isc.org/isc-projects/bind9-qa.git
 
 backports:
@@ -2083,3 +2081,17 @@ merged-metadata:
     - if: '$CI_PIPELINE_SOURCE == "push" && ($CI_COMMIT_REF_NAME =~ /^bind-9.[0-9]+(-sub)?$/ || $CI_COMMIT_REF_NAME =~ /^v9.[0-9]+.[0-9]+-release$/ || $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH)'
   script:
     - bind9-qa/releng/after_merge.py "$CI_PROJECT_ID" "$MERGE_REQUEST_ID"
+
+auto-rebase-trigger:
+  stage: postmerge
+  rules:
+    - if: '$CI_PROJECT_NAMESPACE == "isc-projects" && $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_REF_NAME =~ /^bind-9.[0-9]+$/'
+  needs: []
+  interruptible: true
+  inherit:
+      variables: false
+  variables:
+    REBASE_ONLY: 1
+  trigger:
+      project: isc-private/bind9
+      branch: "${CI_COMMIT_BRANCH}-sub"
