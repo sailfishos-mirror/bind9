@@ -2459,9 +2459,10 @@ catz_addmodzone_cb(void *arg) {
 	isc_loopmgr_pause();
 	dns_view_thaw(view);
 	result = configure_zone(
-		cz->cbd->server->config, zoneobj, view->newzone.vconfig, view,
-		&cz->cbd->server->viewlist, &cz->cbd->server->kasplist,
-		cz->cbd->server->aclctx, true, false, true, cz->mod);
+		cz->cbd->server->effectiveconfig, zoneobj,
+		view->newzone.vconfig, view, &cz->cbd->server->viewlist,
+		&cz->cbd->server->kasplist, cz->cbd->server->aclctx, true,
+		false, true, cz->mod);
 	dns_view_freeze(view);
 	isc_loopmgr_resume();
 
@@ -7888,8 +7889,9 @@ configure_kasplist(const cfg_obj_t *config, dns_kasplist_t *kasplist,
 }
 
 static isc_result_t
-apply_configuration(cfg_obj_t *config, cfg_obj_t *bindkeys,
-		    named_server_t *server, bool first_time) {
+apply_configuration(cfg_obj_t *effectiveconfig, cfg_obj_t *userconfig,
+		    cfg_obj_t *bindkeys, named_server_t *server,
+		    bool first_time) {
 	const cfg_obj_t *maps[3];
 	const cfg_obj_t *obj = NULL;
 	const cfg_obj_t *options = NULL;
@@ -7942,7 +7944,7 @@ apply_configuration(cfg_obj_t *config, cfg_obj_t *bindkeys,
 	 */
 	i = 0;
 	options = NULL;
-	result = cfg_map_get(config, "options", &options);
+	result = cfg_map_get(effectiveconfig, "options", &options);
 	if (result == ISC_R_SUCCESS) {
 		maps[i++] = options;
 	}
@@ -7954,17 +7956,17 @@ apply_configuration(cfg_obj_t *config, cfg_obj_t *bindkeys,
 		goto cleanup_aclctx;
 	}
 
-	result = configure_keystores(config, &keystorelist);
+	result = configure_keystores(effectiveconfig, &keystorelist);
 	if (result != ISC_R_SUCCESS) {
 		goto cleanup_keystorelist;
 	}
 
-	result = configure_kasplist(config, &kasplist, &keystorelist);
+	result = configure_kasplist(effectiveconfig, &kasplist, &keystorelist);
 	if (result != ISC_R_SUCCESS) {
 		goto cleanup_kasplist;
 	}
 
-	result = create_views(config, &viewlist);
+	result = create_views(effectiveconfig, &viewlist);
 	if (result != ISC_R_SUCCESS) {
 		goto cleanup_viewlist;
 	}
@@ -8079,7 +8081,7 @@ apply_configuration(cfg_obj_t *config, cfg_obj_t *bindkeys,
 	result = named_config_get(maps, "sig0checks-quota-exempt", &obj);
 	if (result == ISC_R_SUCCESS) {
 		result = cfg_acl_fromconfig(
-			obj, config, aclctx, isc_g_mctx, 0,
+			obj, effectiveconfig, aclctx, isc_g_mctx, 0,
 			&server->sctx->sig0checksquota_exempt);
 		INSIST(result == ISC_R_SUCCESS);
 	}
@@ -8088,8 +8090,9 @@ apply_configuration(cfg_obj_t *config, cfg_obj_t *bindkeys,
 	 * Set "blackhole". Only legal at options level; there is
 	 * no default.
 	 */
-	result = configure_view_acl(NULL, config, "blackhole", NULL, aclctx,
-				    isc_g_mctx, &server->sctx->blackholeacl);
+	result = configure_view_acl(NULL, effectiveconfig, "blackhole", NULL,
+				    aclctx, isc_g_mctx,
+				    &server->sctx->blackholeacl);
 	if (result != ISC_R_SUCCESS) {
 		goto cleanup_tls;
 	}
@@ -8341,7 +8344,8 @@ apply_configuration(cfg_obj_t *config, cfg_obj_t *bindkeys,
 	if (named_g_port != 0) {
 		listen_port = named_g_port;
 	} else {
-		result = named_config_getport(config, "port", &listen_port);
+		result = named_config_getport(effectiveconfig, "port",
+					      &listen_port);
 		if (result != ISC_R_SUCCESS) {
 			goto cleanup_portsets;
 		}
@@ -8390,7 +8394,7 @@ apply_configuration(cfg_obj_t *config, cfg_obj_t *bindkeys,
 			goto cleanup_portsets;
 		}
 		result = listenlist_fromconfig(
-			clistenon, config, aclctx, isc_g_mctx, AF_INET,
+			clistenon, effectiveconfig, aclctx, isc_g_mctx, AF_INET,
 			server->tlsctx_server_cache, &listenon);
 		if (result != ISC_R_SUCCESS) {
 			goto cleanup_portsets;
@@ -8414,8 +8418,8 @@ apply_configuration(cfg_obj_t *config, cfg_obj_t *bindkeys,
 			goto cleanup_portsets;
 		}
 		result = listenlist_fromconfig(
-			clistenon, config, aclctx, isc_g_mctx, AF_INET6,
-			server->tlsctx_server_cache, &listenon);
+			clistenon, effectiveconfig, aclctx, isc_g_mctx,
+			AF_INET6, server->tlsctx_server_cache, &listenon);
 		if (result != ISC_R_SUCCESS) {
 			goto cleanup_portsets;
 		}
@@ -8536,9 +8540,9 @@ apply_configuration(cfg_obj_t *config, cfg_obj_t *bindkeys,
 	 */
 	(void)configure_session_key(maps, server, isc_g_mctx, first_time);
 
-	result = configure_views(config, bindkeys, aclctx, tlsctx_client_cache,
-				 &viewlist, &cachelist, &kasplist, server,
-				 first_time);
+	result = configure_views(effectiveconfig, bindkeys, aclctx,
+				 tlsctx_client_cache, &viewlist, &cachelist,
+				 &kasplist, server, first_time);
 	if (result != ISC_R_SUCCESS) {
 		goto cleanup_cachelist;
 	}
@@ -8620,7 +8624,7 @@ apply_configuration(cfg_obj_t *config, cfg_obj_t *bindkeys,
 			      "statement for logging due to "
 			      "-g option");
 
-		(void)cfg_map_get(config, "logging", &logobj);
+		(void)cfg_map_get(effectiveconfig, "logging", &logobj);
 		if (logobj != NULL) {
 			result = named_logconfig(NULL, logobj);
 			if (result != ISC_R_SUCCESS) {
@@ -8639,7 +8643,7 @@ apply_configuration(cfg_obj_t *config, cfg_obj_t *bindkeys,
 		isc_logconfig_create(&logc);
 
 		logobj = NULL;
-		(void)cfg_map_get(config, "logging", &logobj);
+		(void)cfg_map_get(effectiveconfig, "logging", &logobj);
 		if (logobj != NULL) {
 			result = named_logconfig(logc, logobj);
 			if (result != ISC_R_SUCCESS) {
@@ -8699,7 +8703,7 @@ apply_configuration(cfg_obj_t *config, cfg_obj_t *bindkeys,
 			ns_server_setoption(server->sctx, NS_SERVER_LOGQUERIES,
 					    cfg_obj_asboolean(obj));
 		} else {
-			(void)cfg_map_get(config, "logging", &logobj);
+			(void)cfg_map_get(effectiveconfig, "logging", &logobj);
 			if (logobj != NULL) {
 				(void)cfg_map_get(logobj, "category",
 						  &categories);
@@ -8948,10 +8952,18 @@ apply_configuration(cfg_obj_t *config, cfg_obj_t *bindkeys,
 	 */
 	named_g_defaultconfigtime = isc_time_now();
 
-	if (server->config != NULL) {
-		cfg_obj_detach(&server->config);
+	/*
+	 * Set the current effective and user configuration
+	 */
+	if (server->effectiveconfig != NULL) {
+		cfg_obj_detach(&server->effectiveconfig);
 	}
-	cfg_obj_attach(config, &server->config);
+	cfg_obj_attach(effectiveconfig, &server->effectiveconfig);
+
+	if (server->userconfig != NULL) {
+		cfg_obj_detach(&server->userconfig);
+	}
+	cfg_obj_attach(userconfig, &server->userconfig);
 
 	isc_loopmgr_resume();
 	exclusive = false;
@@ -8962,8 +8974,8 @@ apply_configuration(cfg_obj_t *config, cfg_obj_t *bindkeys,
 	}
 
 	/* Configure the statistics channel(s) */
-	result = named_statschannels_configure(named_g_server, config,
-					       server->aclctx);
+	result = named_statschannels_configure(
+		named_g_server, server->effectiveconfig, server->aclctx);
 	if (result != ISC_R_SUCCESS) {
 		isc_log_write(NAMED_LOGCATEGORY_GENERAL, NAMED_LOGMODULE_SERVER,
 			      ISC_LOG_ERROR,
@@ -8975,7 +8987,8 @@ apply_configuration(cfg_obj_t *config, cfg_obj_t *bindkeys,
 	/*
 	 * Bind the control port(s).
 	 */
-	result = named_controls_configure(named_g_server->controls, config,
+	result = named_controls_configure(named_g_server->controls,
+					  server->effectiveconfig,
 					  server->aclctx);
 	if (result != ISC_R_SUCCESS) {
 		isc_log_write(NAMED_LOGCATEGORY_GENERAL, NAMED_LOGMODULE_SERVER,
@@ -9066,7 +9079,7 @@ cleanup_aclctx:
 		      ISC_LOG_DEBUG(1), "apply_configuration: %s",
 		      isc_result_totext(result));
 
-	cfg_obj_detach(&config);
+	cfg_obj_detach(&effectiveconfig);
 	return result;
 }
 
@@ -9110,8 +9123,10 @@ load_configuration(named_server_t *server, bool first_time) {
 		}
 	}
 
+	/* Merge and apply */
 	effective = cfg_effective_config(config, named_g_defaultconfig);
-	result = apply_configuration(effective, bindkeys, server, first_time);
+	result = apply_configuration(effective, config, bindkeys, server,
+				     first_time);
 
 cleanup:
 	if (bindkeys != NULL) {
@@ -9751,8 +9766,12 @@ named_server_destroy(named_server_t **serverp) {
 		isc_tlsctx_cache_detach(&server->tlsctx_client_cache);
 	}
 
-	if (server->config != NULL) {
-		cfg_obj_detach(&server->config);
+	if (server->userconfig != NULL) {
+		cfg_obj_detach(&server->userconfig);
+	}
+
+	if (server->effectiveconfig != NULL) {
+		cfg_obj_detach(&server->effectiveconfig);
 	}
 
 	server->magic = 0;
@@ -13041,10 +13060,10 @@ do_addzone(named_server_t *server, dns_view_t *view, dns_name_t *name,
 	if (view->newzone.vconfig != NULL) {
 		voptions = cfg_tuple_get(view->newzone.vconfig, "options");
 	}
-	result = isccfg_check_zoneconf(zoneobj, voptions, server->config, NULL,
-				       NULL, NULL, NULL, view->name,
-				       view->rdclass, BIND_CHECK_PLUGINS,
-				       server->aclctx, isc_g_mctx);
+	result = isccfg_check_zoneconf(
+		zoneobj, voptions, server->effectiveconfig, NULL, NULL, NULL,
+		NULL, view->name, view->rdclass, BIND_CHECK_PLUGINS,
+		server->aclctx, isc_g_mctx);
 	if (result != ISC_R_SUCCESS) {
 		isc_loopmgr_resume();
 		goto cleanup;
@@ -13052,9 +13071,10 @@ do_addzone(named_server_t *server, dns_view_t *view, dns_name_t *name,
 
 	/* Mark view unfrozen and configure zone */
 	dns_view_thaw(view);
-	result = configure_zone(server->config, zoneobj, view->newzone.vconfig,
-				view, &server->viewlist, &server->kasplist,
-				server->aclctx, true, false, false, false);
+	result = configure_zone(server->effectiveconfig, zoneobj,
+				view->newzone.vconfig, view, &server->viewlist,
+				&server->kasplist, server->aclctx, true, false,
+				false, false);
 	dns_view_freeze(view);
 
 	isc_loopmgr_resume();
@@ -13236,10 +13256,10 @@ do_modzone(named_server_t *server, dns_view_t *view, dns_name_t *name,
 	if (view->newzone.vconfig != NULL) {
 		voptions = cfg_tuple_get(view->newzone.vconfig, "options");
 	}
-	result = isccfg_check_zoneconf(zoneobj, voptions, server->config, NULL,
-				       NULL, NULL, NULL, view->name,
-				       view->rdclass, BIND_CHECK_PLUGINS,
-				       server->aclctx, isc_g_mctx);
+	result = isccfg_check_zoneconf(
+		zoneobj, voptions, server->effectiveconfig, NULL, NULL, NULL,
+		NULL, view->name, view->rdclass, BIND_CHECK_PLUGINS,
+		server->aclctx, isc_g_mctx);
 	if (result != ISC_R_SUCCESS) {
 		isc_loopmgr_resume();
 		goto cleanup;
@@ -13247,9 +13267,10 @@ do_modzone(named_server_t *server, dns_view_t *view, dns_name_t *name,
 
 	/* Reconfigure the zone */
 	dns_view_thaw(view);
-	result = configure_zone(server->config, zoneobj, view->newzone.vconfig,
-				view, &server->viewlist, &server->kasplist,
-				server->aclctx, true, false, false, true);
+	result = configure_zone(server->effectiveconfig, zoneobj,
+				view->newzone.vconfig, view, &server->viewlist,
+				&server->kasplist, server->aclctx, true, false,
+				false, true);
 	dns_view_freeze(view);
 
 	isc_loopmgr_resume();
@@ -13287,11 +13308,12 @@ do_modzone(named_server_t *server, dns_view_t *view, dns_name_t *name,
 
 	if (!added) {
 		if (view->newzone.vconfig == NULL) {
-			result = delete_zoneconf(view, server->config,
+			result = delete_zoneconf(view, server->effectiveconfig,
 						 dns_zone_getorigin(zone),
 						 NULL);
 		} else {
-			voptions = cfg_tuple_get(server->config, "options");
+			voptions = cfg_tuple_get(server->effectiveconfig,
+						 "options");
 			result = delete_zoneconf(
 				view, voptions, dns_zone_getorigin(zone), NULL);
 		}
@@ -13579,9 +13601,9 @@ rmzone(void *arg) {
 			result = delete_zoneconf(
 				view, voptions, dns_zone_getorigin(zone), NULL);
 		} else {
-			result = delete_zoneconf(view, dz->server->config,
-						 dns_zone_getorigin(zone),
-						 NULL);
+			result = delete_zoneconf(
+				view, dz->server->effectiveconfig,
+				dns_zone_getorigin(zone), NULL);
 		}
 
 		if (result != ISC_R_SUCCESS) {
@@ -13796,7 +13818,7 @@ cleanup:
 }
 
 static void
-emitzone(void *arg, const char *buf, int len) {
+emit_text(void *arg, const char *buf, int len) {
 	ns_dzarg_t *dzarg = arg;
 	isc_result_t result;
 
@@ -13839,12 +13861,60 @@ named_server_showzone(named_server_t *server, isc_lex_t *lex,
 	dzarg.magic = DZARG_MAGIC;
 	dzarg.text = text;
 	dzarg.result = ISC_R_SUCCESS;
-	cfg_printx(zconfig, CFG_PRINTER_ONELINE, emitzone, &dzarg);
+	cfg_printx(zconfig, CFG_PRINTER_ONELINE, emit_text, &dzarg);
 	CHECK(dzarg.result);
 
 	CHECK(putstr(text, ";"));
 
 	result = ISC_R_SUCCESS;
+
+cleanup:
+	if (isc_buffer_usedlength(*text) > 0) {
+		(void)putnull(text);
+	}
+
+	return result;
+}
+
+isc_result_t
+named_server_showconf(named_server_t *server, isc_lex_t *lex,
+		      isc_buffer_t **text) {
+	isc_result_t result, tresult;
+	const char *arg = NULL;
+	const cfg_obj_t *config = NULL;
+	ns_dzarg_t dzarg = {
+		.magic = DZARG_MAGIC,
+		.result = ISC_R_SUCCESS,
+		.text = text,
+	};
+
+	REQUIRE(text != NULL && *text != NULL);
+
+	/* Skip the command name */
+	(void)next_token(lex, text);
+
+	arg = next_token(lex, text);
+	if (arg == NULL) {
+		return ISC_R_UNEXPECTEDEND;
+	}
+	if (strcasecmp(arg, "-user") == 0) {
+		config = server->userconfig;
+	} else if (strcasecmp(arg, "-builtin") == 0) {
+		config = named_g_defaultconfig;
+	} else if (strcasecmp(arg, "-effective") == 0) {
+		config = server->effectiveconfig;
+	} else {
+		CHECK(DNS_R_SYNTAX);
+	}
+
+	if (config == NULL) {
+		result = ISC_R_NOTFOUND;
+		TCHECK(putstr(text, "configuration data not found.\n"));
+		goto cleanup;
+	}
+
+	cfg_printx(config, 0, emit_text, &dzarg);
+	result = dzarg.result;
 
 cleanup:
 	if (isc_buffer_usedlength(*text) > 0) {

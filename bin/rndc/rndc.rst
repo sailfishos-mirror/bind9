@@ -545,6 +545,28 @@ Currently supported commands are:
    answers is currently enabled or disabled. It also reports the values of
    ``stale-answer-ttl`` and ``max-stale-ttl``.
 
+.. option:: showconf ( -user | -builtin | -effective )
+
+   This command prints the current running configuration for the server.
+   There are three modes:
+
+     - ``rndc showconf -user`` prints the contents of :iscman:`named.conf`,
+        as of the time the server was most recently configured.
+     - ``rndc showconf -builtin`` prints the built-in default configuration
+       settings (which may be overridden by :iscman:`named.conf`).
+     - ``rndc showconf -effective`` prints the effective configuration
+       of the server. This is the merged combination of the ``-user`` and
+       ``-builtin`` configurations.
+
+   Note that this information is only set or updated when the server is
+   loaded or reconfigured.  Properties that can be dynamically changed
+   during runtime, such as the active root trust anchors, the debugging
+   level (via ``rndc trace``), or DNSSEC validation (via ``rndc
+   valiation``), are shown as configured, not as currently set, and zones that
+   are dynamically added using ``rndc addzone`` are not visible.
+
+   See also :option:`rndc showzone`.
+
 .. option:: showzone zone [class [view]]
 
    This command prints the configuration of a running zone.

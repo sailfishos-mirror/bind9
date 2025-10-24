@@ -61,6 +61,7 @@
 #define NAMED_COMMAND_SCAN	   "scan"
 #define NAMED_COMMAND_SECROOTS	   "secroots"
 #define NAMED_COMMAND_SERVESTALE   "serve-stale"
+#define NAMED_COMMAND_SHOWCONF	   "showconf"
 #define NAMED_COMMAND_SHOWZONE	   "showzone"
 #define NAMED_COMMAND_SIGN	   "sign"
 #define NAMED_COMMAND_SIGNING	   "signing"
