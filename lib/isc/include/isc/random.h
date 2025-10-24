@@ -28,9 +28,10 @@
 ISC_LANG_BEGINDECLS
 
 #if HAVE_ARC4RANDOM && !defined(__linux__)
-#define isc_random32()			arc4random()
-#define isc_random_buf(buf, buflen)	arc4random_buf(buf, buflen)
-#define isc_random_uniform(upper_bound) arc4random_uniform(upper_bound)
+#define isc_random32()		    arc4random()
+#define isc_random_buf(buf, buflen) arc4random_buf(buf, buflen)
+#define isc_random_uniform(upper_bound) \
+	((upper_bound) < 2 ? 0 : arc4random_uniform(upper_bound))
 #else /* HAVE_ARC4RANDOM && !defined(__linux__) */
 uint32_t
 isc_random32(void);
