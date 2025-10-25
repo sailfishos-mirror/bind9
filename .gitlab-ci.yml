@@ -619,7 +619,6 @@ misc:
     - sh util/check-gitignore.sh
     - sh util/check-trailing-whitespace.sh
     - bash util/unused-headers.sh
-    - bash util/xmllint-html.sh
     # Check dangling symlinks in the repository
     - if find . -xtype l | grep .; then exit 1; fi
     - muon-meson analyze -Werror

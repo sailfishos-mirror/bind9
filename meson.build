@@ -97,8 +97,10 @@ dtrace = find_program(['dtrace', dtrace_shim], required: false)
 curl = find_program('curl', required: false)
 fstrm_capture = find_program('fstrm_capture', required: false)
 git = find_program('git', required: false)
+jq = find_program('jq', required: false)
 nc = find_program('nc', required: false)
 python = find_program(['python3', 'python'], required: false)
+xmllint = find_program('xmllint', required: false)
 xsltproc = find_program('xsltproc', required: false)
 pytest = find_program(
     ['pytest-3', 'py.test-3', 'pytest', 'py.test', 'pytest-pypy'],

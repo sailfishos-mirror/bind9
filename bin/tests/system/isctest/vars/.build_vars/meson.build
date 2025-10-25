@@ -28,11 +28,13 @@ configure_file(
 foreach name, prog : {
     'CURL': curl,
     'FSTRM_CAPTURE': fstrm_capture,
+    'JQ': jq,
     'NC': nc,
     'PERL': perl,
     'PYTEST': pytest,
     'PYTHON': python,
     'SHELL': sh,
+    'XMLLINT': xmllint,
     'XSLTPROC': xsltproc,
 }
     if prog.found()
