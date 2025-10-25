@@ -715,7 +715,7 @@ for ns in 2 4 5 6; do
     status=$((status + ret))
   done
 
-  if ${FEATURETEST} --have-libxml2 && [ -x "${CURL}" ]; then
+  if ${FEATURETEST} --have-libxml2 && [ -x "${CURL}" ] && [ -x "${XMLLINT}" ]; then
     echo_i "getting XML statisistcs for (synth-from-dnssec ${description};) ($n)"
     ret=0
     xml=xml.out$n
@@ -726,10 +726,9 @@ for ns in 2 4 5 6; do
 
     echo_i "check XML for 'CoveringNSEC' with (synth-from-dnssec ${description};) ($n)"
     ret=0
-    counter=$(sed -n 's;.*<view name="_default">.*\(<counter name="CoveringNSEC">[0-9]*</counter>\).*</view><view.*;\1;gp' $xml)
-    count=$(echo "$counter" | grep CoveringNSEC | wc -l)
+    count=$("${XMLLINT}" --xpath 'count(/statistics/views/view[@name="_default"]/counters[@type="cachestats"]/counter[@name="CoveringNSEC"])' $xml)
     test $count = 1 || ret=1
-    zero=$(echo "$counter" | grep ">0<" | wc -l)
+    zero=$("${XMLLINT}" --xpath 'count(/statistics/views/view[@name="_default"]/counters[@type="cachestats"]/counter[@name="CoveringNSEC" and text()="0"])' $xml)
     if [ ${synth} = yes ]; then
       test $zero = 0 || ret=1
     else
@@ -741,10 +740,9 @@ for ns in 2 4 5 6; do
 
     echo_i "check XML for 'CacheNSECNodes' with (synth-from-dnssec ${description};) ($n)"
     ret=0
-    counter=$(sed -n 's;.*<view name="_default">.*\(<counter name="CacheNSECNodes">[0-9]*</counter>\).*</view><view.*;\1;gp' $xml)
-    count=$(echo "$counter" | grep CacheNSECNodes | wc -l)
+    count=$("${XMLLINT}" --xpath 'count(/statistics/views/view[@name="_default"]/counters[@type="cachestats"]/counter[@name="CacheNSECNodes"])' $xml)
     test $count = 1 || ret=1
-    zero=$(echo "$counter" | grep ">0<" | wc -l)
+    zero=$("${XMLLINT}" --xpath 'count(/statistics/views/view[@name="_default"]/counters[@type="cachestats"]/counter[@name="CacheNSECNodes" and text()="0"])' $xml)
     if [ ${ad} = yes ]; then
       test $zero = 0 || ret=1
     else
@@ -763,11 +761,10 @@ for ns in 2 4 5 6; do
 
       echo_i "check XML for '$synthesized}' with (synth-from-dnssec ${description};) ($n)"
       ret=0
-      if [ ${synth} = yes ]; then
-        grep '<counter name="'$synthesized'">'$count'</counter>' $xml >/dev/null || ret=1
-      else
-        grep '<counter name="'$synthesized'">'0'</counter>' $xml >/dev/null || ret=1
+      if [ ${synth} != yes ]; then
+        count=0
       fi
+      test $("${XMLLINT}" --xpath '/statistics/server/counters[@type="nsstat"]/counter[@name="'"${synthesized}"'"]/text()' $xml) -eq $count || ret=1
       n=$((n + 1))
       if [ $ret != 0 ]; then echo_i "failed"; fi
       status=$((status + ret))
