@@ -514,10 +514,6 @@ printversion(bool verbose) {
 	char rndcconf[PATH_MAX], *dot = NULL;
 	isc_buffer_t b;
 	char buf[512];
-#if defined(HAVE_GEOIP2)
-	cfg_obj_t *config = NULL;
-	const cfg_obj_t *defaults = NULL, *obj = NULL;
-#endif /* if defined(HAVE_GEOIP2) */
 
 	printf("%s (%s) <id:%s>\n", PACKAGE_STRING, PACKAGE_DESCRIPTION,
 	       PACKAGE_SRCID);
@@ -610,16 +606,8 @@ printversion(bool verbose) {
 	printf("  named PID file:       %s\n", named_g_defaultpidfile);
 #if defined(HAVE_GEOIP2)
 #define RTC(x) RUNTIME_CHECK((x) == ISC_R_SUCCESS)
-	isc_mem_t *geoip_mctx = NULL;
-	isc_mem_create("geoip", &geoip_mctx);
-	RTC(named_config_parsedefaults(&config));
-	RTC(cfg_map_get(config, "options", &defaults));
-	RTC(cfg_map_get(defaults, "geoip-directory", &obj));
-	if (cfg_obj_isstring(obj)) {
-		printf("  geoip-directory:      %s\n", cfg_obj_asstring(obj));
-	}
-	cfg_obj_detach(&config);
-	isc_mem_detach(&geoip_mctx);
+	printf("  geoip-directory:      %s\n",
+	       MAXMINDDB_PREFIX "/share/GeoIP\n");
 #endif /* HAVE_GEOIP2 */
 }
 
