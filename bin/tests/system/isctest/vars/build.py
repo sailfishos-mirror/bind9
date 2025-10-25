@@ -41,6 +41,7 @@ def load_vars_from_build_files() -> Dict[str, str]:
     for var in [
         "CURL",
         "FSTRM_CAPTURE",
+        "JQ",
         "NC",
         "PERL",
         "PYTEST",
