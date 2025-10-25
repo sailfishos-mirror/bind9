@@ -776,7 +776,7 @@ for ns in 2 4 5 6; do
     echo_i "Skipping XML statistics checks"
   fi
 
-  if $FEATURETEST --have-json-c && [ -x "${CURL}" ]; then
+  if $FEATURETEST --have-json-c && [ -x "${CURL}" ] && [ -x "${JQ}" ]; then
     echo_i "getting JSON statisistcs for (synth-from-dnssec ${description};) ($n)"
     ret=0
     json=json.out$n
@@ -787,9 +787,9 @@ for ns in 2 4 5 6; do
 
     echo_i "check JSON for 'CoveringNSEC' with (synth-from-dnssec ${description};) ($n)"
     ret=0
-    count=$(grep '"CoveringNSEC":' $json | wc -l)
+    count=$("${JQ}" '.views | map(select(.resolver.cachestats | has("CoveringNSEC"))) | length' <$json)
     test $count = 2 || ret=1
-    zero=$(grep '"CoveringNSEC":0' $json | wc -l)
+    zero=$("${JQ}" '.views | map(select(.resolver.cachestats.CoveringNSEC == 0)) | length' <$json)
     if [ ${synth} = yes ]; then
       test $zero = 1 || ret=1
     else
@@ -801,9 +801,9 @@ for ns in 2 4 5 6; do
 
     echo_i "check JSON for 'CacheNSECNodes' with (synth-from-dnssec ${description};) ($n)"
     ret=0
-    count=$(grep '"CacheNSECNodes":' $json | wc -l)
+    count=$("${JQ}" '.views | map(select(.resolver.cachestats | has("CacheNSECNodes"))) | length' <$json)
     test $count = 2 || ret=1
-    zero=$(grep '"CacheNSECNodes":0' $json | wc -l)
+    zero=$("${JQ}" '.views | map(select(.resolver.cachestats.CacheNSECNodes == 0)) | length' <$json)
     if [ ${ad} = yes ]; then
       test $zero = 1 || ret=1
     else
@@ -823,9 +823,9 @@ for ns in 2 4 5 6; do
       echo_i "check JSON for '$synthesized}' with (synth-from-dnssec ${description};) ($n)"
       ret=0
       if [ ${synth} = yes ]; then
-        grep '"'$synthesized'":'$count'' $json >/dev/null || ret=1
+        test $("${JQ}" ".nsstats.${synthesized}" <$json) -eq $count || ret=1
       else
-        grep '"'$synthesized'":' $json >/dev/null && ret=1
+        "${JQ}" -e '.nsstats | has("'"${synthesized}"'")' <$json >/dev/null && ret=1
       fi
       n=$((n + 1))
       if [ $ret != 0 ]; then echo_i "failed"; fi
