@@ -681,8 +681,6 @@ ncache_adderesult(dns_message_t *message, dns_db_t *cache, dns_dbnode_t *node,
 static void
 validated(void *arg);
 static void
-maybe_cancel_validators(fetchctx_t *fctx);
-static void
 add_bad(fetchctx_t *fctx, dns_message_t *rmessage, dns_adbaddrinfo_t *addrinfo,
 	isc_result_t reason, badnstype_t badtype);
 static isc_result_t
@@ -1747,11 +1745,14 @@ fctx__done(fetchctx_t *fctx, isc_result_t result, const char *func,
 	fctx_stoptimer(fctx);
 
 	/*
-	 * Cancel all pending validators.  Note that this must be done
-	 * without the fctx lock held, since that could cause
-	 * deadlock.
+	 * Cancel all pending validators.
 	 */
-	maybe_cancel_validators(fctx);
+	dns_validator_t *validator = NULL;
+	for (validator = ISC_LIST_HEAD(fctx->validators); validator != NULL;
+	     validator = ISC_LIST_NEXT(validator, link))
+	{
+		dns_validator_cancel(validator);
+	}
 
 	if (fctx->nsfetch != NULL) {
 		dns_resolver_cancelfetch(fctx->nsfetch);
@@ -5069,30 +5070,6 @@ clone_results(fetchctx_t *fctx) {
 #define CHECKNAMES(r) (((r)->attributes & DNS_RDATASETATTR_CHECKNAMES) != 0)
 
 /*
- * Cancel validators associated with '*fctx' if it is ready to be
- * destroyed (i.e., no queries waiting for it and no pending ADB finds).
- * Caller must hold fctx bucket lock.
- *
- * Requires:
- *      '*fctx' is shutting down.
- */
-static void
-maybe_cancel_validators(fetchctx_t *fctx) {
-	if (atomic_load_acquire(&fctx->pending) != 0 ||
-	    atomic_load_acquire(&fctx->nqueries) != 0)
-	{
-		return;
-	}
-
-	REQUIRE(SHUTTINGDOWN(fctx));
-	for (dns_validator_t *validator = ISC_LIST_HEAD(fctx->validators);
-	     validator != NULL; validator = ISC_LIST_NEXT(validator, link))
-	{
-		dns_validator_cancel(validator);
-	}
-}
-
-/*
  * typemap with just RRSIG(46) and NSEC(47) bits set.
  *
  * Bitmap calculation from dns_nsec_setbit:
@@ -5515,7 +5492,13 @@ validated(void *arg) {
 		 */
 		dns_db_detachnode(fctx->cache, &node);
 		if (SHUTTINGDOWN(fctx)) {
-			maybe_cancel_validators(fctx);
+			dns_validator_t *validator = NULL;
+			for (validator = ISC_LIST_HEAD(fctx->validators);
+			     validator != NULL;
+			     validator = ISC_LIST_NEXT(validator, link))
+			{
+				dns_validator_cancel(validator);
+			}
 		}
 		UNLOCK(&fctx->lock);
 		goto cleanup_fetchctx;
