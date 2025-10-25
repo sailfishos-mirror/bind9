@@ -715,38 +715,35 @@ status=$((status + ret))
 n=$((n + 1))
 
 _wait_for_transfers() {
-  if [ "$PERL_XML" ]; then
+  if [ "$PERL_XML" ] && [ -x "$XMLLINT" ]; then
     getxfrins xml x$n || return 1
 
-    # XML is encoded in one line, use awk to separate each transfer
-    # with a newline
-
     # We expect 4 transfers
-    count=$(awk '{ gsub("<xfrin ", "\n<xfrin ") } 1' xfrins.xml.x$n | grep -c -E '<state>(Zone Transfer Request|First Data|Receiving AXFR Data)</state>')
+    count=$("$XMLLINT" --xpath 'count(/statistics/views/view[@name="_default"]/xfrins/xfrin)' xfrins.xml.x$n)
     if [ $count != 4 ]; then return 1; fi
 
     # We expect 3 of 4 to be retransfers
-    count=$(awk '{ gsub("<xfrin ", "\n<xfrin ") } 1' xfrins.xml.x$n | grep -c -F '<firstrefresh>No</firstrefresh>')
+    count=$("$XMLLINT" --xpath 'count(/statistics/views/view[@name="_default"]/xfrins/xfrin[firstrefresh[text()="No"]])' xfrins.xml.x$n)
     if [ $count != 3 ]; then return 1; fi
 
     # We expect 1 of 4 to be a new transfer
-    count=$(awk '{ gsub("<xfrin ", "\n<xfrin ") } 1' xfrins.xml.x$n | grep -c -F '<firstrefresh>Yes</firstrefresh>')
+    count=$("$XMLLINT" --xpath 'count(/statistics/views/view[@name="_default"]/xfrins/xfrin[firstrefresh[text()="Yes"]])' xfrins.xml.x$n)
     if [ $count != 1 ]; then return 1; fi
   fi
 
-  if [ "$PERL_JSON" ]; then
+  if [ "$PERL_JSON" ] && [ -x "$JQ" ]; then
     getxfrins json j$n || return 1
 
     # We expect 4 transfers
-    count=$(grep -c -E '"state":"(Zone Transfer Request|First Data|Receiving AXFR Data)"' xfrins.json.j$n)
+    count=$("$JQ" '.views._default.xfrins | length' <xfrins.json.j$n)
     if [ $count != 4 ]; then return 1; fi
 
     # We expect 3 of 4 to be retransfers
-    count=$(grep -c -F '"firstrefresh":"No"' xfrins.json.j$n)
+    count=$("$JQ" '.views._default.xfrins | map(select(.firstrefresh == "No")) | length' <xfrins.json.j$n)
     if [ $count != 3 ]; then return 1; fi
 
     # We expect 1 of 4 to be a new transfer
-    count=$(grep -c -F '"firstrefresh":"Yes"' xfrins.json.j$n)
+    count=$("$JQ" '.views._default.xfrins | map(select(.firstrefresh == "Yes")) | length' <xfrins.json.j$n)
     if [ $count != 1 ]; then return 1; fi
   fi
 }
@@ -766,7 +763,7 @@ if [ $ret != 0 ]; then echo_i "failed"; fi
 status=$((status + ret))
 n=$((n + 1))
 
-if [ "$PERL_JSON" ]; then
+if [ "$PERL_JSON" ] && [ -x "$JQ" ]; then
   echo_i "Checking zone transfer transports ($n)"
   ret=0
   cp xfrins.json.j$((n - 2)) xfrins.json.j$n

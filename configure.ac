@@ -327,8 +327,10 @@ AC_SUBST([PYTEST])
 AM_CONDITIONAL([HAVE_PYTEST], [test -n "$PYTEST"])
 
 #
-# xsltproc is optional, it is used only by system test scripts.
+# Optional utilities, only used by system tests.
 #
+AC_PATH_PROG([JQ], [jq])
+AC_PATH_PROG([XMLLINT], [xmllint])
 AC_PATH_PROG([XSLTPROC], [xsltproc])
 
 #
@@ -1643,11 +1645,13 @@ AC_CONFIG_FILES([bin/tests/Makefile
 		 bin/tests/system/isctest/vars/.ac_vars/TOP_BUILDDIR
 		 bin/tests/system/isctest/vars/.ac_vars/TOP_SRCDIR
 		 bin/tests/system/isctest/vars/.ac_vars/FSTRM_CAPTURE
+		 bin/tests/system/isctest/vars/.ac_vars/JQ
 		 bin/tests/system/isctest/vars/.ac_vars/SHELL
 		 bin/tests/system/isctest/vars/.ac_vars/PYTHON
 		 bin/tests/system/isctest/vars/.ac_vars/PERL
 		 bin/tests/system/isctest/vars/.ac_vars/CURL
 		 bin/tests/system/isctest/vars/.ac_vars/NC
+		 bin/tests/system/isctest/vars/.ac_vars/XMLLINT
 		 bin/tests/system/isctest/vars/.ac_vars/XSLTPROC
 		 bin/tests/system/isctest/vars/.ac_vars/PYTEST
 		 bin/tests/system/dyndb/driver/Makefile
