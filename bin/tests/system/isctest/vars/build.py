@@ -48,6 +48,7 @@ def load_vars_from_build_files() -> Dict[str, str]:
         "PYTHON",
         "SHELL",
         "TOP_SRCDIR",
+        "XMLLINT",
         "XSLTPROC",
     ]:
         var_file = var_dir / var

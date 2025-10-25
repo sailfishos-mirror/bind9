@@ -34,6 +34,7 @@ foreach name, prog : {
     'PYTEST': pytest,
     'PYTHON': python,
     'SHELL': sh,
+    'XMLLINT': xmllint,
     'XSLTPROC': xsltproc,
 }
     if prog.found()
