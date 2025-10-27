@@ -309,6 +309,12 @@ stages:
 .rule_tag: &rule_tag
   - if: '$CI_PROJECT_NAMESPACE == "isc-private" && $CI_COMMIT_TAG != null'
 
+.rule_tag_open_source: &rule_tag_open_source
+  - if: '$CI_PROJECT_NAMESPACE == "isc-private" && $CI_COMMIT_TAG != null && $CI_COMMIT_TAG !~ /-S/'
+
+.rule_tag_security_or_subscription: &rule_tag_security_or_subscription
+  - if: '$CI_PROJECT_NAMESPACE == "isc-private" && $CI_COMMIT_TAG != null && ($RELEASE_TYPE == "security" || $CI_COMMIT_TAG =~ /-S/)'
+
 .rule_source_other_than_mr: &rule_source_other_than_mr
   - if: '$CI_PIPELINE_SOURCE =~ /^(api|pipeline|schedule|trigger|web)$/ && $REBASE_ONLY != "1"'
 
@@ -1737,18 +1743,17 @@ release:
   <<: *base_image
   stage: release
   script:
-    - export BIND_DIRECTORY="$(basename bind-*.tar.xz ".tar.xz")"
+    - export RELEASE_DIRECTORY="bind-${CI_COMMIT_TAG}-release"
+    - export BIND_VERSION="bind-${CI_COMMIT_TAG#v}"
     # Prepare release tarball contents (tarballs + documentation)
-    - mkdir -p "${BIND_DIRECTORY}-release/doc/arm"
-    - pushd "${BIND_DIRECTORY}-release"
-    - mv "../${BIND_DIRECTORY}.tar.xz" .
-    - tar --extract --file="${BIND_DIRECTORY}.tar.xz"
-    - mv "${BIND_DIRECTORY}"/{COPYRIGHT,LICENSE,README.md,srcid} .
-    - rm -rf "${BIND_DIRECTORY}"
+    - mkdir -p "${RELEASE_DIRECTORY}/doc/arm"
+    - pushd "${RELEASE_DIRECTORY}"
+    - mv "../${BIND_VERSION}.tar.xz" .
+    - tar --extract --file="${BIND_VERSION}.tar.xz" --strip-components=1 "${BIND_VERSION}"/{COPYRIGHT,LICENSE,README.md,srcid}
     - mv "../doc/arm/_build/html" doc/arm/
     - mv "../doc/arm/_build/epub/Bv9ARM.epub" doc/arm/
-    - echo '<!DOCTYPE HTML><html lang="en"><meta http-equiv="refresh" content="0; url=doc/arm/html/notes.html"><title>Redirect</title></html>' > "RELEASE-NOTES-${BIND_DIRECTORY}.html"
-    - echo '<!DOCTYPE HTML><html lang="en"><meta http-equiv="refresh" content="0; url=doc/arm/html/changelog.html"><title>Redirect</title></html>' > "CHANGELOG-${BIND_DIRECTORY}.html"
+    - echo '<!DOCTYPE HTML><html lang="en"><meta http-equiv="refresh" content="0; url=doc/arm/html/notes.html"><title>Redirect</title></html>' > "RELEASE-NOTES-${BIND_VERSION}.html"
+    - echo '<!DOCTYPE HTML><html lang="en"><meta http-equiv="refresh" content="0; url=doc/arm/html/changelog.html"><title>Redirect</title></html>' > "CHANGELOG-${BIND_VERSION}.html"
     - popd
   needs:
     - job: tarball-create
@@ -1759,50 +1764,120 @@ release:
     - *rule_tag
   artifacts:
     paths:
-      - "*-release"
+      - bind-${CI_COMMIT_TAG}-release
     expire_in: "1 month"
+
+.signer-ssh-job: &signer_ssh_job
+  stage: release
+  when: manual
+  allow_failure: false
+  tags:
+    - signer
+  script:
+    - ( rm -f "/tmp/${CI_JOB_NAME}.log" "/tmp/${CI_JOB_NAME}-done" && umask 111 && touch "/tmp/${CI_JOB_NAME}.log" "/tmp/${CI_JOB_NAME}-done" )
+    - |
+      cat > "/tmp/${CI_JOB_NAME}.sh" <<EOF
+      #!/bin/sh
+      set -e -x
+      {
+        ${SSH_SCRIPT_CLIENT}
+        echo "${CI_COMMIT_TAG}" > "/tmp/${CI_JOB_NAME}-done"
+      } 2>&1 | tee "/tmp/${CI_JOB_NAME}.log"
+      EOF
+    - chmod +x "/tmp/${CI_JOB_NAME}.sh"
+    - /bin/sh -c "set -e -x; ${SSH_SCRIPT_RUNNER_PRE}"
+    - echo -e "\e[31m*** Sleeping until /tmp/${CI_JOB_NAME}.sh is executed over SSH... ⌛\e[0m"
+    - while [ "$(cat "/tmp/${CI_JOB_NAME}-done")" != "${CI_COMMIT_TAG}" ]; do sleep 10; done
+    - /bin/sh -c "set -e -x; ${SSH_SCRIPT_RUNNER_POST}"
+    - cp "/tmp/${CI_JOB_NAME}.log" "${CI_PROJECT_DIR}/${CI_JOB_NAME}-${CI_COMMIT_TAG}.log"
+    - rm -f "/tmp/${CI_JOB_NAME}.log" "/tmp/${CI_JOB_NAME}-done" "/tmp/${CI_JOB_NAME}.sh"
 
 # Job signing the source tarballs in the release directory
 
 sign:
-  stage: release
-  tags:
-    - signer
-  script:
-    - export RELEASE_DIRECTORY="$(echo *-release)"
-    - pushd "${RELEASE_DIRECTORY}"
-    - |
-      echo
-      cat > /tmp/sign-bind9.sh <<EOF
-      #!/bin/sh
-      {
-          for FILE in \$(find "${PWD}" -name "*.tar.xz" | sort); do
-              echo ">>> Signing \${FILE}..."
-              gpg2 --local-user "\${SIGNING_KEY_FINGERPRINT}" --armor --digest-algo SHA512 --detach-sign --output "\${FILE}.asc" "\${FILE}"
-          done
-      } 2>&1 | tee "${CI_PROJECT_DIR}/signing.log"
-      EOF
-      chmod +x /tmp/sign-bind9.sh
-      echo -e "\e[31m*** Please sign the releases by following the instructions at:\e[0m"
-      echo -e "\e[31m*** \e[0m"
-      echo -e "\e[31m*** ${SIGNING_HELP_URL}\e[0m"
-      echo -e "\e[31m*** \e[0m"
-      echo -e "\e[31m*** Sleeping until files in ${PWD} are signed... ⌛\e[0m"
-      while [ "$(find . -name "*.asc" -size +0 | sed "s|\.asc$||" | sort)" != "$(find . -name "*.tar.xz" | sort)" ]; do sleep 10; done
-    - popd
-    - tar --create --file="${RELEASE_DIRECTORY}.tar.gz" --gzip "${RELEASE_DIRECTORY}"
+  <<: *signer_ssh_job
+  before_script:
+    - export SOURCE_TARBALL="bind-${CI_COMMIT_TAG#v}.tar.xz"
+  variables:
+    RELEASE_DIRECTORY: bind-${CI_COMMIT_TAG}-release
+    SSH_SCRIPT_RUNNER_PRE: |-
+      ( umask 111 && cat "${RELEASE_DIRECTORY}/$${SOURCE_TARBALL}" > "/tmp/${CI_COMMIT_TAG}.bin" )
+    SSH_SCRIPT_CLIENT: |-
+      gpg2 --local-user "$${SIGNING_KEY_FINGERPRINT}" --armor --digest-algo SHA512 --detach-sign --output "/tmp/${CI_COMMIT_TAG}.asc" "/tmp/${CI_COMMIT_TAG}.bin"
+    SSH_SCRIPT_RUNNER_POST: |-
+      cat "/tmp/${CI_COMMIT_TAG}.asc" > "${RELEASE_DIRECTORY}/$${SOURCE_TARBALL}.asc"
+      tar --create --file="${RELEASE_DIRECTORY}".tar.gz --gzip "${RELEASE_DIRECTORY}"
+      rm -f "/tmp/${CI_COMMIT_TAG}.bin" "/tmp/${CI_COMMIT_TAG}.asc"
   artifacts:
     paths:
-      - "*.tar.gz"
-      - signing.log
+      - bind-${CI_COMMIT_TAG}-release.tar.gz
+      - sign-${CI_COMMIT_TAG}.log
     expire_in: never
   needs:
     - job: release
       artifacts: true
   rules:
     - *rule_tag
-  when: manual
-  allow_failure: false
+
+# Job staging the signed tarballs
+
+staging:
+  <<: *signer_ssh_job
+  variables:
+    RELEASE_TARBALL: bind-${CI_COMMIT_TAG}-release.tar.gz
+    SSH_SCRIPT_RUNNER_PRE: |-
+      mv "${RELEASE_TARBALL}" "/tmp/${RELEASE_TARBALL}"
+    SSH_SCRIPT_CLIENT: |-
+      scp "/tmp/${RELEASE_TARBALL}" "${STAGING_USER_UPLOAD}@${STAGING_HOST}:${STAGING_DIR}"
+      ssh "${STAGING_USER_ACTIONS}@${STAGING_HOST}" "unpack ${CI_COMMIT_TAG}"
+    SSH_SCRIPT_RUNNER_POST: |-
+      rm -f "/tmp/${RELEASE_TARBALL}"
+  artifacts:
+    paths:
+      - staging-${CI_COMMIT_TAG}.log
+    expire_in: "1 month"
+  needs:
+    - job: sign
+      artifacts: true
+  rules:
+    - *rule_tag
+
+# Job copying a staged release to a secret location
+
+publish-private:
+  <<: *signer_ssh_job
+  variables:
+    SSH_SCRIPT_CLIENT: |-
+      ssh "${STAGING_USER_ACTIONS}@${STAGING_HOST}" "publish-private ${CI_COMMIT_TAG}"
+    SSH_SCRIPT_RUNNER_POST: |-
+      awk '/^Public Use URL:/ {print $$NF}' "/tmp/${CI_JOB_NAME}.log" > "url-${CI_COMMIT_TAG}.txt"
+  artifacts:
+    paths:
+      - publish-private-${CI_COMMIT_TAG}.log
+      - url-${CI_COMMIT_TAG}.txt
+    expire_in: "1 month"
+  needs:
+    - job: staging
+      artifacts: false
+  rules:
+    - *rule_tag_security_or_subscription
+
+# Job copying a staged release to a well-known location
+
+publish:
+  <<: *signer_ssh_job
+  variables:
+    SSH_SCRIPT_CLIENT: |-
+      ssh "${STAGING_USER_ACTIONS}@${STAGING_HOST}" "publish ${CI_COMMIT_TAG}"
+  artifacts:
+    paths:
+      - publish-${CI_COMMIT_TAG}.log
+    expire_in: "1 month"
+  needs:
+    - job: staging
+      artifacts: false
+  rules:
+    - *rule_tag_open_source
 
 # Job creating the release announcement MR in Printing Press
 
@@ -1818,7 +1893,7 @@ prepare-release-announcement:
     - bind9-qa/releng/prepare_release_announcement.py --metadata bind9-qa/releng/metadata.json
   needs: []
   rules:
-    - if: '$CI_COMMIT_TAG != null && $CI_COMMIT_TAG !~ /-S/'
+    - *rule_tag_open_source
   artifacts:
     paths:
       - printing-press/
@@ -1838,7 +1913,7 @@ merge-tag:
     - bind9-qa/releng/merge_tag.py --tag "$CI_COMMIT_TAG"
   needs: []
   rules:
-    - if: '$CI_COMMIT_TAG != null && $CI_COMMIT_TAG !~ /-S/'
+    - *rule_tag_open_source
   artifacts:
     paths:
       - bind9/
