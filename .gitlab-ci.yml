@@ -309,6 +309,12 @@ stages:
 .rule_tag: &rule_tag
   - if: '$CI_PROJECT_NAMESPACE == "isc-private" && $CI_COMMIT_TAG != null'
 
+.rule_tag_open_source: &rule_tag_open_source
+  - if: '$CI_PROJECT_NAMESPACE == "isc-private" && $CI_COMMIT_TAG != null && $CI_COMMIT_TAG !~ /-S/'
+
+.rule_tag_security_or_subscription: &rule_tag_security_or_subscription
+  - if: '$CI_PROJECT_NAMESPACE == "isc-private" && $CI_COMMIT_TAG != null && ($RELEASE_TYPE == "security" || $CI_COMMIT_TAG =~ /-S/)'
+
 .rule_source_other_than_mr: &rule_source_other_than_mr
   - if: '$CI_PIPELINE_SOURCE =~ /^(api|pipeline|schedule|trigger|web)$/ && $REBASE_ONLY != "1"'
 
@@ -1834,7 +1840,7 @@ staging:
     - job: sign
       artifacts: true
   rules:
-    - if: '$CI_COMMIT_TAG != null'
+    - *rule_tag
 
 # Job copying a staged release to a secret location
 
@@ -1854,7 +1860,7 @@ publish-private:
     - job: staging
       artifacts: false
   rules:
-    - if: '$CI_COMMIT_TAG != null && ($CI_COMMIT_TAG =~ /-S/ || $RELEASE_TYPE == "security")'
+    - *rule_tag_security_or_subscription
 
 # Job copying a staged release to a well-known location
 
@@ -1871,7 +1877,7 @@ publish:
     - job: staging
       artifacts: false
   rules:
-    - if: '$CI_COMMIT_TAG != null && $CI_COMMIT_TAG !~ /-S/'
+    - *rule_tag_open_source
 
 # Job creating the release announcement MR in Printing Press
 
@@ -1887,7 +1893,7 @@ prepare-release-announcement:
     - bind9-qa/releng/prepare_release_announcement.py --metadata bind9-qa/releng/metadata.json
   needs: []
   rules:
-    - if: '$CI_COMMIT_TAG != null && $CI_COMMIT_TAG !~ /-S/'
+    - *rule_tag_open_source
   artifacts:
     paths:
       - printing-press/
@@ -1907,7 +1913,7 @@ merge-tag:
     - bind9-qa/releng/merge_tag.py --tag "$CI_COMMIT_TAG"
   needs: []
   rules:
-    - if: '$CI_COMMIT_TAG != null && $CI_COMMIT_TAG !~ /-S/'
+    - *rule_tag_open_source
   artifacts:
     paths:
       - bind9/
