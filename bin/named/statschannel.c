@@ -3332,7 +3332,7 @@ generatejson(named_server_t *server, size_t *msglen, const char **msg,
 	}
 
 	*msg = json_object_to_json_string_ext(bindstats,
-					      JSON_C_TO_STRING_PRETTY);
+					      JSON_C_TO_STRING_PLAIN);
 	*msglen = strlen(*msg);
 
 	if (rootp != NULL) {
