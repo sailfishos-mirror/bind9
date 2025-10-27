@@ -675,9 +675,7 @@ cfg_parse_file(isc_mem_t *mctx, const char *filename, const cfg_type_t *type,
 	ISC_LIST_APPEND(pctx->closed_files->value.list, elt, link);
 
 cleanup:
-	if (pctx != NULL) {
-		parser_destroy(&pctx);
-	}
+	parser_destroy(&pctx);
 
 	return result;
 }
@@ -709,9 +707,7 @@ cfg_parse_buffer(isc_mem_t *mctx, isc_buffer_t *buffer, const char *file,
 	pctx->buf_name = NULL;
 
 cleanup:
-	if (pctx != NULL) {
-		parser_destroy(&pctx);
-	}
+	parser_destroy(&pctx);
 
 	return result;
 }
