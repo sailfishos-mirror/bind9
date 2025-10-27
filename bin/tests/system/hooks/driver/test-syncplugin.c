@@ -122,9 +122,9 @@ plugin_register(const char *parameters, const void *cfg, const char *cfgfile,
 	ns_hook_t hook;
 	syncplugin_t *inst = NULL;
 	char *sourcestr = NULL;
-	dns_name_t example2com;
-	dns_name_t example3com;
-	dns_name_t example4com;
+	dns_name_t example2com = DNS_NAME_INITEMPTY;
+	dns_name_t example3com = DNS_NAME_INITEMPTY;
+	dns_name_t example4com = DNS_NAME_INITEMPTY;
 
 	UNUSED(cfg);
 	UNUSED(aclctx);
@@ -164,10 +164,6 @@ plugin_register(const char *parameters, const void *cfg, const char *cfgfile,
 			goto cleanup;
 		}
 
-		dns_name_init(&example2com);
-		dns_name_init(&example3com);
-		dns_name_init(&example4com);
-
 		result = dns_name_fromstring(&example2com, "example2.com.",
 					     NULL, 0, isc_g_mctx);
 		result = dns_name_fromstring(&example3com, "example3.com.",
@@ -201,15 +197,15 @@ plugin_register(const char *parameters, const void *cfg, const char *cfgfile,
 	ns_hook_add(hooktable, mctx, NS_QUERY_NXDOMAIN_BEGIN, &hook);
 
 cleanup:
-	if (DNS_NAME_VALID(&example2com)) {
+	if (dns_name_dynamic(&example2com)) {
 		dns_name_free(&example2com, isc_g_mctx);
 	}
 
-	if (DNS_NAME_VALID(&example3com)) {
+	if (dns_name_dynamic(&example3com)) {
 		dns_name_free(&example3com, isc_g_mctx);
 	}
 
-	if (DNS_NAME_VALID(&example4com)) {
+	if (dns_name_dynamic(&example4com)) {
 		dns_name_free(&example4com, isc_g_mctx);
 	}
 
