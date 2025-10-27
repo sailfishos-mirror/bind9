@@ -271,7 +271,6 @@ typedef struct query {
 	isc_refcount_t references;
 	fetchctx_t *fctx;
 	dns_message_t *rmessage;
-	dns_dispatchmgr_t *dispatchmgr;
 	dns_dispatch_t *dispatch;
 	dns_adbaddrinfo_t *addrinfo;
 	isc_time_t start;
@@ -404,6 +403,7 @@ struct fetchctx {
 	ISC_LIST(dns_validator_t) validators;
 	dns_db_t *cache;
 	dns_adb_t *adb;
+	dns_dispatchmgr_t *dispatchmgr;
 	bool ns_ttl_ok;
 	uint32_t ns_ttl;
 	isc_counter_t *qc;
@@ -1981,7 +1981,6 @@ fctx_query(fetchctx_t *fctx, dns_adbaddrinfo_t *addrinfo,
 	*query = (resquery_t){
 		.options = options,
 		.addrinfo = addrinfo,
-		.dispatchmgr = res->view->dispatchmgr,
 		.link = ISC_LINK_INITIALIZER,
 	};
 
@@ -2085,7 +2084,7 @@ fctx_query(fetchctx_t *fctx, dns_adbaddrinfo_t *addrinfo,
 		}
 		isc_sockaddr_setport(&addr, 0);
 
-		result = dns_dispatch_createtcp(res->view->dispatchmgr, &addr,
+		result = dns_dispatch_createtcp(fctx->dispatchmgr, &addr,
 						&sockaddr, addrinfo->transport,
 						DNS_DISPATCHOPT_UNSHARED,
 						&query->dispatch);
@@ -2096,9 +2095,8 @@ fctx_query(fetchctx_t *fctx, dns_adbaddrinfo_t *addrinfo,
 		FCTXTRACE("connecting via TCP");
 	} else {
 		if (have_addr) {
-			result = dns_dispatch_createudp(res->view->dispatchmgr,
-							&addr,
-							&query->dispatch);
+			result = dns_dispatch_createudp(
+				fctx->dispatchmgr, &addr, &query->dispatch);
 			if (result != ISC_R_SUCCESS) {
 				goto cleanup_query;
 			}
@@ -3758,7 +3756,7 @@ possibly_mark(fetchctx_t *fctx, dns_adbaddrinfo_t *addr) {
 	const char *msg = NULL;
 
 	isc_netaddr_fromsockaddr(&ipaddr, sa);
-	blackhole = dns_dispatchmgr_getblackhole(res->view->dispatchmgr);
+	blackhole = dns_dispatchmgr_getblackhole(fctx->dispatchmgr);
 	(void)dns_peerlist_peerbyaddr(res->view->peers, &ipaddr, &peer);
 
 	if (blackhole != NULL) {
@@ -4385,6 +4383,7 @@ fctx_destroy(fetchctx_t *fctx) {
 	}
 	dns_db_detach(&fctx->cache);
 	dns_adb_detach(&fctx->adb);
+	dns_dispatchmgr_detach(&fctx->dispatchmgr);
 
 	dns_resolver_detach(&fctx->res);
 
@@ -4784,10 +4783,19 @@ fctx_create(dns_resolver_t *res, isc_loop_t *loop, const dns_name_t *name,
 	isc_interval_set(&fctx->interval, 2, 0);
 
 	/*
-	 * Attach to the view's cache and adb.
+	 * Attach to the view's adb, dispatchmgr and cache adb.
 	 */
-	dns_db_attach(res->view->cachedb, &fctx->cache);
 	dns_view_getadb(res->view, &fctx->adb);
+	if (fctx->adb == NULL) {
+		result = ISC_R_SHUTTINGDOWN;
+		goto cleanup_qmessage;
+	}
+	fctx->dispatchmgr = dns_view_getdispatchmgr(res->view);
+	if (fctx->dispatchmgr == NULL) {
+		result = ISC_R_SHUTTINGDOWN;
+		goto cleanup_adb;
+	}
+	dns_db_attach(res->view->cachedb, &fctx->cache);
 
 	ISC_LIST_INIT(fctx->resps);
 	ISC_LINK_INIT(fctx, link);
@@ -4811,6 +4819,9 @@ fctx_create(dns_resolver_t *res, isc_loop_t *loop, const dns_name_t *name,
 	*fctxp = fctx;
 
 	return ISC_R_SUCCESS;
+
+cleanup_adb:
+	dns_adb_detach(&fctx->adb);
 
 cleanup_qmessage:
 	dns_message_detach(&fctx->qmessage);
