@@ -131,6 +131,23 @@ cfg_parser_currentfile(cfg_parser_t *pctx);
  * existent.
  */
 
+void
+cfg_obj_clone(const cfg_obj_t *source, cfg_obj_t **target);
+/*%<
+ * Allocate a new configuration object and copy the value from the `source`
+ * object into the newly allocated object. The copy is a "deep" copy, i.e. if
+ * `source` is a list, map, tuple, etc, it recursively clones the children
+ * and copies their values as well. The cloned node is attached to the
+ * memory context of the source node.
+ *
+ * Require:
+ * \li     'source' is a valid cfg_obj_t with copy function set.
+ * \li     'target' is non-NULL and '*target' is NULL.
+ *
+ * Ensures:
+ * \li     'target' contains the cloned object.
+ */
+
 bool
 cfg_obj_isvoid(const cfg_obj_t *obj);
 /*%<
