@@ -146,7 +146,7 @@ def create_response(msg):
     elif typename == "AAAA":
         final = "fd92:7065:b8e:ffff::4"
     elif typename == "TXT":
-        final = "Some\ text\ here"
+        final = "Some\\ text\\ here"
     elif typename == "NS":
         domain = qname
         final = "ns1.%s" % domain
@@ -333,9 +333,9 @@ try:
         query6_udp.close()
         havev6 = False
 
-    query6_tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    query6_tcp = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
     try:
-        query6_tcp.bind((ip4, port))
+        query6_tcp.bind((ip6, port))
         query6_tcp.listen(1)
         query6_tcp.settimeout(1)
     except:
