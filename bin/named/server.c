@@ -4148,42 +4148,6 @@ register_one_plugin(const cfg_obj_t *config, const cfg_obj_t *obj,
 	return result;
 }
 
-/*
- * Determine if a minimal-sized cache can be used for a given view, according
- * to 'maps' (implicit defaults, global options, view options) and 'optionmaps'
- * (global options, view options).  This is only allowed for views which have
- * recursion disabled and do not have "max-cache-size" set explicitly.  Using
- * minimal-sized caches prevents a situation in which all explicitly configured
- * and built-in views inherit the default "max-cache-size 90%;" setting, which
- * could lead to memory exhaustion with multiple views configured.
- */
-static bool
-minimal_cache_allowed(const cfg_obj_t *maps[4],
-		      const cfg_obj_t *optionmaps[3]) {
-	const cfg_obj_t *obj;
-
-	/*
-	 * Do not use a minimal-sized cache for a view with recursion enabled.
-	 */
-	obj = NULL;
-	(void)named_config_get(maps, "recursion", &obj);
-	INSIST(obj != NULL);
-	if (cfg_obj_asboolean(obj)) {
-		return false;
-	}
-
-	/*
-	 * Do not use a minimal-sized cache if a specific size was requested.
-	 */
-	obj = NULL;
-	(void)named_config_get(optionmaps, "max-cache-size", &obj);
-	if (obj != NULL) {
-		return false;
-	}
-
-	return true;
-}
-
 static const char *const response_synonyms[] = { "response", NULL };
 
 /*
@@ -4458,42 +4422,60 @@ configure_view(dns_view_t *view, dns_viewlist_t *viewlist, cfg_obj_t *config,
 	 * we can reuse/share an existing cache.
 	 */
 	obj = NULL;
-	result = named_config_get(maps, "max-cache-size", &obj);
+	result = named_config_get(maps, "recursion", &obj);
 	INSIST(result == ISC_R_SUCCESS);
-	/*
-	 * If "-T maxcachesize=..." is in effect, it overrides any other
-	 * "max-cache-size" setting found in configuration, either implicit or
-	 * explicit.  For simplicity, the value passed to that command line
-	 * option is always treated as the number of bytes to set
-	 * "max-cache-size" to.
-	 */
+	view->recursion = cfg_obj_asboolean(obj);
+
 	if (named_g_maxcachesize != 0) {
-		max_cache_size = named_g_maxcachesize;
-	} else if (minimal_cache_allowed(maps, optionmaps)) {
 		/*
-		 * dns_cache_setcachesize() will adjust this to the smallest
-		 * allowed value.
+		 * If "-T maxcachesize=..." is in effect, it overrides any
+		 * other "max-cache-size" setting found in configuration,
+		 * either implicit or explicit.  For simplicity, the value
+		 * passed to that command line option is always treated as
+		 * the number of bytes to set "max-cache-size" to.
 		 */
-		max_cache_size = 1;
-	} else if (cfg_obj_isstring(obj)) {
-		str = cfg_obj_asstring(obj);
-		INSIST(strcasecmp(str, "unlimited") == 0);
-		max_cache_size = 0;
-	} else if (cfg_obj_ispercentage(obj)) {
-		max_cache_size = SIZE_AS_PERCENT;
-		max_cache_size_percent = cfg_obj_aspercentage(obj);
+		max_cache_size = named_g_maxcachesize;
 	} else {
-		uint64_t value = cfg_obj_asuint64(obj);
-		if (value > SIZE_MAX) {
-			cfg_obj_log(obj, named_g_lctx, ISC_LOG_WARNING,
-				    "'max-cache-size "
-				    "%" PRIu64 "' "
-				    "is too large for this "
-				    "system; reducing to %lu",
-				    value, (unsigned long)SIZE_MAX);
-			value = SIZE_MAX;
+		obj = NULL;
+		result = named_config_get(maps, "max-cache-size", &obj);
+		INSIST(result == ISC_R_SUCCESS);
+		if (cfg_obj_isstring(obj) &&
+		    strcasecmp(cfg_obj_asstring(obj), "default") == 0)
+		{
+			/*
+			 * The default for a view with recursion
+			 * is 90% of memory. With no recursion,
+			 * it's the minimum cache size allowed by
+			 * dns_cache_setcachesize().
+			 */
+			if (view->recursion) {
+				max_cache_size = SIZE_AS_PERCENT;
+				max_cache_size_percent = 90;
+			} else {
+				max_cache_size = 1;
+			}
+		} else if (cfg_obj_isstring(obj)) {
+			str = cfg_obj_asstring(obj);
+			INSIST(strcasecmp(str, "unlimited") == 0);
+			max_cache_size = 0;
+		} else if (cfg_obj_ispercentage(obj)) {
+			max_cache_size = SIZE_AS_PERCENT;
+			max_cache_size_percent = cfg_obj_aspercentage(obj);
+		} else if (cfg_obj_isuint64(obj)) {
+			uint64_t value = cfg_obj_asuint64(obj);
+			if (value > SIZE_MAX) {
+				cfg_obj_log(obj, named_g_lctx, ISC_LOG_WARNING,
+					    "'max-cache-size "
+					    "%" PRIu64 "' "
+					    "is too large for this "
+					    "system; reducing to %lu",
+					    value, (unsigned long)SIZE_MAX);
+				value = SIZE_MAX;
+			}
+			max_cache_size = (size_t)value;
+		} else {
+			UNREACHABLE();
 		}
-		max_cache_size = (size_t)value;
 	}
 
 	if (max_cache_size == SIZE_AS_PERCENT) {
@@ -5332,11 +5314,6 @@ configure_view(dns_view_t *view, dns_viewlist_t *viewlist, cfg_obj_t *config,
 	/*
 	 * Configure other configurable data.
 	 */
-	obj = NULL;
-	result = named_config_get(maps, "recursion", &obj);
-	INSIST(result == ISC_R_SUCCESS);
-	view->recursion = cfg_obj_asboolean(obj);
-
 	obj = NULL;
 	result = named_config_get(maps, "qname-minimization", &obj);
 	INSIST(result == ISC_R_SUCCESS);
