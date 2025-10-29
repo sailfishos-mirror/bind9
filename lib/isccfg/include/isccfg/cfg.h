@@ -68,6 +68,11 @@ typedef struct cfg_obj cfg_obj_t;
 typedef struct cfg_listelt cfg_listelt_t;
 
 /*%
+ * A configuration clause definition.
+ */
+typedef struct cfg_clausedef cfg_clausedef_t;
+
+/*%
  * A callback function to be called when parsing an option
  * that needs to be interpreted at parsing time, like
  * "directory".
@@ -129,6 +134,32 @@ cfg_parser_currentfile(cfg_parser_t *pctx);
 /*%<
  * Returns the current file of a parser (as an cfg_obj_t qstring). NULL is non
  * existent.
+ */
+
+isc_result_t
+cfg_map_addclone(cfg_obj_t *map, const cfg_obj_t *obj,
+		 const cfg_clausedef_t *clause);
+/*%<
+ * Add a clone of 'obj' to the specified clause in mapbody 'mapobj'.
+ * If the clause is tagged with CFG_CLAUSEFLAG_MULTI, the function expects
+ * that 'obj' is a list and will clone each element and sequentially add them
+ * (preserving the order), instead of adding a list as single element of
+ * map[clausename].
+ *
+ * Require:
+ * \li     'obj' is a valid cfg_obj_t.
+ * \li     'mapobj' is a valid cfg_obj_t of type map.
+ * \li     'clause' is a valid clause definition.
+ */
+
+void
+cfg_list_addclone(cfg_obj_t *dst, const cfg_obj_t *src, bool prepend);
+/*%<
+ * Clone each `src` element and add them into the existing list `dst`. If
+ * `prepend` is set, the `src` elements will be added at the beginning of
+ * `src`, and the order of `src` is preserved.
+ *
+ * Both `dst` and `src` must be valid pointers to cfg objects of type list.
  */
 
 void
@@ -539,10 +570,11 @@ cfg_obj_line(const cfg_obj_t *obj);
  * Return the line in file where this object was defined.
  */
 
-const char *
+const cfg_clausedef_t *
 cfg_map_firstclause(const cfg_type_t *map, const void **clauses,
 		    unsigned int *idx);
-const char *
+
+const cfg_clausedef_t *
 cfg_map_nextclause(const cfg_type_t *map, const void **clauses,
 		   unsigned int *idx);
 

@@ -24,6 +24,8 @@
 #include <protobuf-c/protobuf-c.h>
 #endif
 
+#include <defaultconfig.h>
+
 #include <isc/attributes.h>
 #include <isc/backtrace.h>
 #include <isc/commandline.h>
@@ -512,10 +514,6 @@ printversion(bool verbose) {
 	char rndcconf[PATH_MAX], *dot = NULL;
 	isc_buffer_t b;
 	char buf[512];
-#if defined(HAVE_GEOIP2)
-	cfg_obj_t *config = NULL;
-	const cfg_obj_t *defaults = NULL, *obj = NULL;
-#endif /* if defined(HAVE_GEOIP2) */
 
 	printf("%s (%s) <id:%s>\n", PACKAGE_STRING, PACKAGE_DESCRIPTION,
 	       PACKAGE_SRCID);
@@ -608,16 +606,8 @@ printversion(bool verbose) {
 	printf("  named PID file:       %s\n", named_g_defaultpidfile);
 #if defined(HAVE_GEOIP2)
 #define RTC(x) RUNTIME_CHECK((x) == ISC_R_SUCCESS)
-	isc_mem_t *geoip_mctx = NULL;
-	isc_mem_create("geoip", &geoip_mctx);
-	RTC(named_config_parsedefaults(&config));
-	RTC(cfg_map_get(config, "options", &defaults));
-	RTC(cfg_map_get(defaults, "geoip-directory", &obj));
-	if (cfg_obj_isstring(obj)) {
-		printf("  geoip-directory:      %s\n", cfg_obj_asstring(obj));
-	}
-	cfg_obj_detach(&config);
-	isc_mem_detach(&geoip_mctx);
+	printf("  geoip-directory:      %s\n",
+	       MAXMINDDB_PREFIX "/share/GeoIP\n");
 #endif /* HAVE_GEOIP2 */
 }
 
@@ -832,7 +822,7 @@ parse_command_line(int argc, char *argv[]) {
 		case 'C':
 			printf("# Built-in default values. "
 			       "This is NOT the run-time configuration!\n");
-			printf("%s", named_config_getdefault());
+			printf("%s", common_named_defaultconf);
 			exit(EXIT_SUCCESS);
 		case 'd':
 			named_g_debuglevel = parse_int(isc_commandline_argument,

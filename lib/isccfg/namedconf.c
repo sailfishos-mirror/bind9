@@ -910,6 +910,11 @@ static cfg_type_t cfg_type_dnsseckeys = { "dnsseckeys",
 					  &cfg_rep_list,
 					  &cfg_type_managedkey };
 
+cfg_type_t cfg_type_builtin_dnsseckeys = {
+	"builtin-dnsseckeys", cfg_parse_bracketed_list, NULL, NULL,
+	&cfg_rep_list,	      &cfg_type_managedkey
+};
+
 /*%
  * A list of key entries, used in a DNSSEC Key and Signing Policy.
  */
@@ -1142,6 +1147,210 @@ static cfg_type_t cfg_type_fetchesper = { "fetchesper",	   cfg_parse_tuple,
 					  cfg_print_tuple, cfg_doc_tuple,
 					  &cfg_rep_tuple,  fetchesper_fields };
 
+static void
+map_merge(cfg_obj_t *effectivemap, const cfg_obj_t *defaultmap) {
+	const void *clauses = NULL;
+	const cfg_clausedef_t *clause = NULL;
+	unsigned int i = 0;
+
+	for (clause = cfg_map_firstclause(effectivemap->type, &clauses, &i);
+	     clause != NULL;
+	     clause = cfg_map_nextclause(effectivemap->type, &clauses, &i))
+	{
+		isc_result_t defaultres;
+		isc_result_t effectiveres;
+		cfg_obj_t *effectiveobj = NULL;
+		const cfg_obj_t *defaultobj = NULL;
+
+		defaultres = cfg_map_get(defaultmap, clause->name, &defaultobj);
+		INSIST(defaultres == ISC_R_NOTFOUND ||
+		       defaultres == ISC_R_SUCCESS);
+
+		effectiveres = cfg_map_get(effectivemap, clause->name,
+					   (const cfg_obj_t **)&effectiveobj);
+		INSIST(effectiveres == ISC_R_NOTFOUND ||
+		       effectiveres == ISC_R_SUCCESS);
+
+		/*
+		 * If the clause has a specific case, let's delegate to its
+		 * merge callback
+		 */
+		if (effectiveobj != NULL && defaultobj != NULL &&
+		    clause->merge != NULL)
+		{
+			clause->merge(effectiveobj, defaultobj);
+			continue;
+		}
+
+		/*
+		 * If the clause is defined in the default but not in the user
+		 * config, let's clone it inside the user config
+		 */
+		if (effectiveres == ISC_R_NOTFOUND &&
+		    defaultres == ISC_R_SUCCESS)
+		{
+			INSIST(cfg_map_addclone(effectivemap, defaultobj,
+						clause) == ISC_R_SUCCESS);
+			continue;
+		}
+
+		/*
+		 * Otherwise, the clause is defined in user, so the default (if
+		 * it exists) is ignored
+		 */
+	}
+}
+
+/*
+ * These are used when merging clauses with CFG_CLAUSEFLAG_MULTI, where
+ * the entries from the user configuration and the default configuration
+ * are added together, rather than the user configuration overriding the
+ * default.  merge_prepend() puts the default configuration at the
+ * beginning of the cloned object (for example, for dnssec-policy), and
+ * merge_append() puts it at the end (for example, for views).
+ */
+static void
+merge_prepend(cfg_obj_t *effectiveobj, const cfg_obj_t *defaultobj) {
+	cfg_list_addclone(effectiveobj, defaultobj, true);
+}
+
+static void
+merge_append(cfg_obj_t *effectiveobj, const cfg_obj_t *defaultobj) {
+	cfg_list_addclone(effectiveobj, defaultobj, false);
+}
+
+static void
+options_merge_defaultacl(cfg_obj_t *effectiveoptions,
+			 const cfg_obj_t *defaultoptions, const char *aclname,
+			 bool needsdefault) {
+	const cfg_obj_t *obj = NULL;
+	isc_result_t result;
+
+	if (needsdefault == false) {
+		return;
+	}
+
+	result = cfg_map_get(defaultoptions, aclname, &obj);
+	INSIST(result == ISC_R_SUCCESS);
+
+	cfg_obj_ref(UNCONST(obj));
+	result = cfg_map_add(effectiveoptions, UNCONST(obj), aclname);
+	INSIST(result == ISC_R_SUCCESS);
+}
+
+static void
+options_merge(cfg_obj_t *effectiveoptions, const cfg_obj_t *defaultoptions) {
+	const cfg_obj_t *obj = NULL;
+	isc_result_t result;
+	bool noquerycacheacl = false;
+	bool norecursionacl = false;
+	bool noquerycacheonacl = false;
+	bool norecursiononacl = false;
+
+	/*
+	 * ACLs allow-query-cache, allow-recursion, allow-query-cache-on and
+	 * allow-recursion-on need to be "merged" at once because there
+	 * are implicit dependency rules between them. After all those
+	 * dependency rules have been applied, the default values are used
+	 * _only_ if they are still undefined in the user configuration.
+	 *
+	 * This need to be done only for the global options, because the views
+	 * and zone ACL initialization code will look in the global options
+	 * as fallback, and they'll be defined there.
+	 *
+	 * This is useless (and shouldn't have any effect) for views with
+	 * recursion=false, but needed for those with recursion=true
+	 */
+	result = cfg_map_get(effectiveoptions, "allow-query-cache", &obj);
+	if (result != ISC_R_SUCCESS) {
+		result = cfg_map_get(effectiveoptions, "allow-recursion", &obj);
+		if (result == ISC_R_SUCCESS) {
+			cfg_obj_ref(UNCONST(obj));
+			result = cfg_map_add(effectiveoptions, UNCONST(obj),
+					     "allow-query-cache");
+			INSIST(result == ISC_R_SUCCESS);
+		} else {
+			result = cfg_map_get(effectiveoptions, "allow-query",
+					     &obj);
+			if (result == ISC_R_SUCCESS) {
+				cfg_obj_ref(UNCONST(obj));
+				result = cfg_map_add(effectiveoptions,
+						     UNCONST(obj),
+						     "allow-query-cache");
+				INSIST(result == ISC_R_SUCCESS);
+			} else {
+				noquerycacheacl = true;
+			}
+		}
+	}
+
+	obj = NULL;
+	result = cfg_map_get(effectiveoptions, "allow-recursion", &obj);
+	if (result != ISC_R_SUCCESS) {
+		result = cfg_map_get(effectiveoptions, "allow-query-cache",
+				     &obj);
+		if (result == ISC_R_SUCCESS) {
+			cfg_obj_ref(UNCONST(obj));
+			result = cfg_map_add(effectiveoptions, UNCONST(obj),
+					     "allow-recursion");
+			INSIST(result == ISC_R_SUCCESS);
+		} else {
+			result = cfg_map_get(effectiveoptions, "allow-query",
+					     &obj);
+			if (result == ISC_R_SUCCESS) {
+				cfg_obj_ref(UNCONST(obj));
+				result = cfg_map_add(effectiveoptions,
+						     UNCONST(obj),
+						     "allow-recursion");
+				INSIST(result == ISC_R_SUCCESS);
+			} else {
+				norecursionacl = true;
+			}
+		}
+	}
+
+	obj = NULL;
+	result = cfg_map_get(effectiveoptions, "allow-query-cache-on", &obj);
+	if (result != ISC_R_SUCCESS) {
+		result = cfg_map_get(effectiveoptions, "allow-recursion-on",
+				     &obj);
+		if (result == ISC_R_SUCCESS) {
+			cfg_obj_ref(UNCONST(obj));
+			result = cfg_map_add(effectiveoptions, UNCONST(obj),
+					     "allow-query-cache-on");
+			INSIST(result == ISC_R_SUCCESS);
+		} else {
+			noquerycacheonacl = true;
+		}
+	}
+
+	obj = NULL;
+	result = cfg_map_get(effectiveoptions, "allow-recursion-on", &obj);
+	if (result != ISC_R_SUCCESS) {
+		result = cfg_map_get(effectiveoptions, "allow-query-cache-on",
+				     &obj);
+		if (result == ISC_R_SUCCESS) {
+			cfg_obj_ref(UNCONST(obj));
+			result = cfg_map_add(effectiveoptions, UNCONST(obj),
+					     "allow-recursion-on");
+			INSIST(result == ISC_R_SUCCESS);
+		} else {
+			norecursiononacl = true;
+		}
+	}
+
+	options_merge_defaultacl(effectiveoptions, defaultoptions,
+				 "allow-query-cache", noquerycacheacl);
+	options_merge_defaultacl(effectiveoptions, defaultoptions,
+				 "allow-recursion", norecursionacl);
+	options_merge_defaultacl(effectiveoptions, defaultoptions,
+				 "allow-query-cache-on", noquerycacheonacl);
+	options_merge_defaultacl(effectiveoptions, defaultoptions,
+				 "allow-recursion-on", norecursiononacl);
+
+	map_merge(effectiveoptions, defaultoptions);
+}
+
 /*%
  * Clauses that can be found within the top level of the named.conf
  * file only.
@@ -1149,7 +1358,8 @@ static cfg_type_t cfg_type_fetchesper = { "fetchesper",	   cfg_parse_tuple,
 static cfg_clausedef_t namedconf_clauses[] = {
 	{ "acl", &cfg_type_acl, CFG_CLAUSEFLAG_MULTI },
 	{ "controls", &cfg_type_controls, CFG_CLAUSEFLAG_MULTI },
-	{ "dnssec-policy", &cfg_type_dnssecpolicy, CFG_CLAUSEFLAG_MULTI },
+	{ "dnssec-policy", &cfg_type_dnssecpolicy, CFG_CLAUSEFLAG_MULTI,
+	  merge_prepend },
 #if HAVE_LIBNGHTTP2
 	{ "http", &cfg_type_http_description,
 	  CFG_CLAUSEFLAG_MULTI | CFG_CLAUSEFLAG_OPTIONAL },
@@ -1162,7 +1372,7 @@ static cfg_clausedef_t namedconf_clauses[] = {
 	{ "lwres", NULL, CFG_CLAUSEFLAG_MULTI | CFG_CLAUSEFLAG_ANCIENT },
 	{ "masters", &cfg_type_serverlist,
 	  CFG_CLAUSEFLAG_MULTI | CFG_CLAUSEFLAG_NODOC },
-	{ "options", &cfg_type_options, 0 },
+	{ "options", &cfg_type_options, 0, options_merge },
 	{ "parental-agents", &cfg_type_serverlist,
 	  CFG_CLAUSEFLAG_MULTI | CFG_CLAUSEFLAG_NODOC },
 	{ "primaries", &cfg_type_serverlist,
@@ -1176,8 +1386,11 @@ static cfg_clausedef_t namedconf_clauses[] = {
 	  CFG_CLAUSEFLAG_MULTI | CFG_CLAUSEFLAG_NOTCONFIGURED },
 #endif
 	{ "template", &cfg_type_template, CFG_CLAUSEFLAG_MULTI },
+	{ "builtin-trust-anchors", &cfg_type_builtin_dnsseckeys,
+	  CFG_CLAUSEFLAG_MULTI | CFG_CLAUSEFLAG_BUILTINONLY |
+		  CFG_CLAUSEFLAG_NODOC },
 	{ "tls", &cfg_type_tlsconf, CFG_CLAUSEFLAG_MULTI },
-	{ "view", &cfg_type_view, CFG_CLAUSEFLAG_MULTI },
+	{ "view", &cfg_type_view, CFG_CLAUSEFLAG_MULTI, merge_append },
 	{ NULL, NULL, 0 }
 };
 
@@ -2017,6 +2230,73 @@ static cfg_type_t cfg_type_staleanswerclienttimeout = {
 	staleanswerclienttimeout_enums
 };
 
+static void
+prefetch_merge(cfg_obj_t *effectiveobj, const cfg_obj_t *defaultobj) {
+	cfg_obj_t *trigger = NULL;
+	cfg_obj_t *eligible = NULL;
+
+	trigger = (cfg_obj_t *)cfg_tuple_get(effectiveobj, "trigger");
+	INSIST(cfg_obj_isuint32(trigger));
+	if (cfg_obj_asuint32(trigger) > 10) {
+		trigger->value.uint32 = 10;
+	}
+
+	eligible = (cfg_obj_t *)cfg_tuple_get(effectiveobj, "eligible");
+	if (cfg_obj_isvoid(eligible)) {
+		const cfg_obj_t *defaulteligible = NULL;
+
+		defaulteligible = cfg_tuple_get(defaultobj, "eligible");
+		INSIST(cfg_obj_isuint32(defaulteligible));
+
+		eligible->value.uint32 = cfg_obj_asuint32(defaulteligible);
+		eligible->type = &cfg_type_uint32;
+	}
+
+	INSIST(cfg_obj_isuint32(eligible));
+	if (cfg_obj_asuint32(eligible) < cfg_obj_asuint32(trigger) + 6) {
+		eligible->value.uint32 = cfg_obj_asuint32(trigger) + 6;
+	}
+}
+
+static void
+checknames_merge(cfg_obj_t *effectiveobj, const cfg_obj_t *defaultobj) {
+	/*
+	 * Applies only to the top-level option `check-names` statement.
+	 * The view and zone-level versions aren't merged into the defaults
+	 * the way global options are.
+	 */
+	REQUIRE(cfg_obj_islist(effectiveobj));
+	REQUIRE(cfg_obj_islist(defaultobj));
+
+	CFG_LIST_FOREACH(defaultobj, delt) {
+		const cfg_obj_t *checkname = cfg_listelt_value(delt);
+		const cfg_obj_t *type = cfg_tuple_get(checkname, "type");
+		bool found = false;
+
+		CFG_LIST_FOREACH(effectiveobj, eelt) {
+			const cfg_obj_t *echeckname = cfg_listelt_value(eelt);
+			const cfg_obj_t *etype = cfg_tuple_get(echeckname,
+							       "type");
+
+			if (strcasecmp(type->value.string.base,
+				       etype->value.string.base) == 0)
+			{
+				found = true;
+				break;
+			}
+		}
+
+		if (found == false) {
+			cfg_listelt_t *eelt = isc_mem_get(effectiveobj->mctx,
+							  sizeof(*eelt));
+
+			*eelt = (cfg_listelt_t){ .link = ISC_LINK_INITIALIZER };
+			cfg_obj_clone(checkname, &eelt->obj);
+			ISC_LIST_APPEND(effectiveobj->value.list, eelt, link);
+		}
+	}
+}
+
 /*%
  * Clauses that can be found within the 'view' statement,
  * with defaults in the 'options' statement.
@@ -2040,7 +2320,8 @@ static cfg_clausedef_t view_clauses[] = {
 	{ "auth-nxdomain", &cfg_type_boolean, 0 },
 	{ "cache-file", NULL, CFG_CLAUSEFLAG_ANCIENT },
 	{ "catalog-zones", &cfg_type_catz, 0 },
-	{ "check-names", &cfg_type_checknames, CFG_CLAUSEFLAG_MULTI },
+	{ "check-names", &cfg_type_checknames, CFG_CLAUSEFLAG_MULTI,
+	  checknames_merge },
 	{ "cleaning-interval", NULL, CFG_CLAUSEFLAG_ANCIENT },
 	{ "clients-per-query", &cfg_type_uint32, 0 },
 	{ "deny-answer-addresses", &cfg_type_denyaddresses, 0 },
@@ -2119,7 +2400,7 @@ static cfg_clausedef_t view_clauses[] = {
 	{ "nta-recheck", &cfg_type_duration, 0 },
 	{ "nxdomain-redirect", &cfg_type_astring, 0 },
 	{ "preferred-glue", &cfg_type_astring, 0 },
-	{ "prefetch", &cfg_type_prefetch, 0 },
+	{ "prefetch", &cfg_type_prefetch, 0, prefetch_merge },
 	{ "provide-ixfr", &cfg_type_boolean, 0 },
 	{ "qname-minimization", &cfg_type_qminmethod, 0 },
 	/*
@@ -4070,3 +4351,18 @@ static cfg_type_t cfg_type_http_description = {
 	"http_desc", cfg_parse_named_map, cfg_print_map,
 	cfg_doc_map, &cfg_rep_map,	  http_description_clausesets
 };
+
+cfg_obj_t *
+cfg_effective_config(const cfg_obj_t *userconfig,
+		     const cfg_obj_t *defaultconfig) {
+	cfg_obj_t *effective = NULL;
+
+	REQUIRE(defaultconfig != NULL &&
+		defaultconfig->type == &cfg_type_namedconf);
+	REQUIRE(userconfig != NULL && userconfig->type == &cfg_type_namedconf);
+
+	cfg_obj_clone(userconfig, &effective);
+	map_merge(effective, defaultconfig);
+
+	return effective;
+}
