@@ -4657,26 +4657,17 @@ configure_view(dns_view_t *view, dns_viewlist_t *viewlist, cfg_obj_t *config,
 	view->acceptexpired = cfg_obj_asboolean(obj);
 
 	obj = NULL;
-	/* 'optionmaps', not 'maps': don't check named_g_defaults yet */
-	(void)named_config_get(optionmaps, "dnssec-validation", &obj);
-	if (obj == NULL) {
+	result = named_config_get(maps, "dnssec-validation", &obj);
+	INSIST(result == ISC_R_SUCCESS);
+	if (cfg_obj_isboolean(obj)) {
+		view->enablevalidation = cfg_obj_asboolean(obj);
+	} else {
 		/*
-		 * Default to VALIDATION_DEFAULT as set in config.c.
+		 * If dnssec-validation is set but not boolean,
+		 * then it must be "auto"
 		 */
-		(void)cfg_map_get(named_g_defaults, "dnssec-validation", &obj);
-		INSIST(obj != NULL);
-	}
-	if (obj != NULL) {
-		if (cfg_obj_isboolean(obj)) {
-			view->enablevalidation = cfg_obj_asboolean(obj);
-		} else {
-			/*
-			 * If dnssec-validation is set but not boolean,
-			 * then it must be "auto"
-			 */
-			view->enablevalidation = true;
-			auto_root = true;
-		}
+		view->enablevalidation = true;
+		auto_root = true;
 	}
 
 	obj = NULL;
