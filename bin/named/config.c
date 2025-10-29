@@ -188,6 +188,7 @@ options {\n\
 	parental-source *;\n\
 	parental-source-v6 *;\n\
 	provide-ixfr true;\n\
+	response-padding { none; } block-size 0;\n\
 	qname-minimization relaxed;\n\
 	query-source address *;\n\
 	query-source-v6 address *;\n\
