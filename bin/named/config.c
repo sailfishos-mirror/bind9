@@ -168,7 +168,7 @@ options {\n\
 #ifdef HAVE_LMDB
 			    "	lmdb-mapsize 32M;\n"
 #endif /* ifdef HAVE_LMDB */
-			    "	max-cache-size 90%;\n\
+			    "	max-cache-size default;\n\
 	max-cache-ttl 604800; /* 1 week */\n\
 	max-clients-per-query 100;\n\
 	max-ncache-ttl 10800; /* 3 hours */\n\
@@ -188,6 +188,7 @@ options {\n\
 	parental-source *;\n\
 	parental-source-v6 *;\n\
 	provide-ixfr true;\n\
+	response-padding { none; } block-size 0;\n\
 	qname-minimization relaxed;\n\
 	query-source address *;\n\
 	query-source-v6 address *;\n\
