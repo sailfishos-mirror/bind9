@@ -110,6 +110,8 @@ struct named_server {
 	isc_signal_t *sigusr1;
 
 	cfg_aclconfctx_t *aclctx;
+	cfg_obj_t	 *userconfig;
+	cfg_obj_t	 *effectiveconfig;
 };
 
 #define NAMED_SERVER_MAGIC    ISC_MAGIC('S', 'V', 'E', 'R')
@@ -322,6 +324,13 @@ named_server_delzone(named_server_t *server, isc_lex_t *lex,
  */
 isc_result_t
 named_server_showzone(named_server_t *server, isc_lex_t *lex,
+		      isc_buffer_t **text);
+
+/*%
+ * Show the full current user configuration.
+ */
+isc_result_t
+named_server_showconf(named_server_t *server, isc_lex_t *lex,
 		      isc_buffer_t **text);
 
 /*%

@@ -39,19 +39,6 @@ cfg_aclconfctx_create(isc_mem_t *mctx, cfg_aclconfctx_t **aclctxp);
  * Creates and initializes an ACL configuration context.
  */
 
-void
-cfg_aclconfctx_detach(cfg_aclconfctx_t **aclctxp);
-/*
- * Removes a reference to an ACL configuration context; when references
- * reaches zero, clears the contents and deallocate the structure.
- */
-
-void
-cfg_aclconfctx_attach(cfg_aclconfctx_t *src, cfg_aclconfctx_t **dest);
-/*
- * Attaches a pointer to an existing ACL configuration context.
- */
-
 isc_result_t
 cfg_acl_fromconfig(const cfg_obj_t *caml, const cfg_obj_t *cctx,
 		   cfg_aclconfctx_t *ctx, isc_mem_t *mctx,
@@ -72,3 +59,5 @@ cfg_acl_fromconfig(const cfg_obj_t *caml, const cfg_obj_t *cctx,
  *	'ctx' to be non NULL.
  *	'*target' to be NULL or a valid dns_acl_t.
  */
+
+ISC_REFCOUNT_DECL(cfg_aclconfctx);

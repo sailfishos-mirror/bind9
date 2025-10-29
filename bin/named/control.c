@@ -276,6 +276,8 @@ named_control_docommand(isccc_sexpr_t *message, bool readonly,
 		result = named_server_dumpsecroots(named_g_server, lex, text);
 	} else if (command_compare(command, NAMED_COMMAND_SERVESTALE)) {
 		result = named_server_servestale(named_g_server, lex, text);
+	} else if (command_compare(command, NAMED_COMMAND_SHOWCONF)) {
+		result = named_server_showconf(named_g_server, lex, text);
 	} else if (command_compare(command, NAMED_COMMAND_SHOWZONE)) {
 		result = named_server_showzone(named_g_server, lex, text);
 	} else if (command_compare(command, NAMED_COMMAND_SIGNING)) {
