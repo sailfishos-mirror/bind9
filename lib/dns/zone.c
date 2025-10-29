@@ -1168,12 +1168,8 @@ clear_keylist(dns_dnsseckeylist_t *list, isc_mem_t *mctx) {
 	}
 }
 
-/*
- * Free a zone.  Because we require that there be no more
- * outstanding events or references, no locking is necessary.
- */
-static void
-zone_free(dns_zone_t *zone) {
+void
+dns__zone_free(dns_zone_t *zone) {
 	REQUIRE(DNS_ZONE_VALID(zone));
 	REQUIRE(!LOCKED_ZONE(zone));
 	REQUIRE(zone->timer == NULL);
@@ -5882,8 +5878,8 @@ done:
 	return result;
 }
 
-static bool
-exit_check(dns_zone_t *zone) {
+bool
+dns__zone_free_check(dns_zone_t *zone) {
 	REQUIRE(LOCKED_ZONE(zone));
 
 	if (DNS_ZONE_FLAG(zone, DNS_ZONEFLG_SHUTDOWN) &&
@@ -6241,10 +6237,10 @@ dns_zone_idetach(dns_zone_t **zonep) {
 	if (isc_refcount_decrement(&zone->irefs) == 1) {
 		bool free_needed;
 		LOCK_ZONE(zone);
-		free_needed = exit_check(zone);
+		free_needed = dns__zone_free_check(zone);
 		UNLOCK_ZONE(zone);
 		if (free_needed) {
-			zone_free(zone);
+			dns__zone_free(zone);
 		}
 	}
 }
@@ -6254,6 +6250,13 @@ dns_zone_getmctx(dns_zone_t *zone) {
 	REQUIRE(DNS_ZONE_VALID(zone));
 
 	return zone->mctx;
+}
+
+isc_refcount_t *
+dns__zone_irefs(dns_zone_t *zone) {
+	REQUIRE(DNS_ZONE_VALID(zone));
+
+	return &zone->irefs;
 }
 
 dns_zonemgr_t *
@@ -14840,12 +14843,12 @@ zone_shutdown(void *arg) {
 	}
 
 	/*
-	 * We have now canceled everything set the flag to allow exit_check()
-	 * to succeed.	We must not unlock between setting this flag and
-	 * calling exit_check().
+	 * We have now canceled everything set the flag to allow
+	 * dns__zone_free_check() to succeed.	We must not unlock between
+	 * setting this flag and calling dns__zone_free_check().
 	 */
 	DNS_ZONE_SETFLAG(zone, DNS_ZONEFLG_SHUTDOWN);
-	free_needed = exit_check(zone);
+	free_needed = dns__zone_free_check(zone);
 	/*
 	 * If a dump is in progress for the secure zone, defer detaching from
 	 * the raw zone as it may prevent the unsigned serial number from being
@@ -14876,7 +14879,7 @@ zone_shutdown(void *arg) {
 		dns_zone_idetach(&secure);
 	}
 	if (free_needed) {
-		zone_free(zone);
+		dns__zone_free(zone);
 	}
 }
 
@@ -15075,10 +15078,10 @@ zone__settimer(void *arg) {
 free:
 	isc_mem_put(zone->mctx, data, sizeof(*data));
 	isc_refcount_decrement(&zone->irefs);
-	free_needed = exit_check(zone);
+	free_needed = dns__zone_free_check(zone);
 	UNLOCK_ZONE(zone);
 	if (free_needed) {
-		zone_free(zone);
+		dns__zone_free(zone);
 	}
 }
 
@@ -17788,10 +17791,10 @@ again:
 	}
 
 	isc_refcount_decrement(&zone->irefs);
-	free_needed = exit_check(zone);
+	free_needed = dns__zone_free_check(zone);
 	UNLOCK_ZONE(zone);
 	if (free_needed) {
-		zone_free(zone);
+		dns__zone_free(zone);
 	}
 }
 
@@ -23723,7 +23726,7 @@ dns_zone_setnsec3param(dns_zone_t *zone, uint8_t hash, uint8_t flags,
 	 * not yet have a database.  Prevent that by queueing the event
 	 * up if zone->db is NULL.  All events queued here are
 	 * subsequently processed by receive_secure_db() if it ever gets
-	 * called or simply freed by zone_free() otherwise.
+	 * called or simply freed by dns__zone_free() otherwise.
 	 */
 
 	ZONEDB_LOCK(&zone->dblock, isc_rwlocktype_read);

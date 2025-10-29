@@ -18,8 +18,8 @@
 /*! \file */
 
 /*%
- *     Types and functions below not be used outside this module and its
- *     associated unit tests.
+ *	Types and functions below meant to be used for internal zone
+ *	modules only, and associated unit tests.
  */
 
 #define UDP_REQUEST_TIMEOUT 5 /*%< 5 seconds */
@@ -184,4 +184,32 @@ dns__zone_idetach_locked(dns_zone_t **zonep);
  * Require:
  *\li   The caller is running in the context of the zone's loop.
  *\li   'zonep' to point to a valid zone, already locked.
+ */
+
+isc_refcount_t *
+dns__zone_irefs(dns_zone_t *zone);
+/*%<
+ *	Get the reference count of a zone.
+ *
+ *	Requires:
+ *	\li 'zone' to be a valid zone.
+ */
+
+void
+dns__zone_free(dns_zone_t *zone);
+/*
+ *	Free a zone.  Because we require that there be no more
+ *	outstanding events or references, no locking is necessary.
+ *
+ *	Requires:
+ *	\li 'zone' to be a valid zone, unlocked.
+ */
+
+bool
+dns__zone_free_check(dns_zone_t *zone);
+/*
+ *	Check if a zone is ready to be freed.
+ *
+ *	Requires:
+ *	\li 'zone' to be a valid zone, locked.
  */
