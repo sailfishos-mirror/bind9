@@ -13,7 +13,7 @@ from cookie_ans import cookie_server
 
 
 def main() -> None:
-    cookie_server(evil=False).run()
+    cookie_server(evil=True).run()
 
 
 if __name__ == "__main__":
