@@ -4166,7 +4166,6 @@ configure_view(dns_view_t *view, dns_viewlist_t *viewlist, cfg_obj_t *config,
 	       bool first_time) {
 	const cfg_obj_t *maps[4];
 	const cfg_obj_t *cfgmaps[3];
-	const cfg_obj_t *optionmaps[3];
 	const cfg_obj_t *options = NULL;
 	const cfg_obj_t *voptions = NULL;
 	const cfg_obj_t *forwardtype;
@@ -4225,6 +4224,7 @@ configure_view(dns_view_t *view, dns_viewlist_t *viewlist, cfg_obj_t *config,
 	const char *qminmode = NULL;
 	dns_adb_t *adb = NULL;
 	bool oldcache = false;
+	uint32_t padding;
 
 	REQUIRE(DNS_VIEW_VALID(view));
 
@@ -4234,27 +4234,24 @@ configure_view(dns_view_t *view, dns_viewlist_t *viewlist, cfg_obj_t *config,
 
 	/*
 	 * maps: view options, options, defaults
-	 * cfgmaps: view options, config
-	 * optionmaps: view options, options
+	 * cfgmaps: view options, top-level config
 	 */
 	if (vconfig != NULL) {
 		voptions = cfg_tuple_get(vconfig, "options");
 		maps[i++] = voptions;
-		optionmaps[j++] = voptions;
 		cfgmaps[k++] = voptions;
 	}
 	if (options != NULL) {
 		maps[i++] = options;
-		optionmaps[j++] = options;
 	}
 
 	maps[i++] = named_g_defaults;
 	maps[i] = NULL;
-	optionmaps[j] = NULL;
+
 	if (config != NULL) {
-		cfgmaps[k++] = config;
+		cfgmaps[j++] = config;
 	}
-	cfgmaps[k] = NULL;
+	cfgmaps[j] = NULL;
 
 	/*
 	 * Set the view's port number for outgoing queries.
@@ -5617,22 +5614,19 @@ configure_view(dns_view_t *view, dns_viewlist_t *viewlist, cfg_obj_t *config,
 	if (view->pad_acl != NULL) {
 		dns_acl_detach(&view->pad_acl);
 	}
-	result = named_config_get(optionmaps, "response-padding", &obj);
-	if (result == ISC_R_SUCCESS) {
-		const cfg_obj_t *padobj = cfg_tuple_get(obj, "block-size");
-		const cfg_obj_t *aclobj = cfg_tuple_get(obj, "acl");
-		uint32_t padding = cfg_obj_asuint32(padobj);
-
-		if (padding > 512U) {
-			cfg_obj_log(obj, named_g_lctx, ISC_LOG_WARNING,
-				    "response-padding block-size cannot "
-				    "exceed 512: lowering");
-			padding = 512U;
-		}
-		view->padding = (uint16_t)padding;
-		CHECK(cfg_acl_fromconfig(aclobj, config, named_g_lctx, actx,
-					 named_g_mctx, 0, &view->pad_acl));
+	result = named_config_get(maps, "response-padding", &obj);
+	INSIST(result == ISC_R_SUCCESS);
+	padding = cfg_obj_asuint32(cfg_tuple_get(obj, "block-size"));
+	if (padding > 512U) {
+		cfg_obj_log(obj, named_g_lctx, ISC_LOG_WARNING,
+			    "response-padding block-size cannot "
+			    "exceed 512: lowering");
+		padding = 512U;
 	}
+	view->padding = (uint16_t)padding;
+	CHECK(cfg_acl_fromconfig(cfg_tuple_get(obj, "acl"), config,
+				 named_g_lctx, actx, named_g_mctx, 0,
+				 &view->pad_acl));
 
 	obj = NULL;
 	result = named_config_get(maps, "require-server-cookie", &obj);
