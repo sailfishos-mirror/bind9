@@ -4164,8 +4164,8 @@ configure_view(dns_view_t *view, dns_viewlist_t *viewlist, cfg_obj_t *config,
 	       dns_keystorelist_t *keystores, const cfg_obj_t *bindkeys,
 	       isc_mem_t *mctx, cfg_aclconfctx_t *actx, bool need_hints,
 	       bool first_time) {
-	const cfg_obj_t *maps[4];
-	const cfg_obj_t *cfgmaps[3];
+	const cfg_obj_t *maps[4] = { 0 };
+	const cfg_obj_t *cfgmaps[3] = { 0 };
 	const cfg_obj_t *options = NULL;
 	const cfg_obj_t *voptions = NULL;
 	const cfg_obj_t *forwardtype;
@@ -4200,8 +4200,8 @@ configure_view(dns_view_t *view, dns_viewlist_t *viewlist, cfg_obj_t *config,
 	bool rpz_configured = false;
 	bool catz_configured = false;
 	bool shared_cache = false;
-	int i = 0, j = 0, k = 0;
-	const char *str;
+	int i = 0, j = 0;
+	const char *str = NULL;
 	const char *cachename = NULL;
 	dns_order_t *order = NULL;
 	uint32_t udpsize;
@@ -4239,19 +4239,16 @@ configure_view(dns_view_t *view, dns_viewlist_t *viewlist, cfg_obj_t *config,
 	if (vconfig != NULL) {
 		voptions = cfg_tuple_get(vconfig, "options");
 		maps[i++] = voptions;
-		cfgmaps[k++] = voptions;
+		cfgmaps[j++] = voptions;
 	}
 	if (options != NULL) {
 		maps[i++] = options;
 	}
-
 	maps[i++] = named_g_defaults;
-	maps[i] = NULL;
 
 	if (config != NULL) {
 		cfgmaps[j++] = config;
 	}
-	cfgmaps[j] = NULL;
 
 	/*
 	 * Set the view's port number for outgoing queries.
