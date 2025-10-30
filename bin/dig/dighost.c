@@ -3438,19 +3438,11 @@ force_next(dig_query_t *query) {
 		return;
 	}
 
-	if (l->retries > 1) {
-		l->retries--;
-		debug("making new %s request, %d tries left",
-		      l->tcp_mode ? "TCP" : "UDP", l->retries);
-		requeue_lookup(l, true);
-		lookup_detach(&l);
-		isc_refcount_decrement0(&recvcount);
-		debug("recvcount=%" PRIuFAST32,
-		      isc_refcount_current(&recvcount));
-		query_detach(&query);
-		clear_current_lookup();
-		return;
-	}
+	/*
+	 * We don't retry this server unlike other similar cases such as
+	 * recv_done() because we're here due to get_address() failure,
+	 * which shouldn't be transient.
+	 */
 
 	if (query->readhandle != NULL) {
 		isc_refcount_decrement0(&recvcount);
