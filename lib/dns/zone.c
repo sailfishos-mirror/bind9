@@ -318,7 +318,6 @@ struct dns_zone {
 	isc_time_t refreshkeytime;
 	isc_time_t xfrintime;
 	uint32_t refreshkeyinterval;
-	uint32_t refreshkeycount;
 	uint32_t refresh;
 	uint32_t retry;
 	uint32_t expire;
@@ -343,8 +342,9 @@ struct dns_zone {
 	dns_remote_t parentals;
 	dns_dnsseckeylist_t checkds_ok;
 	dns_checkdstype_t checkdstype;
-	uint32_t nsfetchcount;
 	uint32_t parent_nscount;
+
+	uint32_t fetchcount[ZONEFETCHTYPE_COUNT];
 
 	dns_remote_t alsonotify;
 	dns_notifyctx_t notifyctx;
@@ -10656,7 +10656,7 @@ keyfetch_cancel(dns_zonefetch_t *fetch) {
 	/*
 	 * Error during a key fetch; cancel and retry in an hour.
 	 */
-	zone->refreshkeycount--;
+	zone->fetchcount[ZONEFETCHTYPE_KEY]--;
 
 	dns_db_detach(&kfetch->db);
 	dns_rdataset_disassociate(&kfetch->keydataset);
@@ -10747,8 +10747,8 @@ keyfetch_done(dns_zonefetch_t *fetch, isc_result_t eresult) {
 
 	CHECK(dns_db_newversion(kfetch->db, &ver));
 
-	zone->refreshkeycount--;
-	alldone = (zone->refreshkeycount == 0);
+	zone->fetchcount[ZONEFETCHTYPE_KEY]--;
+	alldone = (zone->fetchcount[ZONEFETCHTYPE_KEY] == 0);
 
 	if (alldone) {
 		DNS_ZONE_CLRFLAG(zone, DNS_ZONEFLG_REFRESHING);
@@ -11422,7 +11422,7 @@ zone_refreshkeys(dns_zone_t *zone) {
 			};
 			isc_mem_attach(zone->mctx, &fetch->mctx);
 
-			zone->refreshkeycount++;
+			zone->fetchcount[ZONEFETCHTYPE_KEY]++;
 			isc_refcount_increment0(&zone->irefs);
 			kname = dns_fixedname_initname(&fetch->name);
 			dns_name_dup(name, zone->mctx, kname);
@@ -21123,7 +21123,7 @@ nsfetch_continue(dns_zonefetch_t *fetch) {
 	if (!dns_fuzzing_resolver) {
 #endif /* ifdef ENABLE_AFL */
 		LOCK_ZONE(zone);
-		zone->nsfetchcount++;
+		zone->fetchcount[ZONEFETCHTYPE_NS]++;
 		isc_refcount_increment0(&zone->irefs);
 
 		dns_rdataset_init(&fetch->rrset);
@@ -21150,7 +21150,7 @@ nsfetch_cancel(dns_zonefetch_t *fetch) {
 
 	INSIST(LOCKED_ZONE(zone));
 
-	zone->nsfetchcount--;
+	zone->fetchcount[ZONEFETCHTYPE_NS]--;
 }
 
 static void
@@ -21181,7 +21181,7 @@ nsfetch_done(dns_zonefetch_t *fetch, isc_result_t eresult) {
 	nsrrset = &fetch->rrset;
 	pname = &nsfetch->pname;
 
-	zone->nsfetchcount--;
+	zone->fetchcount[ZONEFETCHTYPE_NS]--;
 
 	dns_name_format(pname, pnamebuf, sizeof(pnamebuf));
 	dnssec_log(zone, ISC_LOG_DEBUG(3),
@@ -21363,7 +21363,7 @@ zone_checkds(dns_zone_t *zone) {
 		isc_mem_attach(zone->mctx, &fetch->mctx);
 
 		LOCK_ZONE(zone);
-		zone->nsfetchcount++;
+		zone->fetchcount[ZONEFETCHTYPE_NS]++;
 		isc_refcount_increment0(&zone->irefs);
 		name = dns_fixedname_initname(&fetch->name);
 		dns_name_dup(&zone->origin, zone->mctx, name);
