@@ -14,11 +14,12 @@ import re
 import shutil
 import time
 
-from dns import edns, flags, name, rdataclass, rdatatype
+from dns import flags, name, rdataclass, rdatatype
 
 import pytest
 
 import isctest
+from isctest.compat import EDECode
 import isctest.mark
 from isctest.util import param
 
@@ -1131,8 +1132,7 @@ def test_expired_signatures(ns4):
     res = isctest.query.tcp(msg, "10.53.0.4")
     isctest.check.servfail(res)
     isctest.check.noadflag(res)
-    if hasattr(res, "extended_errors"):
-        assert res.extended_errors()[0].code == edns.EDECode.SIGNATURE_EXPIRED
+    isctest.check.ede(res, EDECode.SIGNATURE_EXPIRED)
     assert grep_q("expired.example/.*: RRSIG has expired", "ns4/named.run")
 
     # check future signatures do not validate
@@ -1140,8 +1140,7 @@ def test_expired_signatures(ns4):
     res = isctest.query.tcp(msg, "10.53.0.4")
     isctest.check.servfail(res)
     isctest.check.noadflag(res)
-    if hasattr(res, "extended_errors"):
-        assert res.extended_errors()[0].code == edns.EDECode.SIGNATURE_NOT_YET_VALID
+    isctest.check.ede(res, EDECode.SIGNATURE_NOT_YET_VALID)
     assert grep_q(
         "future.example/.*: RRSIG validity period has not begun", "ns4/named.run"
     )
@@ -1301,10 +1300,7 @@ def test_unknown_algorithms():
     res = isctest.query.tcp(msg, "10.53.0.4")
     isctest.check.noerror(res)
     isctest.check.noadflag(res)
-    if hasattr(res, "extended_errors"):
-        assert (
-            res.extended_errors()[0].code == edns.EDECode.UNSUPPORTED_DNSKEY_ALGORITHM
-        )
+    isctest.check.ede(res, EDECode.UNSUPPORTED_DNSKEY_ALGORITHM)
 
     # check that DNSKEY with an unsupported reserve key validates
     msg = isctest.query.create("dnskey-unsupported-2.example", "DNSKEY")
@@ -1315,18 +1311,14 @@ def test_unknown_algorithms():
     # check EDE code 2 for unsupported DS digest algorithm
     msg = isctest.query.create("a.ds-unsupported.example", "A")
     res = isctest.query.tcp(msg, "10.53.0.4")
-    if hasattr(res, "extended_errors"):
-        assert res.extended_errors()[0].code == edns.EDECode.UNSUPPORTED_DS_DIGEST_TYPE
+    isctest.check.ede(res, EDECode.UNSUPPORTED_DS_DIGEST_TYPE)
 
     # check EDE code 1 for bad algorithm mnemonic
     msg = isctest.query.create("badalg.secure.example", "A")
     res = isctest.query.tcp(msg, "10.53.0.4")
     isctest.check.noerror(res)
     isctest.check.noadflag(res)
-    if hasattr(res, "extended_errors"):
-        assert (
-            res.extended_errors()[0].code == edns.EDECode.UNSUPPORTED_DNSKEY_ALGORITHM
-        )
+    isctest.check.ede(res, EDECode.UNSUPPORTED_DNSKEY_ALGORITHM)
 
     # check that zone contents are still secure despite disable-algorithms
     # on query name (name below zone name).
@@ -1342,10 +1334,7 @@ def test_unknown_algorithms():
     isctest.check.rr_count_eq(res.answer, 2)
     isctest.check.noerror(res)
     isctest.check.noadflag(res)
-    if hasattr(res, "extended_errors"):
-        assert (
-            res.extended_errors()[0].code == edns.EDECode.UNSUPPORTED_DNSKEY_ALGORITHM
-        )
+    isctest.check.ede(res, EDECode.UNSUPPORTED_DNSKEY_ALGORITHM)
 
     # check that DS records are still treated as secure at the
     # disable-algorithm name
@@ -1360,10 +1349,8 @@ def test_unknown_algorithms():
     msg = isctest.query.create("a.digest-alg-unsupported.example", "A")
     res = isctest.query.tcp(msg, "10.53.0.4")
     isctest.check.noadflag(res)
-    if hasattr(res, "extended_errors"):
-        codes = {ede.code for ede in res.extended_errors()}
-        assert edns.EDECode.UNSUPPORTED_DNSKEY_ALGORITHM in codes
-        assert edns.EDECode.UNSUPPORTED_DS_DIGEST_TYPE in codes
+    isctest.check.ede(res, EDECode.UNSUPPORTED_DNSKEY_ALGORITHM)
+    isctest.check.ede(res, EDECode.UNSUPPORTED_DS_DIGEST_TYPE)
 
     # check that unknown DNSKEY algorithm + unknown NSEC3 hash algorithm
     # validates as insecure
