@@ -9092,7 +9092,8 @@ emit_text(void *arg, const char *buf, int len) {
 static isc_result_t
 load_configuration(named_server_t *server, bool first_time) {
 	isc_result_t result;
-	cfg_obj_t *config = NULL, *bindkeys = NULL, *effective = NULL;
+	cfg_obj_t *config = NULL, *effective = NULL;
+	cfg_obj_t *bindkeys = NULL, *builtin = NULL;
 	ns_dzarg_t dzarg = {
 		.magic = DZARG_MAGIC,
 		.result = ISC_R_SUCCESS,
@@ -9102,6 +9103,7 @@ load_configuration(named_server_t *server, bool first_time) {
 	isc_log_write(NAMED_LOGCATEGORY_GENERAL, NAMED_LOGMODULE_SERVER,
 		      ISC_LOG_DEBUG(1), "load_configuration");
 
+	CHECK(named_config_parsedefaults(&builtin));
 	CHECK(named_config_parsefile(&config));
 
 	if (named_g_bindkeysfile != NULL) {
@@ -9135,7 +9137,7 @@ load_configuration(named_server_t *server, bool first_time) {
 	}
 
 	/* Merge and apply */
-	effective = cfg_effective_config(config, named_g_defaultconfig);
+	effective = cfg_effective_config(config, builtin);
 
 	/*
 	 * Save the user configuration for later reference.
@@ -9156,6 +9158,9 @@ cleanup:
 	}
 	if (config != NULL) {
 		cfg_obj_detach(&config);
+	}
+	if (builtin != NULL) {
+		cfg_obj_detach(&builtin);
 	}
 
 	return result;
@@ -9331,13 +9336,6 @@ run_server(void *arg) {
 	isc_timer_create(isc_loop_main(), pps_timer_tick, server,
 			 &server->pps_timer);
 
-	CHECKFATAL(named_config_parsedefaults(&named_g_defaultconfig),
-		   "unable to parse defaults config");
-
-	CHECKFATAL(cfg_map_get(named_g_defaultconfig, "options",
-			       &named_g_defaultoptions),
-		   "missing 'options' in default config");
-
 	CHECKFATAL(load_configuration(server, true), "loading configuration");
 
 	CHECKFATAL(load_zones(server, false), "loading zones");
@@ -9388,8 +9386,6 @@ shutdown_server(void *arg) {
 	if (server->aclctx != NULL) {
 		cfg_aclconfctx_detach(&server->aclctx);
 	}
-
-	cfg_obj_detach(&named_g_defaultconfig);
 
 	(void)named_server_saventa(server);
 
@@ -13891,7 +13887,7 @@ named_server_showconf(named_server_t *server, isc_lex_t *lex,
 		      isc_buffer_t **text) {
 	isc_result_t result, tresult;
 	const char *arg = NULL;
-	const cfg_obj_t *config = NULL;
+	cfg_obj_t *config = NULL;
 	ns_dzarg_t dzarg = {
 		.magic = DZARG_MAGIC,
 		.result = ISC_R_SUCCESS,
@@ -13913,9 +13909,9 @@ named_server_showconf(named_server_t *server, isc_lex_t *lex,
 		result = ISC_R_SUCCESS;
 		goto cleanup;
 	} else if (strcasecmp(arg, "-builtin") == 0) {
-		config = named_g_defaultconfig;
+		named_config_parsedefaults(&config);
 	} else if (strcasecmp(arg, "-effective") == 0) {
-		config = server->effectiveconfig;
+		cfg_obj_attach(server->effectiveconfig, &config);
 	} else {
 		CHECK(DNS_R_SYNTAX);
 	}
@@ -13932,6 +13928,10 @@ named_server_showconf(named_server_t *server, isc_lex_t *lex,
 cleanup:
 	if (isc_buffer_usedlength(*text) > 0) {
 		(void)putnull(text);
+	}
+
+	if (config != NULL) {
+		cfg_obj_detach(&config);
 	}
 
 	return result;

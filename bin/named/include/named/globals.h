@@ -85,8 +85,6 @@ EXTERN unsigned int named_g_debuglevel INIT(0);
 /*
  * Current configuration information.
  */
-EXTERN cfg_obj_t *named_g_defaultconfig	       INIT(NULL);
-EXTERN const cfg_obj_t *named_g_defaultoptions INIT(NULL);
 EXTERN const char *named_g_conffile	INIT(NAMED_SYSCONFDIR "/named.conf");
 EXTERN const char *named_g_bindkeysfile INIT(NULL);
 EXTERN const char *named_g_keyfile	INIT(NAMED_SYSCONFDIR "/rndc.key");
