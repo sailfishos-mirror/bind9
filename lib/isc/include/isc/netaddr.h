@@ -32,7 +32,6 @@ struct isc_netaddr {
 	union {
 		struct in_addr	in;
 		struct in6_addr in6;
-		char		un[sizeof(((struct sockaddr_un *)0)->sun_path)];
 	} type;
 	uint32_t zone;
 };
