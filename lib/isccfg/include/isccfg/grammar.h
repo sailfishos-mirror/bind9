@@ -215,8 +215,8 @@ struct cfg_obj {
 			isc_sockaddr_t	*sockaddr;
 			isc_textregion_t tls;
 		} sockaddrtls;
-		cfg_netprefix_t	 *netprefix;
-		isccfg_duration_t duration;
+		cfg_netprefix_t	  *netprefix;
+		isccfg_duration_t *duration;
 	} value;
 	cfg_obj_t   *file; /*%< separate string with its own refcount */
 	unsigned int line;

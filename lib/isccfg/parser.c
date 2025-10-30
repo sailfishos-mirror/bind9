@@ -230,8 +230,15 @@ copy_netprefix(cfg_obj_t *to, const cfg_obj_t *from) {
 }
 
 static void
+free_duration(cfg_obj_t *obj) {
+	isc_mem_put(obj->mctx, obj->value.duration, sizeof(isccfg_duration_t));
+}
+
+static void
 copy_duration(cfg_obj_t *to, const cfg_obj_t *from) {
-	to->value.duration = from->value.duration;
+	to->value.duration = isc_mem_get(to->mctx, sizeof(isccfg_duration_t));
+	memmove(to->value.duration, from->value.duration,
+		sizeof(isccfg_duration_t));
 }
 
 static void
@@ -352,7 +359,7 @@ cfg_rep_t cfg_rep_netprefix = { "netprefix", free_netprefix, copy_netprefix };
 cfg_rep_t cfg_rep_void = { "void", free_noop, copy_noop };
 cfg_rep_t cfg_rep_fixedpoint = { "fixedpoint", free_noop, copy_uint32 };
 cfg_rep_t cfg_rep_percentage = { "percentage", free_noop, copy_uint32 };
-cfg_rep_t cfg_rep_duration = { "duration", free_noop, copy_duration };
+cfg_rep_t cfg_rep_duration = { "duration", free_duration, copy_duration };
 
 /*
  * Configuration type definitions.
@@ -1185,11 +1192,11 @@ numlen(uint32_t num) {
 void
 cfg_print_duration(cfg_printer_t *pctx, const cfg_obj_t *obj) {
 	char buf[CFG_DURATION_MAXLEN];
-	char *str;
+	char *str = NULL;
 	const char *indicators = "YMWDHMS";
 	int count, i;
 	int durationlen[7] = { 0 };
-	isccfg_duration_t duration;
+	isccfg_duration_t *duration = NULL;
 	/*
 	 * D ? The duration has a date part.
 	 * T ? The duration has a time part.
@@ -1202,8 +1209,8 @@ cfg_print_duration(cfg_printer_t *pctx, const cfg_obj_t *obj) {
 	duration = obj->value.duration;
 
 	/* If this is not an ISO 8601 duration, just print it as a number. */
-	if (!duration.iso8601) {
-		cfg_print_rawuint(pctx, duration.parts[6]);
+	if (!duration->iso8601) {
+		cfg_print_rawuint(pctx, duration->parts[6]);
 		return;
 	}
 
@@ -1213,8 +1220,8 @@ cfg_print_duration(cfg_printer_t *pctx, const cfg_obj_t *obj) {
 	str = &buf[1];
 	count = 2;
 	for (i = 0; i < 6; i++) {
-		if (duration.parts[i] > 0) {
-			durationlen[i] = 1 + numlen(duration.parts[i]);
+		if (duration->parts[i] > 0) {
+			durationlen[i] = 1 + numlen(duration->parts[i]);
 			if (i < 4) {
 				D = true;
 			} else {
@@ -1229,10 +1236,10 @@ cfg_print_duration(cfg_printer_t *pctx, const cfg_obj_t *obj) {
 	 * non-zero, or if all the other parts are also zero.  In the latter
 	 * case this function will print "PT0S".
 	 */
-	if (duration.parts[6] > 0 ||
-	    (!D && !duration.parts[4] && !duration.parts[5]))
+	if (duration->parts[6] > 0 ||
+	    (!D && !duration->parts[4] && !duration->parts[5]))
 	{
-		durationlen[6] = 1 + numlen(duration.parts[6]);
+		durationlen[6] = 1 + numlen(duration->parts[6]);
 		T = true;
 		count += durationlen[6];
 	}
@@ -1248,9 +1255,9 @@ cfg_print_duration(cfg_printer_t *pctx, const cfg_obj_t *obj) {
 		 * We don't check here if weeks and other time indicator are
 		 * used mutually exclusively.
 		 */
-		if (duration.parts[i] > 0) {
+		if (duration->parts[i] > 0) {
 			snprintf(str, durationlen[i] + 2, "%u%c",
-				 (uint32_t)duration.parts[i], indicators[i]);
+				 (uint32_t)duration->parts[i], indicators[i]);
 			str += durationlen[i];
 		}
 		if (i == 3 && T) {
@@ -1259,25 +1266,25 @@ cfg_print_duration(cfg_printer_t *pctx, const cfg_obj_t *obj) {
 		}
 	}
 	/* Special case for seconds. */
-	if (duration.parts[6] > 0 ||
-	    (!D && !duration.parts[4] && !duration.parts[5]))
+	if (duration->parts[6] > 0 ||
+	    (!D && !duration->parts[4] && !duration->parts[5]))
 	{
 		snprintf(str, durationlen[6] + 2, "%u%c",
-			 (uint32_t)duration.parts[6], indicators[6]);
+			 (uint32_t)duration->parts[6], indicators[6]);
 	}
 	cfg_print_chars(pctx, buf, strlen(buf));
 }
 
 void
 cfg_print_duration_or_unlimited(cfg_printer_t *pctx, const cfg_obj_t *obj) {
-	isccfg_duration_t duration;
+	isccfg_duration_t *duration = NULL;
 
 	REQUIRE(pctx != NULL);
 	REQUIRE(VALID_CFGOBJ(obj));
 
 	duration = obj->value.duration;
 
-	if (duration.unlimited) {
+	if (duration->unlimited) {
 		cfg_print_cstr(pctx, "unlimited");
 	} else {
 		cfg_print_duration(pctx, obj);
@@ -1294,7 +1301,7 @@ uint32_t
 cfg_obj_asduration(const cfg_obj_t *obj) {
 	REQUIRE(VALID_CFGOBJ(obj));
 	REQUIRE(obj->type->rep == &cfg_rep_duration);
-	return isccfg_duration_toseconds(&(obj->value.duration));
+	return isccfg_duration_toseconds(obj->value.duration);
 }
 
 static isc_result_t
@@ -1316,7 +1323,8 @@ parse_duration(cfg_parser_t *pctx, cfg_obj_t **ret) {
 
 	cfg_obj_create(pctx->mctx, cfg_parser_currentfile(pctx), pctx->line,
 		       &cfg_type_duration, &obj);
-	obj->value.duration = duration;
+	obj->value.duration = isc_mem_get(obj->mctx, sizeof(isccfg_duration_t));
+	*obj->value.duration = duration;
 	*ret = obj;
 
 	return ISC_R_SUCCESS;
@@ -1369,7 +1377,9 @@ cfg_parse_duration_or_unlimited(cfg_parser_t *pctx,
 
 		cfg_obj_create(pctx->mctx, cfg_parser_currentfile(pctx),
 			       pctx->line, &cfg_type_duration, &obj);
-		obj->value.duration = duration;
+		obj->value.duration = isc_mem_get(obj->mctx,
+						  sizeof(isccfg_duration_t));
+		*obj->value.duration = duration;
 		*ret = obj;
 		return ISC_R_SUCCESS;
 	}
