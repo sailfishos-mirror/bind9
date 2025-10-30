@@ -129,6 +129,9 @@ static void
 free_string(cfg_obj_t *obj);
 
 static void
+free_sockaddr(cfg_obj_t *obj);
+
+static void
 free_sockaddrtls(cfg_obj_t *obj);
 
 static void
@@ -192,12 +195,17 @@ copy_boolean(cfg_obj_t *to, const cfg_obj_t *from) {
 
 static void
 copy_sockaddr(cfg_obj_t *to, const cfg_obj_t *from) {
-	to->value.sockaddr = from->value.sockaddr;
+	to->value.sockaddr = isc_mem_get(to->mctx, sizeof(isc_sockaddr_t));
+	memmove(to->value.sockaddr, from->value.sockaddr,
+		sizeof(isc_sockaddr_t));
 }
 
 static void
 copy_sockaddrtls(cfg_obj_t *to, const cfg_obj_t *from) {
-	to->value.sockaddrtls.sockaddr = from->value.sockaddrtls.sockaddr;
+	to->value.sockaddrtls.sockaddr = isc_mem_get(to->mctx,
+						     sizeof(isc_sockaddr_t));
+	memmove(to->value.sockaddrtls.sockaddr,
+		from->value.sockaddrtls.sockaddr, sizeof(isc_sockaddr_t));
 
 	if (from->value.sockaddrtls.tls.base != NULL) {
 		size_t len = from->value.sockaddrtls.tls.length;
@@ -210,8 +218,15 @@ copy_sockaddrtls(cfg_obj_t *to, const cfg_obj_t *from) {
 }
 
 static void
+free_netprefix(cfg_obj_t *obj) {
+	isc_mem_put(obj->mctx, obj->value.netprefix, sizeof(cfg_netprefix_t));
+}
+
+static void
 copy_netprefix(cfg_obj_t *to, const cfg_obj_t *from) {
-	to->value.netprefix = from->value.netprefix;
+	to->value.netprefix = isc_mem_get(to->mctx, sizeof(cfg_netprefix_t));
+	memmove(to->value.netprefix, from->value.netprefix,
+		sizeof(cfg_netprefix_t));
 }
 
 static void
@@ -330,10 +345,10 @@ cfg_rep_t cfg_rep_boolean = { "boolean", free_noop, copy_boolean };
 cfg_rep_t cfg_rep_map = { "map", free_map, copy_map };
 cfg_rep_t cfg_rep_list = { "list", free_list, copy_list };
 cfg_rep_t cfg_rep_tuple = { "tuple", free_tuple, copy_tuple };
-cfg_rep_t cfg_rep_sockaddr = { "sockaddr", free_noop, copy_sockaddr };
+cfg_rep_t cfg_rep_sockaddr = { "sockaddr", free_sockaddr, copy_sockaddr };
 cfg_rep_t cfg_rep_sockaddrtls = { "sockaddrtls", free_sockaddrtls,
 				  copy_sockaddrtls };
-cfg_rep_t cfg_rep_netprefix = { "netprefix", free_noop, copy_netprefix };
+cfg_rep_t cfg_rep_netprefix = { "netprefix", free_netprefix, copy_netprefix };
 cfg_rep_t cfg_rep_void = { "void", free_noop, copy_noop };
 cfg_rep_t cfg_rep_fixedpoint = { "fixedpoint", free_noop, copy_uint32 };
 cfg_rep_t cfg_rep_percentage = { "percentage", free_noop, copy_uint32 };
@@ -1684,7 +1699,14 @@ free_string(cfg_obj_t *obj) {
 }
 
 static void
+free_sockaddr(cfg_obj_t *obj) {
+	isc_mem_put(obj->mctx, obj->value.sockaddr, sizeof(isc_sockaddr_t));
+}
+
+static void
 free_sockaddrtls(cfg_obj_t *obj) {
+	isc_mem_put(obj->mctx, obj->value.sockaddrtls.sockaddr,
+		    sizeof(isc_sockaddr_t));
 	if (obj->value.sockaddrtls.tls.base != NULL) {
 		INSIST(obj->value.sockaddrtls.tls.length != 0);
 		isc_mem_put(obj->mctx, obj->value.sockaddrtls.tls.base,
@@ -3237,10 +3259,11 @@ parse_netaddr(cfg_parser_t *pctx, const cfg_type_t *type, cfg_obj_t **ret) {
 	isc_netaddr_t netaddr;
 	unsigned int flags = *(const unsigned int *)type->of;
 
+	CHECK(cfg_parse_rawaddr(pctx, flags, &netaddr));
 	cfg_obj_create(pctx->mctx, cfg_parser_currentfile(pctx), pctx->line,
 		       type, &obj);
-	CHECK(cfg_parse_rawaddr(pctx, flags, &netaddr));
-	isc_sockaddr_fromnetaddr(&obj->value.sockaddr, &netaddr, 0);
+	obj->value.sockaddr = isc_mem_get(obj->mctx, sizeof(isc_sockaddr_t));
+	isc_sockaddr_fromnetaddr(obj->value.sockaddr, &netaddr, 0);
 	*ret = obj;
 	return ISC_R_SUCCESS;
 cleanup:
@@ -3367,8 +3390,9 @@ cfg_parse_netprefix(cfg_parser_t *pctx, const cfg_type_t *type ISC_ATTR_UNUSED,
 	}
 	cfg_obj_create(pctx->mctx, cfg_parser_currentfile(pctx), pctx->line,
 		       &cfg_type_netprefix, &obj);
-	obj->value.netprefix.address = netaddr;
-	obj->value.netprefix.prefixlen = prefixlen;
+	obj->value.netprefix = isc_mem_get(obj->mctx, sizeof(cfg_netprefix_t));
+	obj->value.netprefix->address = netaddr;
+	obj->value.netprefix->prefixlen = prefixlen;
 	*ret = obj;
 	return ISC_R_SUCCESS;
 cleanup:
@@ -3378,14 +3402,11 @@ cleanup:
 
 static void
 print_netprefix(cfg_printer_t *pctx, const cfg_obj_t *obj) {
-	const cfg_netprefix_t *p;
-
 	REQUIRE(VALID_CFGOBJ(obj));
 
-	p = &obj->value.netprefix;
-	cfg_print_rawaddr(pctx, &p->address);
+	cfg_print_rawaddr(pctx, &obj->value.netprefix->address);
 	cfg_print_cstr(pctx, "/");
-	cfg_print_rawuint(pctx, p->prefixlen);
+	cfg_print_rawuint(pctx, obj->value.netprefix->prefixlen);
 }
 
 bool
@@ -3402,8 +3423,8 @@ cfg_obj_asnetprefix(const cfg_obj_t *obj, isc_netaddr_t *netaddr,
 	REQUIRE(netaddr != NULL);
 	REQUIRE(prefixlen != NULL);
 
-	*netaddr = obj->value.netprefix.address;
-	*prefixlen = obj->value.netprefix.prefixlen;
+	*netaddr = obj->value.netprefix->address;
+	*prefixlen = obj->value.netprefix->prefixlen;
 }
 
 cfg_type_t cfg_type_netprefix = { "netprefix",	      cfg_parse_netprefix,
@@ -3503,7 +3524,10 @@ parse_sockaddrsub(cfg_parser_t *pctx, const cfg_type_t *type, int flags,
 	if (have_tls == 1) {
 		obj->value.sockaddrtls.tls = tls;
 	}
-	isc_sockaddr_fromnetaddr(&obj->value.sockaddr, &netaddr, port);
+	obj->value.sockaddrtls.sockaddr = isc_mem_get(obj->mctx,
+						      sizeof(isc_sockaddr_t));
+	isc_sockaddr_fromnetaddr(obj->value.sockaddrtls.sockaddr, &netaddr,
+				 port);
 	*ret = obj;
 	return ISC_R_SUCCESS;
 
@@ -3564,10 +3588,10 @@ cfg_print_sockaddr(cfg_printer_t *pctx, const cfg_obj_t *obj) {
 	REQUIRE(pctx != NULL);
 	REQUIRE(VALID_CFGOBJ(obj));
 
-	isc_netaddr_fromsockaddr(&netaddr, &obj->value.sockaddr);
+	isc_netaddr_fromsockaddr(&netaddr, obj->value.sockaddr);
 	isc_netaddr_format(&netaddr, buf, sizeof(buf));
 	cfg_print_cstr(pctx, buf);
-	port = isc_sockaddr_getport(&obj->value.sockaddr);
+	port = isc_sockaddr_getport(obj->value.sockaddr);
 	if (port != 0) {
 		cfg_print_cstr(pctx, " port ");
 		cfg_print_rawuint(pctx, port);
@@ -3638,7 +3662,7 @@ cfg_obj_assockaddr(const cfg_obj_t *obj) {
 	REQUIRE(VALID_CFGOBJ(obj));
 	REQUIRE(obj->type->rep == &cfg_rep_sockaddr ||
 		obj->type->rep == &cfg_rep_sockaddrtls);
-	return &obj->value.sockaddr;
+	return obj->value.sockaddr;
 }
 
 const char *

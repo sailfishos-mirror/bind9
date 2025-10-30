@@ -3586,7 +3586,7 @@ cleanup:
 static void
 print_querysource(cfg_printer_t *pctx, const cfg_obj_t *obj) {
 	isc_netaddr_t na;
-	isc_netaddr_fromsockaddr(&na, &obj->value.sockaddr);
+	isc_netaddr_fromsockaddr(&na, obj->value.sockaddr);
 	cfg_print_rawaddr(pctx, &na);
 }
 

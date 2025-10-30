@@ -210,12 +210,12 @@ struct cfg_obj {
 		cfg_map_t	 map;
 		cfg_list_t	 list;
 		cfg_obj_t      **tuple;
-		isc_sockaddr_t	 sockaddr;
+		isc_sockaddr_t	*sockaddr;
 		struct {
-			isc_sockaddr_t	 sockaddr;
+			isc_sockaddr_t	*sockaddr;
 			isc_textregion_t tls;
 		} sockaddrtls;
-		cfg_netprefix_t	  netprefix;
+		cfg_netprefix_t	 *netprefix;
 		isccfg_duration_t duration;
 	} value;
 	cfg_obj_t   *file; /*%< separate string with its own refcount */
