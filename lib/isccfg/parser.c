@@ -129,6 +129,9 @@ static void
 free_string(cfg_obj_t *obj);
 
 static void
+free_sockaddr(cfg_obj_t *obj);
+
+static void
 free_sockaddrtls(cfg_obj_t *obj);
 
 static void
@@ -192,12 +195,17 @@ copy_boolean(cfg_obj_t *to, const cfg_obj_t *from) {
 
 static void
 copy_sockaddr(cfg_obj_t *to, const cfg_obj_t *from) {
-	to->value.sockaddr = from->value.sockaddr;
+	to->value.sockaddr = isc_mem_get(to->mctx, sizeof(isc_sockaddr_t));
+	memmove(to->value.sockaddr, from->value.sockaddr,
+		sizeof(isc_sockaddr_t));
 }
 
 static void
 copy_sockaddrtls(cfg_obj_t *to, const cfg_obj_t *from) {
-	to->value.sockaddrtls.sockaddr = from->value.sockaddrtls.sockaddr;
+	to->value.sockaddrtls.sockaddr = isc_mem_get(to->mctx,
+						     sizeof(isc_sockaddr_t));
+	memmove(to->value.sockaddrtls.sockaddr,
+		from->value.sockaddrtls.sockaddr, sizeof(isc_sockaddr_t));
 
 	if (from->value.sockaddrtls.tls.base != NULL) {
 		size_t len = from->value.sockaddrtls.tls.length;
@@ -210,13 +218,27 @@ copy_sockaddrtls(cfg_obj_t *to, const cfg_obj_t *from) {
 }
 
 static void
+free_netprefix(cfg_obj_t *obj) {
+	isc_mem_put(obj->mctx, obj->value.netprefix, sizeof(cfg_netprefix_t));
+}
+
+static void
 copy_netprefix(cfg_obj_t *to, const cfg_obj_t *from) {
-	to->value.netprefix = from->value.netprefix;
+	to->value.netprefix = isc_mem_get(to->mctx, sizeof(cfg_netprefix_t));
+	memmove(to->value.netprefix, from->value.netprefix,
+		sizeof(cfg_netprefix_t));
+}
+
+static void
+free_duration(cfg_obj_t *obj) {
+	isc_mem_put(obj->mctx, obj->value.duration, sizeof(isccfg_duration_t));
 }
 
 static void
 copy_duration(cfg_obj_t *to, const cfg_obj_t *from) {
-	to->value.duration = from->value.duration;
+	to->value.duration = isc_mem_get(to->mctx, sizeof(isccfg_duration_t));
+	memmove(to->value.duration, from->value.duration,
+		sizeof(isccfg_duration_t));
 }
 
 static void
@@ -330,14 +352,14 @@ cfg_rep_t cfg_rep_boolean = { "boolean", free_noop, copy_boolean };
 cfg_rep_t cfg_rep_map = { "map", free_map, copy_map };
 cfg_rep_t cfg_rep_list = { "list", free_list, copy_list };
 cfg_rep_t cfg_rep_tuple = { "tuple", free_tuple, copy_tuple };
-cfg_rep_t cfg_rep_sockaddr = { "sockaddr", free_noop, copy_sockaddr };
+cfg_rep_t cfg_rep_sockaddr = { "sockaddr", free_sockaddr, copy_sockaddr };
 cfg_rep_t cfg_rep_sockaddrtls = { "sockaddrtls", free_sockaddrtls,
 				  copy_sockaddrtls };
-cfg_rep_t cfg_rep_netprefix = { "netprefix", free_noop, copy_netprefix };
+cfg_rep_t cfg_rep_netprefix = { "netprefix", free_netprefix, copy_netprefix };
 cfg_rep_t cfg_rep_void = { "void", free_noop, copy_noop };
 cfg_rep_t cfg_rep_fixedpoint = { "fixedpoint", free_noop, copy_uint32 };
 cfg_rep_t cfg_rep_percentage = { "percentage", free_noop, copy_uint32 };
-cfg_rep_t cfg_rep_duration = { "duration", free_noop, copy_duration };
+cfg_rep_t cfg_rep_duration = { "duration", free_duration, copy_duration };
 
 /*
  * Configuration type definitions.
@@ -1170,11 +1192,11 @@ numlen(uint32_t num) {
 void
 cfg_print_duration(cfg_printer_t *pctx, const cfg_obj_t *obj) {
 	char buf[CFG_DURATION_MAXLEN];
-	char *str;
+	char *str = NULL;
 	const char *indicators = "YMWDHMS";
 	int count, i;
 	int durationlen[7] = { 0 };
-	isccfg_duration_t duration;
+	isccfg_duration_t *duration = NULL;
 	/*
 	 * D ? The duration has a date part.
 	 * T ? The duration has a time part.
@@ -1187,8 +1209,8 @@ cfg_print_duration(cfg_printer_t *pctx, const cfg_obj_t *obj) {
 	duration = obj->value.duration;
 
 	/* If this is not an ISO 8601 duration, just print it as a number. */
-	if (!duration.iso8601) {
-		cfg_print_rawuint(pctx, duration.parts[6]);
+	if (!duration->iso8601) {
+		cfg_print_rawuint(pctx, duration->parts[6]);
 		return;
 	}
 
@@ -1198,8 +1220,8 @@ cfg_print_duration(cfg_printer_t *pctx, const cfg_obj_t *obj) {
 	str = &buf[1];
 	count = 2;
 	for (i = 0; i < 6; i++) {
-		if (duration.parts[i] > 0) {
-			durationlen[i] = 1 + numlen(duration.parts[i]);
+		if (duration->parts[i] > 0) {
+			durationlen[i] = 1 + numlen(duration->parts[i]);
 			if (i < 4) {
 				D = true;
 			} else {
@@ -1214,10 +1236,10 @@ cfg_print_duration(cfg_printer_t *pctx, const cfg_obj_t *obj) {
 	 * non-zero, or if all the other parts are also zero.  In the latter
 	 * case this function will print "PT0S".
 	 */
-	if (duration.parts[6] > 0 ||
-	    (!D && !duration.parts[4] && !duration.parts[5]))
+	if (duration->parts[6] > 0 ||
+	    (!D && !duration->parts[4] && !duration->parts[5]))
 	{
-		durationlen[6] = 1 + numlen(duration.parts[6]);
+		durationlen[6] = 1 + numlen(duration->parts[6]);
 		T = true;
 		count += durationlen[6];
 	}
@@ -1233,9 +1255,9 @@ cfg_print_duration(cfg_printer_t *pctx, const cfg_obj_t *obj) {
 		 * We don't check here if weeks and other time indicator are
 		 * used mutually exclusively.
 		 */
-		if (duration.parts[i] > 0) {
+		if (duration->parts[i] > 0) {
 			snprintf(str, durationlen[i] + 2, "%u%c",
-				 (uint32_t)duration.parts[i], indicators[i]);
+				 (uint32_t)duration->parts[i], indicators[i]);
 			str += durationlen[i];
 		}
 		if (i == 3 && T) {
@@ -1244,25 +1266,25 @@ cfg_print_duration(cfg_printer_t *pctx, const cfg_obj_t *obj) {
 		}
 	}
 	/* Special case for seconds. */
-	if (duration.parts[6] > 0 ||
-	    (!D && !duration.parts[4] && !duration.parts[5]))
+	if (duration->parts[6] > 0 ||
+	    (!D && !duration->parts[4] && !duration->parts[5]))
 	{
 		snprintf(str, durationlen[6] + 2, "%u%c",
-			 (uint32_t)duration.parts[6], indicators[6]);
+			 (uint32_t)duration->parts[6], indicators[6]);
 	}
 	cfg_print_chars(pctx, buf, strlen(buf));
 }
 
 void
 cfg_print_duration_or_unlimited(cfg_printer_t *pctx, const cfg_obj_t *obj) {
-	isccfg_duration_t duration;
+	isccfg_duration_t *duration = NULL;
 
 	REQUIRE(pctx != NULL);
 	REQUIRE(VALID_CFGOBJ(obj));
 
 	duration = obj->value.duration;
 
-	if (duration.unlimited) {
+	if (duration->unlimited) {
 		cfg_print_cstr(pctx, "unlimited");
 	} else {
 		cfg_print_duration(pctx, obj);
@@ -1279,7 +1301,7 @@ uint32_t
 cfg_obj_asduration(const cfg_obj_t *obj) {
 	REQUIRE(VALID_CFGOBJ(obj));
 	REQUIRE(obj->type->rep == &cfg_rep_duration);
-	return isccfg_duration_toseconds(&(obj->value.duration));
+	return isccfg_duration_toseconds(obj->value.duration);
 }
 
 static isc_result_t
@@ -1301,7 +1323,8 @@ parse_duration(cfg_parser_t *pctx, cfg_obj_t **ret) {
 
 	cfg_obj_create(pctx->mctx, cfg_parser_currentfile(pctx), pctx->line,
 		       &cfg_type_duration, &obj);
-	obj->value.duration = duration;
+	obj->value.duration = isc_mem_get(obj->mctx, sizeof(isccfg_duration_t));
+	*obj->value.duration = duration;
 	*ret = obj;
 
 	return ISC_R_SUCCESS;
@@ -1354,7 +1377,9 @@ cfg_parse_duration_or_unlimited(cfg_parser_t *pctx,
 
 		cfg_obj_create(pctx->mctx, cfg_parser_currentfile(pctx),
 			       pctx->line, &cfg_type_duration, &obj);
-		obj->value.duration = duration;
+		obj->value.duration = isc_mem_get(obj->mctx,
+						  sizeof(isccfg_duration_t));
+		*obj->value.duration = duration;
 		*ret = obj;
 		return ISC_R_SUCCESS;
 	}
@@ -1684,7 +1709,14 @@ free_string(cfg_obj_t *obj) {
 }
 
 static void
+free_sockaddr(cfg_obj_t *obj) {
+	isc_mem_put(obj->mctx, obj->value.sockaddr, sizeof(isc_sockaddr_t));
+}
+
+static void
 free_sockaddrtls(cfg_obj_t *obj) {
+	isc_mem_put(obj->mctx, obj->value.sockaddrtls.sockaddr,
+		    sizeof(isc_sockaddr_t));
 	if (obj->value.sockaddrtls.tls.base != NULL) {
 		INSIST(obj->value.sockaddrtls.tls.length != 0);
 		isc_mem_put(obj->mctx, obj->value.sockaddrtls.tls.base,
@@ -3237,10 +3269,11 @@ parse_netaddr(cfg_parser_t *pctx, const cfg_type_t *type, cfg_obj_t **ret) {
 	isc_netaddr_t netaddr;
 	unsigned int flags = *(const unsigned int *)type->of;
 
+	CHECK(cfg_parse_rawaddr(pctx, flags, &netaddr));
 	cfg_obj_create(pctx->mctx, cfg_parser_currentfile(pctx), pctx->line,
 		       type, &obj);
-	CHECK(cfg_parse_rawaddr(pctx, flags, &netaddr));
-	isc_sockaddr_fromnetaddr(&obj->value.sockaddr, &netaddr, 0);
+	obj->value.sockaddr = isc_mem_get(obj->mctx, sizeof(isc_sockaddr_t));
+	isc_sockaddr_fromnetaddr(obj->value.sockaddr, &netaddr, 0);
 	*ret = obj;
 	return ISC_R_SUCCESS;
 cleanup:
@@ -3367,8 +3400,9 @@ cfg_parse_netprefix(cfg_parser_t *pctx, const cfg_type_t *type ISC_ATTR_UNUSED,
 	}
 	cfg_obj_create(pctx->mctx, cfg_parser_currentfile(pctx), pctx->line,
 		       &cfg_type_netprefix, &obj);
-	obj->value.netprefix.address = netaddr;
-	obj->value.netprefix.prefixlen = prefixlen;
+	obj->value.netprefix = isc_mem_get(obj->mctx, sizeof(cfg_netprefix_t));
+	obj->value.netprefix->address = netaddr;
+	obj->value.netprefix->prefixlen = prefixlen;
 	*ret = obj;
 	return ISC_R_SUCCESS;
 cleanup:
@@ -3378,14 +3412,11 @@ cleanup:
 
 static void
 print_netprefix(cfg_printer_t *pctx, const cfg_obj_t *obj) {
-	const cfg_netprefix_t *p;
-
 	REQUIRE(VALID_CFGOBJ(obj));
 
-	p = &obj->value.netprefix;
-	cfg_print_rawaddr(pctx, &p->address);
+	cfg_print_rawaddr(pctx, &obj->value.netprefix->address);
 	cfg_print_cstr(pctx, "/");
-	cfg_print_rawuint(pctx, p->prefixlen);
+	cfg_print_rawuint(pctx, obj->value.netprefix->prefixlen);
 }
 
 bool
@@ -3402,8 +3433,8 @@ cfg_obj_asnetprefix(const cfg_obj_t *obj, isc_netaddr_t *netaddr,
 	REQUIRE(netaddr != NULL);
 	REQUIRE(prefixlen != NULL);
 
-	*netaddr = obj->value.netprefix.address;
-	*prefixlen = obj->value.netprefix.prefixlen;
+	*netaddr = obj->value.netprefix->address;
+	*prefixlen = obj->value.netprefix->prefixlen;
 }
 
 cfg_type_t cfg_type_netprefix = { "netprefix",	      cfg_parse_netprefix,
@@ -3503,7 +3534,10 @@ parse_sockaddrsub(cfg_parser_t *pctx, const cfg_type_t *type, int flags,
 	if (have_tls == 1) {
 		obj->value.sockaddrtls.tls = tls;
 	}
-	isc_sockaddr_fromnetaddr(&obj->value.sockaddr, &netaddr, port);
+	obj->value.sockaddrtls.sockaddr = isc_mem_get(obj->mctx,
+						      sizeof(isc_sockaddr_t));
+	isc_sockaddr_fromnetaddr(obj->value.sockaddrtls.sockaddr, &netaddr,
+				 port);
 	*ret = obj;
 	return ISC_R_SUCCESS;
 
@@ -3564,10 +3598,10 @@ cfg_print_sockaddr(cfg_printer_t *pctx, const cfg_obj_t *obj) {
 	REQUIRE(pctx != NULL);
 	REQUIRE(VALID_CFGOBJ(obj));
 
-	isc_netaddr_fromsockaddr(&netaddr, &obj->value.sockaddr);
+	isc_netaddr_fromsockaddr(&netaddr, obj->value.sockaddr);
 	isc_netaddr_format(&netaddr, buf, sizeof(buf));
 	cfg_print_cstr(pctx, buf);
-	port = isc_sockaddr_getport(&obj->value.sockaddr);
+	port = isc_sockaddr_getport(obj->value.sockaddr);
 	if (port != 0) {
 		cfg_print_cstr(pctx, " port ");
 		cfg_print_rawuint(pctx, port);
@@ -3638,7 +3672,7 @@ cfg_obj_assockaddr(const cfg_obj_t *obj) {
 	REQUIRE(VALID_CFGOBJ(obj));
 	REQUIRE(obj->type->rep == &cfg_rep_sockaddr ||
 		obj->type->rep == &cfg_rep_sockaddrtls);
-	return &obj->value.sockaddr;
+	return obj->value.sockaddr;
 }
 
 const char *
