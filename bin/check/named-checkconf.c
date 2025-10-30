@@ -58,7 +58,7 @@ usage(void);
 static void
 usage(void) {
 	fprintf(stderr,
-		"usage: %s [-achijklvz] [-pe [-x]] [-t directory] "
+		"usage: %s [-achijklvz] [-pe [-x]] [-b] [-t directory] "
 		"[named.conf]\n",
 		isc_commandline_progname);
 	exit(EXIT_SUCCESS);
@@ -536,6 +536,23 @@ cleanup:
 	return result;
 }
 
+static isc_result_t
+parse_builtin(cfg_obj_t **defaultconfig) {
+	isc_buffer_t b;
+
+	REQUIRE(defaultconfig != NULL && *defaultconfig == NULL);
+
+	isc_buffer_constinit(&b, common_named_defaultconf,
+			     sizeof(common_named_defaultconf) - 1);
+	isc_buffer_add(&b, sizeof(common_named_defaultconf) - 1);
+
+	return cfg_parse_buffer(
+		isc_g_mctx, &b, __FILE__, 0, &cfg_type_namedconf,
+		CFG_PCTX_NODEPRECATED | CFG_PCTX_NOOBSOLETE |
+			CFG_PCTX_NOEXPERIMENTAL | CFG_PCTX_BUILTIN,
+		defaultconfig);
+}
+
 static void
 output(void *closure, const char *text, int textlen) {
 	if (fwrite(text, 1, textlen, stdout) != (size_t)textlen) {
@@ -556,6 +573,7 @@ main(int argc, char **argv) {
 	bool list_zones = false;
 	bool print = false;
 	bool effective = false;
+	bool builtin = false;
 	unsigned int flags = 0;
 	unsigned int parserflags = 0;
 	unsigned int checkflags = BIND_CHECK_PLUGINS | BIND_CHECK_ALGORITHMS;
@@ -567,7 +585,7 @@ main(int argc, char **argv) {
 	/*
 	 * Process memory debugging argument first.
 	 */
-#define CMDLINE_FLAGS "acdehijklm:nt:pvxz"
+#define CMDLINE_FLAGS "abcdehijklm:nt:pvxz"
 	while ((c = isc_commandline_parse(argc, argv, CMDLINE_FLAGS)) != -1) {
 		switch (c) {
 		case 'm':
@@ -594,6 +612,11 @@ main(int argc, char **argv) {
 		switch (c) {
 		case 'a':
 			checkflags &= ~BIND_CHECK_ALGORITHMS;
+			break;
+
+		case 'b':
+			print = true;
+			builtin = true;
 			break;
 
 		case 'c':
@@ -679,6 +702,11 @@ main(int argc, char **argv) {
 		}
 	}
 
+	if (builtin) {
+		CHECK(parse_builtin(&config));
+		goto printx;
+	}
+
 	if (((flags & CFG_PRINTER_XKEY) != 0) && !print) {
 		fprintf(stderr, "%s: -x cannot be used without -p\n",
 			isc_commandline_progname);
@@ -711,17 +739,8 @@ main(int argc, char **argv) {
 	if (effective) {
 		cfg_obj_t *effectiveconf = NULL;
 		cfg_obj_t *defaultconfig = NULL;
-		isc_buffer_t b;
 
-		isc_buffer_constinit(&b, common_named_defaultconf,
-				     sizeof(common_named_defaultconf) - 1);
-		isc_buffer_add(&b, sizeof(common_named_defaultconf) - 1);
-
-		CHECK(cfg_parse_buffer(
-			isc_g_mctx, &b, __FILE__, 0, &cfg_type_namedconf,
-			CFG_PCTX_NODEPRECATED | CFG_PCTX_NOOBSOLETE |
-				CFG_PCTX_NOEXPERIMENTAL | CFG_PCTX_BUILTIN,
-			&defaultconfig));
+		CHECK(parse_builtin(&defaultconfig));
 		effectiveconf = cfg_effective_config(config, defaultconfig);
 
 		cfg_obj_detach(&defaultconfig);
@@ -729,6 +748,7 @@ main(int argc, char **argv) {
 		config = effectiveconf;
 	}
 
+printx:
 	if (print) {
 		cfg_printx(config, flags, output, &result);
 	}
