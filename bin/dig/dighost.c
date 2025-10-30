@@ -3398,6 +3398,14 @@ try_next_server(dig_lookup_t *lookup) {
 		return false;
 	}
 
+	/*
+	 * We reach here only when either start_udp or start_tcp fails in
+	 * get_address(), at which point lookup's current_query must be attached
+	 * to the query that just failed. We need to detach it before trying
+	 * the next server similar to, e.g., recv_done().
+	 */
+	query_detach(&lookup->current_query);
+
 	debug("trying next server...");
 
 	if (lookup->tcp_mode) {
