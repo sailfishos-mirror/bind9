@@ -5635,8 +5635,19 @@ ns__query_start(query_ctx_t *qctx) {
 				QUERY_ERROR(qctx, DNS_R_REFUSED);
 			}
 		} else {
+			const char *edemsg = NULL;
+
 			CCTRACE(ISC_LOG_ERROR, "ns__query_start: query_getdb "
 					       "failed");
+
+			if (result == DNS_R_NOTLOADED) {
+				edemsg = "zone not loaded";
+			} else if (result == DNS_R_EXPIRED) {
+				edemsg = "zone expired";
+			}
+			dns_ede_add(&qctx->client->edectx, DNS_EDE_INVALIDDATA,
+				    edemsg);
+
 			QUERY_ERROR(qctx, result);
 		}
 		return ns_query_done(qctx);
