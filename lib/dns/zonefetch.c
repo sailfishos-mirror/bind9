@@ -187,3 +187,53 @@ cleanup:
 		}
 	}
 }
+
+isc_result_t
+dns_zonefetch_verify(dns_zonefetch_t *fetch, isc_result_t eresult,
+		     dns_trust_t trust) {
+	char namebuf[DNS_NAME_FORMATSIZE];
+	char typebuf[DNS_RDATATYPE_FORMATSIZE];
+	dns_rdataset_t *rrset = NULL;
+	dns_rdataset_t *sigset = NULL;
+
+	REQUIRE(fetch != NULL);
+
+	rrset = &fetch->rrset;
+	sigset = &fetch->sigset;
+	dns_name_format(fetch->qname, namebuf, sizeof(namebuf));
+	dns_rdatatype_format(fetch->qtype, typebuf, sizeof(typebuf));
+
+	if (eresult != ISC_R_SUCCESS) {
+		dns_zone_logc(fetch->zone, DNS_LOGCATEGORY_DNSSEC,
+			      ISC_LOG_WARNING, "Unable to fetch %s/%s: %s",
+			      namebuf, typebuf, isc_result_totext(eresult));
+		return eresult;
+	}
+
+	/* No records found */
+	if (!dns_rdataset_isassociated(rrset)) {
+		dns_zone_logc(fetch->zone, DNS_LOGCATEGORY_DNSSEC,
+			      ISC_LOG_WARNING, "No %s records found for '%s'",
+			      typebuf, namebuf);
+		return ISC_R_NOTFOUND;
+	}
+
+	/* No RRSIGs found */
+	if (!dns_rdataset_isassociated(sigset)) {
+		dns_zone_logc(fetch->zone, DNS_LOGCATEGORY_DNSSEC,
+			      ISC_LOG_WARNING, "No %s RRSIGs found for '%s'",
+			      typebuf, namebuf);
+		return DNS_R_NOVALIDSIG;
+	}
+
+	/* Check trust level */
+	if (rrset->trust < trust) {
+		dns_zone_logc(fetch->zone, DNS_LOGCATEGORY_DNSSEC,
+			      ISC_LOG_WARNING,
+			      "Invalid %s RRset for '%s' trust level %u",
+			      typebuf, namebuf, rrset->trust);
+		return DNS_R_NOVALIDSIG;
+	}
+
+	return ISC_R_SUCCESS;
+}

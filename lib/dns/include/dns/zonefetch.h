@@ -105,3 +105,21 @@ dns_zonefetch_done(void *arg);
  *	Complete a zone fetch. This may trigger follow-up actions that depend on
  *	the fetch type.
  */
+
+isc_result_t
+dns_zonefetch_verify(dns_zonefetch_t *fetch, isc_result_t eresult,
+		     dns_trust_t trust);
+/*%<
+ *      Check a completed zone fetch. This checks the response result,
+ *	if there are records and signatures available, and the	level of trust.
+ *
+ *	Requires:
+ *		'fetch' is not NULL.
+ *
+ *	Returns:
+ *		ISC_R_SUCCESS    - if the completed zone fetch is verified.
+ *		ISC_R_NOTFOUND	 - if no records are found.
+ *		DNS_R_NOVALIDSIG - if no signatures are available, or the trust
+ *				   level is below 'trust'.
+ *	 	eresult		 - error code in case the fetch failed.
+ */

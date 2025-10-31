@@ -10758,20 +10758,8 @@ keyfetch_done(dns_zonefetch_t *fetch, isc_result_t eresult) {
 		   "Returned from key fetch in keyfetch_done() for '%s': %s",
 		   namebuf, isc_result_totext(eresult));
 
-	/* Fetch failed */
-	if (eresult != ISC_R_SUCCESS || !dns_rdataset_isassociated(dnskeys)) {
-		dnssec_log(zone, ISC_LOG_WARNING,
-			   "Unable to fetch DNSKEY set '%s': %s", namebuf,
-			   isc_result_totext(eresult));
-		CHECK(minimal_update(fetch, ver, &diff));
-		goto done;
-	}
-
-	/* No RRSIGs found */
-	if (!dns_rdataset_isassociated(dnskeysigs)) {
-		dnssec_log(zone, ISC_LOG_WARNING,
-			   "No DNSKEY RRSIGs found for '%s': %s", namebuf,
-			   isc_result_totext(eresult));
+	result = dns_zonefetch_verify(fetch, eresult, dns_trust_none);
+	if (result != ISC_R_SUCCESS) {
 		CHECK(minimal_update(fetch, ver, &diff));
 		goto done;
 	}
@@ -21171,7 +21159,6 @@ nsfetch_done(dns_zonefetch_t *fetch, isc_result_t eresult) {
 	dns_name_t *pname = NULL;
 	char pnamebuf[DNS_NAME_FORMATSIZE];
 	dns_rdataset_t *nsrrset = NULL;
-	dns_rdataset_t *nssigset = NULL;
 
 	REQUIRE(fetch != NULL);
 	REQUIRE(fetch->fetchtype == ZONEFETCHTYPE_NS);
@@ -21192,37 +21179,10 @@ nsfetch_done(dns_zonefetch_t *fetch, isc_result_t eresult) {
 		dnssec_log(zone, ISC_LOG_DEBUG(3),
 			   "NODATA response for NS '%s', level up", pnamebuf);
 		return DNS_R_CONTINUE;
-
-	} else if (eresult != ISC_R_SUCCESS) {
-		dnssec_log(zone, ISC_LOG_WARNING,
-			   "Unable to fetch NS set '%s': %s", pnamebuf,
-			   isc_result_totext(eresult));
-		result = eresult;
-		goto done;
 	}
 
-	/* No NS records found */
-	if (!dns_rdataset_isassociated(nsrrset)) {
-		dnssec_log(zone, ISC_LOG_WARNING,
-			   "No NS records found for '%s'", pnamebuf);
-		result = ISC_R_NOTFOUND;
-		goto done;
-	}
-
-	/* No RRSIGs found */
-	if (!dns_rdataset_isassociated(nssigset)) {
-		dnssec_log(zone, ISC_LOG_WARNING, "No NS RRSIGs found for '%s'",
-			   pnamebuf);
-		result = DNS_R_NOVALIDSIG;
-		goto done;
-	}
-
-	/* Check trust level */
-	if (nsrrset->trust < dns_trust_secure) {
-		dnssec_log(zone, ISC_LOG_WARNING,
-			   "Invalid NS RRset for '%s' trust level %u", pnamebuf,
-			   nsrrset->trust);
-		result = DNS_R_NOVALIDSIG;
+	result = dns_zonefetch_verify(fetch, eresult, dns_trust_secure);
+	if (result != ISC_R_SUCCESS) {
 		goto done;
 	}
 
