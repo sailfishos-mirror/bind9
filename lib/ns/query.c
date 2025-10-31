@@ -1250,6 +1250,11 @@ query_getzonedb(ns_client_t *client, const dns_name_t *name,
 		partial = true;
 	}
 	if (result == ISC_R_SUCCESS || result == DNS_R_PARTIALMATCH) {
+		if (dns_zone_isexpired(zone)) {
+			result = DNS_R_EXPIRED;
+			goto fail;
+		}
+
 		result = dns_zone_getdb(zone, &db);
 	}
 
