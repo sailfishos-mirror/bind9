@@ -29,6 +29,7 @@
 #include <isc/region.h>
 #include <isc/result.h>
 #include <isc/stdtime.h>
+#include <isc/tls.h>
 #include <isc/types.h>
 #include <isc/util.h>
 

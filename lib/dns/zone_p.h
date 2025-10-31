@@ -22,6 +22,11 @@
  *     associated unit tests.
  */
 
+#define UDP_REQUEST_TIMEOUT 5 /*%< 5 seconds */
+#define UDP_REQUEST_RETRIES 2
+#define TCP_REQUEST_TIMEOUT \
+	(UDP_REQUEST_TIMEOUT * (UDP_REQUEST_RETRIES + 1) + 1)
+
 typedef struct {
 	dns_diff_t *diff;
 	bool offline;
@@ -38,3 +43,145 @@ isc_result_t
 dns__zone_lookup_nsec3param(dns_zone_t *zone, dns_rdata_nsec3param_t *lookup,
 			    dns_rdata_nsec3param_t *param,
 			    unsigned char saltbuf[255], bool resalt);
+
+void
+dns__zone_lock(dns_zone_t *zone);
+/*%<
+ *      Locks the zone.
+ *
+ * Requires:
+ *\li   'zone' to be a valid zone.
+ */
+
+void
+dns__zone_unlock(dns_zone_t *zone);
+/*%<
+ *      Unlocks the zone.
+ *
+ * Requires:
+ *\li   'zone' to be a valid zone.
+ */
+
+bool
+dns__zone_locked(dns_zone_t *zone);
+/*%<
+ *      Checks if the zone is locked.
+ *
+ * Requires:
+ *\li   'zone' to be a valid zone.
+ *
+ * Returns:
+ *\li   true if the zone is locked, false otherwise.
+ */
+
+bool
+dns__zone_loaded(dns_zone_t *zone);
+/*%<
+ *      Checks if the zone is loaded.
+ *
+ * Requires:
+ *\li   'zone' to be a valid zone.
+ *
+ * Returns:
+ *\li   true if the zone is loaded, false otherwise.
+ */
+
+bool
+dns__zone_exiting(dns_zone_t *zone);
+/*%<
+ *      Checks if the zone is exiting.
+ *
+ * Requires:
+ *\li   'zone' to be a valid zone.
+ *
+ * Returns:
+ *\li   true if the zone is exiting, false otherwise.
+ */
+
+void
+dns__zone_stats_increment(dns_zone_t *zone, isc_statscounter_t counter);
+/*%
+ *      Increment resolver-related statistics counters
+ *
+ * Requires:
+ *\li   'zone' to be a valid zone, and locked.
+ */
+
+dns_notifyctx_t *
+dns__zone_getnotifyctx(dns_zone_t *zone);
+/*%<
+ *	Returns the notify context.
+ *
+ * Require:
+ *\li	'zone' to be a valid zone.
+ */
+
+void
+dns__zonemgr_getnotifyrl(dns_zonemgr_t *zmgr, isc_ratelimiter_t **prl);
+/*%<
+ *	Get the NOTIFY requests rate limiter
+ *
+ * Requires:
+ *\li	'zmgr' to be a valid zone manager
+ */
+
+void
+dns__zonemgr_getstartupnotifyrl(dns_zonemgr_t *zmgr, isc_ratelimiter_t **prl);
+/*%<
+ *	Get the startup NOTIFY requests rate limiter
+ *
+ * Requires:
+ *\li	'zmgr' to be a valid zone manager
+ */
+
+void
+dns__zonemgr_tlsctx_attach(dns_zonemgr_t *zmgr,
+			   isc_tlsctx_cache_t **ptlsctx_cache);
+/*%<
+ *	Attach to TLS client context cache used for zone transfers via
+ * 	encrypted transports (e.g. XoT).
+ *
+ *	The obtained reference needs to be detached by a call to
+ *	'isc_tlsctx_cache_detach()' when not needed anymore.
+ *
+ * Requires:
+ *\li	'zmgr' is a valid zone manager.
+ *\li	'ptlsctx_cache' is not 'NULL' and points to 'NULL'.
+ */
+
+void
+dns__zone_getisself(dns_zone_t *zone, dns_isselffunc_t *isself, void **arg);
+/*%<
+ *	Returns the isself callback function and argument.
+ *
+ * Require:
+ *\li	'zone' to be a valid zone.
+ *\li	'isself' is not NULL.
+ *\li	'arg' is not NULL and '*arg' is NULL.
+ */
+
+void
+dns__zone_iattach_locked(dns_zone_t *source, dns_zone_t **target);
+/*%<
+ *      Attach '*target' to 'source' incrementing its internal
+ *      reference count.  This is intended for use by operations
+ *      such as zone transfers that need to prevent the zone
+ *      object from being freed but not from shutting down.
+ *
+ * Require:
+ *\li   The caller is running in the context of the zone's loop.
+ *\li   'zone' to be a valid zone, already locked.
+ *\li   'target' to be non NULL and '*target' to be NULL.
+ */
+
+void
+dns__zone_idetach_locked(dns_zone_t **zonep);
+/*%<
+ *      Detach from a zone decrementing its internal reference count.
+ *      If there are no more internal or external references to the
+ *      zone, it will be freed.
+ *
+ * Require:
+ *\li   The caller is running in the context of the zone's loop.
+ *\li   'zonep' to point to a valid zone, already locked.
+ */

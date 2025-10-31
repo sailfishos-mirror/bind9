@@ -27,6 +27,7 @@
 #include <isc/lib.h>
 #include <isc/result.h>
 #include <isc/string.h>
+#include <isc/tls.h>
 #include <isc/util.h>
 
 #include <dns/db.h>

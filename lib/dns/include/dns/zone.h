@@ -280,6 +280,15 @@ dns_zone_getorigin(dns_zone_t *zone);
  *\li	'zone' to be a valid zone.
  */
 
+dns_rdataclass_t
+dns_zone_getrdclass(dns_zone_t *zone);
+/*%<
+ *	Returns the value of the rdclass.
+ *
+ * Require:
+ *\li	'zone' to be a valid zone.
+ */
+
 void
 dns_zone_setfile(dns_zone_t *zone, const char *file, const char *initial_file,
 		 dns_masterformat_t format, const dns_master_style_t *style);
