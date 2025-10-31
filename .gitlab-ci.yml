@@ -1020,7 +1020,6 @@ gcc:almalinux8:amd64:
 system:gcc:almalinux8:amd64:
   <<: *almalinux_8_amd64_image
   <<: *system_test_job
-  <<: *api_pipelines_schedules_tags_triggers_web_triggering_rules
   needs:
     - job: gcc:almalinux8:amd64
       artifacts: true
