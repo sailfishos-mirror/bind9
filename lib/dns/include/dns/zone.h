@@ -2792,6 +2792,15 @@ dns_zone_getcfg(dns_zone_t *zone);
  * \li	'zone' to be a valid zone.
  */
 
+bool
+dns_zone_isexpired(dns_zone_t *zone);
+/*%<
+ * Return true if a (secondary, mirror, etc.) zone is expired
+ *
+ * Requires:
+ * \li  'zone\ to be a valid zone.
+ */
+
 #if DNS_ZONE_TRACE
 #define dns_zone_ref(ptr)   dns_zone__ref(ptr, __func__, __FILE__, __LINE__)
 #define dns_zone_unref(ptr) dns_zone__unref(ptr, __func__, __FILE__, __LINE__)

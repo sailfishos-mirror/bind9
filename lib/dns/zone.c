@@ -17617,6 +17617,7 @@ again:
 		    isc_time_compare(&expiretime, &zone->expiretime) > 0)
 		{
 			zone->expiretime = expiretime;
+			DNS_ZONE_CLRFLAG(zone, DNS_ZONEFLG_EXPIRED);
 		}
 
 		/*
@@ -24248,4 +24249,11 @@ dns_zone_getcfg(dns_zone_t *zone) {
 	REQUIRE(DNS_ZONE_VALID(zone));
 
 	return zone->cfg;
+}
+
+bool
+dns_zone_isexpired(dns_zone_t *zone) {
+	REQUIRE(DNS_ZONE_VALID(zone));
+
+	return DNS_ZONE_FLAG(zone, DNS_ZONEFLG_EXPIRED);
 }
