@@ -496,7 +496,6 @@ struct fetchctx {
 #define FCTX_ATTR_ADDRWAIT   0x0004
 #define FCTX_ATTR_WANTCACHE  0x0010
 #define FCTX_ATTR_WANTNCACHE 0x0020
-#define FCTX_ATTR_NEEDEDNS0  0x0040
 #define FCTX_ATTR_TRIEDFIND  0x0080
 #define FCTX_ATTR_TRIEDALT   0x0100
 
@@ -511,8 +510,6 @@ struct fetchctx {
 	((atomic_load_acquire(&(f)->attributes) & FCTX_ATTR_WANTCACHE) != 0)
 #define WANTNCACHE(f) \
 	((atomic_load_acquire(&(f)->attributes) & FCTX_ATTR_WANTNCACHE) != 0)
-#define NEEDEDNS0(f) \
-	((atomic_load_acquire(&(f)->attributes) & FCTX_ATTR_NEEDEDNS0) != 0)
 #define TRIEDFIND(f) \
 	((atomic_load_acquire(&(f)->attributes) & FCTX_ATTR_TRIEDFIND) != 0)
 #define TRIEDALT(f) \
@@ -2642,15 +2639,6 @@ resquery_send(resquery_t *query) {
 	 * Record the UDP EDNS size chosen.
 	 */
 	query->udpsize = udpsize;
-
-	/*
-	 * If we need EDNS0 to do this query and aren't using it, we
-	 * lose.
-	 */
-	if (NEEDEDNS0(fctx) && (query->options & DNS_FETCHOPT_NOEDNS0) != 0) {
-		result = DNS_R_SERVFAIL;
-		goto cleanup_message;
-	}
 
 	add_triededns(fctx, &query->addrinfo->sockaddr);
 
