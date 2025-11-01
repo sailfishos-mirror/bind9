@@ -101,6 +101,7 @@ pytestmark = pytest.mark.extra_artifacts(
         "ns3/example.bk",
         "ns3/expired.example.db",
         "ns3/expiring.example.db",
+        "ns3/extrabadkey.example.db",
         "ns3/future.example.db",
         "ns3/keyless.example.db",
         "ns3/kskonly.example.db",
