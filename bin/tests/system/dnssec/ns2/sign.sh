@@ -92,7 +92,7 @@ for subdomain in digest-alg-unsupported ds-unsupported secure badds \
   dnskey-nsec3-unknown managed-future future revkey \
   dname-at-apex-nsec3 occluded rsasha1 rsasha1-1024 \
   rsasha256oid rsasha512oid unknownoid extradsoid extradsunknownoid \
-  extended-ds-unknown-oid; do
+  extended-ds-unknown-oid extrabadkey; do
   cp "../ns3/dsset-$subdomain.example." .
 done
 
