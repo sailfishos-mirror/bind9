@@ -85,7 +85,7 @@ fromwire_brid(ARGS_FROMWIRE) {
 static isc_result_t
 towire_brid(ARGS_TOWIRE) {
 	REQUIRE(rdata->type == dns_rdatatype_brid);
-	REQUIRE(rdata->length >= 3);
+	REQUIRE(rdata->length > 0);
 
 	UNUSED(cctx);
 
