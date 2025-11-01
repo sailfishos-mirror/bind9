@@ -133,6 +133,12 @@ zone "insecure2.example" {
 	allow-update { any; };
 };
 
+zone "extrabadkey.example" {
+	type primary;
+	file "extrabadkey.example.db.signed";
+	allow-update { any; };
+};
+
 zone "insecure.nsec3.example" {
 	type primary;
 	file "insecure.nsec3.example.db";
