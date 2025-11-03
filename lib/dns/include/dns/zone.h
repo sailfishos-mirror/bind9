@@ -977,19 +977,6 @@ dns_zone_setxfracl(dns_zone_t *zone, dns_acl_t *acl);
  */
 
 dns_acl_t *
-dns_zone_getnotifyacl(dns_zone_t *zone);
-/*%<
- * 	Returns the current notify acl or NULL.
- *
- * Require:
- *\li	'zone' to be a valid zone.
- *
- * Returns:
- *\li	acl a pointer to the acl.
- *\li	NULL
- */
-
-dns_acl_t *
 dns_zone_getqueryacl(dns_zone_t *zone);
 /*%<
  * 	Returns the current query acl or NULL.

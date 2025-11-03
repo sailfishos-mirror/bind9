@@ -15400,13 +15400,6 @@ dns_zone_setxfracl(dns_zone_t *zone, dns_acl_t *acl) {
 }
 
 dns_acl_t *
-dns_zone_getnotifyacl(dns_zone_t *zone) {
-	REQUIRE(DNS_ZONE_VALID(zone));
-
-	return zone->notifyctx.notify_acl;
-}
-
-dns_acl_t *
 dns_zone_getqueryacl(dns_zone_t *zone) {
 	REQUIRE(DNS_ZONE_VALID(zone));
 
