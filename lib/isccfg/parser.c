@@ -115,9 +115,6 @@ static void
 create_listelt(cfg_obj_t *list, cfg_listelt_t **eltp);
 
 static void
-create_string(cfg_parser_t *pctx, const char *contents, const cfg_type_t *type,
-	      cfg_obj_t **ret);
-static void
 free_string(cfg_obj_t *obj);
 
 static void
@@ -766,8 +763,8 @@ parser_openfile(cfg_parser_t *pctx, const char *filename) {
 		goto cleanup;
 	}
 
-	create_string(pctx, filename, &cfg_type_qstring, &stringobj);
 	create_listelt(pctx->open_files, &elt);
+	cfg_string_create(pctx, filename, &cfg_type_qstring, &stringobj);
 	elt->obj = stringobj;
 	ISC_LIST_APPEND(pctx->open_files->value.list, elt, link);
 
@@ -1409,9 +1406,9 @@ cfg_type_t cfg_type_duration_or_unlimited = { "duration_or_unlimited",
  */
 
 /* Create a string object from a null-terminated C string. */
-static void
-create_string(cfg_parser_t *pctx, const char *contents, const cfg_type_t *type,
-	      cfg_obj_t **ret) {
+void
+cfg_string_create(cfg_parser_t *pctx, const char *contents,
+		  const cfg_type_t *type, cfg_obj_t **ret) {
 	cfg_obj_t *obj = NULL;
 	int len;
 
@@ -1439,7 +1436,7 @@ cfg_parse_qstring(cfg_parser_t *pctx, const cfg_type_t *type ISC_ATTR_UNUSED,
 		cfg_parser_error(pctx, CFG_LOG_NEAR, "expected quoted string");
 		return ISC_R_UNEXPECTEDTOKEN;
 	}
-	create_string(pctx, TOKEN_STRING(pctx), &cfg_type_qstring, ret);
+	cfg_string_create(pctx, TOKEN_STRING(pctx), &cfg_type_qstring, ret);
 	return ISC_R_SUCCESS;
 
 cleanup:
@@ -1457,7 +1454,7 @@ parse_ustring(cfg_parser_t *pctx, const cfg_type_t *type ISC_ATTR_UNUSED,
 				 "expected unquoted string");
 		return ISC_R_UNEXPECTEDTOKEN;
 	}
-	create_string(pctx, TOKEN_STRING(pctx), &cfg_type_ustring, ret);
+	cfg_string_create(pctx, TOKEN_STRING(pctx), &cfg_type_ustring, ret);
 	return ISC_R_SUCCESS;
 
 cleanup:
@@ -1473,7 +1470,7 @@ cfg_parse_astring(cfg_parser_t *pctx, const cfg_type_t *type ISC_ATTR_UNUSED,
 	REQUIRE(ret != NULL && *ret == NULL);
 
 	CHECK(cfg_getstringtoken(pctx));
-	create_string(pctx, TOKEN_STRING(pctx), &cfg_type_qstring, ret);
+	cfg_string_create(pctx, TOKEN_STRING(pctx), &cfg_type_qstring, ret);
 	return ISC_R_SUCCESS;
 
 cleanup:
@@ -1489,7 +1486,7 @@ cfg_parse_sstring(cfg_parser_t *pctx, const cfg_type_t *type ISC_ATTR_UNUSED,
 	REQUIRE(ret != NULL && *ret == NULL);
 
 	CHECK(cfg_getstringtoken(pctx));
-	create_string(pctx, TOKEN_STRING(pctx), &cfg_type_sstring, ret);
+	cfg_string_create(pctx, TOKEN_STRING(pctx), &cfg_type_sstring, ret);
 	return ISC_R_SUCCESS;
 
 cleanup:
@@ -1506,7 +1503,8 @@ parse_btext(cfg_parser_t *pctx, const cfg_type_t *type ISC_ATTR_UNUSED,
 		cfg_parser_error(pctx, CFG_LOG_NEAR, "expected bracketed text");
 		return ISC_R_UNEXPECTEDTOKEN;
 	}
-	create_string(pctx, TOKEN_STRING(pctx), &cfg_type_bracketed_text, ret);
+	cfg_string_create(pctx, TOKEN_STRING(pctx), &cfg_type_bracketed_text,
+			  ret);
 	return ISC_R_SUCCESS;
 
 cleanup:
