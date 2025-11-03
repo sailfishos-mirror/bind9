@@ -11848,12 +11848,12 @@ zone_expire(dns_zone_t *zone) {
 
 	REQUIRE(LOCKED_ZONE(zone));
 
-	dns_zone_log(zone, ISC_LOG_WARNING, "expired");
-
 	DNS_ZONE_SETFLAG(zone, DNS_ZONEFLG_EXPIRED);
 	zone->refresh = DNS_ZONE_DEFAULTREFRESH;
 	zone->retry = DNS_ZONE_DEFAULTRETRY;
 	DNS_ZONE_CLRFLAG(zone, DNS_ZONEFLG_HAVETIMERS);
+
+	dns_zone_log(zone, ISC_LOG_WARNING, "expired");
 
 	/*
 	 * An RPZ zone has expired; before unloading it, we must
@@ -17617,6 +17617,7 @@ again:
 		    isc_time_compare(&expiretime, &zone->expiretime) > 0)
 		{
 			zone->expiretime = expiretime;
+			DNS_ZONE_CLRFLAG(zone, DNS_ZONEFLG_EXPIRED);
 		}
 
 		/*
@@ -24248,4 +24249,11 @@ dns_zone_getcfg(dns_zone_t *zone) {
 	REQUIRE(DNS_ZONE_VALID(zone));
 
 	return zone->cfg;
+}
+
+bool
+dns_zone_isexpired(dns_zone_t *zone) {
+	REQUIRE(DNS_ZONE_VALID(zone));
+
+	return DNS_ZONE_FLAG(zone, DNS_ZONEFLG_EXPIRED);
 }
