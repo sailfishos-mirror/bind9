@@ -1722,12 +1722,14 @@ publish:
     - job: staging
       artifacts: false
 
+# Setting the FORCE_CVE_IDS environment variable to a comma-separated
+# list of CVE IDs enables overriding the autodetected ones.
 .printing_press_job: &printing_press_job
   <<: *manual_release_job_qa
   variables:
     GIT_DEPTH: 1
   script:
-    - bind9-qa/releng/printing_press_mr.py --document "${DOCUMENT}" --metadata bind9-qa/releng/metadata.json
+    - bind9-qa/releng/printing_press_mr.py --document "${DOCUMENT}" --metadata bind9-qa/releng/metadata.json ${FORCE_CVE_IDS:+--force-cve-ids ${FORCE_CVE_IDS}}
   artifacts:
     paths:
       - printing-press/
