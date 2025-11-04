@@ -1778,6 +1778,15 @@ prepare-package-notification:
   rules:
     - *rule_tag_security
 
+# Job preparing a post-disclosure notification MR in Printing Press
+
+prepare-post-disclosure-notification:
+  <<: *printing_press_job
+  variables:
+    DOCUMENT: post-disclosure-notification
+  rules:
+    - *rule_tag_security
+
 # Job merging the tag back into its base branch
 
 merge-tag:
