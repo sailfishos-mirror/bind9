@@ -9,14 +9,13 @@
 # See the COPYRIGHT file distributed with this work for additional
 # information regarding copyright ownership.
 
-from typing import Container, Iterable, FrozenSet
+from typing import Iterable, FrozenSet
 
-import pytest
-
-pytest.importorskip("dns", minversion="2.3.0")  # NameRelation
-from dns.name import Name, NameRelation
+import dns.name
 import dns.zone
 import dns.rdatatype
+
+from dns.name import Name
 
 
 def prepend_label(label: str, name: Name) -> Name:
@@ -60,6 +59,7 @@ class ZoneAnalyzer:
         return cls(zonedb)
 
     def __init__(self, zone: dns.zone.Zone):
+        self._abort_on_old_dnspython()
         self.zone = zone
         assert self.zone.origin  # mypy hack
         # based on individual nodes but not relationship between nodes
@@ -84,6 +84,14 @@ class ZoneAnalyzer:
             .union(self.reachable_delegations)
             .union(self.reachable_dnames)
         )
+
+    def _abort_on_old_dnspython(self):
+        if not hasattr(dns.name, "NameRelation"):
+            raise RuntimeError(
+                "ZoneAnalyzer requires dnspython>=2.3.0 for dns.name.NameRelation support. "
+                "Use pytest.importorskip('dns', minversion='2.3.0') to the test module to "
+                "skip this test."
+            )
 
     def get_names_with_type(self, rdtype) -> FrozenSet[Name]:
         return frozenset(
@@ -117,15 +125,15 @@ class ZoneAnalyzer:
         for name in reachable:
             relation, _, _ = name.fullcompare(self.zone.origin)
             if relation in (
-                NameRelation.NONE,  # out of zone?
-                NameRelation.SUPERDOMAIN,  # parent of apex?!
+                dns.name.NameRelation.NONE,  # out of zone?
+                dns.name.NameRelation.SUPERDOMAIN,  # parent of apex?!
             ):
                 raise NotImplementedError
 
         for maybe_occluded in reachable.copy():
             for cut in self.delegations:
                 rel, _, _ = maybe_occluded.fullcompare(cut)
-                if rel == NameRelation.EQUAL:
+                if rel == dns.name.NameRelation.EQUAL:
                     # data _on_ a parent-side of a zone cut are in limbo:
                     # - are not really authoritative (except for DS)
                     # - but NS is not really 'occluded'
@@ -134,14 +142,14 @@ class ZoneAnalyzer:
                     if maybe_occluded in reachable:
                         reachable.remove(maybe_occluded)
 
-                if rel == NameRelation.SUBDOMAIN:
+                if rel == dns.name.NameRelation.SUBDOMAIN:
                     _mark_occluded(maybe_occluded)
                 # do not break cycle - handle also nested NS and DNAME
 
             # DNAME itself is authoritative but nothing under it is reachable
             for dname in self.dnames:
                 rel, _, _ = maybe_occluded.fullcompare(dname)
-                if rel == NameRelation.SUBDOMAIN:
+                if rel == dns.name.NameRelation.SUBDOMAIN:
                     _mark_occluded(maybe_occluded)
                 # do not break cycle - handle also nested NS and DNAME
 
@@ -174,7 +182,7 @@ class ZoneAnalyzer:
         nce = None  # Next closer name, RFC 5155
         for zname in self.all_existing_names:
             relation, _, common_labels = qname.fullcompare(zname)
-            if relation == NameRelation.SUBDOMAIN:
+            if relation == dns.name.NameRelation.SUBDOMAIN:
                 if not ce or common_labels > len(ce):
                     # longest match so far
                     ce = zname
@@ -190,15 +198,3 @@ class ZoneAnalyzer:
         """
         ce, _ = self.closest_encloser(qname)
         return Name("*") + ce
-
-
-def is_related_to_any(
-    test_name: Name,
-    acceptable_relations: Container[NameRelation],
-    candidates: Iterable[Name],
-) -> bool:
-    for maybe_parent in candidates:
-        relation, _, _ = test_name.fullcompare(maybe_parent)
-        if relation in acceptable_relations:
-            return True
-    return False
