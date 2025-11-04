@@ -951,7 +951,7 @@ ns_query_init(ns_client_t *client) {
 
 	/*
 	 * This mutex is destroyed when the client is destroyed in
-	 * exit_check().
+	 * ns__client_put_cb().
 	 */
 	isc_mutex_init(&client->query.fetchlock);
 	client->query.redirect.fname =
