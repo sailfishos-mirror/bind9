@@ -70,6 +70,7 @@ my $CNAME = "cname.example 7 IN CNAME target.example";
 my $TARGET = "target.example 9 IN A $localaddr";
 my $SHORTCNAME = "shortttl.cname.example 1 IN CNAME longttl.target.example";
 my $LONGTARGET = "longttl.target.example 600 IN A $localaddr";
+my $OUTCNAME = "out-cname.example 600 IN CNAME serve.stale";
 
 sub reply_handler {
     my ($qname, $qclass, $qtype) = @_;
@@ -100,6 +101,15 @@ sub reply_handler {
 	if ($qtype eq "TXT") {
 	    $send_response = 1;
 	    $slow_response = 1;
+            my $rr = new Net::DNS::RR("$qname 0 $qclass TXT \"$send_response\"");
+            push @ans, $rr;
+	}
+	$rcode = "NOERROR";
+        return ($rcode, \@ans, \@auth, \@add, { aa => 1 });
+    } elsif ($qname eq "normal" ) {
+	if ($qtype eq "TXT") {
+	    $send_response = 1;
+	    $slow_response = 0;
             my $rr = new Net::DNS::RR("$qname 0 $qclass TXT \"$send_response\"");
             push @ans, $rr;
 	}
@@ -214,6 +224,15 @@ sub reply_handler {
     } elsif ($qname eq "longttl.example") {
 	if ($qtype eq "TXT") {
 	    my $rr = new Net::DNS::RR($LONGTXT);
+	    push @ans, $rr;
+	} else {
+	    my $rr = new Net::DNS::RR($negSOA);
+	    push @auth, $rr;
+	}
+	$rcode = "NOERROR";
+    } elsif ($qname eq "out-cname.example") {
+	if ($qtype eq "A") {
+	    my $rr = new Net::DNS::RR($OUTCNAME);
 	    push @ans, $rr;
 	} else {
 	    my $rr = new Net::DNS::RR($negSOA);

@@ -2758,5 +2758,37 @@ grep "target\.example\..*[1-2].*IN.*A" dig.out.test$n >/dev/null || ret=1
 if [ $ret != 0 ]; then echo_i "failed"; fi
 status=$((status + ret))
 
+# disable delaying auth answering
+n=$((n + 1))
+echo_i "disable delaying responses from authoritative server ($n)"
+ret=0
+$DIG -p ${PORT} @10.53.0.2 txt normal >dig.out.test$n || ret=1
+grep "ANSWER: 1," dig.out.test$n >/dev/null || ret=1
+grep "TXT.\"1\"" dig.out.test$n >/dev/null || ret=1
+if [ $ret != 0 ]; then echo_i "failed"; fi
+status=$((status + ret))
+
+# configure ns3 with stale-answer-client-timeout 0 and a auth zone
+copy_setports ns3/named10.conf.in ns3/named.conf
+rndc_reload ns3 10.53.0.3
+
+# GL#5383
+n=$((n + 1))
+echo_i "check serve-stale (stale-answer-client-timeout 0) with a CNAME targeting a cached auth zone ($n)"
+ret=0
+# flush cache, make sure serve-stale is on
+$RNDCCMD 10.53.0.3 flush >rndc.out.test$n.1 2>&1 || ret=1
+$RNDCCMD 10.53.0.3 serve-stale on >rndc.out.test$n.2 2>&1 || ret=1
+# prime the cache with the A response
+$DIG -p ${PORT} @10.53.0.3 out-cname.example >dig.out.1.test$n || ret=1
+grep -F "status: NOERROR" dig.out.1.test$n >/dev/null || ret=1
+grep -F "QUERY: 1, ANSWER: 1, AUTHORITY: 1, ADDITIONAL: 1" dig.out.1.test$n >/dev/null || ret=1
+# resend the query; we should immediately get a cached answer
+$DIG -p ${PORT} @10.53.0.3 out-cname.example >dig.out.2.test$n || ret=1
+grep -F "status: NOERROR" dig.out.2.test$n >/dev/null || ret=1
+grep -F "QUERY: 1, ANSWER: 1, AUTHORITY: 1, ADDITIONAL: 1" dig.out.2.test$n >/dev/null || ret=1
+if [ $ret != 0 ]; then echo_i "failed"; fi
+status=$((status + ret))
+
 echo_i "exit status: $status"
 [ $status -eq 0 ] || exit 1
