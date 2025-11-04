@@ -1363,6 +1363,17 @@ if [ -x "$DIG" ]; then
   grep -F "status: NOERROR" dig.out.test$n >/dev/null || ret=1
   if [ $ret -ne 0 ]; then echo_i "failed"; fi
   status=$((status + ret))
+
+  # See GL#5609
+  n=$((n + 1))
+  echo_i "check dig with a IPv4 source address and a server with both IPv4 and IPv6 addresses doesn't crash ($n)"
+  ret=0
+  dig_with_opts @localhost example -b 10.53.0.1 >dig.out.test$n 2>&1 || ret=1
+  # We only care about an assertion failure, otherwise reset 'ret' to 0, because
+  # @localhost is't really expected to have an answer for our query.
+  grep -F "core dumped" dig.out.test$n >/dev/null || ret=0
+  if [ $ret -ne 0 ]; then echo_i "failed"; fi
+  status=$((status + ret))
 else
   echo_i "$DIG is needed, so skipping these dig tests"
 fi
