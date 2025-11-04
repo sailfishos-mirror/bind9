@@ -504,7 +504,9 @@ expire_lru_headers(qpcache_t *qpdb, uint32_t idx, size_t requested,
 
 		dns_slabtop_t *related = top->related;
 
-		ISC_SIEVE_UNLINK(qpdb->buckets[idx].sieve, top, link);
+		if (ISC_SIEVE_LINKED(top, link)) {
+			ISC_SIEVE_UNLINK(qpdb->buckets[idx].sieve, top, link);
+		}
 
 		dns_slabheader_t *header = first_header(top);
 		expired += expireheader(header, nlocktypep, tlocktypep,
@@ -615,7 +617,7 @@ clean_cache_node(qpcache_t *qpdb, qpcnode_t *node) {
 
 			cds_list_del(&top->types_link);
 
-			if (ISC_LINK_LINKED(top, link)) {
+			if (ISC_SIEVE_LINKED(top, link)) {
 				ISC_SIEVE_UNLINK(
 					qpdb->buckets[node->locknum].sieve, top,
 					link);
@@ -2901,8 +2903,10 @@ add(qpcache_t *qpdb, qpcnode_t *qpnode, dns_slabheader_t *newheader,
 		cds_list_add(&newheader->headers_link,
 			     &oldheader->top->headers);
 
-		ISC_SIEVE_UNLINK(qpdb->buckets[qpnode->locknum].sieve,
-				 oldheader->top, link);
+		if (ISC_SIEVE_LINKED(oldheader->top, link)) {
+			ISC_SIEVE_UNLINK(qpdb->buckets[qpnode->locknum].sieve,
+					 oldheader->top, link);
+		}
 
 		qpcache_miss(qpdb, newheader, &nlocktype,
 			     &tlocktype DNS__DB_FLARG_PASS);
@@ -3889,7 +3893,7 @@ qpcnode_destroy(qpcnode_t *qpnode) {
 			dns_slabheader_destroy(&header);
 		}
 
-		if (ISC_LINK_LINKED(top, link)) {
+		if (ISC_SIEVE_LINKED(top, link)) {
 			ISC_SIEVE_UNLINK(qpdb->buckets[qpnode->locknum].sieve,
 					 top, link);
 		}

@@ -143,6 +143,8 @@
 		__hand;                                                       \
 	})
 
+#define ISC_SIEVE_LINKED(entry, link) ISC_LINK_LINKED(entry, link)
+
 #define ISC_SIEVE_UNLINK(sieve, entry, link)                                 \
 	({                                                                   \
 		__typeof__((sieve).hand) __hand = (sieve).hand;              \
