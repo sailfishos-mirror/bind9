@@ -1385,3 +1385,11 @@ def test_rrsigs_for_glue():
         record.rdtype == rdatatype.RRSIG and record.covers == rdatatype.A
         for record in res.answer
     )
+
+
+def test_extra_bad_algorithm():
+    msg = isctest.query.create("a.extrabadkey.example", "A")
+    res1 = isctest.query.tcp(msg, "10.53.0.3")
+    res2 = isctest.query.tcp(msg, "10.53.0.4")
+    isctest.check.same_answer(res1, res2)
+    isctest.check.adflag(res2)
