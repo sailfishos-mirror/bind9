@@ -1887,10 +1887,11 @@ prepare-release-announcement:
   when: manual
   variables:
     GIT_DEPTH: 1
+    DOCUMENT: release-announcement
   before_script:
     - git clone --depth 1 https://gitlab.isc.org/isc-projects/bind9-qa.git
   script:
-    - bind9-qa/releng/prepare_release_announcement.py --metadata bind9-qa/releng/metadata.json
+    - bind9-qa/releng/printing_press_mr.py --document "${DOCUMENT}" --metadata bind9-qa/releng/metadata.json
   needs: []
   rules:
     - *rule_tag_open_source
