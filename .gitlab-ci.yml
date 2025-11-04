@@ -309,6 +309,9 @@ stages:
 .rule_tag_open_source: &rule_tag_open_source
   - if: '$CI_PROJECT_NAMESPACE == "isc-private" && $CI_COMMIT_TAG != null && $CI_COMMIT_TAG !~ /-S/'
 
+.rule_tag_security: &rule_tag_security
+  - if: '$CI_PROJECT_NAMESPACE == "isc-private" && $CI_COMMIT_TAG != null && $RELEASE_TYPE == "security"'
+
 .rule_tag_security_or_subscription: &rule_tag_security_or_subscription
   - if: '$CI_PROJECT_NAMESPACE == "isc-private" && $CI_COMMIT_TAG != null && ($RELEASE_TYPE == "security" || $CI_COMMIT_TAG =~ /-S/)'
 
@@ -1794,6 +1797,15 @@ prepare-release-announcement:
     DOCUMENT: release-announcement
   rules:
     - *rule_tag_open_source
+
+# Job preparing an EVN MR in Printing Press
+
+prepare-evn:
+  <<: *printing_press_job
+  variables:
+    DOCUMENT: evn
+  rules:
+    - *rule_tag_security
 
 # Job merging the tag back into its base branch
 
