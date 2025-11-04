@@ -1092,8 +1092,14 @@ select_signing_key(dns_validator_t *val, dns_rdataset_t *rdataset) {
 			continue;
 		}
 
-		return dns_dnssec_keyfromrdata(&siginfo->signer, &rdata,
-					       val->view->mctx, &val->key);
+		result = dns_dnssec_keyfromrdata(&siginfo->signer, &rdata,
+						 val->view->mctx, &val->key);
+		/* Don't count unsupported algorithm towards max fails */
+		if (result == DST_R_UNSUPPORTEDALG) {
+			/* Continue with the next key */
+			continue;
+		}
+		return result;
 	}
 
 	return ISC_R_NOTFOUND;
