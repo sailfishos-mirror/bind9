@@ -1724,12 +1724,16 @@ publish:
 
 # Setting the FORCE_CVE_IDS environment variable to a comma-separated
 # list of CVE IDs enables overriding the autodetected ones.
+#
+# Setting the FORCE_SECURITY_RELEASES environment variable to a
+# comma-separated list of BIND 9 versions enables overriding the
+# autodetected ones.
 .printing_press_job: &printing_press_job
   <<: *manual_release_job_qa
   variables:
     GIT_DEPTH: 1
   script:
-    - bind9-qa/releng/printing_press_mr.py --document "${DOCUMENT}" --metadata bind9-qa/releng/metadata.json ${FORCE_CVE_IDS:+--force-cve-ids ${FORCE_CVE_IDS}}
+    - bind9-qa/releng/printing_press_mr.py --document "${DOCUMENT}" --metadata bind9-qa/releng/metadata.json ${FORCE_CVE_IDS:+--force-cve-ids ${FORCE_CVE_IDS}} ${FORCE_SECURITY_RELEASES:+--force-security-releases ${FORCE_SECURITY_RELEASES}}
   artifacts:
     paths:
       - printing-press/
