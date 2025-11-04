@@ -1929,6 +1929,15 @@ prepare-evn:
   rules:
     - *rule_tag_security
 
+# Job preparing a security pre-announcement MR in Printing Press
+
+prepare-preannouncement:
+  <<: *printing_press_job
+  variables:
+    DOCUMENT: security-preannouncement
+  rules:
+    - *rule_tag_security
+
 # Job merging the tag back into its base branch
 
 merge-tag:
