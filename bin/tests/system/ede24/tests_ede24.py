@@ -34,7 +34,10 @@ def check_soa_servfail_ede24(edemsg):
 
 
 def test_ede24_noloaded(ns1, ns2):
-    # Sanity check that everything works first
+    # Sanity check that everything works first, once we're sure the foo.fr zone
+    # has transfered to ns2.
+    with ns2.watch_log_from_start() as watcher:
+        watcher.wait_for_line("Transfer status: success")
     check_soa_noerror()
 
     # Stop all servers, and we'll restart only ns2.
@@ -59,7 +62,11 @@ def test_ede24_expired(ns1, ns2):
     # Stop the primary and wait for expiration of the zone in the secondary.
     with ns2.watch_log_from_here() as watcher:
         ns1.stop()
-        watcher.wait_for_line(" zone foo.fr/IN: expired")
+        log_sequence = [
+            " zone foo.fr/IN: expired",
+            " zone foo.fr/IN: stop zone timer",
+        ]
+        watcher.wait_for_sequence(log_sequence)
 
     # ns2 can't answer anymore.
     check_soa_servfail_ede24("zone expired")
