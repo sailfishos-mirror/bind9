@@ -594,17 +594,6 @@ dns_zone_markdirty(dns_zone_t *zone);
  */
 
 void
-dns_zone_expire(dns_zone_t *zone);
-/*%<
- *	Mark the zone as expired.  If the zone requires dumping cause it to
- *	be initiated.  Set the refresh and retry intervals to there default
- *	values and unload the zone.
- *
- * Require
- *\li	'zone' to be a valid zone.
- */
-
-void
 dns_zone_refresh(dns_zone_t *zone);
 /*%<
  *	Initiate zone up to date checks.  The zone must already be being
