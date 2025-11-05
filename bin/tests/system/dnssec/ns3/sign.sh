@@ -673,3 +673,34 @@ $DSFROMKEY "$dnskeyname.key" >"dsset-delegation.${zone}."
 cat "$infile" "${kskname}.key" "${zskname}.key" "${keyname}.key" \
   "${dnskeyname}.key" "dsset-delegation.${zone}." >"$zonefile"
 "$SIGNER" -P -o "$zone" "$zonefile" >/dev/null
+
+#
+#
+#
+zone=extrabadkey.example.
+infile=template.db.in
+zonefile=extrabadkey.example.db
+
+# Add KSK and ZSK that we will mangle to RSAMD5
+ksk=$("$KEYGEN" -q -a "$DEFAULT_ALGORITHM" -b "$DEFAULT_BITS" -f KSK "$zone")
+zsk=$("$KEYGEN" -q -a "$DEFAULT_ALGORITHM" -b "$DEFAULT_BITS" "$zone")
+cat "$infile" "$ksk.key" "$zsk.key" >"$zonefile"
+"$SIGNER" -g -O full -o "$zone" "$zonefile" >/dev/null 2>&1
+
+# Mangle the signatures to RSAMD5 and save them for future use
+sed -ne "s/\(IN[[:space:]]*RRSIG[[:space:]]*[A-Z]*\) $DEFAULT_ALGORITHM_NUMBER /\1 1 /p" <"$zonefile.signed" >"$zonefile.signed.rsamd5"
+
+# Now add normal KSK and ZSK to the zone file
+ksk=$("$KEYGEN" -q -a "$DEFAULT_ALGORITHM" -b "$DEFAULT_BITS" -f KSK "$zone")
+zsk=$("$KEYGEN" -q -a "$DEFAULT_ALGORITHM" -b "$DEFAULT_BITS" "$zone")
+cat "$infile" "$ksk.key" "$zsk.key" >"$zonefile"
+
+# Mangle the DNSKEY algorithm numbers and add them to the signed zone file
+cat "$ksk.key" "$zsk.key" | sed -e "s/\(IN[[:space:]]*DNSKEY[[:space:]]*[0-9]* 3\) $DEFAULT_ALGORITHM_NUMBER /\1 1 /" >>"$zonefile"
+
+# Sign normally
+"$SIGNER" -g -o "$zone" "$zonefile" >/dev/null 2>&1
+
+# Add the mangled signatures to signed zone file
+cat "$zonefile.signed.rsamd5" >>"$zonefile.signed"
+rm "$zonefile.signed.rsamd5"

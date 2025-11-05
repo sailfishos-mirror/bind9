@@ -1176,7 +1176,13 @@ select_signing_key(dns_validator_t *val, dns_rdataset_t *rdataset) {
 				goto done;
 			}
 			dst_key_free(&val->key);
-		} else {
+		} else if (result != DST_R_UNSUPPORTEDALG) {
+			/*
+			 * We can encounter unsupported algorithm when the zone
+			 * is signed with both supported and unsupported
+			 * algorithm at the same time.  Stop looking in all
+			 * other failure cases.
+			 */
 			break;
 		}
 		dns_rdata_reset(&rdata);
