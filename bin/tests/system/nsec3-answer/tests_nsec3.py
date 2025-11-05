@@ -14,7 +14,7 @@
 from dataclasses import dataclass
 import os
 from pathlib import Path
-from typing import Optional, Set, Tuple
+from typing import Container, Iterable, Optional, Set, Tuple
 
 import pytest
 
@@ -43,6 +43,18 @@ TIMEOUT = 5
 ZONE = isctest.name.ZoneAnalyzer.read_path(
     Path(os.environ["srcdir"]) / "nsec3-answer/ns1/root.db.in", origin=SUFFIX
 )
+
+
+def is_related_to_any(
+    test_name: dns.name.Name,
+    acceptable_relations: Container[dns.name.NameRelation],
+    candidates: Iterable[dns.name.Name],
+) -> bool:
+    for maybe_parent in candidates:
+        relation, _, _ = test_name.fullcompare(maybe_parent)
+        if relation in acceptable_relations:
+            return True
+    return False
 
 
 def do_test_query(
@@ -103,7 +115,7 @@ def assume_nx_and_no_delegation(qname: dns.name.Name) -> None:
     # name must not be under a delegation or DNAME:
     # it would not work with resolver ns2
     assume(
-        not isctest.name.is_related_to_any(
+        not is_related_to_any(
             qname,
             (dns.name.NameRelation.EQUAL, dns.name.NameRelation.SUBDOMAIN),
             ZONE.reachable_delegations.union(ZONE.reachable_dnames),
