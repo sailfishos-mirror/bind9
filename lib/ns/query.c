@@ -5283,12 +5283,13 @@ query_trace(query_ctx_t *qctx) {
 
 	snprintf(mbuf, sizeof(mbuf) - 1,
 		 "client attr:0x%x, query attr:0x%X, restarts:%u, "
-		 "origqname:%s, timer:%d, authdb:%d, referral:%d",
+		 "origqname:%s, timer:%d, authdb:%d, referral:%d, id:%hu",
 		 qctx->client->inner.attributes, qctx->client->query.attributes,
 		 qctx->client->query.restarts, qbuf,
 		 (int)qctx->client->query.timerset,
 		 (int)qctx->client->query.authdbset,
-		 (int)qctx->client->query.isreferral);
+		 (int)qctx->client->query.isreferral,
+		 qctx->client->message->id);
 	CCTRACE(ISC_LOG_DEBUG(3), mbuf);
 #else  /* ifdef WANT_QUERYTRACE */
 	UNUSED(qctx);
