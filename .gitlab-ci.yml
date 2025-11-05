@@ -301,6 +301,11 @@ stages:
     changes:
       - '**/*.py'
 
+.rule_mr_system_tests: &rule_mr_system_tests
+  - if: '$CI_MERGE_REQUEST_DIFF_BASE_SHA != null'
+    changes:
+      - 'bin/tests/system/**'
+
 .rule_mr_manual: &rule_mr_manual
   - if: '$CI_MERGE_REQUEST_DIFF_BASE_SHA != null'
     when: manual  # only run on MR if requested
@@ -357,6 +362,12 @@ stages:
     - *rule_mr_manual
     - *rule_tag
     - *rule_source_other_than_mr
+
+.extra-system-tests-triggering-rules: &extra_system_tests_triggering_rules
+  rules:
+    - *rule_tag
+    - *rule_source_other_than_mr
+    - *rule_mr_system_tests
 
 .precheck: &precheck_job
   <<: *default_triggering_rules
@@ -1020,6 +1031,7 @@ gcc:almalinux8:amd64:
 system:gcc:almalinux8:amd64:
   <<: *almalinux_8_amd64_image
   <<: *system_test_job
+  <<: *extra_system_tests_triggering_rules
   needs:
     - job: gcc:almalinux8:amd64
       artifacts: true
@@ -1095,7 +1107,7 @@ gcc:8fips:amd64:
 system:gcc:8fips:amd64:
   <<: *almalinux_8fips_amd64_image
   <<: *system_test_job
-  <<: *api_pipelines_schedules_tags_triggers_web_triggering_rules
+  <<: *extra_system_tests_triggering_rules
   variables:
     GIT_CLONE_PATH: "${GIT_CLONE_PATH_INSTANCE_EXECUTOR}"
   needs:
@@ -1124,7 +1136,7 @@ gcc:9fips:amd64:
 system:gcc:9fips:amd64:
   <<: *almalinux_9fips_amd64_image
   <<: *system_test_job
-  <<: *api_pipelines_schedules_tags_triggers_web_triggering_rules
+  <<: *extra_system_tests_triggering_rules
   variables:
     GIT_CLONE_PATH: "${GIT_CLONE_PATH_INSTANCE_EXECUTOR}"
   needs:
@@ -1364,7 +1376,7 @@ gcc:sid:amd64:
 system:gcc:sid:amd64:
   <<: *debian_sid_amd64_image
   <<: *system_test_job
-  <<: *api_pipelines_schedules_tags_triggers_web_triggering_rules
+  <<: *extra_system_tests_triggering_rules
   needs:
     - job: gcc:sid:amd64
       artifacts: true
@@ -1493,7 +1505,7 @@ gcc:jammy:amd64:
 system:gcc:jammy:amd64:
   <<: *ubuntu_jammy_amd64_image
   <<: *system_test_job
-  <<: *api_pipelines_schedules_tags_triggers_web_triggering_rules
+  <<: *extra_system_tests_triggering_rules
   needs:
     - job: gcc:jammy:amd64
       artifacts: true
@@ -1569,7 +1581,7 @@ clang:asan:
 system:clang:asan:
   <<: *base_image
   <<: *system_test_job
-  <<: *api_pipelines_schedules_tags_triggers_web_triggering_rules
+  <<: *extra_system_tests_triggering_rules
   needs:
     - job: clang:asan
       artifacts: true
@@ -1598,7 +1610,7 @@ system:gcc:tsan:
     TSAN_OPTIONS: "${TSAN_OPTIONS_FEDORA}"
   <<: *tsan_fedora_42_amd64_image
   <<: *system_test_tsan_job
-  <<: *api_pipelines_schedules_tags_triggers_web_triggering_rules
+  <<: *extra_system_tests_triggering_rules
   needs:
     - job: gcc:tsan
       artifacts: true
@@ -1683,7 +1695,7 @@ clang:trixie:amd64:
 system:clang:trixie:amd64:
   <<: *debian_trixie_amd64_image
   <<: *system_test_job
-  <<: *api_pipelines_schedules_tags_triggers_web_triggering_rules
+  <<: *extra_system_tests_triggering_rules
   needs:
     - job: clang:trixie:amd64
       artifacts: true
@@ -1705,7 +1717,7 @@ clang:freebsd13:amd64:
 system:clang:freebsd13:amd64:
   <<: *system_test_job
   <<: *freebsd_autoscaler_13_amd64
-  <<: *api_pipelines_schedules_tags_triggers_web_triggering_rules
+  <<: *extra_system_tests_triggering_rules
   needs:
     - job: clang:freebsd13:amd64
       artifacts: true
