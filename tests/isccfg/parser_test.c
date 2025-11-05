@@ -221,8 +221,10 @@ ISC_RUN_TEST_IMPL(cfg_clone_copy) {
 	isc_buffer_t buf;
 	isc_buffer_t dumpb1;
 	char dumpbdata1[10024];
+	size_t dumpblen1;
 	isc_buffer_t dumpb2;
 	char dumpbdata2[10024];
+	size_t dumpblen2;
 
 	/*
 	 * This is a modified subset of the default conf which contains
@@ -266,13 +268,14 @@ view \"_bind\" chaos {\n\
 
 	isc_buffer_init(&dumpb1, dumpbdata1, sizeof(dumpbdata1));
 	cfg_printx(orig, 0, cfg_clone_copy_dumpconf, &dumpb1);
-	isc_buffer_putuint8(&dumpb1, 0);
 
 	/*
 	 * The point of the test is not really to test the stringify code of the
 	 * cfg_obj_t tree, but let's do it as a sanity check first.
 	 */
-	assert_int_equal(strcmp(conf, dumpbdata1), 0);
+	dumpblen1 = isc_buffer_remaininglength(&dumpb1);
+	assert_int_equal(sizeof(conf) - 1, dumpblen1);
+	assert_memory_equal(conf, dumpbdata1, dumpblen1);
 
 	/*
 	 * The original tree can be freed anytime, it is not connected in any
@@ -288,7 +291,10 @@ view \"_bind\" chaos {\n\
 	isc_buffer_init(&dumpb2, dumpbdata2, sizeof(dumpbdata2));
 	cfg_printx(clone, 0, cfg_clone_copy_dumpconf, &dumpb2);
 
-	assert_int_equal(strcmp(dumpbdata1, dumpbdata2), 0);
+	dumpblen1 = isc_buffer_remaininglength(&dumpb1);
+	dumpblen2 = isc_buffer_remaininglength(&dumpb2);
+	assert_int_equal(dumpblen1, dumpblen2);
+	assert_memory_equal(dumpbdata1, dumpbdata2, dumpblen1);
 
 	cfg_obj_detach(&clone);
 }
