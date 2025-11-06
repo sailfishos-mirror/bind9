@@ -14,7 +14,7 @@ foo.fr. IN SOA	ns.foo.fr. op.foo.fr. (
 				3       ; serial
 				1       ; refresh
 				1       ; retry
-				1       ; expire
+				3       ; expire
 				60      ; minimum
 				)
 foo.fr.		NS	ns.foo.fr.

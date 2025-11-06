@@ -11762,15 +11762,6 @@ again:
 	UNLOCK_ZONE(zone);
 }
 
-void
-dns_zone_expire(dns_zone_t *zone) {
-	REQUIRE(DNS_ZONE_VALID(zone));
-
-	LOCK_ZONE(zone);
-	zone_expire(zone);
-	UNLOCK_ZONE(zone);
-}
-
 static void
 zone_expire(dns_zone_t *zone) {
 	dns_db_t *db = NULL;
