@@ -35,10 +35,6 @@ New Features
   the default built-in configuration used by :iscman:`named`. When
   the option is used, other options are ignored. :gl:`#1326`
 
-- Add support for Extended DNS Error 24 (Invalid Data).
-
-  See :rfc:`8914` section 4.25. :gl:`#1836`
-
 - :option:`named-checkconf -e` prints the effective configuration.
 
   The new :option:`named-checkconf -e` option prints the effective
@@ -46,6 +42,10 @@ New Features
   specified configuration file into :iscman:`named`. The report
   includes all default settings, as modified by user values from the
   configuration file. :gl:`#2798`
+
+- Add support for Extended DNS Error 24 (Invalid Data).
+
+  See :rfc:`8914` section 4.25. :gl:`#1836`
 
 Removed Features
 ~~~~~~~~~~~~~~~~
@@ -70,6 +70,12 @@ Feature Changes
 
 Bug Fixes
 ~~~~~~~~~
+
+- Skip unsupported algorithms when looking for a signing key.
+
+  A mix of supported and unsupported DNSSEC algorithms in the same zone
+  could cause validation failures. Unsupported algorithms are now
+  ignored when looking for signing keys. :gl:`#5622`
 
 - Report when a zone reload is already in progress.
 
@@ -104,12 +110,6 @@ Bug Fixes
   Previously, :iscman:`dig` could exit with an assertion failure when
   a server was specified before the :option:`dig -b` option. This has
   been fixed. :gl:`#5609`
-
-- Skip unsupported algorithms when looking for a signing key.
-
-  A mix of supported and unsupported DNSSEC algorithms in the same zone
-  could cause validation failures. Unsupported algorithms are now
-  ignored when looking for signing keys. :gl:`#5622`
 
 - Fix fuzzing builds.
 
