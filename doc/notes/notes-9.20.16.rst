@@ -29,12 +29,6 @@ Bug Fixes
   ``-T KEY`` option (e.g., for ``SIG(0)``). This has been fixed.
   :gl:`#5506`
 
-- Fix shutdown assertion in ``dns_dispatchmgr_getblackhole``.
-
-  Previously, :iscman:`named` could trigger an assertion in
-  ``dns_dispatchmgr_getblackhole`` while shutting down. This has been
-  fixed. :gl:`#5525`
-
 - :iscman:`dnssec-verify` now uses exit code 1 when failing due to
   illegal options.
 
