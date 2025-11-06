@@ -15,6 +15,12 @@ Notes for BIND 9.20.16
 Bug Fixes
 ~~~~~~~~~
 
+- Skip unsupported algorithms when looking for a signing key.
+
+  A mix of supported and unsupported DNSSEC algorithms in the same zone
+  could cause validation failures. Unsupported algorithms are now
+  ignored when looking for signing keys. :gl:`#5622`
+
 - Fix :iscman:`dnssec-keygen` key collision checking for KEY RRtype
   keys.
 
@@ -41,12 +47,6 @@ Bug Fixes
   Previously, :iscman:`dig` could exit with an assertion failure when
   a server was specified before the :option:`dig -b` option. This has
   been fixed. :gl:`#5609`
-
-- Skip unsupported algorithms when looking for a signing key.
-
-  A mix of supported and unsupported DNSSEC algorithms in the same zone
-  could cause validation failures. Unsupported algorithms are now
-  ignored when looking for signing keys. :gl:`#5622`
 
 - Skip buffer allocations if not logging.
 
