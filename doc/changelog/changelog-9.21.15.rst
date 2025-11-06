@@ -18,12 +18,15 @@ New Features
 - New "rndc showconf" command. ``dad960025c2``
 
   The new `rndc showconf` command prints the running server
-  configuration. There are three options: - `rndc showconf -user`
-  displays the user configuration (i.e., the contents of `named.conf`).
+  configuration. There are three options:
+
+  - `rndc showconf -user` displays the user configuration (i.e., the
+    contents of `named.conf`).
   - `rndc showconf -builtin` displays the default settings, similar to
-  `named -H`. - `rndc showconf -effective` displays the effective
-  configuration. This is the merged combination of the `-user` and
-  `-builtin` configurations. :gl:`#1075` :gl:`!11123`
+    `named -C`.
+  - `rndc showconf -effective` displays the effective
+    configuration. This is the merged combination of the `-user` and
+    `-builtin` configurations. :gl:`#1075` :gl:`!11123`
 
 - "named-checkconf -b" dumps the built-in configuration. ``ac2b36c4bfc``
 
@@ -56,7 +59,8 @@ New Features
   `cfg_rep_t`, which enables implementing a copy function specific for
   each representation type a node can hold.
 
-  This is pre-require work for MR !11121 !11122 !11123 :gl:`!11124`
+  This is pre-require work for MR :gl:`!11121` :gl:`!11122` :gl:`!11123`
+  :gl:`!11124`
 
 - Run individual spatch form check-cocci.sh. ``a27275d2464``
 
@@ -68,8 +72,9 @@ New Features
   Any command line parameters after `--` are forwarded to `spatch`
   command, for instance:
 
-  `util/check-cocci.sh -- --debug` `util/check-cocci.sh cocci/foo.spatch
-  -- --debug`
+  `util/check-cocci.sh -- --debug`
+
+  `util/check-cocci.sh cocci/foo.spatch -- --debug`
 
   Will (1) run all spatch files in cocci/ with --debug spatch option and
   (2) run only `cocci/foo.spatch` with --debug options. :gl:`!11096`
@@ -184,12 +189,12 @@ Feature Changes
   of outstanding allocations, so it is still possible to figure out
   what's still allocated by this memory context. :gl:`!11110`
 
-- Minimal meson version required is 1.3.0. ``6badc6e9396``
+- Minimal Meson version required is 1.3.0. ``6badc6e9396``
 
-  The minimal required meson version is 1.3.0.
+  The minimal required Meson version is 1.3.0.
 
-  Where distribution repositories don't provide meson 1.3.0 or newer,
-  meson from PyPI may be used instead. :gl:`!10997`
+  Where distribution repositories don't provide Meson 1.3.0 or newer,
+  Meson from PyPI may be used instead. :gl:`!10997`
 
 - Refactor notify code. ``0dd1da79590``
 
@@ -258,7 +263,7 @@ Bug Fixes
 
 - Make libcap mandatory on Linux again. ``fb2b56a8880``
 
-  When refactoring the BIND 9.21 build system to meson, libcap was
+  When refactoring the BIND 9.21 build system to Meson, libcap was
   unintentionally made optional on Linux. :gl:`#5590` :gl:`!11136`
 
 - Only unlink from SIEVE LRU if it is still linked. ``28926f210e1``
@@ -319,9 +324,11 @@ Bug Fixes
 
 - Remove unused dns_zone_getnotifyacl() function. ``9215ae3c7ee``
 
-  Deals with Coverity issues: - CID 638286: Concurrent data access
-  violations (MISSING_LOCK). - CID 638287: Concurrent data access
-  violations (MISSING_LOCK). :gl:`!11200`
+  Deals with Coverity issues:
+
+  - CID 638286: Concurrent data access violations (MISSING_LOCK).
+  - CID 638287: Concurrent data access
+    violations (MISSING_LOCK). :gl:`!11200`
 
 - Restore reuseport to yes by default on supported platforms.
   ``056a32798c2``
@@ -332,13 +339,13 @@ Bug Fixes
   The default configuration is conditioned by several compile-time
   macro. While for most of them it's fine because they are defined in
   the global `config.h` file included by default to all binaries (by
-  meson), one specific is not defined here. `HAVE_SO_REUSEPORT_LB` was
+  Meson), one specific is not defined here. `HAVE_SO_REUSEPORT_LB` was
   defined in `lib/isc/include/isc/netmgr.h` which is of course not
   included in `bin/includes/defaultconfig.h`.
 
   As a result, reuseport was disabled for all platform by default, even
   the supported ones. This fixes the problem by checking if reuseport is
-  available on the platform from meson `config.h` generation directly,
+  available on the platform from Meson `config.h` generation directly,
   which makes `HAVE_SO_REUSEPORT_LB` available everywhere. :gl:`!11180`
 
 - Save userconfig as text instead of a cfg_obj tree. ``9521f231694``
