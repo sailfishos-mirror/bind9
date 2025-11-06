@@ -13,6 +13,7 @@
 
 /*! \file */
 
+#include <isc/async.h>
 #include <isc/loop.h>
 
 #include <dns/resolver.h>
@@ -186,6 +187,38 @@ cleanup:
 			dns__zone_free(zone);
 		}
 	}
+}
+
+static void
+zonefetch_schedule(dns_zonefetch_t *fetch, dns_name_t *name) {
+	dns_zone_t *zone = fetch->zone;
+
+	isc_refcount_increment0(dns__zone_irefs(zone));
+
+	if (name != NULL) {
+		dns_name_t *fname = dns_fixedname_initname(&fetch->name);
+		dns_name_dup(name, fetch->mctx, fname);
+	}
+
+	dns_rdataset_init(&fetch->rrset);
+	dns_rdataset_init(&fetch->sigset);
+
+	isc_async_run(dns_zone_getloop(zone), dns_zonefetch_run, fetch);
+}
+
+void
+dns_zonefetch_schedule(dns_zonefetch_t *fetch, dns_name_t *name) {
+	REQUIRE(fetch != NULL);
+	REQUIRE(name != NULL);
+
+	zonefetch_schedule(fetch, name);
+}
+
+void
+dns_zonefetch_reschedule(dns_zonefetch_t *fetch) {
+	REQUIRE(fetch != NULL);
+
+	zonefetch_schedule(fetch, NULL);
 }
 
 isc_result_t

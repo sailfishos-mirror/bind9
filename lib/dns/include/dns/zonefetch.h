@@ -106,6 +106,32 @@ dns_zonefetch_done(void *arg);
  *	the fetch type.
  */
 
+void
+dns_zonefetch_schedule(dns_zonefetch_t *fetch, dns_name_t *name);
+/*%<
+ *	Schedule a zone fetch, starting at 'name'.  Initializes the rdata sets,
+ *	and sets the starting name to 'name'. Note that the query type is
+ *	determined by the type of zone fetch. This function also increments the
+ *	corresponding zone's ireferences (to be decremented in
+ *	dns_zonefetch_done()).
+ *
+ *	Requires:
+ *		'fetch' is not NULL.
+ *		'name' is not NULL.
+ */
+
+void
+dns_zonefetch_reschedule(dns_zonefetch_t *fetch);
+/*%<
+ *	Reschedule a zone fetch.  Initializes the rdata sets and increments the
+ *	corresponding zone's ireferences (to be decremented in
+ *	dns_zonefetch_done()).
+ *
+ *	Requires:
+ *		'fetch' is not NULL.
+ *		'name' is not NULL.
+ */
+
 isc_result_t
 dns_zonefetch_verify(dns_zonefetch_t *fetch, isc_result_t eresult,
 		     dns_trust_t trust);

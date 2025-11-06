@@ -11332,7 +11332,7 @@ zone_refreshkeys(dns_zone_t *zone) {
 	     result = dns_rriterator_nextrrset(&rrit))
 	{
 		isc_stdtime_t timer = 0xffffffff;
-		dns_name_t *name = NULL, *kname = NULL;
+		dns_name_t *name = NULL;
 		dns_rdataset_t *kdset = NULL;
 		uint32_t ttl;
 
@@ -11411,28 +11411,22 @@ zone_refreshkeys(dns_zone_t *zone) {
 			isc_mem_attach(zone->mctx, &fetch->mctx);
 
 			zone->fetchcount[ZONEFETCHTYPE_KEY]++;
-			isc_refcount_increment0(&zone->irefs);
-			kname = dns_fixedname_initname(&fetch->name);
-			dns_name_dup(name, zone->mctx, kname);
-			dns_rdataset_init(&fetch->rrset);
-			dns_rdataset_init(&fetch->sigset);
 
 			kfetch = &fetch->fetchdata.keyfetch;
 			dns_rdataset_init(&kfetch->keydataset);
 			dns_rdataset_clone(kdset, &kfetch->keydataset);
 			dns_db_attach(db, &kfetch->db);
 
+			dns_zonefetch_schedule(fetch, name);
+
 			if (isc_log_wouldlog(ISC_LOG_DEBUG(3))) {
 				char namebuf[DNS_NAME_FORMATSIZE];
-				dns_name_format(kname, namebuf,
-						sizeof(namebuf));
+				dns_name_format(name, namebuf, sizeof(namebuf));
 				dnssec_log(zone, ISC_LOG_DEBUG(3),
 					   "Creating key fetch in "
 					   "zone_refreshkeys() for '%s'",
 					   namebuf);
 			}
-
-			isc_async_run(zone->loop, dns_zonefetch_run, fetch);
 			fetching = true;
 #ifdef ENABLE_AFL
 		}
@@ -21112,16 +21106,14 @@ nsfetch_continue(dns_zonefetch_t *fetch) {
 #endif /* ifdef ENABLE_AFL */
 		LOCK_ZONE(zone);
 		zone->fetchcount[ZONEFETCHTYPE_NS]++;
-		isc_refcount_increment0(&zone->irefs);
 
-		dns_rdataset_init(&fetch->rrset);
-		dns_rdataset_init(&fetch->sigset);
+		dns_zonefetch_reschedule(fetch);
+
 		if (isc_log_wouldlog(ISC_LOG_DEBUG(3))) {
 			dnssec_log(zone, ISC_LOG_DEBUG(3),
 				   "Creating parent NS fetch in "
 				   "nsfetch_continue()");
 		}
-		isc_async_run(zone->loop, dns_zonefetch_run, fetch);
 		UNLOCK_ZONE(zone);
 #ifdef ENABLE_AFL
 	}
@@ -21303,7 +21295,6 @@ zone_checkds(dns_zone_t *zone) {
 #endif /* ifdef ENABLE_AFL */
 		dns_zonefetch_t *fetch = NULL;
 		dns_nsfetch_t *nsfetch = NULL;
-		dns_name_t *name = NULL;
 
 		fetch = isc_mem_get(zone->mctx, sizeof(dns_zonefetch_t));
 		*fetch = (dns_zonefetch_t){
@@ -21324,22 +21315,18 @@ zone_checkds(dns_zone_t *zone) {
 
 		LOCK_ZONE(zone);
 		zone->fetchcount[ZONEFETCHTYPE_NS]++;
-		isc_refcount_increment0(&zone->irefs);
-		name = dns_fixedname_initname(&fetch->name);
-		dns_name_dup(&zone->origin, zone->mctx, name);
-		dns_rdataset_init(&fetch->rrset);
-		dns_rdataset_init(&fetch->sigset);
 
 		nsfetch = &fetch->fetchdata.nsfetch;
 		dns_name_init(&nsfetch->pname);
 		dns_name_clone(&zone->origin, &nsfetch->pname);
+
+		dns_zonefetch_schedule(fetch, &zone->origin);
 
 		if (isc_log_wouldlog(ISC_LOG_DEBUG(3))) {
 			dnssec_log(
 				zone, ISC_LOG_DEBUG(3),
 				"Creating parent NS fetch in zone_checkds()");
 		}
-		isc_async_run(zone->loop, dns_zonefetch_run, fetch);
 		UNLOCK_ZONE(zone);
 #ifdef ENABLE_AFL
 	}
