@@ -10,6 +10,7 @@
  * See the COPYRIGHT file distributed with this work for additional
  * information regarding copyright ownership.
  */
+{% set zone_names = zone_names | default([]) %}
 
 options {
 	query-source address 10.53.0.2;
@@ -34,4 +35,11 @@ controls {
 	inet 10.53.0.2 port @CONTROLPORT@ allow { any; } keys { rndc_key; };
 };
 
-include "zones.conf";
+{% for name in zone_names %}
+zone "@name@" {
+    type primary;
+    file "@name@.db";
+    dnssec-policy default;
+    inline-signing yes;
+};
+{% endfor %}
