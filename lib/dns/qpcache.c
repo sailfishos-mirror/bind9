@@ -2681,35 +2681,32 @@ add(qpcache_t *qpdb, qpcnode_t *qpnode, dns_slabheader_t *newheader,
 			continue;
 		}
 
-		if (EXISTS(newheader) && NEGATIVE(newheader) &&
-		    rdtype == dns_rdatatype_any)
-		{
-			/*
-			 * We're adding a negative cache entry which
-			 * covers all types (NXDOMAIN, NODATA(QTYPE=ANY)).
-			 *
-			 * Make all other data ancient so that the only
-			 * rdataset that can be found at this node is the
-			 * negative cache entry.
-			 */
-			mark_ancient(header);
-		}
-
-		if (EXISTS(newheader) && NEGATIVE(newheader) &&
-		    rdtype == dns_rdatatype_rrsig)
-		{
-			/*
-			 * We're adding a proof that a signature doesn't exist.
-			 *
-			 * Mark all existing signatures as ancient.
-			 */
-			if (DNS_TYPEPAIR_TYPE(top->typepair) ==
-			    dns_rdatatype_rrsig)
-			{
+		if (EXISTS(newheader) && NEGATIVE(newheader)) {
+			if (rdtype == dns_rdatatype_any) {
+				/*
+				 * We're adding a negative cache entry which
+				 * covers all types (NXDOMAIN,
+				 * NODATA(QTYPE=ANY)).
+				 *
+				 * Make all other data ancient so that the only
+				 * rdataset that can be found at this node is
+				 * the negative cache entry.
+				 */
 				mark_ancient(header);
+			} else if (rdtype == dns_rdatatype_rrsig) {
+				/*
+				 * We're adding a proof that a signature doesn't
+				 * exist.
+				 *
+				 * Mark all existing signatures as ancient.
+				 */
+				if (DNS_TYPEPAIR_TYPE(top->typepair) ==
+				    dns_rdatatype_rrsig)
+				{
+					mark_ancient(header);
+				}
 			}
 		}
-
 		if (EXISTS(newheader) && !NEGATIVE(newheader) &&
 		    NEGATIVE(header) && EXISTS(header) && ACTIVE(header, now))
 		{
