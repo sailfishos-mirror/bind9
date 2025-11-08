@@ -2912,15 +2912,7 @@ add(qpcache_t *qpdb, qpcnode_t *qpnode, dns_slabheader_t *newheader,
 
 		mark_ancient(oldheader);
 
-		if (EXISTS(newheader) && NEGATIVE(newheader) &&
-		    !dns_rdatatype_issig(rdtype))
-		{
-			if (oldtop->related != NULL) {
-				dns_slabheader_t *oldsigheader =
-					first_header(oldtop->related);
-				mark_ancient(oldsigheader);
-			}
-		}
+		INSIST(oldtop->related == related);
 	} else if (!EXISTS(newheader)) {
 		/*
 		 * The type already doesn't exist; no point trying
@@ -2973,6 +2965,18 @@ add(qpcache_t *qpdb, qpcnode_t *qpnode, dns_slabheader_t *newheader,
 				mark_ancient(first_header(expiretop->related));
 			}
 		}
+	}
+
+	/*
+	 * We've added a proof that a rdtype doesn't exist.
+	 *
+	 * Mark the related rrsig in the cache as ancient.
+	 */
+	if (EXISTS(newheader) && NEGATIVE(newheader) &&
+	    !dns_rdatatype_issig(rdtype) && related != NULL)
+	{
+		dns_slabheader_t *oldsigheader = first_header(oldtop->related);
+		mark_ancient(oldsigheader);
 	}
 
 	bindrdataset(qpdb, qpnode, newheader, now, nlocktype, tlocktype,
