@@ -2600,48 +2600,44 @@ qpcnode_detachnode(dns_dbnode_t **nodep DNS__DB_FLARG) {
 }
 
 static isc_result_t
-expire_ncache_entry(qpcache_t *qpdb, qpcnode_t *qpnode, dns_slabtop_t *top,
-		    dns_slabheader_t *newheader, dns_trust_t trust,
-		    dns_rdataset_t *addedrdataset, isc_stdtime_t now,
-		    isc_rwlocktype_t nlocktype,
-		    isc_rwlocktype_t tlocktype DNS__DB_FLARG) {
-	dns_rdatatype_t rdtype = DNS_TYPEPAIR_TYPE(newheader->typepair);
-	dns_rdatatype_t covers = DNS_TYPEPAIR_COVERS(newheader->typepair);
-	dns_typepair_t sigpair = !dns_rdatatype_issig(rdtype)
-					 ? DNS_SIGTYPEPAIR(rdtype)
-					 : dns_typepair_none;
-	/*
-	 * 1. If we find a cached NXDOMAIN, don't cache anything else
-	 *    (dns_typepair_any).
-	 *
-	 * 2. Don't cache an RRSIG if it covers a type for which we have a
-	 *    cached NODATA record.
-	 */
-	if ((top->typepair == dns_typepair_any) ||
-	    (sigpair != dns_rdatatype_none && newheader->typepair == sigpair &&
-	     DNS_TYPEPAIR_TYPE(top->typepair) == covers))
-	{
-		dns_slabheader_t *header = first_header(top);
-		if (header == NULL) {
-			return DNS_R_CONTINUE;
-		}
+check_ncache_block(qpcache_t *qpdb, qpcnode_t *qpnode, dns_slabheader_t *header,
+		   dns_slabheader_t *newheader, dns_trust_t trust,
+		   dns_rdataset_t *addedrdataset, isc_stdtime_t now,
+		   isc_rwlocktype_t nlocktype,
+		   isc_rwlocktype_t tlocktype DNS__DB_FLARG) {
+	bool block = false;
 
-		if (trust < header->trust) {
-			/*
-			 * The NXDOMAIN/NODATA(QTYPE=ANY) is more trusted.
-			 */
+	/*
+	 * 1. If we have a cached NXDOMAIN, we won't cache
+	 *    anything else here (dns_typepair_any).
+	 * 2. If we have a cached NODATA for a given type,
+	 *    we won't cache an RRSIG covering the same type.
+	 */
+	if (header->typepair == dns_typepair_any) {
+		block = true;
+	} else if (DNS_TYPEPAIR_TYPE(newheader->typepair) ==
+			   dns_rdatatype_rrsig &&
+		   DNS_TYPEPAIR_COVERS(newheader->typepair) ==
+			   DNS_TYPEPAIR_TYPE(header->typepair))
+	{
+		block = true;
+	}
+
+	if (block) {
+		/*
+		 * If the ncache entry causing the block is less trusted
+		 * than the new data, evict it from the cache. Otherwise,
+		 * bind to it and leave the cache unchanged.
+		 */
+		if (trust >= header->trust) {
+			mark_ancient(header);
+		} else {
 			qpcache_hit(qpdb, header);
 			bindrdataset(qpdb, qpnode, header, now, nlocktype,
 				     tlocktype,
 				     addedrdataset DNS__DB_FLARG_PASS);
 			return DNS_R_UNCHANGED;
 		}
-
-		/*
-		 * The new rdataset is better.  Expire the ncache entry.
-		 */
-		mark_ancient(header);
-		return DNS_R_CONTINUE;
 	}
 
 	return DNS_R_CONTINUE;
@@ -2707,22 +2703,20 @@ add(qpcache_t *qpdb, qpcnode_t *qpnode, dns_slabheader_t *newheader,
 				}
 			}
 		}
-		if (EXISTS(newheader) && !NEGATIVE(newheader) &&
-		    NEGATIVE(header) && EXISTS(header) && ACTIVE(header, now))
+		if (EXISTS(header) && EXISTS(newheader) && NEGATIVE(header) &&
+		    !NEGATIVE(newheader) && ACTIVE(header, now))
 		{
 			/*
-			 * Look for existing active NXDOMAIN or negative
-			 * covered type if we are adding RRSIG.
+			 * There's an existing NXDOMAIN or negative
+			 * covered type in the cache. If it's more
+			 * trusted than the new data, keep it, but
+			 * if not, purge and replace it.
 			 */
-			isc_result_t result = expire_ncache_entry(
-				qpdb, qpnode, top, newheader, trust,
+			isc_result_t result = check_ncache_block(
+				qpdb, qpnode, header, newheader, trust,
 				addedrdataset, now, nlocktype, tlocktype);
 			if (result == DNS_R_UNCHANGED) {
-				/*
-				 * The existing negative entry is more trusted
-				 * than the new rdataset.
-				 */
-				return DNS_R_UNCHANGED;
+				return result;
 			}
 			INSIST(result == DNS_R_CONTINUE);
 		}
