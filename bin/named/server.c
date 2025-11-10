@@ -9861,11 +9861,11 @@ loadconfig(named_server_t *server) {
 			      ISC_LOG_INFO,
 			      "reloading configuration succeeded");
 	} else {
+		atomic_store(&server->reload_status, NAMED_RELOAD_FAILED);
 		isc_log_write(NAMED_LOGCATEGORY_GENERAL, NAMED_LOGMODULE_SERVER,
 			      ISC_LOG_ERROR,
 			      "reloading configuration failed: %s",
 			      isc_result_totext(result));
-		atomic_store(&server->reload_status, NAMED_RELOAD_FAILED);
 	}
 
 	return result;
