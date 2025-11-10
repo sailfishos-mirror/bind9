@@ -9294,8 +9294,6 @@ load_zones(named_server_t *server, bool reconfig) {
 	zl->server = server;
 	zl->reconfig = reconfig;
 
-	isc_loopmgr_pause();
-
 	isc_refcount_init(&zl->refs, 1);
 
 	/*
@@ -9338,8 +9336,6 @@ cleanup:
 		isc_refcount_destroy(&zl->refs);
 		isc_mem_put(server->mctx, zl, sizeof(*zl));
 	}
-
-	isc_loopmgr_resume();
 
 	return result;
 }
