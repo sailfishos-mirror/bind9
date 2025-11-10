@@ -11,15 +11,16 @@
 
 import difflib
 import shutil
-from typing import Optional
+from typing import cast, List, Optional
 
+import dns.edns
 import dns.flags
 import dns.message
 import dns.rcode
 import dns.zone
 
 import isctest.log
-from isctest.compat import dns_rcode
+from isctest.compat import dns_rcode, EDECode, EDEOption
 
 
 def rcode(message: dns.message.Message, expected_rcode) -> None:
@@ -64,6 +65,54 @@ def raflag(message: dns.message.Message) -> None:
 
 def noraflag(message: dns.message.Message) -> None:
     assert (message.flags & dns.flags.RA) == 0, str(message)
+
+
+def _extract_ede_options(
+    message: dns.message.Message,
+) -> List[EDEOption]:
+    """Extract EDE options from the DNS message."""
+    return cast(
+        List[EDEOption],
+        [
+            option
+            for option in message.options
+            if option.otype == dns.edns.OptionType.EDE
+        ],
+    )
+
+
+def noede(message: dns.message.Message) -> None:
+    """Check that message contains no EDE option."""
+    if not hasattr(dns.edns, "EDECode"):
+        # dnspython<2.2.0 doesn't support EDE, skip check
+        return
+
+    ede_options = _extract_ede_options(message)
+    assert not ede_options, f"unexpected EDE options {ede_options} in {message}"
+
+
+def ede(
+    message: dns.message.Message, code: EDECode, text: Optional[str] = None
+) -> None:
+    """Check if message contains expected EDE code (and its text)."""
+    if not hasattr(dns.edns, "EDECode"):
+        # dnspython<2.2.0 doesn't support EDE, skip check
+        return
+
+    msg_opts = _extract_ede_options(message)
+    matching_opts = [opt for opt in msg_opts if opt.code == code]
+
+    assert matching_opts, f"missing EDE code {code} in {message}"
+
+    if text is None:
+        return
+
+    # check at least one matching EDE option has the required text
+    for opt in matching_opts:
+        if opt.text == text:
+            return
+    opt_str = ", ".join([opt.to_text() for opt in matching_opts])
+    assert False, f'EDE text "{text}" not found in [{opt_str}]'
 
 
 def section_equal(first_section: list, second_section: list) -> None:

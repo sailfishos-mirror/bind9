@@ -304,7 +304,7 @@ stages:
 .rule_mr_system_tests: &rule_mr_system_tests
   - if: '$CI_MERGE_REQUEST_DIFF_BASE_SHA != null'
     changes:
-      - 'bin/tests/system/**'
+      - 'bin/tests/system/**/*'
 
 .rule_mr_manual: &rule_mr_manual
   - if: '$CI_MERGE_REQUEST_DIFF_BASE_SHA != null'
