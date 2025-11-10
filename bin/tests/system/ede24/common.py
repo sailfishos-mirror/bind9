@@ -10,6 +10,7 @@
 # information regarding copyright ownership.
 
 import isctest
+from isctest.compat import EDECode
 
 
 def check_soa_noerror():
@@ -22,13 +23,7 @@ def check_soa_servfail_ede24(edemsg):
     msg = isctest.query.create("foo.fr", "SOA")
     res = isctest.query.udp(msg, "10.53.0.2")
     isctest.check.servfail(res)
-
-    # Few CI machines uses old version of dnspython which doesn't supports
-    # EDNS, so we effectively bypass the check for those one. (It's fine, a
-    # bunch of other CI machines _does_ have recent version of dnspython).
-    if hasattr(res, "extended_errors"):
-        assert len(res.extended_errors()) == 1
-        assert res.extended_errors()[0].to_text() == f"EDE 24 (Invalid Data): {edemsg}"
+    isctest.check.ede(res, EDECode.INVALID_DATA, edemsg)
 
 
 def check_ns2_ready(ns2):

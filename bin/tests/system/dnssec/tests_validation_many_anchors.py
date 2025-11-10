@@ -9,11 +9,11 @@
 # See the COPYRIGHT file distributed with this work for additional
 # information regarding copyright ownership.
 
-from dns import edns
 
 import pytest
 
 import isctest
+from isctest.compat import EDECode
 from isctest.util import param
 
 # isctest.asyncserver requires dnspython >= 2.0.0
@@ -60,8 +60,7 @@ def test_trust_anchors():
     isctest.check.noerror(res1)
     isctest.check.noerror(res2)
     isctest.check.adflag(res2)
-    if hasattr(res2, "extended_errors"):
-        assert not res2.extended_errors()
+    isctest.check.noede(res2)
 
     msg = isctest.query.create("a.secure.managed", "A")
     res1 = isctest.query.tcp(msg, "10.53.0.3")
@@ -69,18 +68,14 @@ def test_trust_anchors():
     isctest.check.noerror(res1)
     isctest.check.noerror(res2)
     isctest.check.adflag(res2)
-    if hasattr(res2, "extended_errors"):
-        assert not res2.extended_errors()
+    isctest.check.noede(res2)
 
     # check that an unsupported signing algorithm yields insecure
     msg = isctest.query.create("a.unsupported.trusted", "A")
     res1 = isctest.query.tcp(msg, "10.53.0.3")
     res2 = isctest.query.tcp(msg, "10.53.0.5")
     isctest.check.noerror(res1)
-    if hasattr(res2, "extended_errors"):
-        assert (
-            res2.extended_errors()[0].code == edns.EDECode.UNSUPPORTED_DNSKEY_ALGORITHM
-        )
+    isctest.check.ede(res2, EDECode.UNSUPPORTED_DNSKEY_ALGORITHM)
     isctest.check.noerror(res2)
     isctest.check.noadflag(res2)
 
@@ -88,10 +83,7 @@ def test_trust_anchors():
     res1 = isctest.query.tcp(msg, "10.53.0.3")
     res2 = isctest.query.tcp(msg, "10.53.0.5")
     isctest.check.noerror(res1)
-    if hasattr(res2, "extended_errors"):
-        assert (
-            res2.extended_errors()[0].code == edns.EDECode.UNSUPPORTED_DNSKEY_ALGORITHM
-        )
+    isctest.check.ede(res2, EDECode.UNSUPPORTED_DNSKEY_ALGORITHM)
     isctest.check.noerror(res2)
     isctest.check.noadflag(res2)
 
