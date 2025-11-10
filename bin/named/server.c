@@ -312,11 +312,13 @@ typedef isc_result_t (*nzfwriter_t)(const cfg_obj_t *config, dns_view_t *view);
  * Uses the isc_refcount structure to count the number of views
  * with pending zone loads, dereferencing as each view finishes.
  */
-typedef struct {
+struct zoneload {
 	named_server_t *server;
 	bool reconfig;
-	isc_refcount_t refs;
-} ns_zoneload_t;
+	isc_refcount_t references;
+};
+typedef struct zoneload zoneload_t;
+ISC_REFCOUNT_STATIC_DECL(zoneload);
 
 typedef struct {
 	named_server_t *server;
@@ -9207,80 +9209,75 @@ cleanup:
 	return result;
 }
 
-static isc_result_t
-view_loaded(void *arg) {
+static void
+destroy_zoneload(zoneload_t *zl) {
 	isc_result_t result;
-	ns_zoneload_t *zl = (ns_zoneload_t *)arg;
+	named_server_t *server = zl->server;
+	bool reconfig = zl->reconfig;
+
+	isc_refcount_destroy(&zl->references);
+	isc_mem_put(zl->server->mctx, zl, sizeof(*zl));
+
+	/*
+	 * To maintain compatibility with log parsing tools that might
+	 * be looking for this string after "rndc reconfig", we keep it
+	 * as it is
+	 */
+	if (reconfig) {
+		isc_log_write(NAMED_LOGCATEGORY_GENERAL, NAMED_LOGMODULE_SERVER,
+			      ISC_LOG_INFO,
+			      "any newly configured zones are now "
+			      "loaded");
+	} else {
+		isc_log_write(NAMED_LOGCATEGORY_GENERAL, NAMED_LOGMODULE_SERVER,
+			      ISC_LOG_NOTICE, "all zones loaded");
+	}
+
+	ISC_LIST_FOREACH(server->viewlist, view, link) {
+		if (view->managed_keys != NULL) {
+			result = dns_zone_synckeyzone(view->managed_keys);
+			if (result != ISC_R_SUCCESS) {
+				isc_log_write(
+					DNS_LOGCATEGORY_DNSSEC,
+					DNS_LOGMODULE_DNSSEC, ISC_LOG_ERROR,
+					"failed to initialize "
+					"managed-keys for view %s "
+					"(%s): DNSSEC validation is "
+					"at risk",
+					view->name, isc_result_totext(result));
+			}
+		}
+	}
 
 	/*
 	 * Force zone maintenance.  Do this after loading
 	 * so that we know when we need to force AXFR of
 	 * secondary zones whose master files are missing.
-	 *
-	 * We use the zoneload reference counter to let us
-	 * know when all views are finished.
 	 */
-	if (isc_refcount_decrement(&zl->refs) == 1) {
-		named_server_t *server = zl->server;
-		bool reconfig = zl->reconfig;
+	CHECKFATAL(dns_zonemgr_forcemaint(server->zonemgr),
+		   "forcing zone maintenance");
 
-		isc_refcount_destroy(&zl->refs);
-		isc_mem_put(server->mctx, zl, sizeof(*zl));
+	named_os_started();
 
-		/*
-		 * To maintain compatibility with log parsing tools that might
-		 * be looking for this string after "rndc reconfig", we keep it
-		 * as it is
-		 */
-		if (reconfig) {
-			isc_log_write(NAMED_LOGCATEGORY_GENERAL,
-				      NAMED_LOGMODULE_SERVER, ISC_LOG_INFO,
-				      "any newly configured zones are now "
-				      "loaded");
-		} else {
-			isc_log_write(NAMED_LOGCATEGORY_GENERAL,
-				      NAMED_LOGMODULE_SERVER, ISC_LOG_NOTICE,
-				      "all zones loaded");
-		}
+	isc_log_write(NAMED_LOGCATEGORY_GENERAL, NAMED_LOGMODULE_SERVER,
+		      ISC_LOG_NOTICE, "FIPS mode is %s",
+		      isc_crypto_fips_mode() ? "enabled" : "disabled");
 
-		ISC_LIST_FOREACH(server->viewlist, view, link) {
-			if (view->managed_keys != NULL) {
-				result = dns_zone_synckeyzone(
-					view->managed_keys);
-				if (result != ISC_R_SUCCESS) {
-					isc_log_write(
-						DNS_LOGCATEGORY_DNSSEC,
-						DNS_LOGMODULE_DNSSEC,
-						ISC_LOG_ERROR,
-						"failed to initialize "
-						"managed-keys for view %s "
-						"(%s): DNSSEC validation is "
-						"at risk",
-						view->name,
-						isc_result_totext(result));
-				}
-			}
-		}
+	named_os_notify_systemd("READY=1\n"
+				"STATUS=running\n"
+				"MAINPID=%" PRId64 "\n",
+				(int64_t)getpid());
 
-		CHECKFATAL(dns_zonemgr_forcemaint(server->zonemgr),
-			   "forcing zone maintenance");
+	atomic_store(&server->reload_status, NAMED_RELOAD_DONE);
 
-		named_os_started();
+	isc_log_write(NAMED_LOGCATEGORY_GENERAL, NAMED_LOGMODULE_SERVER,
+		      ISC_LOG_NOTICE, "running");
+}
+ISC_REFCOUNT_STATIC_IMPL(zoneload, destroy_zoneload);
 
-		isc_log_write(NAMED_LOGCATEGORY_GENERAL, NAMED_LOGMODULE_SERVER,
-			      ISC_LOG_NOTICE, "FIPS mode is %s",
-			      isc_crypto_fips_mode() ? "enabled" : "disabled");
-
-		named_os_notify_systemd("READY=1\n"
-					"STATUS=running\n"
-					"MAINPID=%" PRId64 "\n",
-					(int64_t)getpid());
-
-		atomic_store(&server->reload_status, NAMED_RELOAD_DONE);
-
-		isc_log_write(NAMED_LOGCATEGORY_GENERAL, NAMED_LOGMODULE_SERVER,
-			      ISC_LOG_NOTICE, "running");
-	}
+static isc_result_t
+view_loaded(void *arg) {
+	zoneload_unref(arg);
 
 	return ISC_R_SUCCESS;
 }
@@ -9288,13 +9285,11 @@ view_loaded(void *arg) {
 static isc_result_t
 load_zones(named_server_t *server, bool reconfig) {
 	isc_result_t result = ISC_R_SUCCESS;
-	ns_zoneload_t *zl = NULL;
+	zoneload_t *zl = isc_mem_get(server->mctx, sizeof(*zl));
 
-	zl = isc_mem_get(server->mctx, sizeof(*zl));
-	zl->server = server;
-	zl->reconfig = reconfig;
-
-	isc_refcount_init(&zl->refs, 1);
+	*zl = (zoneload_t){ .server = server,
+			    .reconfig = reconfig,
+			    .references = ISC_REFCOUNT_INITIALIZER(1) };
 
 	/*
 	 * Schedule zones to be loaded from disk.
@@ -9306,7 +9301,7 @@ load_zones(named_server_t *server, bool reconfig) {
 			    result != DNS_R_UPTODATE &&
 			    result != ISC_R_LOADING && result != DNS_R_CONTINUE)
 			{
-				goto cleanup;
+				break;
 			}
 		}
 		if (view->redirect != NULL) {
@@ -9315,7 +9310,7 @@ load_zones(named_server_t *server, bool reconfig) {
 			    result != DNS_R_UPTODATE &&
 			    result != ISC_R_LOADING && result != DNS_R_CONTINUE)
 			{
-				goto cleanup;
+				break;
 			}
 		}
 
@@ -9323,20 +9318,15 @@ load_zones(named_server_t *server, bool reconfig) {
 		 * 'dns_view_asyncload' calls view_loaded if there are no
 		 * zones.
 		 */
-		isc_refcount_increment(&zl->refs);
+		zoneload_ref(zl);
 		result = dns_view_asyncload(view, reconfig, view_loaded, zl);
 		if (result != ISC_R_SUCCESS) {
-			isc_refcount_decrement1(&zl->refs);
-			goto cleanup;
+			zoneload_unref(zl);
+			break;
 		}
 	}
 
-cleanup:
-	if (isc_refcount_decrement(&zl->refs) == 1) {
-		isc_refcount_destroy(&zl->refs);
-		isc_mem_put(server->mctx, zl, sizeof(*zl));
-	}
-
+	zoneload_detach(&zl);
 	return result;
 }
 
