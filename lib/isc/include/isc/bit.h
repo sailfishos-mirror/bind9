@@ -107,7 +107,7 @@ isc_rotate_right64(const uint64_t x, uint32_t n) {
 	return (x >> n) | (x << (64 - n));
 }
 
-#if __APPLE_CC__
+#if __APPLE_CC__ || (defined(__OpenBSD__) && defined(__clang__))
 
 /*
  * Apple compiler doesn't recognize size_t and uintXX_t types as same,
