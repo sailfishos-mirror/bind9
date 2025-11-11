@@ -6040,6 +6040,39 @@ create_view(const cfg_obj_t *vconfig, dns_viewlist_t *viewlist,
 	return ISC_R_SUCCESS;
 }
 
+static void
+emit_text(void *arg, const char *buf, int len) {
+	ns_dzarg_t *dzarg = arg;
+	isc_result_t result;
+
+	REQUIRE(dzarg != NULL && ISC_MAGIC_VALID(dzarg, DZARG_MAGIC));
+	result = putmem(dzarg->text, buf, len);
+	if (result != ISC_R_SUCCESS && dzarg->result == ISC_R_SUCCESS) {
+		dzarg->result = result;
+	}
+}
+
+static isc_result_t
+save_zoneconfig(dns_zone_t *zone, const cfg_obj_t *zconfig) {
+	isc_result_t result;
+	isc_buffer_t *text = NULL;
+	ns_dzarg_t dzarg = {
+		.magic = DZARG_MAGIC,
+		.text = &text,
+	};
+
+	isc_buffer_allocate(isc_g_mctx, &text, 256);
+
+	cfg_printx(zconfig, CFG_PRINTER_ONELINE, emit_text, &dzarg);
+	CHECK(putnull(&text));
+
+	dns_zone_setcfg(zone, isc_buffer_base(text));
+
+cleanup:
+	isc_buffer_free(&text);
+	return result;
+}
+
 /*
  * Configure or reconfigure a zone.
  */
@@ -6249,6 +6282,7 @@ configure_zone(const cfg_obj_t *config, const cfg_obj_t *zconfig,
 		}
 		CHECK(named_zone_configure(config, vconfig, zconfig, aclctx,
 					   kasplist, zone, NULL));
+		CHECK(save_zoneconfig(zone, zconfig));
 		dns_zone_attach(zone, &view->redirect);
 		goto cleanup;
 	}
@@ -6425,6 +6459,7 @@ configure_zone(const cfg_obj_t *config, const cfg_obj_t *zconfig,
 	 */
 	CHECK(named_zone_configure(config, vconfig, zconfig, aclctx, kasplist,
 				   zone, raw));
+	CHECK(save_zoneconfig(zone, zconfig));
 
 	/*
 	 * Add the zone to its view in the new view list.
@@ -9075,18 +9110,6 @@ cleanup_aclctx:
 
 	cfg_obj_detach(&effectiveconfig);
 	return result;
-}
-
-static void
-emit_text(void *arg, const char *buf, int len) {
-	ns_dzarg_t *dzarg = arg;
-	isc_result_t result;
-
-	REQUIRE(dzarg != NULL && ISC_MAGIC_VALID(dzarg, DZARG_MAGIC));
-	result = putmem(dzarg->text, buf, len);
-	if (result != ISC_R_SUCCESS && dzarg->result == ISC_R_SUCCESS) {
-		dzarg->result = result;
-	}
 }
 
 static isc_result_t
@@ -13842,10 +13865,9 @@ isc_result_t
 named_server_showzone(named_server_t *server, isc_lex_t *lex,
 		      isc_buffer_t **text) {
 	isc_result_t result;
-	const cfg_obj_t *zconfig = NULL;
 	char zonename[DNS_NAME_FORMATSIZE];
 	dns_zone_t *zone = NULL;
-	ns_dzarg_t dzarg;
+	const char *zconfig = NULL;
 
 	REQUIRE(text != NULL);
 
@@ -13864,12 +13886,7 @@ named_server_showzone(named_server_t *server, isc_lex_t *lex,
 	}
 
 	CHECK(putstr(text, "zone "));
-	dzarg.magic = DZARG_MAGIC;
-	dzarg.text = text;
-	dzarg.result = ISC_R_SUCCESS;
-	cfg_printx(zconfig, CFG_PRINTER_ONELINE, emit_text, &dzarg);
-	CHECK(dzarg.result);
-
+	CHECK(putstr(text, zconfig));
 	CHECK(putstr(text, ";"));
 
 	result = ISC_R_SUCCESS;
