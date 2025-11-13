@@ -23,9 +23,7 @@ from nsec3.common import (
     SIZE,
     default_config,
     pytestmark,
-    check_auth_nsec,
-    check_auth_nsec3,
-    check_nsec3param,
+    check_nsec3_case,
 )
 
 
@@ -95,45 +93,12 @@ from nsec3.common import (
 def test_nsec_case(ns3, params):
     # Get test parameters.
     zone = params["zone"]
-    fqdn = f"{zone}."
-    policy = params["policy"]
-    keydir = ns3.identifier
-    config = default_config
-    ttl = int(config["dnskey-ttl"].total_seconds())
-    expected = isctest.kasp.policy_to_properties(ttl=ttl, keys=params["key-properties"])
-
-    # Test case.
-    isctest.log.info(f"check nsec case zone {zone} policy {policy}")
 
     # First make sure the zone is properly signed.
     isctest.kasp.wait_keymgr_done(ns3, zone)
 
-    # Key files.
-    keys = isctest.kasp.keydir_to_keylist(zone, keydir)
-    if "external-keys" in params:
-        expected2 = isctest.kasp.policy_to_properties(ttl, keys=params["external-keys"])
-        for ek in expected2:
-            ek.private = False  # noqa
-            ek.legacy = True  # noqa
-        expected = expected + expected2
-        assert "external-keydir" in params
-        extkeys = isctest.kasp.keydir_to_keylist(zone, params["external-keydir"])
-        keys = keys + extkeys
-
-    isctest.kasp.check_keys(zone, keys, expected)
-    isctest.kasp.check_dnssec_verify(ns3, zone)
-    isctest.kasp.check_apex(ns3, zone, keys, [])
-
-    query = isctest.query.create(fqdn, dns.rdatatype.NSEC3PARAM)
-    response = isctest.query.tcp(query, ns3.ip)
-    assert response.rcode() == dns.rcode.NOERROR
-    assert len(response.answer) == 0
-    check_auth_nsec(response)
-
-    query = isctest.query.create(f"nosuchname.{fqdn}", dns.rdatatype.A)
-    response = isctest.query.tcp(query, ns3.ip)
-    assert response.rcode() == dns.rcode.NXDOMAIN
-    check_auth_nsec(response)
+    # Test case.
+    check_nsec3_case(ns3, params, nsec3=False)
 
     # Extra test for nsec3-dynamic-update-inline.kasp.
     if zone == "nsec3-dynamic-update-inline.kasp":
@@ -291,40 +256,9 @@ def test_nsec_case(ns3, params):
 def test_nsec3_case(ns3, params):
     # Get test parameters.
     zone = params["zone"]
-    fqdn = f"{zone}."
-    policy = params["policy"]
-    keydir = ns3.identifier
-    config = default_config
-    ttl = int(config["dnskey-ttl"].total_seconds())
-    expected = isctest.kasp.policy_to_properties(ttl=ttl, keys=params["key-properties"])
-
-    iterations = 0
-    optout = 0
-    saltlen = 0
-    if "nsec3param" in params:
-        optout = params["nsec3param"].get("optout", 0)
-        saltlen = params["nsec3param"].get("salt-length", 0)
-
-    match = f"{fqdn} 3600 IN NSEC3PARAM 1 0 {iterations}"
-
-    # Test case.
-    isctest.log.info(f"check nsec3 case zone {zone} policy {policy}")
 
     # First make sure the zone is properly signed.
     isctest.kasp.wait_keymgr_done(ns3, zone)
 
-    keys = isctest.kasp.keydir_to_keylist(zone, keydir)
-    isctest.kasp.check_keys(zone, keys, expected)
-    isctest.kasp.check_dnssec_verify(ns3, zone)
-    isctest.kasp.check_apex(ns3, zone, keys, [])
-
-    query = isctest.query.create(fqdn, dns.rdatatype.NSEC3PARAM)
-    response = isctest.query.tcp(query, ns3.ip)
-    assert response.rcode() == dns.rcode.NOERROR
-
-    salt = check_nsec3param(response, match, saltlen)
-
-    query = isctest.query.create(f"nosuchname.{fqdn}", dns.rdatatype.A)
-    response = isctest.query.tcp(query, ns3.ip)
-    assert response.rcode() == dns.rcode.NXDOMAIN
-    check_auth_nsec3(response, iterations, optout, salt)
+    # Test case.
+    check_nsec3_case(ns3, params)

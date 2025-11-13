@@ -24,7 +24,7 @@ from nsec3.common import (
     SIZE,
     default_config,
     pytestmark,
-    check_auth_nsec3,
+    check_nsec3_case,
     check_nsec3param,
 )
 
@@ -33,45 +33,25 @@ def perform_nsec3_tests(server, params):
     # Get test parameters.
     zone = params["zone"]
     fqdn = f"{zone}."
-    policy = params["policy"]
-    keydir = server.identifier
-    config = default_config
-    ttl = int(config.get("dnskey-ttl", 3600).total_seconds())
-    minimum = params.get("soa-minimum", 3600)
-    expected = isctest.kasp.policy_to_properties(ttl=ttl, keys=params["key-properties"])
-
-    iterations = 0
-    optout = 0
-    saltlen = 0
-    if "nsec3param" in params:
-        optout = params["nsec3param"].get("optout", 0)
-        saltlen = params["nsec3param"].get("salt-length", 0)
-
-    match = f"{fqdn} {minimum} IN NSEC3PARAM 1 0 {iterations}"
-
-    # Test case.
-    isctest.log.info(f"check nsec3 case zone {zone} policy {policy}")
 
     # First make sure the zone is properly signed.
     isctest.kasp.wait_keymgr_done(server, zone)
 
-    keys = isctest.kasp.keydir_to_keylist(zone, keydir)
-    isctest.kasp.check_keys(zone, keys, expected)
-    isctest.kasp.check_dnssec_verify(server, zone)
-    isctest.kasp.check_apex(server, zone, keys, [])
+    # Test case.
+    check_nsec3_case(server, params)
+
+    # Return salt.
+    minimum = params.get("soa-minimum", 3600)
+    iterations = 0
+    saltlen = 0
+    if "nsec3param" in params:
+        saltlen = params["nsec3param"].get("salt-length", 0)
+
+    match = f"{fqdn} {minimum} IN NSEC3PARAM 1 0 {iterations}"
 
     query = isctest.query.create(fqdn, dns.rdatatype.NSEC3PARAM)
     response = isctest.query.tcp(query, server.ip)
-    assert response.rcode() == dns.rcode.NOERROR
-
-    salt = check_nsec3param(response, match, saltlen)
-
-    query = isctest.query.create(f"nosuchname.{fqdn}", dns.rdatatype.A)
-    response = isctest.query.tcp(query, server.ip)
-    assert response.rcode() == dns.rcode.NXDOMAIN
-    check_auth_nsec3(response, iterations, optout, salt)
-
-    return salt
+    return check_nsec3param(response, match, saltlen)
 
 
 @pytest.mark.parametrize(
