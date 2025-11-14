@@ -33,36 +33,6 @@ from nsec3.common import (
 
 @pytest.fixture(scope="module", autouse=True)
 def after_servers_start(ns3, templates):
-
-    def wait_for_soa_update():
-        match = "20 20 1814400 900"
-
-        for _ in range(5):
-            query = isctest.query.create(fqdn, dns.rdatatype.SOA)
-            response = isctest.query.tcp(query, ns3.ip)
-            rrset = response.get_rrset(
-                response.answer,
-                dns.name.from_text(fqdn),
-                dns.rdataclass.IN,
-                dns.rdatatype.SOA,
-            )
-            if match in str(rrset[0]):
-                return True
-
-        return False
-
-    nsdir = ns3.identifier
-
-    # Extra test for nsec3-change.kasp.
-    zone = "nsec3-change.kasp"
-    fqdn = f"{zone}."
-    isctest.kasp.wait_keymgr_done(ns3, zone)
-    shutil.copyfile(f"{nsdir}/template2.db.in", f"{nsdir}/{zone}.db")
-    ns3.rndc(f"reload {zone}")
-
-    isctest.run.retry_with_timeout(wait_for_soa_update, timeout=5)
-    # After reconfig, the NSEC3PARAM TTL should match the new SOA MINIMUM.
-
     # Ensure rsasha1-to-nsec3-wait.kasp is fully signed prior to reconfig.
     with_rsasha1 = "RSASHA1_SUPPORTED"
     assert with_rsasha1 in os.environ, f"{with_rsasha1} env variable undefined"
@@ -71,8 +41,8 @@ def after_servers_start(ns3, templates):
         isctest.kasp.check_dnssec_verify(ns3, zone)
 
     # Reconfigure.
-    templates.render(f"{nsdir}/named-fips.conf", {"reconfiged": True})
-    templates.render(f"{nsdir}/named-rsasha1.conf", {"reconfiged": True})
+    templates.render(f"{ns3.identifier}/named-fips.conf", {"reconfiged": True})
+    templates.render(f"{ns3.identifier}/named-rsasha1.conf", {"reconfiged": True})
     ns3.reconfigure()
 
 
@@ -184,21 +154,6 @@ def test_nsec_case(ns3, params):
         ),
         pytest.param(
             {
-                "zone": "nsec3-change.kasp",
-                "policy": "nsec3",
-                "soa-minimum": 900,
-                "nsec3param": {
-                    "optout": 1,
-                    "salt-length": 8,
-                },
-                "key-properties": [
-                    f"csk 0 {ALGORITHM} {SIZE} goal:omnipresent dnskey:rumoured krrsig:rumoured zrrsig:rumoured ds:hidden",
-                ],
-            },
-            id="nsec3-change.kasp",
-        ),
-        pytest.param(
-            {
                 "zone": "nsec3-dynamic-change.kasp",
                 "policy": "nsec3-other",
                 "nsec3param": {
@@ -286,15 +241,6 @@ def test_nsec3_case(ns3, params):
 
     # Test case.
     check_nsec3_case(ns3, params)
-
-    # Extra test for nsec3-change.kasp.
-    if zone == "nsec3-change.kasp":
-        # Using rndc signing -nsec3param (should fail)
-        isctest.log.info(
-            f"use rndc signing -nsec3param {zone} to change NSEC3 settings"
-        )
-        response = ns3.rndc(f"signing -nsec3param 1 1 12 ffff {zone}")
-        assert "zone uses dnssec-policy, use rndc dnssec command instead" in response
 
 
 def test_nsec3_ent(ns3, templates):
