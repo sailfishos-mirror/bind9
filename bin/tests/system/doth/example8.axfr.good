@@ -11,8 +11,8 @@ aaaa01.example8.	3600	IN	AAAA	::1
 aaaa02.example8.	3600	IN	AAAA	fd92:7065:b8e:ffff::5
 afsdb01.example8.	3600	IN	AFSDB	0 hostname.example8.
 afsdb02.example8.	3600	IN	AFSDB	65535 .
-amtrelay01.example8.	3600	IN	AMTRELAY 0 0 0
-amtrelay02.example8.	3600	IN	AMTRELAY 0 1 0
+amtrelay01.example8.	3600	IN	AMTRELAY 0 0 0 .
+amtrelay02.example8.	3600	IN	AMTRELAY 0 1 0 .
 amtrelay03.example8.	3600	IN	AMTRELAY 0 0 1 0.0.0.0
 amtrelay04.example8.	3600	IN	AMTRELAY 0 0 2 ::
 amtrelay05.example8.	3600	IN	AMTRELAY 0 0 3 example.net.

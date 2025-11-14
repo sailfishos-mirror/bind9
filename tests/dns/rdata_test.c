@@ -1029,11 +1029,13 @@ ISC_RUN_TEST_IMPL(atma) {
 ISC_RUN_TEST_IMPL(amtrelay) {
 	text_ok_t text_ok[] = {
 		TEXT_INVALID(""), TEXT_INVALID("0"), TEXT_INVALID("0 0"),
+		TEXT_INVALID("0 0 0"),
 		/* gateway type 0 */
-		TEXT_VALID("0 0 0"), TEXT_VALID("0 1 0"),
-		TEXT_INVALID("0 2 0"),	 /* discovery out of range */
-		TEXT_VALID("255 1 0"),	 /* max precedence */
-		TEXT_INVALID("256 1 0"), /* precedence out of range */
+		TEXT_INVALID("0 0 0 x"), /* bad placeholder */
+		TEXT_VALID("0 0 0 ."), TEXT_VALID("0 1 0 ."),
+		TEXT_INVALID("0 2 0 ."),   /* discovery out of range */
+		TEXT_VALID("255 1 0 ."),   /* max precedence */
+		TEXT_INVALID("256 1 0 ."), /* precedence out of range */
 
 		/* IPv4 gateway */
 		TEXT_INVALID("0 0 1"), /* no address */

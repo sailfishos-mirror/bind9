@@ -487,8 +487,8 @@ doa01			DOA	( 1234567890 1234567890 1 "image/gif"
 doa02			DOA	0 1 2 "" aHR0cHM6Ly93d3cuaXNjLm9yZy8=
 
 ; type 260
-amtrelay01		AMTRELAY 0 0 0
-amtrelay02		AMTRELAY 0 1 0
+amtrelay01		AMTRELAY 0 0 0 .
+amtrelay02		AMTRELAY 0 1 0 .
 amtrelay03		AMTRELAY 0 0 1 0.0.0.0
 amtrelay04		AMTRELAY 0 0 2 ::
 amtrelay05		AMTRELAY 0 0 3 example.net.
