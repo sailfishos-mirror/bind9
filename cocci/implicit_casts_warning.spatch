@@ -1,0 +1,56 @@
+@bool_into_int_warning@
+position p;
+int i;
+bool b;
+@@
+i = b@p;
+
+@script:python@
+p << bool_into_int_warning.p;
+@@
+report = coccilib.report.build_report(p[0], "WARNING: implicit bool->int cast on assignment")
+sys.stderr.write(report)
+
+
+
+@return_isc_result_t_into_bool_warning@
+position p;
+isc_result_t result;
+identifier fn;
+identifier literalresult =~ "ISC_R_.*|DNS_R_.*|DST_R_.*|ISCCC_R_.*";
+@@
+bool fn(...) {
+<...
+(
+return result@p;
+|
+return literalresult@p;
+)
+...>
+}
+
+@script:python@
+p << return_isc_result_t_into_bool_warning.p;
+@@
+report = coccilib.report.build_report(p[0], "WARNING: implicit isc_result_t->bool cast on return value")
+sys.stderr.write(report)
+
+
+
+@isc_result_t_into_bool_warning@
+position p;
+isc_result_t result;
+identifier literalresult =~ "ISC_R_.*|DNS_R_.*|DST_R_.*|ISCCC_R_.*";
+bool b;
+@@
+(
+b = result@p;
+|
+b = literalresult@p;
+)
+
+@script:python@
+p << isc_result_t_into_bool_warning.p;
+@@
+report = coccilib.report.build_report(p[0], "WARNING: implicit isc_result_t->bool cast on assignment")
+sys.stderr.write(report)
