@@ -3820,18 +3820,7 @@ configure_view(dns_view_t *view, dns_viewlist_t *viewlist, cfg_obj_t *config,
 	}
 
 	obj = NULL;
-	if (view->rdclass != dns_rdataclass_in &&
-	    named_config_get(maps, "catalog-zones", &obj) == ISC_R_SUCCESS)
-	{
-		cfg_obj_log(obj, ISC_LOG_WARNING,
-			    "'catalog-zones' option is only supported "
-			    "for views with class IN");
-	}
-
-	obj = NULL;
-	if (view->rdclass == dns_rdataclass_in &&
-	    named_config_get(maps, "catalog-zones", &obj) == ISC_R_SUCCESS)
-	{
+	if (named_config_get(maps, "catalog-zones", &obj) == ISC_R_SUCCESS) {
 		CHECK(configure_catz(view, NULL, config, obj));
 		catz_configured = true;
 	}
