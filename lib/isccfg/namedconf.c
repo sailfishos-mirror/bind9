@@ -2237,9 +2237,6 @@ prefetch_merge(cfg_obj_t *effectiveobj, const cfg_obj_t *defaultobj) {
 
 	trigger = (cfg_obj_t *)cfg_tuple_get(effectiveobj, "trigger");
 	INSIST(cfg_obj_isuint32(trigger));
-	if (cfg_obj_asuint32(trigger) > 10) {
-		trigger->value.uint32 = 10;
-	}
 
 	eligible = (cfg_obj_t *)cfg_tuple_get(effectiveobj, "eligible");
 	if (cfg_obj_isvoid(eligible)) {
@@ -2253,9 +2250,6 @@ prefetch_merge(cfg_obj_t *effectiveobj, const cfg_obj_t *defaultobj) {
 	}
 
 	INSIST(cfg_obj_isuint32(eligible));
-	if (cfg_obj_asuint32(eligible) < cfg_obj_asuint32(trigger) + 6) {
-		eligible->value.uint32 = cfg_obj_asuint32(trigger) + 6;
-	}
 }
 
 static void
