@@ -9157,25 +9157,9 @@ load_configuration(named_server_t *server, bool first_time) {
 	effective = cfg_effective_config(config, builtin);
 
 	/*
-	 * Save the user and effective configurations in text format,
-	 * to display with "rndc showconf". (Text takes up less memory
-	 * than an object tree.)
-	 *
-	 * Also save the effective configuration as an object tree, if
-	 * "allow-new-zones" or catalog zones are in use. That takes
-	 * more memory but avoids the need to re-parse the configuration
-	 * when zone changes are made.
+	 * Save the user configuration in text format, to display with "rndc
+	 * showconf". (Text takes up less memory than an object tree.)
 	 */
-
-	if (server->effectiveconfig != NULL) {
-		cfg_obj_detach(&server->effectiveconfig);
-	}
-
-	if (server->effectivetext != NULL) {
-		isc_buffer_free(&server->effectivetext);
-	}
-	isc_buffer_allocate(isc_g_mctx, &server->effectivetext, BUFSIZ);
-
 	if (server->userconftext != NULL) {
 		isc_buffer_free(&server->userconftext);
 	}
@@ -9187,20 +9171,37 @@ load_configuration(named_server_t *server, bool first_time) {
 	};
 	cfg_printx(config, 0, emit_text, &dzarg);
 
-	dzarg = (ns_dzarg_t){
-		.magic = DZARG_MAGIC,
-		.text = &server->effectivetext,
-	};
-	cfg_printx(effective, 0, emit_text, &dzarg);
-
 	/*
 	 * And finally we apply the effective configuration.
 	 */
 	result = apply_configuration(effective, bindkeys, server, first_time,
 				     &newzones_allowed);
+
+	/*
+	 * Also save the effective configuration as an object tree, if
+	 * "allow-new-zones" or catalog zones are in use. That takes
+	 * more memory than text but avoids the need to re-parse the
+	 * configuration when zone changes are made. Otherwise, save the
+	 * effective configuration as text.
+	 */
+	if (server->effectiveconfig != NULL) {
+		cfg_obj_detach(&server->effectiveconfig);
+	}
+
+	if (server->effectivetext != NULL) {
+		isc_buffer_free(&server->effectivetext);
+	}
+
 	if (newzones_allowed) {
 		server->effectiveconfig = effective;
 		effective = NULL;
+	} else {
+		isc_buffer_allocate(isc_g_mctx, &server->effectivetext, BUFSIZ);
+		dzarg = (ns_dzarg_t){
+			.magic = DZARG_MAGIC,
+			.text = &server->effectivetext,
+		};
+		cfg_printx(effective, 0, emit_text, &dzarg);
 	}
 
 cleanup:
@@ -13939,6 +13940,11 @@ named_server_showconf(named_server_t *server, isc_lex_t *lex,
 		      isc_buffer_t **text) {
 	isc_result_t result = ISC_R_SUCCESS;
 	const char *arg = NULL;
+	cfg_obj_t *config = NULL;
+	ns_dzarg_t dzarg = {
+		.magic = DZARG_MAGIC,
+		.text = text,
+	};
 
 	REQUIRE(text != NULL && *text != NULL);
 
@@ -13954,14 +13960,16 @@ named_server_showconf(named_server_t *server, isc_lex_t *lex,
 		result = putmem(text, isc_buffer_base(server->userconftext),
 				isc_buffer_usedlength(server->userconftext));
 	} else if (strcasecmp(arg, "-effective") == 0) {
-		result = putmem(text, isc_buffer_base(server->effectivetext),
+		if (server->effectivetext != NULL) {
+			result = putmem(
+				text, isc_buffer_base(server->effectivetext),
 				isc_buffer_usedlength(server->effectivetext));
+		} else {
+			cfg_printx(server->effectiveconfig, 0, emit_text,
+				   &dzarg);
+			result = dzarg.result;
+		}
 	} else if (strcasecmp(arg, "-builtin") == 0) {
-		cfg_obj_t *config = NULL;
-		ns_dzarg_t dzarg = {
-			.magic = DZARG_MAGIC,
-			.text = text,
-		};
 		CHECK(named_config_parsedefaults(&config));
 		cfg_printx(config, 0, emit_text, &dzarg);
 		cfg_obj_detach(&config);
