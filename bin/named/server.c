@@ -3716,8 +3716,7 @@ configure_view(dns_view_t *view, dns_viewlist_t *viewlist, cfg_obj_t *config,
 	       named_cachelist_t *oldcachelist, dns_kasplist_t *kasplist,
 	       const cfg_obj_t *bindkeys, isc_mem_t *mctx,
 	       cfg_aclconfctx_t *aclctx,
-	       isc_tlsctx_cache_t *tlsctx_client_cache, bool need_hints,
-	       bool first_time) {
+	       isc_tlsctx_cache_t *tlsctx_client_cache, bool first_time) {
 	const cfg_obj_t *maps[4] = { 0 };
 	const cfg_obj_t *cfgmaps[3] = { 0 };
 	const cfg_obj_t *options = NULL;
@@ -3813,7 +3812,7 @@ configure_view(dns_view_t *view, dns_viewlist_t *viewlist, cfg_obj_t *config,
 	 * is used for real lookups and so cares about hints.
 	 */
 	obj = NULL;
-	if (view->rdclass == dns_rdataclass_in && need_hints &&
+	if (view->rdclass == dns_rdataclass_in &&
 	    named_config_get(maps, "response-policy", &obj) == ISC_R_SUCCESS)
 	{
 		CHECK(configure_rpz(view, NULL, obj, &old_rpz_ok, first_time));
@@ -3821,18 +3820,7 @@ configure_view(dns_view_t *view, dns_viewlist_t *viewlist, cfg_obj_t *config,
 	}
 
 	obj = NULL;
-	if (view->rdclass != dns_rdataclass_in && need_hints &&
-	    named_config_get(maps, "catalog-zones", &obj) == ISC_R_SUCCESS)
-	{
-		cfg_obj_log(obj, ISC_LOG_WARNING,
-			    "'catalog-zones' option is only supported "
-			    "for views with class IN");
-	}
-
-	obj = NULL;
-	if (view->rdclass == dns_rdataclass_in && need_hints &&
-	    named_config_get(maps, "catalog-zones", &obj) == ISC_R_SUCCESS)
-	{
+	if (named_config_get(maps, "catalog-zones", &obj) == ISC_R_SUCCESS) {
 		CHECK(configure_catz(view, NULL, config, obj));
 		catz_configured = true;
 	}
@@ -4662,9 +4650,7 @@ configure_view(dns_view_t *view, dns_viewlist_t *viewlist, cfg_obj_t *config,
 					&rootzone);
 		if (rootzone != NULL) {
 			dns_zone_detach(&rootzone);
-			need_hints = false;
-		}
-		if (need_hints) {
+		} else {
 			isc_log_write(NAMED_LOGCATEGORY_GENERAL,
 				      NAMED_LOGMODULE_SERVER, ISC_LOG_WARNING,
 				      "no root hints for view '%s'",
@@ -5558,7 +5544,7 @@ cleanup:
 
 			obj = NULL;
 			if (rpz_configured &&
-			    pview->rdclass == dns_rdataclass_in && need_hints &&
+			    pview->rdclass == dns_rdataclass_in &&
 			    named_config_get(maps, "response-policy", &obj) ==
 				    ISC_R_SUCCESS)
 			{
@@ -5584,7 +5570,7 @@ cleanup:
 
 			obj = NULL;
 			if (catz_configured &&
-			    pview->rdclass == dns_rdataclass_in && need_hints &&
+			    pview->rdclass == dns_rdataclass_in &&
 			    named_config_get(maps, "catalog-zones", &obj) ==
 				    ISC_R_SUCCESS)
 			{
@@ -7791,7 +7777,7 @@ configure_views(cfg_obj_t *config, const cfg_obj_t *bindkeys,
 		result = configure_view(view, viewlist, config, vconfig,
 					cachelist, &server->cachelist, kasplist,
 					bindkeys, isc_g_mctx, aclctx,
-					tlsctx_client_cache, true, first_time);
+					tlsctx_client_cache, first_time);
 		if (result != ISC_R_SUCCESS) {
 			dns_view_detach(&view);
 			return result;
@@ -7820,7 +7806,7 @@ configure_views(cfg_obj_t *config, const cfg_obj_t *bindkeys,
 		result = configure_view(view, viewlist, config, NULL, cachelist,
 					&server->cachelist, kasplist, bindkeys,
 					isc_g_mctx, aclctx, tlsctx_client_cache,
-					true, first_time);
+					first_time);
 		if (result != ISC_R_SUCCESS) {
 			dns_view_detach(&view);
 			return result;

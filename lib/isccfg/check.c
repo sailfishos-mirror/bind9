@@ -5539,11 +5539,21 @@ check_viewconf(const cfg_obj_t *config, const cfg_obj_t *voptions,
 	 */
 	if (opts != NULL) {
 		obj = NULL;
-		if ((cfg_map_get(opts, "catalog-zones", &obj) ==
-		     ISC_R_SUCCESS) &&
-		    (check_catz(obj, viewname, mctx) != ISC_R_SUCCESS))
-		{
-			result = ISC_R_FAILURE;
+		if (cfg_map_get(opts, "catalog-zones", &obj) == ISC_R_SUCCESS) {
+			if (vclass != dns_rdataclass_in) {
+				cfg_obj_log(
+					obj, ISC_LOG_ERROR,
+					"'catalog-zones' option is only "
+					"supported for views with class IN");
+
+				if (result == ISC_R_SUCCESS) {
+					result = ISC_R_FAILURE;
+				}
+			}
+
+			if (check_catz(obj, viewname, mctx) != ISC_R_SUCCESS) {
+				result = ISC_R_FAILURE;
+			}
 		}
 	}
 
