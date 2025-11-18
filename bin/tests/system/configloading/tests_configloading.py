@@ -32,17 +32,18 @@ def test_configloading_log(ns1):
         "apply_configuration: configure_kasplist",
         "apply_configuration: create_views",
         "loop exclusive mode: starting",
+        "running",
     ]
 
     with ns1.watch_log_from_start() as watcher:
         watcher.wait_for_sequence(log_sequence)
 
     with ns1.watch_log_from_here() as watcher:
-        ns1.rndc("reconfig")
+        ns1.rndc("reconfig", log=False)
         watcher.wait_for_sequence(log_sequence)
 
     with ns1.watch_log_from_here() as watcher:
-        ns1.rndc("reload")
+        ns1.rndc("reload", log=False)
         watcher.wait_for_sequence(log_sequence)
 
 
@@ -61,11 +62,13 @@ def test_reload_fails_log(ns1, templates):
         re.compile(r".*port '9999999' out of range"),
         "apply_configuration: detaching views",
         "loop exclusive mode: ending",
+        "reloading configuration failed",
     ]
 
     with ns1.watch_log_from_here() as watcher:
         templates.render("ns1/named.conf", {"wrongoption": True})
         try:
-            ns1.rndc("reload")
+            ns1.rndc("reload", log=False)
+            assert False
         except isctest.rndc.RNDCException:
             watcher.wait_for_sequence(log_sequence)
