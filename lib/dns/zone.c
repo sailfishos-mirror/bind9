@@ -12598,8 +12598,9 @@ zone_notify(dns_zone_t *zone, isc_time_t *now) {
 			goto next;
 		}
 
-		if (dns_notify_isqueued(&zone->notifysoa, zone->view->dstport,
-					flags, NULL, &dst, key, transport))
+		if (dns_notify_isqueued(&zone->notifysoa, dns_rdatatype_soa,
+					zone->view->dstport, flags, NULL, &dst,
+					key, transport))
 		{
 			if (key != NULL) {
 				dns_tsigkey_detach(&key);
@@ -12610,8 +12611,8 @@ zone_notify(dns_zone_t *zone, isc_time_t *now) {
 			goto next;
 		}
 
-		dns_notify_create(zone->mctx, zone->view->dstport, flags,
-				  &notify);
+		dns_notify_create(zone->mctx, dns_rdatatype_soa,
+				  zone->view->dstport, flags, &notify);
 		zone_iattach(zone, &notify->zone);
 		notify->src = src;
 		notify->dst = dst;
@@ -12688,15 +12689,15 @@ zone_notify(dns_zone_t *zone, isc_time_t *now) {
 		}
 
 		LOCK_ZONE(zone);
-		isqueued = dns_notify_isqueued(&zone->notifysoa,
-					       zone->view->dstport, flags,
-					       &ns.name, NULL, NULL, NULL);
+		isqueued = dns_notify_isqueued(
+			&zone->notifysoa, dns_rdatatype_soa,
+			zone->view->dstport, flags, &ns.name, NULL, NULL, NULL);
 		UNLOCK_ZONE(zone);
 		if (isqueued) {
 			continue;
 		}
-		dns_notify_create(zone->mctx, zone->view->dstport, flags,
-				  &notify);
+		dns_notify_create(zone->mctx, dns_rdatatype_soa,
+				  zone->view->dstport, flags, &notify);
 		dns_zone_iattach(zone, &notify->zone);
 		dns_name_dup(&ns.name, zone->mctx, &notify->ns);
 		LOCK_ZONE(zone);
