@@ -184,6 +184,8 @@ command is one of the following:\n\
 		Write security roots to the secroots file.\n\
   serve-stale [ on | off | reset | status ] [class [view]]\n\
 		Control whether stale answers are returned\n\
+  showconf ( -user | -builtin | -effecive )\n\
+  		Print the current configuration for the server.\n\
   showzone zone [class [view]]\n\
 		Print a zone's configuration.\n\
   sign zone [class [view]]\n\
