@@ -2654,22 +2654,6 @@ resume:
 			}
 			continue;
 		}
-		if (!cfg_obj_isvoid(key)) {
-			cfg_obj_log(key, logctx, ISC_LOG_ERROR,
-				    "unexpected token '%s'",
-				    cfg_obj_asstring(key));
-			if (result == ISC_R_SUCCESS) {
-				result = ISC_R_FAILURE;
-			}
-		}
-		if (!cfg_obj_isvoid(tls)) {
-			cfg_obj_log(key, logctx, ISC_LOG_ERROR,
-				    "unexpected token '%s'",
-				    cfg_obj_asstring(tls));
-			if (result == ISC_R_SUCCESS) {
-				result = ISC_R_FAILURE;
-			}
-		}
 		listname = cfg_obj_asstring(addr);
 		symvalue.as_cpointer = addr;
 		tresult = isc_symtab_define(symtab, listname, 1, symvalue,
