@@ -1056,13 +1056,10 @@ isc_result_t
 ns_client_addopt(ns_client_t *client, dns_message_t *message,
 		 dns_rdataset_t **opt) {
 	unsigned char ecs[ECS_SIZE];
-	char nsid[_POSIX_HOST_NAME_MAX + 1], *nsidp = NULL;
 	unsigned char cookie[COOKIE_SIZE];
 	isc_result_t result;
 	dns_view_t *view = NULL;
 	uint16_t udpsize;
-	dns_ednsopt_t ednsopts[DNS_EDNSOPTIONS];
-	int count = 0;
 	unsigned int flags;
 	unsigned char expire[4];
 	unsigned char advtimo[2];
@@ -1082,26 +1079,33 @@ ns_client_addopt(ns_client_t *client, dns_message_t *message,
 
 	flags = client->inner.extflags & DNS_MESSAGEEXTFLAG_REPLYPRESERVE;
 
+	dns_message_ednsinit(message, 0, udpsize, flags, 0);
+
 	/* Set EDNS options if applicable */
 	if (WANTNSID(client)) {
+		char nsid[_POSIX_HOST_NAME_MAX + 1];
+		char *nsidp = NULL;
+
 		if (client->manager->sctx->server_id != NULL) {
 			nsidp = client->manager->sctx->server_id;
-		} else if (client->manager->sctx->usehostname) {
-			if (gethostname(nsid, sizeof(nsid)) != 0) {
-				goto no_nsid;
-			}
+		} else if (client->manager->sctx->usehostname &&
+			   gethostname(nsid, sizeof(nsid)) == 0)
+		{
 			nsidp = nsid;
-		} else {
-			goto no_nsid;
 		}
-
-		INSIST(count < DNS_EDNSOPTIONS);
-		ednsopts[count].code = DNS_OPT_NSID;
-		ednsopts[count].length = (uint16_t)strlen(nsidp);
-		ednsopts[count].value = (unsigned char *)nsidp;
-		count++;
+		if (nsidp != NULL) {
+			dns_ednsopt_t option = {
+				.code = DNS_OPT_NSID,
+				.value = (unsigned char *)nsidp,
+				.length = (uint16_t)strlen(nsidp),
+			};
+			result = dns_message_ednsaddopt(message, &option);
+			if (result != ISC_R_SUCCESS) {
+				return result;
+			}
+		}
 	}
-no_nsid:
+
 	if ((client->inner.attributes & NS_CLIENTATTR_WANTCOOKIE) != 0) {
 		isc_buffer_t buf;
 		isc_stdtime_t now = isc_stdtime_now();
@@ -1111,24 +1115,30 @@ no_nsid:
 		compute_cookie(client, now, client->manager->sctx->secret,
 			       &buf);
 
-		INSIST(count < DNS_EDNSOPTIONS);
-		ednsopts[count].code = DNS_OPT_COOKIE;
-		ednsopts[count].length = COOKIE_SIZE;
-		ednsopts[count].value = cookie;
-		count++;
+		dns_ednsopt_t option = { .code = DNS_OPT_COOKIE,
+					 .length = COOKIE_SIZE,
+					 .value = cookie };
+		result = dns_message_ednsaddopt(message, &option);
+		if (result != ISC_R_SUCCESS) {
+			return result;
+		}
 	}
+
 	if ((client->inner.attributes & NS_CLIENTATTR_HAVEEXPIRE) != 0) {
 		isc_buffer_t buf;
 
-		INSIST(count < DNS_EDNSOPTIONS);
-
 		isc_buffer_init(&buf, expire, sizeof(expire));
 		isc_buffer_putuint32(&buf, client->inner.expire);
-		ednsopts[count].code = DNS_OPT_EXPIRE;
-		ednsopts[count].length = 4;
-		ednsopts[count].value = expire;
-		count++;
+
+		dns_ednsopt_t option = { .code = DNS_OPT_EXPIRE,
+					 .value = expire,
+					 .length = 4 };
+		result = dns_message_ednsaddopt(message, &option);
+		if (result != ISC_R_SUCCESS) {
+			return result;
+		}
 	}
+
 	if (((client->inner.attributes & NS_CLIENTATTR_HAVEECS) != 0) &&
 	    (client->inner.ecs.addr.family == AF_INET ||
 	     client->inner.ecs.addr.family == AF_INET6 ||
@@ -1182,24 +1192,30 @@ no_nsid:
 			isc_buffer_putmem(&buf, addr, (unsigned int)addrl);
 		}
 
-		ednsopts[count].code = DNS_OPT_CLIENT_SUBNET;
-		ednsopts[count].length = addrl + 4;
-		ednsopts[count].value = ecs;
-		count++;
+		dns_ednsopt_t option = { .code = DNS_OPT_CLIENT_SUBNET,
+					 .length = addrl + 4,
+					 .value = ecs };
+		result = dns_message_ednsaddopt(message, &option);
+		if (result != ISC_R_SUCCESS) {
+			return result;
+		}
 	}
-	if (TCP_CLIENT(client) && USEKEEPALIVE(client)) {
-		isc_buffer_t buf;
-		uint32_t advertised_timeout = isc_nm_getadvertisedtimeout();
 
-		INSIST(count < DNS_EDNSOPTIONS);
+	if (TCP_CLIENT(client) && USEKEEPALIVE(client)) {
+		uint32_t advertised_timeout = isc_nm_getadvertisedtimeout();
+		isc_buffer_t buf;
 
 		advertised_timeout /= 100; /* units of 100 milliseconds */
 		isc_buffer_init(&buf, advtimo, sizeof(advtimo));
 		isc_buffer_putuint16(&buf, (uint16_t)advertised_timeout);
-		ednsopts[count].code = DNS_OPT_TCP_KEEPALIVE;
-		ednsopts[count].length = 2;
-		ednsopts[count].value = advtimo;
-		count++;
+
+		dns_ednsopt_t option = { .code = DNS_OPT_TCP_KEEPALIVE,
+					 .length = 2,
+					 .value = advtimo };
+		result = dns_message_ednsaddopt(message, &option);
+		if (result != ISC_R_SUCCESS) {
+			return result;
+		}
 	}
 
 	for (size_t i = 0; i < DNS_EDE_MAX_ERRORS; i++) {
@@ -1209,18 +1225,24 @@ no_nsid:
 			break;
 		}
 
-		INSIST(count < DNS_EDNSOPTIONS);
-		ednsopts[count].code = DNS_OPT_EDE;
-		ednsopts[count].length = ede->length;
-		ednsopts[count].value = ede->value;
-		count++;
+		dns_ednsopt_t option = { .code = DNS_OPT_EDE,
+					 .length = ede->length,
+					 .value = ede->value };
+		result = dns_message_ednsaddopt(message, &option);
+		if (result != ISC_R_SUCCESS) {
+			return result;
+		}
 	}
 	if ((client->inner.attributes & NS_CLIENTATTR_HAVEZONEVERSION) != 0) {
-		INSIST(count < DNS_EDNSOPTIONS);
-		ednsopts[count].code = DNS_OPT_ZONEVERSION;
-		ednsopts[count].length = client->inner.zoneversionlength;
-		ednsopts[count].value = client->inner.zoneversion;
-		count++;
+		dns_ednsopt_t option = {
+			.code = DNS_OPT_ZONEVERSION,
+			.length = client->inner.zoneversionlength,
+			.value = client->inner.zoneversion
+		};
+		result = dns_message_ednsaddopt(message, &option);
+		if (result != ISC_R_SUCCESS) {
+			return result;
+		}
 	}
 
 	if (WANTRC(client)) {
@@ -1229,11 +1251,15 @@ no_nsid:
 			rad = &client->inner.rad;
 		}
 		if (rad != NULL && !dns_name_equal(rad, dns_rootname)) {
-			INSIST(count < DNS_EDNSOPTIONS);
-			ednsopts[count].code = DNS_OPT_REPORT_CHANNEL;
-			ednsopts[count].length = rad->length;
-			ednsopts[count].value = rad->ndata;
-			count++;
+			dns_ednsopt_t option = {
+				.code = DNS_OPT_REPORT_CHANNEL,
+				.length = rad->length,
+				.value = rad->ndata,
+			};
+			result = dns_message_ednsaddopt(message, &option);
+			if (result != ISC_R_SUCCESS) {
+				return result;
+			}
 		}
 	}
 
@@ -1249,19 +1275,14 @@ no_nsid:
 		result = dns_acl_match(&netaddr, NULL, view->pad_acl, env,
 				       &match, NULL);
 		if (result == ISC_R_SUCCESS && match > 0) {
-			INSIST(count < DNS_EDNSOPTIONS);
-
-			ednsopts[count].code = DNS_OPT_PAD;
-			ednsopts[count].length = 0;
-			ednsopts[count].value = NULL;
-			count++;
-
+			dns_ednsopt_t option = { .code = DNS_OPT_PAD };
+			/* This can fail harmlessly */
+			dns_message_ednsaddopt(message, &option);
 			dns_message_setpadding(message, view->padding);
 		}
 	}
 
-	result = dns_message_buildopt(message, opt, 0, udpsize, flags, ednsopts,
-				      count);
+	result = dns_message_buildopt(message, opt);
 	return result;
 }
 

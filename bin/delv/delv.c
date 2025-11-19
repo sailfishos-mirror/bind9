@@ -2085,8 +2085,8 @@ sendquery(void *arg) {
 	mrdataset = NULL;
 	mname = NULL;
 
-	CHECK(dns_message_buildopt(message, &opt, 0, 0, DNS_MESSAGEEXTFLAG_DO,
-				   NULL, 0));
+	dns_message_ednsinit(message, 0, 0, DNS_MESSAGEEXTFLAG_DO, 0);
+	CHECK(dns_message_buildopt(message, &opt));
 	CHECK(dns_message_setopt(message, opt));
 
 	CHECK(dns_requestmgr_create(isc_g_mctx, dispatchmgr, NULL, NULL,

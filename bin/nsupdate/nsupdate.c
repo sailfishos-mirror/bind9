@@ -1493,35 +1493,28 @@ evaluate_prereq(char *cmdline) {
 static void
 updateopt(void) {
 	isc_result_t result;
-	dns_ednsopt_t ednsopts[1];
+	dns_rdataset_t *opt = NULL;
 	unsigned char ul[8];
-	unsigned int count = 0;
+	isc_buffer_t b;
+	dns_ednsopt_t option = {
+		.code = DNS_OPT_UL,
+		.length = keylease_set ? 8 : 4,
+		.value = ul,
+	};
 
-	if (lease_set) {
-		isc_buffer_t b;
-		INSIST(count < ARRAY_SIZE(ednsopts));
-		ednsopts[count++] = (dns_ednsopt_t){ .code = DNS_OPT_UL,
-						     .length = keylease_set ? 8
-									    : 4,
-						     .value = ul };
-
-		isc_buffer_init(&b, ul, sizeof(ul));
-		isc_buffer_putuint32(&b, lease);
-		isc_buffer_putuint32(&b, keylease);
+	if (!lease_set) {
+		return;
 	}
 
-	if (count != 0) {
-		dns_rdataset_t *opt = NULL;
-		result = dns_message_buildopt(updatemsg, &opt, 0,
-					      DEFAULT_EDNS_BUFSIZE, 0, ednsopts,
-					      count);
-		check_result(result, "dns_message_buildopt");
-		result = dns_message_setopt(updatemsg, opt);
-		check_result(result, "dns_message_setopt");
-	} else {
-		result = dns_message_setopt(updatemsg, NULL);
-		check_result(result, "dns_message_setopt");
-	}
+	isc_buffer_init(&b, ul, sizeof(ul));
+	isc_buffer_putuint32(&b, lease);
+	isc_buffer_putuint32(&b, keylease);
+
+	dns_message_ednsinit(updatemsg, 0, DEFAULT_EDNS_BUFSIZE, 0, 0);
+	dns_message_ednsaddopt(updatemsg, &option);
+	result = dns_message_buildopt(updatemsg, &opt);
+	check_result(result, "dns_message_buildopt");
+	result = dns_message_setopt(updatemsg, opt);
 }
 
 static uint16_t

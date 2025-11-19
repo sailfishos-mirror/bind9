@@ -2443,6 +2443,8 @@ dns_rdata_updateop(dns_rdata_t *rdata, dns_section_t section) {
 		default:
 			return "add";
 		}
+	default:
+		break;
 	}
 	return "invalid";
 }

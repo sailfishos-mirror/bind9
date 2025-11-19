@@ -524,24 +524,6 @@ cleanup:
 	return;
 }
 
-/*%
- * Add EDNS0 option record to a message.  Currently, the only supported
- * options are UDP buffer size, the DO bit, and EDNS options
- * (e.g., NSID, COOKIE, client-subnet)
- */
-static void
-add_opt(dns_message_t *msg, uint16_t udpsize, uint16_t edns, unsigned int flags,
-	dns_ednsopt_t *opts, size_t count) {
-	dns_rdataset_t *rdataset = NULL;
-	isc_result_t result;
-
-	result = dns_message_buildopt(msg, &rdataset, edns, udpsize, flags,
-				      opts, count);
-	CHECK("dns_message_buildopt", result);
-	result = dns_message_setopt(msg, rdataset);
-	CHECK("dns_message_setopt", result);
-}
-
 static void
 compute_cookie(unsigned char *cookie, size_t len) {
 	/* XXXMPA need to fix, should be per server. */
@@ -603,11 +585,16 @@ sendquery(struct query *query) {
 	if (query->udpsize > 0 || query->dnssec || query->edns > -1 ||
 	    query->ecs_addr != NULL)
 	{
-		dns_ednsopt_t opts[EDNSOPTS + DNS_EDNSOPTIONS];
 		unsigned int flags;
-		int i = 0;
 		char ecsbuf[20];
 		unsigned char cookie[40];
+		dns_rdataset_t *rdataset = NULL;
+
+		flags = query->ednsflags;
+		flags &= ~DNS_MESSAGEEXTFLAG_DO;
+		if (query->dnssec) {
+			flags |= DNS_MESSAGEEXTFLAG_DO;
+		}
 
 		if (query->udpsize == 0) {
 			query->udpsize = 1232;
@@ -616,12 +603,13 @@ sendquery(struct query *query) {
 			query->edns = 0;
 		}
 
+		dns_message_ednsinit(message, query->edns, query->udpsize,
+				     flags, 0);
+
 		if (query->nsid) {
-			INSIST(i < DNS_EDNSOPTIONS);
-			opts[i].code = DNS_OPT_NSID;
-			opts[i].length = 0;
-			opts[i].value = NULL;
-			i++;
+			dns_ednsopt_t option = { .code = DNS_OPT_NSID };
+			result = dns_message_ednsaddopt(message, &option);
+			CHECK("dns_message_ednsaddopt", result);
 		}
 
 		if (query->ecs_addr != NULL) {
@@ -639,10 +627,6 @@ sendquery(struct query *query) {
 			/* Round up prefix len to a multiple of 8 */
 			addrl = (plen + 7) / 8;
 
-			INSIST(i < DNS_EDNSOPTIONS);
-			opts[i].code = DNS_OPT_CLIENT_SUBNET;
-			opts[i].length = (uint16_t)addrl + 4;
-			CHECK("isc_buffer_allocate", result);
 			isc_buffer_init(&b, ecsbuf, sizeof(ecsbuf));
 			if (sa->sa_family == AF_INET) {
 				family = 1;
@@ -675,13 +659,16 @@ sendquery(struct query *query) {
 						  (unsigned int)addrl);
 			}
 
-			opts[i].value = (uint8_t *)ecsbuf;
-			i++;
+			dns_ednsopt_t option = { .code = DNS_OPT_CLIENT_SUBNET,
+						 .value = (uint8_t *)ecsbuf,
+						 .length = (uint16_t)addrl +
+							   4 };
+			result = dns_message_ednsaddopt(message, &option);
+			CHECK("dns_message_ednsaddopt", result);
 		}
 
 		if (query->send_cookie) {
-			INSIST(i < DNS_EDNSOPTIONS);
-			opts[i].code = DNS_OPT_COOKIE;
+			dns_ednsopt_t option = { .code = DNS_OPT_COOKIE };
 			if (query->cookie != NULL) {
 				isc_buffer_t b;
 
@@ -689,36 +676,36 @@ sendquery(struct query *query) {
 				result = isc_hex_decodestring(query->cookie,
 							      &b);
 				CHECK("isc_hex_decodestring", result);
-				opts[i].value = isc_buffer_base(&b);
-				opts[i].length = isc_buffer_usedlength(&b);
+				option.value = isc_buffer_base(&b);
+				option.length = isc_buffer_usedlength(&b);
 			} else {
 				compute_cookie(cookie, 8);
-				opts[i].length = 8;
-				opts[i].value = cookie;
+				option.length = 8;
+				option.value = cookie;
 			}
-			i++;
+
+			result = dns_message_ednsaddopt(message, &option);
+			CHECK("dns_message_ednsaddopt", result);
 		}
 
 		if (query->expire) {
-			INSIST(i < DNS_EDNSOPTIONS);
-			opts[i].code = DNS_OPT_EXPIRE;
-			opts[i].length = 0;
-			opts[i].value = NULL;
-			i++;
+			dns_ednsopt_t option = { .code = DNS_OPT_EXPIRE };
+			result = dns_message_ednsaddopt(message, &option);
+			CHECK("dns_message_ednsaddopt", result);
 		}
 
 		if (query->ednsoptscnt != 0) {
-			memmove(&opts[i], query->ednsopts,
-				sizeof(dns_ednsopt_t) * query->ednsoptscnt);
-			i += query->ednsoptscnt;
+			for (size_t i = 0; i < query->ednsoptscnt; i++) {
+				result = dns_message_ednsaddopt(
+					message, &query->ednsopts[i]);
+				CHECK("dns_message_ednsaddopt", result);
+			}
 		}
 
-		flags = query->ednsflags;
-		flags &= ~DNS_MESSAGEEXTFLAG_DO;
-		if (query->dnssec) {
-			flags |= DNS_MESSAGEEXTFLAG_DO;
-		}
-		add_opt(message, query->udpsize, query->edns, flags, opts, i);
+		result = dns_message_buildopt(message, &rdataset);
+		CHECK("dns_message_buildopt", result);
+		result = dns_message_setopt(message, rdataset);
+		CHECK("dns_message_setopt", result);
 	}
 
 	if (tcp_mode) {

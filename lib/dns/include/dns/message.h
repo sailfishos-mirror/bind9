@@ -24,7 +24,6 @@
 #include <isc/refcount.h>
 
 #include <dns/compress.h>
-#include <dns/ede.h>
 #include <dns/masterdump.h>
 #include <dns/types.h>
 
@@ -90,46 +89,55 @@
  * section, move rdata from one section to another, remove rdata, etc.
  */
 
-#define DNS_MESSAGEFLAG_QR 0x8000U
-#define DNS_MESSAGEFLAG_AA 0x0400U
-#define DNS_MESSAGEFLAG_TC 0x0200U
-#define DNS_MESSAGEFLAG_RD 0x0100U
-#define DNS_MESSAGEFLAG_RA 0x0080U
-#define DNS_MESSAGEFLAG_AD 0x0020U
-#define DNS_MESSAGEFLAG_CD 0x0010U
+enum {
+	DNS_MESSAGEFLAG_QR = 0x8000U,
+	DNS_MESSAGEFLAG_AA = 0x0400U,
+	DNS_MESSAGEFLAG_TC = 0x0200U,
+	DNS_MESSAGEFLAG_RD = 0x0100U,
+	DNS_MESSAGEFLAG_RA = 0x0080U,
+	DNS_MESSAGEFLAG_AD = 0x0020U,
+	DNS_MESSAGEFLAG_CD = 0x0010U,
+};
 
 /*%< EDNS0 extended message flags */
-#define DNS_MESSAGEEXTFLAG_DO 0x8000U /* DNSSEC OK */
-#define DNS_MESSAGEEXTFLAG_CO 0x4000U /* Compact denial of existence OK */
+enum {
+	DNS_MESSAGEEXTFLAG_DO = 0x8000U, /* DNSSEC OK */
+	DNS_MESSAGEEXTFLAG_CO = 0x4000U, /* Compact denial of existence OK */
+};
 
 /*%< EDNS0 extended OPT codes */
-#define DNS_OPT_LLQ	       1  /*%< LLQ opt code */
-#define DNS_OPT_UL	       2  /*%< UL opt code */
-#define DNS_OPT_NSID	       3  /*%< NSID opt code */
-#define DNS_OPT_DAU	       5  /*%< DNSSEC algorithm understood */
-#define DNS_OPT_DHU	       6  /*%< DNSSEC hash understood */
-#define DNS_OPT_N3U	       7  /*%< NSEC3 hash understood */
-#define DNS_OPT_CLIENT_SUBNET  8  /*%< client subnet opt code */
-#define DNS_OPT_EXPIRE	       9  /*%< EXPIRE opt code */
-#define DNS_OPT_COOKIE	       10 /*%< COOKIE opt code */
-#define DNS_OPT_TCP_KEEPALIVE  11 /*%< TCP keepalive opt code */
-#define DNS_OPT_PAD	       12 /*%< PAD opt code */
-#define DNS_OPT_CHAIN	       13 /*%< CHAIN opt code */
-#define DNS_OPT_KEY_TAG	       14 /*%< Key tag opt code */
-#define DNS_OPT_EDE	       15 /*%< Extended DNS Error opt code */
-#define DNS_OPT_CLIENT_TAG     16 /*%< Client tag opt code */
-#define DNS_OPT_SERVER_TAG     17 /*%< Server tag opt code */
-#define DNS_OPT_REPORT_CHANNEL 18 /*%< DNS Reporting Channel */
-#define DNS_OPT_ZONEVERSION    19 /*%< Zoneversion opt code */
+enum {
+	DNS_OPT_LLQ = 1,	     /*%< LLQ opt code */
+	DNS_OPT_UL = 2,		     /*%< UL opt code */
+	DNS_OPT_NSID = 3,	     /*%< NSID opt code */
+	DNS_OPT_DAU = 5,	     /*%< DNSSEC algorithm understood */
+	DNS_OPT_DHU = 6,	     /*%< DNSSEC hash understood */
+	DNS_OPT_N3U = 7,	     /*%< NSEC3 hash understood */
+	DNS_OPT_CLIENT_SUBNET = 8,   /*%< client subnet opt code */
+	DNS_OPT_EXPIRE = 9,	     /*%< EXPIRE opt code */
+	DNS_OPT_COOKIE = 10,	     /*%< COOKIE opt code */
+	DNS_OPT_TCP_KEEPALIVE = 11,  /*%< TCP keepalive opt code */
+	DNS_OPT_PAD = 12,	     /*%< PAD opt code */
+	DNS_OPT_CHAIN = 13,	     /*%< CHAIN opt code */
+	DNS_OPT_KEY_TAG = 14,	     /*%< Key tag opt code */
+	DNS_OPT_EDE = 15,	     /*%< Extended DNS Error opt code */
+	DNS_OPT_CLIENT_TAG = 16,     /*%< Client tag opt code */
+	DNS_OPT_SERVER_TAG = 17,     /*%< Server tag opt code */
+	DNS_OPT_REPORT_CHANNEL = 18, /*%< DNS Reporting Channel */
+	DNS_OPT_ZONEVERSION = 19,    /*%< Zoneversion opt code */
+
+	DNS_OPT_COUNT = 18, /*%< Number of elements defined in this enum. */
+};
 
 /*%< Experimental options [65001...65534] as per RFC6891 */
 
 /*%<
  * The maximum number of EDNS options we allow to set. Reserve space for the
- * options we know about. Extended DNS Errors may occur multiple times, see
- * DNS_EDE_MAX_ERRORS.
+ * options we know about. Extended DNS Errors may occur multiple times,
+ * controlled by DNS_EDE_MAX_ERRORS.
  */
-#define DNS_EDNSOPTIONS 9 + DNS_EDE_MAX_ERRORS
+#define DNS_EDE_MAX_ERRORS   3
+#define DNS_EDNS_MAX_OPTIONS DNS_OPT_COUNT + DNS_EDE_MAX_ERRORS
 
 #define DNS_MESSAGE_REPLYPRESERVE	 (DNS_MESSAGEFLAG_RD | DNS_MESSAGEFLAG_CD)
 #define DNS_MESSAGEEXTFLAG_REPLYPRESERVE (DNS_MESSAGEEXTFLAG_DO)
@@ -143,26 +151,32 @@
  * Ordering here matters.  DNS_SECTION_ANY must be the lowest and negative,
  * and DNS_SECTION_MAX must be one greater than the last used section.
  */
-typedef int dns_section_t;
-#define DNS_SECTION_ANY	       (-1)
-#define DNS_SECTION_QUESTION   0
-#define DNS_SECTION_ANSWER     1
-#define DNS_SECTION_AUTHORITY  2
-#define DNS_SECTION_ADDITIONAL 3
-#define DNS_SECTION_MAX	       4
+typedef enum {
+	DNS_SECTION_ANY = -1,
+	DNS_SECTION_QUESTION = 0,
+	DNS_SECTION_ZONE = DNS_SECTION_QUESTION,
+	DNS_SECTION_ANSWER = 1,
+	DNS_SECTION_PREREQUISITE = DNS_SECTION_ANSWER,
+	DNS_SECTION_AUTHORITY = 2,
+	DNS_SECTION_UPDATE = DNS_SECTION_AUTHORITY,
+	DNS_SECTION_ADDITIONAL = 3,
+	DNS_SECTION_MAX
+} dns_section_t;
 
-typedef int dns_pseudosection_t;
-#define DNS_PSEUDOSECTION_ANY  (-1)
-#define DNS_PSEUDOSECTION_OPT  0
-#define DNS_PSEUDOSECTION_TSIG 1
-#define DNS_PSEUDOSECTION_SIG0 2
-#define DNS_PSEUDOSECTION_MAX  3
+typedef enum {
+	DNS_PSEUDOSECTION_ANY = -1,
+	DNS_PSEUDOSECTION_OPT = 0,
+	DNS_PSEUDOSECTION_TSIG = 1,
+	DNS_PSEUDOSECTION_SIG0 = 2,
+	DNS_PSEUDOSECTION_MAX
+} dns_pseudosection_t;
 
-typedef int dns_messagetextflag_t;
-#define DNS_MESSAGETEXTFLAG_NOCOMMENTS 0x0001
-#define DNS_MESSAGETEXTFLAG_NOHEADERS  0x0002
-#define DNS_MESSAGETEXTFLAG_ONESOA     0x0004
-#define DNS_MESSAGETEXTFLAG_OMITSOA    0x0008
+typedef enum {
+	DNS_MESSAGETEXTFLAG_NOCOMMENTS = 1 << 0,
+	DNS_MESSAGETEXTFLAG_NOHEADERS = 1 << 1,
+	DNS_MESSAGETEXTFLAG_ONESOA = 1 << 2,
+	DNS_MESSAGETEXTFLAG_OMITSOA = 1 << 3,
+} dns_messagetextflag_t;
 
 /*
  * Dynamic update names for these sections.
@@ -222,6 +236,12 @@ typedef struct dns_minttl {
 	bool	  is_set;
 	dns_ttl_t ttl;
 } dns_minttl_t;
+
+struct dns_ednsopt {
+	uint16_t code;
+	uint16_t length;
+	uint8_t *value;
+};
 
 struct dns_message {
 	/* public from here down */
@@ -310,12 +330,15 @@ struct dns_message {
 	dns_indent_t indent;
 
 	dns_minttl_t minttl[DNS_SECTION_MAX];
-};
 
-struct dns_ednsopt {
-	uint16_t code;
-	uint16_t length;
-	uint8_t *value;
+	struct {
+		dns_ednsopt_t *opts;
+		uint8_t	       maxopts;
+		uint8_t	       count;
+		int16_t	       version;
+		uint16_t       udpsize;
+		uint32_t       flags;
+	} edns;
 };
 
 typedef void (*dns_message_cb_t)(void *arg, isc_result_t result);
@@ -1383,12 +1406,44 @@ dns_message_logpacketfromto(dns_message_t *message, const char *description,
  *\li	'mctx' to be a valid memory context.
  */
 
-isc_result_t
-dns_message_buildopt(dns_message_t *msg, dns_rdataset_t **opt,
-		     unsigned int version, uint16_t udpsize, unsigned int flags,
-		     dns_ednsopt_t *ednsopts, size_t count);
+void
+dns_message_ednsinit(dns_message_t *msg, int16_t version, uint16_t udpsize,
+		     uint32_t flags, uint8_t maxopts);
 /*%<
- * Built a opt record.
+ * Initialize the EDNS data in 'msg'. EDNS version is set to 'version',
+ * UDP size is set to 'udpsize', flags is set to 'flags'; EDNS options
+ * are cleared, and ready to be added via subsequent calls to
+ * dns_message_ednsaddopt(). If 'maxopts' is nonzero, space is allocated
+ * for that many EDNS options; if it is zero, space is allocated for
+ * DNS_EDNS_MAX_OPTIONS options.
+ *
+ * If 'version' is -1, the message has no EDNS, any existing EDNS data
+ * is cleared, and no OPT record will be rendered.
+ *
+ * Requires:
+ *\li	'msg' be a valid message.
+ */
+
+isc_result_t
+dns_message_ednsaddopt(dns_message_t *msg, dns_ednsopt_t *ednsopt);
+/*%<
+ * Add the EDNS option 'ednsopt' to 'msg->edns.opts' and increment
+ * 'msg->edns.count'.
+ *
+ * Requires:
+ *\li	'msg' to be a valid message.
+ *\li	dns_message_ednsinit() to have been called.
+ *
+ * Returns:
+ *\li	 ISC_R_SUCCESS
+ *\li	 ISC_R_NOSPACE
+ */
+
+isc_result_t
+dns_message_buildopt(dns_message_t *msg, dns_rdataset_t **opt);
+
+/*%<
+ * Build an opt record.
  *
  * Requires:
  *\li	msg be a valid message.

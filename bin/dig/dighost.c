@@ -1438,25 +1438,6 @@ save_opt(dig_lookup_t *lookup, char *code, char *value) {
 }
 
 /*%
- * Add EDNS0 option record to a message.  Currently, the only supported
- * options are UDP buffer size, the DO bit, and EDNS options
- * (e.g., NSID, COOKIE, client-subnet)
- */
-static void
-add_opt(dns_message_t *msg, uint16_t udpsize, uint16_t edns, unsigned int flags,
-	dns_ednsopt_t *opts, size_t count) {
-	dns_rdataset_t *rdataset = NULL;
-	isc_result_t result;
-
-	debug("add_opt()");
-	result = dns_message_buildopt(msg, &rdataset, edns, udpsize, flags,
-				      opts, count);
-	check_result(result, "dns_message_buildopt");
-	result = dns_message_setopt(msg, rdataset);
-	check_result(result, "dns_message_setopt");
-}
-
-/*%
  * Add a question section to a message, asking for the specified name,
  * type, and class.
  */
@@ -2134,6 +2115,7 @@ setup_lookup(dig_lookup_t *lookup) {
 	char cookiebuf[256];
 	char *origin = NULL;
 	char *textname = NULL;
+	dns_rdataset_t *rdataset = NULL;
 
 	REQUIRE(lookup != NULL);
 
@@ -2395,17 +2377,19 @@ setup_lookup(dig_lookup_t *lookup) {
 	if (lookup->udpsize > -1 || lookup->dnssec || lookup->edns > -1 ||
 	    lookup->ecs_addr != NULL)
 	{
-#define MAXOPTS (EDNSOPT_OPTIONS + DNS_EDNSOPTIONS)
-		dns_ednsopt_t opts[MAXOPTS];
-		unsigned int flags;
-		unsigned int i = 0;
+		dns_ednsopt_t option;
 
-		/*
-		 * There can't be more than MAXOPTS options to send:
-		 * a maximum of EDNSOPT_OPTIONS set by +ednsopt
-		 * and DNS_EDNSOPTIONS set by other arguments
-		 * (+nsid, +cookie, etc).
-		 */
+		/* Set the EDNS flags */
+		unsigned int flags = lookup->ednsflags;
+		flags &= ~(DNS_MESSAGEEXTFLAG_DO | DNS_MESSAGEEXTFLAG_CO);
+		if (lookup->dnssec) {
+			flags |= DNS_MESSAGEEXTFLAG_DO;
+		}
+		if (lookup->coflag) {
+			flags |= DNS_MESSAGEEXTFLAG_CO;
+		}
+
+		/* Set the EDNS UDP size */
 		if (lookup->udpsize < 0) {
 			lookup->udpsize = DEFAULT_EDNS_BUFSIZE;
 		}
@@ -2414,21 +2398,33 @@ setup_lookup(dig_lookup_t *lookup) {
 				DEFAULT_EDNS_VERSION;
 		}
 
+		/*
+		 * Initialize EDNS in the message.
+		 *
+		 * Allow space for EDNSOPT_OPTIONS options to be
+		 * set by +ednsopt, plus DNS_EDNSOPTIONS to be set
+		 * by other arguments (+nsid, +cookie, etc).
+		 */
+		constexpr size_t MAXOPTS =
+			(EDNSOPT_OPTIONS + DNS_EDNS_MAX_OPTIONS);
+
+		dns_message_ednsinit(lookup->sendmsg, lookup->edns,
+				     lookup->udpsize, flags, MAXOPTS);
+
 		if (lookup->nsid) {
-			INSIST(i < MAXOPTS);
-			opts[i].code = DNS_OPT_NSID;
-			opts[i].length = 0;
-			opts[i].value = NULL;
-			i++;
+			option = (dns_ednsopt_t){ .code = DNS_OPT_NSID };
+			result = dns_message_ednsaddopt(lookup->sendmsg,
+							&option);
+			check_result(result, "dns_message_ednsaddopt");
 		}
 
 		if (lookup->ecs_addr != NULL) {
 			uint8_t addr[16];
 			uint16_t family = 0;
 			uint32_t plen;
-			struct sockaddr *sa;
-			struct sockaddr_in *sin;
-			struct sockaddr_in6 *sin6;
+			struct sockaddr *sa = NULL;
+			struct sockaddr_in *sin = NULL;
+			struct sockaddr_in6 *sin6 = NULL;
 			size_t addrl;
 
 			sa = &lookup->ecs_addr->type.sa;
@@ -2437,10 +2433,8 @@ setup_lookup(dig_lookup_t *lookup) {
 			/* Round up prefix len to a multiple of 8 */
 			addrl = (plen + 7) / 8;
 
-			INSIST(i < MAXOPTS);
-			opts[i].code = DNS_OPT_CLIENT_SUBNET;
-			opts[i].length = (uint16_t)addrl + 4;
-			check_result(result, "isc_buffer_allocate");
+			option.code = DNS_OPT_CLIENT_SUBNET;
+			option.length = (uint16_t)addrl + 4;
 
 			/*
 			 * XXXMUKS: According to RFC7871, "If there is
@@ -2502,85 +2496,78 @@ setup_lookup(dig_lookup_t *lookup) {
 						  (unsigned int)addrl);
 			}
 
-			opts[i].value = (uint8_t *)ecsbuf;
-			i++;
+			option.value = (uint8_t *)ecsbuf;
+			result = dns_message_ednsaddopt(lookup->sendmsg,
+							&option);
+			check_result(result, "dns_message_ednsaddopt");
 		}
 
 		if (lookup->sendcookie) {
-			INSIST(i < MAXOPTS);
-			opts[i].code = DNS_OPT_COOKIE;
+			option.code = DNS_OPT_COOKIE;
 			if (lookup->cookie != NULL) {
 				isc_buffer_init(&b, cookiebuf,
 						sizeof(cookiebuf));
 				result = isc_hex_decodestring(lookup->cookie,
 							      &b);
 				check_result(result, "isc_hex_decodestring");
-				opts[i].value = isc_buffer_base(&b);
-				opts[i].length = isc_buffer_usedlength(&b);
+				option.value = isc_buffer_base(&b);
+				option.length = isc_buffer_usedlength(&b);
 			} else {
 				compute_cookie(cookie, sizeof(cookie));
-				opts[i].length = 8;
-				opts[i].value = cookie;
+				option.length = 8;
+				option.value = cookie;
 			}
-			i++;
+
+			result = dns_message_ednsaddopt(lookup->sendmsg,
+							&option);
+			check_result(result, "dns_message_ednsaddopt");
 		}
 
 		if (lookup->expire) {
-			INSIST(i < MAXOPTS);
-			opts[i].code = DNS_OPT_EXPIRE;
-			opts[i].length = 0;
-			opts[i].value = NULL;
-			i++;
+			option = (dns_ednsopt_t){ .code = DNS_OPT_EXPIRE };
+			result = dns_message_ednsaddopt(lookup->sendmsg,
+							&option);
+			check_result(result, "dns_message_ednsaddopt");
 		}
 
 		if (lookup->tcp_keepalive) {
-			INSIST(i < MAXOPTS);
-			opts[i].code = DNS_OPT_TCP_KEEPALIVE;
-			opts[i].length = 0;
-			opts[i].value = NULL;
-			i++;
+			option = (dns_ednsopt_t){
+				.code = DNS_OPT_TCP_KEEPALIVE,
+			};
+			result = dns_message_ednsaddopt(lookup->sendmsg,
+							&option);
+			check_result(result, "dns_message_ednsaddopt");
 		}
 
 		if (lookup->zoneversion) {
-			INSIST(i < MAXOPTS);
-			opts[i].code = DNS_OPT_ZONEVERSION;
-			opts[i].length = 0;
-			opts[i].value = NULL;
-			i++;
+			option = (dns_ednsopt_t){
+				.code = DNS_OPT_ZONEVERSION,
+			};
+			result = dns_message_ednsaddopt(lookup->sendmsg,
+							&option);
+			check_result(result, "dns_message_ednsaddopt");
 		}
 
 		if (lookup->ednsoptscnt != 0) {
-			INSIST(i + lookup->ednsoptscnt <= MAXOPTS);
-			memmove(&opts[i], lookup->ednsopts,
-				sizeof(dns_ednsopt_t) * lookup->ednsoptscnt);
-			i += lookup->ednsoptscnt;
-		}
-
-		if (lookup->padding != 0 && (i >= MAXOPTS)) {
-			debug("turned off padding because of EDNS overflow");
-			lookup->padding = 0;
+			for (size_t i = 0; i < lookup->ednsoptscnt; i++) {
+				result = dns_message_ednsaddopt(
+					lookup->sendmsg, &lookup->ednsopts[i]);
+				check_result(result, "dns_message_ednsaddopt");
+			}
 		}
 
 		if (lookup->padding != 0) {
-			INSIST(i < MAXOPTS);
-			opts[i].code = DNS_OPT_PAD;
-			opts[i].length = 0;
-			opts[i].value = NULL;
-			i++;
+			option = (dns_ednsopt_t){ .code = DNS_OPT_PAD };
+			/* This can fail harmlessly */
+			(void)dns_message_ednsaddopt(lookup->sendmsg, &option);
 			dns_message_setpadding(lookup->sendmsg,
 					       lookup->padding);
 		}
 
-		flags = lookup->ednsflags;
-		flags &= ~(DNS_MESSAGEEXTFLAG_DO | DNS_MESSAGEEXTFLAG_CO);
-		if (lookup->dnssec) {
-			flags |= DNS_MESSAGEEXTFLAG_DO;
-		}
-		if (lookup->coflag) {
-			flags |= DNS_MESSAGEEXTFLAG_CO;
-		}
-		add_opt(lookup->sendmsg, lookup->udpsize, lookup->edns, flags,
-			opts, i);
+		result = dns_message_buildopt(lookup->sendmsg, &rdataset);
+		check_result(result, "dns_message_buildopt");
+		result = dns_message_setopt(lookup->sendmsg, rdataset);
+		check_result(result, "dns_message_setopt");
 	}
 
 	result = dns_message_rendersection(lookup->sendmsg,
