@@ -3411,73 +3411,34 @@ isstrictsubdomain(const dns_name_t *name1, const dns_name_t *name2) {
 	return namereln == dns_namereln_subdomain;
 }
 
+static unsigned int
+fctx_getaddresses_allowed(fetchctx_t *fctx) {
+	switch (fctx->depth) {
+	case 0:
+		return 3;
+	case 1:
+		return 2;
+	case 2:
+		return 1;
+	default:
+		return 0;
+	}
+}
+
 static isc_result_t
-fctx_getaddresses(fetchctx_t *fctx) {
-	isc_result_t result;
-	dns_resolver_t *res;
-	isc_stdtime_t now;
-	unsigned int stdoptions = 0;
-	dns_forwarder_t *fwd;
-	dns_adbaddrinfo_t *ai;
-	bool all_bad;
-	dns_rdata_ns_t ns;
-	bool need_alternate = false;
-	bool all_spilled = false;
-	bool have_address = false;
-	unsigned int ns_processed = 0;
-	size_t fetches_allowed = 0;
-
-	FCTXTRACE5("getaddresses", "fctx->depth=", fctx->depth);
-
-	/*
-	 * Don't pound on remote servers.  (Failsafe!)
-	 */
-	fctx->restarts++;
-	if (fctx->restarts > 100) {
-		FCTXTRACE("too many restarts");
-		return DNS_R_SERVFAIL;
-	}
-
-	res = fctx->res;
-
-	if (fctx->depth > res->maxdepth) {
-		isc_log_write(DNS_LOGCATEGORY_RESOLVER, DNS_LOGMODULE_RESOLVER,
-			      ISC_LOG_DEBUG(3),
-			      "too much NS indirection resolving '%s' "
-			      "(depth=%u, maxdepth=%u)",
-			      fctx->info, fctx->depth, res->maxdepth);
-		return DNS_R_SERVFAIL;
-	}
-
-	/*
-	 * Forwarders.
-	 */
-
-	INSIST(ISC_LIST_EMPTY(fctx->forwaddrs));
-	INSIST(ISC_LIST_EMPTY(fctx->altaddrs));
-
-	/*
-	 * If we have DNS_FETCHOPT_NOFORWARD set and forwarding policy
-	 * allows us to not forward - skip forwarders and go straight
-	 * to NSes. This is currently used to make sure that priming
-	 * query gets root servers' IP addresses in ADDITIONAL section.
-	 */
-	if ((fctx->options & DNS_FETCHOPT_NOFORWARD) != 0 &&
-	    (fctx->fwdpolicy != dns_fwdpolicy_only))
-	{
-		goto normal_nses;
-	}
-
+fctx_getaddresses_forwarders(fetchctx_t *fctx) {
+	dns_resolver_t *res = fctx->res;
 	/*
 	 * If this fctx has forwarders, use them; otherwise use any
 	 * selective forwarders specified in the view; otherwise use the
 	 * resolver's forwarders (if any).
 	 */
-	fwd = ISC_LIST_HEAD(fctx->forwarders);
+	dns_forwarder_t *fwd = ISC_LIST_HEAD(fctx->forwarders);
 	if (fwd == NULL) {
 		dns_forwarders_t *forwarders = NULL;
 		dns_name_t *name = fctx->name;
 		dns_name_t suffix;
+		isc_result_t result;
 
 		/*
 		 * DS records are found in the parent server.
@@ -3515,8 +3476,11 @@ fctx_getaddresses(fetchctx_t *fctx) {
 	}
 
 	while (fwd != NULL) {
+		isc_result_t result;
+		dns_adbaddrinfo_t *ai;
 		if ((isc_sockaddr_pf(&fwd->addr) == AF_INET &&
 		     res->dispatches4 == NULL) ||
+
 		    (isc_sockaddr_pf(&fwd->addr) == AF_INET6 &&
 		     res->dispatches6 == NULL))
 		{
@@ -3552,18 +3516,180 @@ fctx_getaddresses(fetchctx_t *fctx) {
 		fwd = ISC_LIST_NEXT(fwd, link);
 	}
 
+	return DNS_R_CONTINUE;
+}
+
+static isc_result_t
+fctx_getaddresses_nameservers(fetchctx_t *fctx, isc_stdtime_t now,
+			      unsigned int stdoptions,
+			      unsigned int fetches_allowed,
+			      bool *need_alternatep, bool *all_spilledp) {
+	dns_rdata_ns_t ns;
+	bool have_address = false;
+	unsigned int ns_processed = 0;
+
+	DNS_RDATASET_FOREACH(&fctx->nameservers) {
+		isc_result_t result = ISC_R_SUCCESS;
+		dns_rdata_t rdata = DNS_RDATA_INIT;
+		bool overquota = false;
+		unsigned int static_stub = 0;
+		unsigned int no_fetch = 0;
+
+		dns_rdataset_current(&fctx->nameservers, &rdata);
+		/*
+		 * Extract the name from the NS record.
+		 */
+		result = dns_rdata_tostruct(&rdata, &ns, NULL);
+		if (result != ISC_R_SUCCESS) {
+			continue;
+		}
+
+		if (STATICSTUB(&fctx->nameservers) &&
+		    dns_name_equal(&ns.name, fctx->domain))
+		{
+			static_stub = DNS_ADBFIND_STATICSTUB;
+		}
+
+		/*
+		 * Make sure we only launch a limited number of
+		 * outgoing fetches.
+		 */
+		if (fctx->pending_running >= fetches_allowed) {
+			no_fetch = DNS_ADBFIND_NOFETCH;
+		}
+
+		findname(fctx, &ns.name, 0, stdoptions | static_stub | no_fetch,
+			 0, now, &overquota, need_alternatep, &have_address);
+
+		if (!overquota) {
+			*all_spilledp = false;
+		}
+
+		dns_rdata_reset(&rdata);
+		dns_rdata_freestruct(&ns);
+
+		if (++ns_processed >= NS_PROCESSING_LIMIT) {
+			break;
+		}
+	}
+
+	if (fctx->pending_running == 0 && !have_address) {
+		/*
+		 * We don't have any address and there are no
+		 * pending fetches running, indicate that we
+		 * need to continue looking.
+		 */
+		return DNS_R_CONTINUE;
+	}
+
+	return ISC_R_SUCCESS;
+}
+
+static void
+fctx_getaddresses_alternate(fetchctx_t *fctx, isc_stdtime_t now,
+			    unsigned int stdoptions) {
+	dns_resolver_t *res = fctx->res;
+	int family = (res->dispatches6 != NULL) ? AF_INET6 : AF_INET;
+	ISC_LIST_FOREACH(res->alternates, a, link) {
+		dns_adbaddrinfo_t *ai;
+		isc_result_t result;
+		if (!a->isaddress) {
+			findname(fctx, &a->_u._n.name, a->_u._n.port,
+				 stdoptions, FCTX_ADDRINFO_DUALSTACK, now, NULL,
+				 NULL, NULL);
+			continue;
+		}
+		if (isc_sockaddr_pf(&a->_u.addr) != family) {
+			continue;
+		}
+		ai = NULL;
+		result = dns_adb_findaddrinfo(fctx->adb, &a->_u.addr, &ai, 0);
+		if (result != ISC_R_SUCCESS) {
+			continue;
+		}
+
+		dns_adbaddrinfo_t *cur;
+		ai->flags |= FCTX_ADDRINFO_FORWARDER;
+		ai->flags |= FCTX_ADDRINFO_DUALSTACK;
+		cur = ISC_LIST_HEAD(fctx->altaddrs);
+		while (cur != NULL && cur->srtt < ai->srtt) {
+			cur = ISC_LIST_NEXT(cur, publink);
+		}
+		if (cur != NULL) {
+			ISC_LIST_INSERTBEFORE(fctx->altaddrs, cur, ai, publink);
+		} else {
+			ISC_LIST_APPEND(fctx->altaddrs, ai, publink);
+		}
+	}
+}
+
+static isc_result_t
+fctx_getaddresses(fetchctx_t *fctx) {
+	isc_result_t result;
+	dns_resolver_t *res;
+	isc_stdtime_t now;
+	unsigned int stdoptions = 0;
+	bool all_bad;
+	bool need_alternate = false;
+	bool all_spilled = false;
+	unsigned int fetches_allowed = 0;
+
+	FCTXTRACE5("getaddresses", "fctx->depth=", fctx->depth);
+
 	/*
-	 * If the forwarding policy is "only", we don't need the
-	 * addresses of the nameservers.
+	 * Don't pound on remote servers.  (Failsafe!)
 	 */
-	if (fctx->fwdpolicy == dns_fwdpolicy_only) {
-		goto out;
+	fctx->restarts++;
+	if (fctx->restarts > 100) {
+		FCTXTRACE("too many restarts");
+		return DNS_R_SERVFAIL;
+	}
+
+	res = fctx->res;
+
+	if (fctx->depth > res->maxdepth) {
+		isc_log_write(DNS_LOGCATEGORY_RESOLVER, DNS_LOGMODULE_RESOLVER,
+			      ISC_LOG_DEBUG(3),
+			      "too much NS indirection resolving '%s' "
+			      "(depth=%u, maxdepth=%u)",
+			      fctx->info, fctx->depth, res->maxdepth);
+		return DNS_R_SERVFAIL;
+	}
+
+	/*
+	 * Forwarders.
+	 */
+
+	INSIST(ISC_LIST_EMPTY(fctx->forwaddrs));
+	INSIST(ISC_LIST_EMPTY(fctx->altaddrs));
+
+	/*
+	 * Skip forwarders only if DNS_FETCHOPT_NOFORWARD is not set or if the
+	 * forwarding policy doesn't allow us to not forward.
+	 *
+	 * This is currently used to make sure that priming query gets root
+	 * servers' IP addresses in ADDITIONAL section.
+	 */
+	if ((fctx->options & DNS_FETCHOPT_NOFORWARD) == 0 ||
+	    (fctx->fwdpolicy == dns_fwdpolicy_only))
+	{
+		result = fctx_getaddresses_forwarders(fctx);
+		if (result != DNS_R_CONTINUE) {
+			return result;
+		}
+
+		/*
+		 * If the forwarding policy is "only", we don't need the
+		 * addresses of the nameservers.
+		 */
+		if (fctx->fwdpolicy == dns_fwdpolicy_only) {
+			goto out;
+		}
 	}
 
 	/*
 	 * Normal nameservers.
 	 */
-normal_nses:
 	stdoptions = DNS_ADBFIND_WANTEVENT | DNS_ADBFIND_EMPTYEVENT;
 	if (fctx->restarts == 1) {
 		/*
@@ -3597,124 +3723,35 @@ normal_nses:
 	INSIST(ISC_LIST_EMPTY(fctx->finds));
 	INSIST(ISC_LIST_EMPTY(fctx->altfinds));
 
-	switch (fctx->depth) {
-	case 0:
-		fetches_allowed = 3;
-		break;
-	case 1:
-		fetches_allowed = 2;
-		break;
-	case 2:
-		fetches_allowed = 1;
-		break;
-	default:
-		fetches_allowed = 0;
-		break;
-	}
+	fetches_allowed = fctx_getaddresses_allowed(fctx);
 
-	for (;;) {
-		DNS_RDATASET_FOREACH(&fctx->nameservers) {
-			dns_rdata_t rdata = DNS_RDATA_INIT;
-			bool overquota = false;
-			unsigned int static_stub = 0;
-			unsigned int no_fetch = 0;
-
-			dns_rdataset_current(&fctx->nameservers, &rdata);
-			/*
-			 * Extract the name from the NS record.
-			 */
-			result = dns_rdata_tostruct(&rdata, &ns, NULL);
-			if (result != ISC_R_SUCCESS) {
-				continue;
-			}
-
-			if (STATICSTUB(&fctx->nameservers) &&
-			    dns_name_equal(&ns.name, fctx->domain))
-			{
-				static_stub = DNS_ADBFIND_STATICSTUB;
-			}
-
-			/*
-			 * Make sure we only launch a limited number of
-			 * outgoing fetches.
-			 */
-			if (fctx->pending_running >= fetches_allowed) {
-				no_fetch = DNS_ADBFIND_NOFETCH;
-			}
-
-			findname(fctx, &ns.name, 0,
-				 stdoptions | static_stub | no_fetch,
-				 0, now, &overquota, &need_alternate,
-				 &have_address);
-
-			if (!overquota) {
-				all_spilled = false;
-			}
-
-			dns_rdata_reset(&rdata);
-			dns_rdata_freestruct(&ns);
-
-			if (++ns_processed >= NS_PROCESSING_LIMIT) {
-				break;
-			}
-		}
-
-		/*
-		 * Don't start alternate fetch if we just started one above.
-		 */
-		if (fctx->pending_running > 0) {
-			stdoptions |= DNS_ADBFIND_NOFETCH;
-			break;
-		} else if (have_address || fetches_allowed != 0) {
-			break;
-		}
-
+	result = fctx_getaddresses_nameservers(fctx, now, stdoptions,
+					       fetches_allowed, &need_alternate,
+					       &all_spilled);
+	if (result == DNS_R_CONTINUE && fetches_allowed == 0) {
 		/*
 		 * We have no addresses and we haven't allowed any
 		 * fetches to be started.  Allow one extra fetch and try
 		 * again.
 		 */
-		fetches_allowed = 1;
+		(void)fctx_getaddresses_nameservers(fctx, now, stdoptions, 1,
+						    &need_alternate,
+						    &all_spilled);
+	}
+
+	/*
+	 * Don't start alternate fetch if we just started one above.
+	 */
+	if (fctx->pending_running > 0) {
+		stdoptions |= DNS_ADBFIND_NOFETCH;
 	}
 
 	/*
 	 * Do we need to use 6 to 4?
 	 */
 	if (need_alternate) {
-		int family;
-		family = (res->dispatches6 != NULL) ? AF_INET6 : AF_INET;
-		ISC_LIST_FOREACH(res->alternates, a, link) {
-			if (!a->isaddress) {
-				findname(fctx, &a->_u._n.name, a->_u._n.port,
-					 stdoptions, FCTX_ADDRINFO_DUALSTACK,
-					 now, NULL, NULL, NULL);
-				continue;
-			}
-			if (isc_sockaddr_pf(&a->_u.addr) != family) {
-				continue;
-			}
-			ai = NULL;
-			result = dns_adb_findaddrinfo(fctx->adb, &a->_u.addr,
-						      &ai, 0);
-			if (result == ISC_R_SUCCESS) {
-				dns_adbaddrinfo_t *cur;
-				ai->flags |= FCTX_ADDRINFO_FORWARDER;
-				ai->flags |= FCTX_ADDRINFO_DUALSTACK;
-				cur = ISC_LIST_HEAD(fctx->altaddrs);
-				while (cur != NULL && cur->srtt < ai->srtt) {
-					cur = ISC_LIST_NEXT(cur, publink);
-				}
-				if (cur != NULL) {
-					ISC_LIST_INSERTBEFORE(fctx->altaddrs,
-							      cur, ai, publink);
-				} else {
-					ISC_LIST_APPEND(fctx->altaddrs, ai,
-							publink);
-				}
-			}
-		}
+		fctx_getaddresses_alternate(fctx, now, stdoptions);
 	}
-
 out:
 	/*
 	 * Mark all known bad servers.
@@ -3724,55 +3761,54 @@ out:
 	/*
 	 * How are we doing?
 	 */
-	if (all_bad) {
-		/*
-		 * We've got no addresses.
-		 */
-		if (fctx->pending_running > 0) {
-			/*
-			 * We're fetching the addresses, but don't have
-			 * any yet.   Tell the caller to wait for an
-			 * answer.
-			 */
-			result = DNS_R_WAIT;
-		} else {
-			/*
-			 * We've lost completely.  We don't know any
-			 * addresses, and the ADB has told us it can't
-			 * get them.
-			 */
-			FCTXTRACE("no addresses");
-
-			result = ISC_R_FAILURE;
-
-			/*
-			 * If all of the addresses found were over the
-			 * fetches-per-server quota, increase the ServerQuota
-			 * counter and return the configured response.
-			 */
-			if (all_spilled) {
-				result = res->quotaresp[dns_quotatype_server];
-				inc_stats(res, dns_resstatscounter_serverquota);
-			}
-
-			/*
-			 * If we are using a 'forward only' policy, and all
-			 * the forwarders are bad, increase the ForwardOnlyFail
-			 * counter.
-			 */
-			if (fctx->fwdpolicy == dns_fwdpolicy_only) {
-				inc_stats(res,
-					  dns_resstatscounter_forwardonlyfail);
-			}
-		}
-	} else {
+	if (!all_bad) {
 		/*
 		 * We've found some addresses.  We might still be
 		 * looking for more addresses.
 		 */
 		sort_finds(&fctx->finds, res->view->v6bias);
 		sort_finds(&fctx->altfinds, 0);
-		result = ISC_R_SUCCESS;
+		return ISC_R_SUCCESS;
+	}
+
+	/*
+	 * We've got no addresses.
+	 */
+	if (fctx->pending_running > 0) {
+		/*
+		 * We're fetching the addresses, but don't have
+		 * any yet.   Tell the caller to wait for an
+		 * answer.
+		 */
+		return DNS_R_WAIT;
+	}
+
+	/*
+	 * We've lost completely.  We don't know any
+	 * addresses, and the ADB has told us it can't
+	 * get them.
+	 */
+	FCTXTRACE("no addresses");
+
+	result = ISC_R_FAILURE;
+
+	/*
+	 * If all of the addresses found were over the
+	 * fetches-per-server quota, increase the ServerQuota
+	 * counter and return the configured response.
+	 */
+	if (all_spilled) {
+		result = res->quotaresp[dns_quotatype_server];
+		inc_stats(res, dns_resstatscounter_serverquota);
+	}
+
+	/*
+	 * If we are using a 'forward only' policy, and all
+	 * the forwarders are bad, increase the ForwardOnlyFail
+	 * counter.
+	 */
+	if (fctx->fwdpolicy == dns_fwdpolicy_only) {
+		inc_stats(res, dns_resstatscounter_forwardonlyfail);
 	}
 
 	return result;
