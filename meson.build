@@ -1710,7 +1710,6 @@ shared_library(
     synthrecord_src,
     implicit_include_directories: false,
     install: true,
-    install_rpath: libdir,
     install_dir: libdir / 'bind',
     name_prefix: '',
     dependencies: [
