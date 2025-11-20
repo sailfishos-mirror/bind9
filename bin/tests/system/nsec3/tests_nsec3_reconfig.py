@@ -326,9 +326,13 @@ def test_nsec3_ent(ns3, templates):
     # remove a name, bump the SOA, and reload
     templates.render(f"{ns3.identifier}/nsec3-ent.kasp.db", {"serial": 2})
 
+    messages = [
+        f"zone {zone}/IN (unsigned): loaded serial 2",
+        f"zone_needdump: zone {zone}/IN (signed): enter",
+    ]
     with ns3.watch_log_from_here() as watcher:
         ns3.rndc(f"reload {zone}")
-        watcher.wait_for_line(f"zone {zone}/IN (signed): sending notifies")
+        watcher.wait_for_sequence(messages)
 
     # try the query again
     query = isctest.query.create(f"c.{fqdn}", dns.rdatatype.A)
@@ -345,9 +349,13 @@ def test_nsec3_ent(ns3, templates):
     # add a name with an ENT, bump the SOA, and reload ensuring the time stamp changes
     templates.render(f"{ns3.identifier}/nsec3-ent.kasp.db", {"serial": 3})
 
+    messages = [
+        f"zone {zone}/IN (unsigned): loaded serial 3",
+        f"zone_needdump: zone {zone}/IN (signed): enter",
+    ]
     with ns3.watch_log_from_here() as watcher:
         ns3.rndc(f"reload {zone}")
-        watcher.wait_for_line(f"zone {zone}/IN (signed): sending notifies")
+        watcher.wait_for_sequence(messages)
 
     # try the query again
     query = isctest.query.create(f"x.y.z.{fqdn}", dns.rdatatype.A)
