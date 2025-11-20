@@ -31,6 +31,18 @@ from nsec3.common import (
 )
 
 
+# include the following zones when rendering named configs
+ZONES = {
+    "nsec3-change.kasp",
+}
+
+
+def bootstrap():
+    return {
+        "zones": ZONES,
+    }
+
+
 @pytest.fixture(scope="module", autouse=True)
 def after_servers_start(ns3, templates):
 
@@ -58,8 +70,12 @@ def after_servers_start(ns3, templates):
     # After reconfig, the NSEC3PARAM TTL should match the new SOA MINIMUM.
 
     # Reconfigure.
-    templates.render(f"{nsdir}/named-fips.conf", {"reconfiged": True})
-    templates.render(f"{nsdir}/named-rsasha1.conf", {"reconfiged": True})
+    data = {
+        "reconfiged": True,
+        "zones": ZONES,
+    }
+    templates.render(f"{nsdir}/named-fips.conf", data)
+    templates.render(f"{nsdir}/named-rsasha1.conf", data)
 
     # Wait for the NSEC3 chain is finished rebuilding.
     messages = [

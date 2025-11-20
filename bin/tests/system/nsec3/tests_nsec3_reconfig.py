@@ -31,6 +31,38 @@ from nsec3.common import (
 )
 
 
+# include the following zones when rendering named configs
+ZONES = {
+    "nsec3-to-nsec.kasp",
+    "nsec-to-nsec3.kasp",
+    "nsec3.kasp",
+    "nsec3-dynamic.kasp",
+    "nsec3-dynamic-change.kasp",
+    "nsec3-dynamic-to-inline.kasp",
+    "nsec3-inline-to-dynamic.kasp",
+    # "nsec3-to-optout.kasp",
+    # "nsec3-from-optout.kasp",
+    "nsec3-other.kasp",
+    "nsec3-ent.kasp",
+}
+
+if os.environ["RSASHA1_SUPPORTED"] == "1":
+    ZONES.update(
+        {
+            "rsasha1-to-nsec3-wait.kasp",
+            "nsec3-to-rsasha1.kasp",
+            "nsec3-to-rsasha1-ds.kasp",
+            "rsasha1-to-nsec3.kasp",
+        }
+    )
+
+
+def bootstrap():
+    return {
+        "zones": ZONES,
+    }
+
+
 @pytest.fixture(scope="module", autouse=True)
 def after_servers_start(ns3, templates):
     # Ensure rsasha1-to-nsec3-wait.kasp is fully signed prior to reconfig.
@@ -41,8 +73,12 @@ def after_servers_start(ns3, templates):
         isctest.kasp.check_dnssec_verify(ns3, zone)
 
     # Reconfigure.
-    templates.render(f"{ns3.identifier}/named-fips.conf", {"reconfiged": True})
-    templates.render(f"{ns3.identifier}/named-rsasha1.conf", {"reconfiged": True})
+    data = {
+        "reconfiged": True,
+        "zones": ZONES,
+    }
+    templates.render(f"{ns3.identifier}/named-fips.conf", data)
+    templates.render(f"{ns3.identifier}/named-rsasha1.conf", data)
     ns3.reconfigure()
 
 
