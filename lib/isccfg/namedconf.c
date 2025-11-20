@@ -1148,7 +1148,8 @@ static cfg_type_t cfg_type_fetchesper = { "fetchesper",	   cfg_parse_tuple,
 					  &cfg_rep_tuple,  fetchesper_fields };
 
 static void
-map_merge(cfg_obj_t *effectivemap, const cfg_obj_t *defaultmap) {
+map_merge(const cfg_obj_t *config ISC_ATTR_UNUSED, cfg_obj_t *effectivemap,
+	  const cfg_obj_t *defaultmap) {
 	const void *clauses = NULL;
 	const cfg_clausedef_t *clause = NULL;
 	unsigned int i = 0;
@@ -1178,7 +1179,7 @@ map_merge(cfg_obj_t *effectivemap, const cfg_obj_t *defaultmap) {
 		if (effectiveobj != NULL && defaultobj != NULL &&
 		    clause->merge != NULL)
 		{
-			clause->merge(effectiveobj, defaultobj);
+			clause->merge(effectivemap, effectiveobj, defaultobj);
 			continue;
 		}
 
@@ -1202,21 +1203,14 @@ map_merge(cfg_obj_t *effectivemap, const cfg_obj_t *defaultmap) {
 }
 
 /*
- * These are used when merging clauses with CFG_CLAUSEFLAG_MULTI, where
- * the entries from the user configuration and the default configuration
- * are added together, rather than the user configuration overriding the
- * default.  merge_prepend() puts the default configuration at the
- * beginning of the cloned object (for example, for dnssec-policy), and
- * merge_append() puts it at the end (for example, for views).
+ * "dnssec-policy" has CFG_CLAUSEFLAG_MULTI, but unlike most such
+ * clauses, the entries in the user configuration are appended to the
+ * default configuration instead of overriding the list.
  */
 static void
-merge_prepend(cfg_obj_t *effectiveobj, const cfg_obj_t *defaultobj) {
-	cfg_list_addclone(effectiveobj, defaultobj, true);
-}
-
-static void
-merge_append(cfg_obj_t *effectiveobj, const cfg_obj_t *defaultobj) {
-	cfg_list_addclone(effectiveobj, defaultobj, false);
+policy_merge(const cfg_obj_t *config ISC_ATTR_UNUSED, cfg_obj_t *eff,
+	     const cfg_obj_t *def) {
+	cfg_list_addclone(eff, def, true);
 }
 
 static void
@@ -1230,115 +1224,159 @@ cloneto(cfg_obj_t *options, const cfg_obj_t *obj, const char *clausename) {
 }
 
 static void
-options_merge_defaultacl(cfg_obj_t *effectiveoptions,
-			 const cfg_obj_t *defaultoptions, const char *aclname,
-			 bool needsdefault) {
+setdefaultacl(cfg_obj_t *options, const cfg_obj_t *defaultoptions,
+	      const char *aclname) {
 	const cfg_obj_t *obj = NULL;
 	isc_result_t result;
 
-	if (needsdefault == false) {
+	result = cfg_map_get(options, aclname, &obj);
+	if (result == ISC_R_SUCCESS) {
 		return;
 	}
 
+	obj = NULL;
 	result = cfg_map_get(defaultoptions, aclname, &obj);
 	INSIST(result == ISC_R_SUCCESS);
 
-	cloneto(effectiveoptions, obj, aclname);
+	cloneto(options, obj, aclname);
+}
+
+static const cfg_obj_t *
+aclobj(const cfg_obj_t *o, const cfg_obj_t *v, const char *name) {
+	const cfg_obj_t *obj = NULL;
+
+	cfg_map_get(v, name, &obj);
+	if (obj == NULL) {
+		cfg_map_get(o, name, &obj);
+	}
+	return obj;
 }
 
 static void
-options_merge(cfg_obj_t *effectiveoptions, const cfg_obj_t *defaultoptions) {
-	const cfg_obj_t *obj = NULL;
-	isc_result_t result;
-	bool noquerycacheacl = false;
-	bool norecursionacl = false;
-	bool noquerycacheonacl = false;
-	bool norecursiononacl = false;
+setacls(const cfg_obj_t *config, cfg_obj_t *voptions,
+	const cfg_obj_t *defaultoptions) {
+	const cfg_obj_t *options = NULL;
+	const cfg_obj_t *query = NULL, *cache = NULL, *cacheon = NULL;
+	const cfg_obj_t *recursion = NULL, *recursionon = NULL;
+
+	cfg_map_get(config, "options", &options);
+	INSIST(options != NULL);
 
 	/*
-	 * ACLs allow-query-cache, allow-recursion, allow-query-cache-on and
-	 * allow-recursion-on need to be "merged" at once because there
-	 * are implicit dependency rules between them. After all those
-	 * dependency rules have been applied, the default values are used
-	 * _only_ if they are still undefined in the user configuration.
-	 *
-	 * This need to be done only for the global options, because the views
-	 * and zone ACL initialization code will look in the global options
-	 * as fallback, and they'll be defined there.
-	 *
-	 * This is useless (and shouldn't have any effect) for views with
-	 * recursion=false, but needed for those with recursion=true
+	 * This can be called in two different contexts: from the top-level
+	 * option clause, or from the user-defined views.
 	 */
-	result = cfg_map_get(effectiveoptions, "allow-query-cache", &obj);
-	if (result != ISC_R_SUCCESS) {
-		result = cfg_map_get(effectiveoptions, "allow-recursion", &obj);
-		if (result == ISC_R_SUCCESS) {
-			cloneto(effectiveoptions, obj, "allow-query-cache");
-		} else {
-			result = cfg_map_get(effectiveoptions, "allow-query",
-					     &obj);
-			if (result == ISC_R_SUCCESS) {
-				cloneto(effectiveoptions, obj,
-					"allow-query-cache");
-			} else {
-				noquerycacheacl = true;
-			}
+	INSIST((options == voptions && defaultoptions != NULL) ||
+	       (options != voptions && defaultoptions == NULL));
+
+	query = aclobj(options, voptions, "allow-query");
+	recursion = aclobj(options, voptions, "allow-recursion");
+	cache = aclobj(options, voptions, "allow-query-cache");
+
+	cacheon = aclobj(options, voptions, "allow-query-cache-on");
+	recursionon = aclobj(options, voptions, "allow-recursion-on");
+
+	bool aq = query != NULL && !query->cloned;
+	bool aqc = cache != NULL && !cache->cloned;
+	bool ar = recursion != NULL && !recursion->cloned;
+
+	bool aqco = cacheon != NULL && !cacheon->cloned;
+	bool aro = recursionon != NULL && !recursionon->cloned;
+
+	/*
+	 * "allow-query-cache" inherits from "allow-recursion" if set,
+	 * otherwise from "allow-query" if set.
+	 */
+	if (!aqc) {
+		if (ar) {
+			cloneto(voptions, recursion, "allow-query-cache");
+		} else if (aq) {
+			cloneto(voptions, query, "allow-query-cache");
 		}
 	}
 
-	obj = NULL;
-	result = cfg_map_get(effectiveoptions, "allow-recursion", &obj);
-	if (result != ISC_R_SUCCESS) {
-		result = cfg_map_get(effectiveoptions, "allow-query-cache",
-				     &obj);
-		if (result == ISC_R_SUCCESS) {
-			cloneto(effectiveoptions, obj, "allow-recursion");
-		} else {
-			result = cfg_map_get(effectiveoptions, "allow-query",
-					     &obj);
-			if (result == ISC_R_SUCCESS) {
-				cloneto(effectiveoptions, obj,
-					"allow-recursion");
-			} else {
-				norecursionacl = true;
-			}
+	/*
+	 * "allow-recursion" inherits from "allow-query-cache" if set,
+	 * otherwise from "allow-query" if set.
+	 */
+	if (!ar) {
+		if (aqc) {
+			cloneto(voptions, cache, "allow-recursion");
+		} else if (aq) {
+			cloneto(voptions, query, "allow-recursion");
 		}
 	}
 
-	obj = NULL;
-	result = cfg_map_get(effectiveoptions, "allow-query-cache-on", &obj);
-	if (result != ISC_R_SUCCESS) {
-		result = cfg_map_get(effectiveoptions, "allow-recursion-on",
-				     &obj);
-		if (result == ISC_R_SUCCESS) {
-			cloneto(effectiveoptions, obj, "allow-query-cache-on");
-		} else {
-			noquerycacheonacl = true;
-		}
+	/*
+	 * "allow-query-cache-on" inherits from "allow-recursion-on"
+	 * if set, and vice versa.
+	 */
+	if (!aqco && aro) {
+		cloneto(voptions, recursionon, "allow-query-cache-on");
+	} else if (!aro && aqco) {
+		cloneto(voptions, cacheon, "allow-recursion-on");
 	}
 
-	obj = NULL;
-	result = cfg_map_get(effectiveoptions, "allow-recursion-on", &obj);
-	if (result != ISC_R_SUCCESS) {
-		result = cfg_map_get(effectiveoptions, "allow-query-cache-on",
-				     &obj);
-		if (result == ISC_R_SUCCESS) {
-			cloneto(effectiveoptions, obj, "allow-recursion-on");
-		} else {
-			norecursiononacl = true;
-		}
+	if (options == voptions) {
+		/*
+		 * This is the top-level options clause. This clause gets copies
+		 * of the default ACL if they are not defined. Those will be
+		 * used for user views ACLs too.
+		 */
+		setdefaultacl(voptions, defaultoptions, "allow-query-cache");
+		setdefaultacl(voptions, defaultoptions, "allow-recursion");
+		setdefaultacl(voptions, defaultoptions, "allow-query-cache-on");
+		setdefaultacl(voptions, defaultoptions, "allow-recursion-on");
 	}
+}
 
-	options_merge_defaultacl(effectiveoptions, defaultoptions,
-				 "allow-query-cache", noquerycacheacl);
-	options_merge_defaultacl(effectiveoptions, defaultoptions,
-				 "allow-recursion", norecursionacl);
-	options_merge_defaultacl(effectiveoptions, defaultoptions,
-				 "allow-query-cache-on", noquerycacheonacl);
-	options_merge_defaultacl(effectiveoptions, defaultoptions,
-				 "allow-recursion-on", norecursiononacl);
+static void
+options_merge(const cfg_obj_t *config, cfg_obj_t *effectiveoptions,
+	      const cfg_obj_t *defaultoptions) {
+	/*
+	 * ACLs allow-query-cache, allow-recursion, allow-query-cache-on
+	 * and allow-recursion-on need to be merged with the defaults
+	 * carefully, because there are implicit dependency rules
+	 * between them.
+	 *
+	 * Note: this is similar to the code in view_merge()
+	 * below, but that's only called when views are explicitly
+	 * configured in named.conf, so we need to do this at the
+	 * options level too.
+	 */
+	setacls(config, effectiveoptions, defaultoptions);
 
-	map_merge(effectiveoptions, defaultoptions);
+	map_merge(config, effectiveoptions, defaultoptions);
+}
+
+/*
+ * "view" has CFG_CLAUSEFLAG_MULTI, but unlike most such clauses, the
+ * entries in the user configuration are *prepended* to the default
+ * configuration instead of overriding the list.
+ *
+ * After all views have been cloned into the effective configuration,
+ * we correct their ACL settings to take into account the mutual iheritance
+ * of allow-recursion, allow-query-cache, and allow-query.
+ */
+static void
+view_merge(const cfg_obj_t *config, cfg_obj_t *eff, const cfg_obj_t *def) {
+	REQUIRE(cfg_obj_islist(eff));
+	REQUIRE(cfg_obj_islist(def));
+
+	cfg_list_addclone(eff, def, false);
+	CFG_LIST_FOREACH(eff, elt) {
+		const cfg_obj_t *name = cfg_tuple_get(elt->obj, "name");
+		cfg_obj_t *voptions = NULL;
+
+		if (name != NULL &&
+		    strcmp(cfg_obj_asstring(name), "_bind") == 0)
+		{
+			continue;
+		}
+
+		voptions = UNCONST(cfg_tuple_get(elt->obj, "options"));
+		setacls(config, voptions, NULL);
+	}
 }
 
 /*%
@@ -1349,7 +1387,7 @@ static cfg_clausedef_t namedconf_clauses[] = {
 	{ "acl", &cfg_type_acl, CFG_CLAUSEFLAG_MULTI },
 	{ "controls", &cfg_type_controls, CFG_CLAUSEFLAG_MULTI },
 	{ "dnssec-policy", &cfg_type_dnssecpolicy, CFG_CLAUSEFLAG_MULTI,
-	  merge_prepend },
+	  policy_merge },
 #if HAVE_LIBNGHTTP2
 	{ "http", &cfg_type_http_description,
 	  CFG_CLAUSEFLAG_MULTI | CFG_CLAUSEFLAG_OPTIONAL },
@@ -1380,7 +1418,7 @@ static cfg_clausedef_t namedconf_clauses[] = {
 	  CFG_CLAUSEFLAG_MULTI | CFG_CLAUSEFLAG_BUILTINONLY |
 		  CFG_CLAUSEFLAG_NODOC },
 	{ "tls", &cfg_type_tlsconf, CFG_CLAUSEFLAG_MULTI },
-	{ "view", &cfg_type_view, CFG_CLAUSEFLAG_MULTI, merge_append },
+	{ "view", &cfg_type_view, CFG_CLAUSEFLAG_MULTI, view_merge },
 	{ NULL, NULL, 0 }
 };
 
@@ -2221,7 +2259,8 @@ static cfg_type_t cfg_type_staleanswerclienttimeout = {
 };
 
 static void
-prefetch_merge(cfg_obj_t *effectiveobj, const cfg_obj_t *defaultobj) {
+prefetch_merge(const cfg_obj_t *config ISC_ATTR_UNUSED, cfg_obj_t *effectiveobj,
+	       const cfg_obj_t *defaultobj) {
 	cfg_obj_t *trigger = NULL;
 	cfg_obj_t *eligible = NULL;
 
@@ -2243,7 +2282,8 @@ prefetch_merge(cfg_obj_t *effectiveobj, const cfg_obj_t *defaultobj) {
 }
 
 static void
-checknames_merge(cfg_obj_t *effectiveobj, const cfg_obj_t *defaultobj) {
+checknames_merge(const cfg_obj_t *config ISC_ATTR_UNUSED,
+		 cfg_obj_t *effectiveobj, const cfg_obj_t *defaultobj) {
 	/*
 	 * Applies only to the top-level option `check-names` statement.
 	 * The view and zone-level versions aren't merged into the defaults
@@ -4346,7 +4386,7 @@ cfg_effective_config(const cfg_obj_t *userconfig,
 	REQUIRE(userconfig != NULL && userconfig->type == &cfg_type_namedconf);
 
 	cfg_obj_clone(userconfig, &effective);
-	map_merge(effective, defaultconfig);
+	map_merge(effective, effective, defaultconfig);
 
 	return effective;
 }

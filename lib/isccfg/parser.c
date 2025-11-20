@@ -4004,12 +4004,6 @@ cfg_obj_istype(const cfg_obj_t *obj, const cfg_type_t *type) {
 	return obj->type == type;
 }
 
-bool
-cfg_obj_iscloned(const cfg_obj_t *obj) {
-	REQUIRE(VALID_CFGOBJ(obj));
-	return obj->cloned;
-}
-
 /*
  * Destroy 'obj'.
  */

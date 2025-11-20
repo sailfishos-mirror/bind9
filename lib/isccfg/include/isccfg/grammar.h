@@ -133,7 +133,8 @@ struct cfg_printer {
  * cfg_rep_map, because the allow-query and allow-recursion ACLs have
  * complex semantics that need to be preserved.
  */
-typedef void (*cfg_mergefunc_t)(cfg_obj_t	*effectiveobj,
+typedef void (*cfg_mergefunc_t)(const cfg_obj_t *config,
+				cfg_obj_t	*effectiveobj,
 				const cfg_obj_t *defaultobj);
 
 struct cfg_clausedef {

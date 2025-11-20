@@ -549,12 +549,6 @@ cfg_obj_istype(const cfg_obj_t *obj, const cfg_type_t *type);
  * Return true iff 'obj' is of type 'type'.
  */
 
-bool
-cfg_obj_iscloned(const cfg_obj_t *obj);
-/*%<
- * Return true iff 'obj' has the 'CFG_OBJ_CLONED' flag.
- */
-
 void
 cfg_obj_log(const cfg_obj_t *obj, int level, const char *fmt, ...)
 	ISC_FORMAT_PRINTF(3, 4);
