@@ -67,21 +67,22 @@ fromtext_amtrelay(ARGS_FROMTEXT) {
 	RETERR(uint8_tobuffer(token.value.as_ulong | (discovery << 7), target));
 	gateway = token.value.as_ulong;
 
-	if (gateway == 0) {
-		return ISC_R_SUCCESS;
-	}
+	/*
+	 * Gateway (must exist).
+	 */
+	RETERR(isc_lex_getmastertoken(lexer, &token, isc_tokentype_string,
+				      false));
 
 	if (gateway > 3) {
 		return ISC_R_NOTIMPLEMENTED;
 	}
 
-	/*
-	 * Gateway.
-	 */
-	RETERR(isc_lex_getmastertoken(lexer, &token, isc_tokentype_string,
-				      false));
-
 	switch (gateway) {
+	case 0:
+		if (strcmp(DNS_AS_STR(token), ".") != 0) {
+			RETTOK(DNS_R_SYNTAX);
+		}
+		return ISC_R_SUCCESS;
 	case 1:
 		if (inet_pton(AF_INET, DNS_AS_STR(token), &addr) != 1) {
 			RETTOK(DNS_R_BADDOTTEDQUAD);
@@ -125,7 +126,6 @@ totext_amtrelay(ARGS_TOTEXT) {
 	unsigned char precedence;
 	unsigned char discovery;
 	unsigned char gateway;
-	const char *space;
 
 	UNUSED(tctx);
 
@@ -151,9 +151,8 @@ totext_amtrelay(ARGS_TOTEXT) {
 	gateway = uint8_fromregion(&region);
 	discovery = gateway >> 7;
 	gateway &= 0x7f;
-	space = (gateway != 0U) ? " " : "";
 	isc_region_consume(&region, 1);
-	snprintf(buf, sizeof(buf), "%u %u%s", discovery, gateway, space);
+	snprintf(buf, sizeof(buf), "%u %u ", discovery, gateway);
 	RETERR(str_totext(buf, target));
 
 	/*
@@ -161,7 +160,8 @@ totext_amtrelay(ARGS_TOTEXT) {
 	 */
 	switch (gateway) {
 	case 0:
-		break;
+		return str_totext(".", target);
+
 	case 1:
 		return inet_totext(AF_INET, tctx->flags, &region, target);
 
