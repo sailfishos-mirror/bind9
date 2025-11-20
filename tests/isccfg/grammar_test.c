@@ -72,29 +72,15 @@ assert_text(const char *text) {
 	memset(gtext, 0, sizeof(gtext));
 }
 
-static const cfg_clausedef_t *
-find_clause(const cfg_type_t *map, const char *name) {
-	const cfg_clausedef_t *found = NULL;
-	const void *clauses = NULL;
-	unsigned int idx;
-
-	found = cfg_map_firstclause(map, &clauses, &idx);
-	while (name != NULL && strcasecmp(name, found->name)) {
-		found = cfg_map_nextclause(map, &clauses, &idx);
-	}
-
-	return ((cfg_clausedef_t *)clauses) + idx;
-}
-
 static void
 test__querysource(const char *clause_name, const char *name,
 		  const char *expected) {
 	const cfg_clausedef_t *options_clause = NULL;
-	options_clause = find_clause(&cfg_type_namedconf, clause_name);
+	options_clause = cfg_map_findclause(&cfg_type_namedconf, clause_name);
 	assert_non_null(options_clause);
 
 	const cfg_clausedef_t *querysource_clause = NULL;
-	querysource_clause = find_clause(options_clause->type, name);
+	querysource_clause = cfg_map_findclause(options_clause->type, name);
 	assert_non_null(querysource_clause);
 	querysource_clause->type->doc(&gprinter, querysource_clause->type);
 	assert_text(expected);

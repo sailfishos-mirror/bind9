@@ -4859,32 +4859,15 @@ configure_view(dns_view_t *view, dns_viewlist_t *viewlist, cfg_obj_t *config,
 	INSIST(result == ISC_R_SUCCESS);
 	view->root_key_sentinel = cfg_obj_asboolean(obj);
 
-	/*
-	 * Set the "allow-query", "allow-query-cache", "allow-recursion",
-	 * "allow-recursion-on" and "allow-query-cache-on" ACLs if
-	 * configured in named.conf, but NOT from the global defaults.
-	 * This is done by leaving the third argument to configure_view_acl()
-	 * NULL.
-	 *
-	 * We ignore the global defaults here because these ACLs
-	 * can inherit from each other.  If any are still unset after
-	 * applying the inheritance rules, we'll look up the defaults at
-	 * that time.
-	 */
-
-	/* named.conf only */
 	CHECK(configure_view_acl(vconfig, config, "allow-query", NULL, aclctx,
 				 isc_g_mctx, &view->queryacl));
-
-	/* named.conf only */
-	CHECK(configure_view_acl(vconfig, config, "allow-query-cache", NULL,
-				 aclctx, isc_g_mctx, &view->cacheacl));
-	/* named.conf only */
-	CHECK(configure_view_acl(vconfig, config, "allow-query-cache-on", NULL,
-				 aclctx, isc_g_mctx, &view->cacheonacl));
-
 	CHECK(configure_view_acl(vconfig, config, "allow-query-on", NULL,
 				 aclctx, isc_g_mctx, &view->queryonacl));
+
+	CHECK(configure_view_acl(vconfig, config, "allow-query-cache", NULL,
+				 aclctx, isc_g_mctx, &view->cacheacl));
+	CHECK(configure_view_acl(vconfig, config, "allow-query-cache-on", NULL,
+				 aclctx, isc_g_mctx, &view->cacheonacl));
 
 	CHECK(configure_view_acl(vconfig, config, "allow-proxy", NULL, aclctx,
 				 isc_g_mctx, &view->proxyacl));
@@ -4895,37 +4878,12 @@ configure_view(dns_view_t *view, dns_viewlist_t *viewlist, cfg_obj_t *config,
 	if (strcmp(view->name, "_bind") != 0 &&
 	    view->rdclass != dns_rdataclass_chaos)
 	{
-		/* named.conf only */
 		CHECK(configure_view_acl(vconfig, config, "allow-recursion",
 					 NULL, aclctx, isc_g_mctx,
 					 &view->recursionacl));
-		/* named.conf only */
 		CHECK(configure_view_acl(vconfig, config, "allow-recursion-on",
 					 NULL, aclctx, isc_g_mctx,
 					 &view->recursiononacl));
-	}
-
-	if (view->recursion == false) {
-		/*
-		 * We're not recursive; if the query-cache ACLs haven't
-		 * been set at the options/view level, set them to none.
-		 */
-		if (view->cacheacl == NULL) {
-			CHECK(dns_acl_none(mctx, &view->cacheacl));
-		}
-		if (view->cacheonacl == NULL) {
-			CHECK(dns_acl_none(mctx, &view->cacheonacl));
-		}
-	}
-
-	/*
-	 * Finished setting recursion and query-cache ACLs, so now we
-	 * can get the allow-query default if it wasn't set in named.conf
-	 */
-	if (view->queryacl == NULL) {
-		/* global default only */
-		CHECK(configure_view_acl(NULL, NULL, "allow-query", NULL,
-					 aclctx, isc_g_mctx, &view->queryacl));
 	}
 
 	/*

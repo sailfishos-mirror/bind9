@@ -578,6 +578,9 @@ const cfg_clausedef_t *
 cfg_map_nextclause(const cfg_type_t *map, const void **clauses,
 		   unsigned int *idx);
 
+const cfg_clausedef_t *
+cfg_map_findclause(const cfg_type_t *map, const char *name);
+
 typedef isc_result_t(pluginlist_cb_t)(
 	const cfg_obj_t *config, const cfg_obj_t *obj, cfg_aclconfctx_t *aclctx,
 	const char *plugin_path, const char *parameters, void *callback_data);

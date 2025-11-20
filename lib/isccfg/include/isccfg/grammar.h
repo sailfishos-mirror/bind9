@@ -133,7 +133,8 @@ struct cfg_printer {
  * cfg_rep_map, because the allow-query and allow-recursion ACLs have
  * complex semantics that need to be preserved.
  */
-typedef void (*cfg_mergefunc_t)(cfg_obj_t	*effectiveobj,
+typedef void (*cfg_mergefunc_t)(const cfg_obj_t *config,
+				cfg_obj_t	*effectiveobj,
 				const cfg_obj_t *defaultobj);
 
 struct cfg_clausedef {
@@ -200,6 +201,13 @@ struct cfg_obj {
 	unsigned int   magic;
 	isc_mem_t     *mctx;
 	isc_refcount_t references;
+
+	/*%
+	 * Indicates that an object was cloned from the defaults
+	 * or otherwise generated during the configuration merge
+	 * process:
+	 */
+	bool cloned;
 
 	const cfg_type_t *type;
 	union {
