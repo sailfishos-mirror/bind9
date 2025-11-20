@@ -11,6 +11,8 @@
 
 # pylint: disable=redefined-outer-name,unused-import
 
+import os
+
 import dns.update
 import pytest
 
@@ -25,6 +27,40 @@ from nsec3.common import (
     pytestmark,
     check_nsec3_case,
 )
+
+
+# include the following zones when rendering named configs
+ZONES = {
+    "nsec-to-nsec3.kasp",
+    "nsec3-xfr-inline.kasp",
+    "nsec3-dynamic-update-inline.kasp",
+    "nsec3.kasp",
+    "nsec3-dynamic.kasp",
+    "nsec3-change.kasp",
+    "nsec3-dynamic-change.kasp",
+    "nsec3-dynamic-to-inline.kasp",
+    "nsec3-inline-to-dynamic.kasp",
+    "nsec3-to-nsec.kasp",
+    "nsec3-to-optout.kasp",
+    "nsec3-from-optout.kasp",
+    "nsec3-other.kasp",
+}
+
+if os.environ["RSASHA1_SUPPORTED"] == "1":
+    ZONES.update(
+        {
+            "rsasha1-to-nsec3.kasp",
+            "rsasha1-to-nsec3-wait.kasp",
+            "nsec3-to-rsasha1.kasp",
+            "nsec3-to-rsasha1-ds.kasp",
+        }
+    )
+
+
+def bootstrap():
+    return {
+        "zones": ZONES,
+    }
 
 
 @pytest.mark.parametrize(

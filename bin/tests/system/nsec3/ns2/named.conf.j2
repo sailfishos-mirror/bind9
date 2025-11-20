@@ -39,8 +39,10 @@ controls {
 	inet 10.53.0.2 port @CONTROLPORT@ allow { any; } keys { rndc_key; };
 };
 
+{% if "nsec3-xfr-inline.kasp" in zones %}
 zone "nsec3-xfr-inline.kasp" {
 	type primary;
 	file "nsec3-xfr-inline.kasp.db";
 	dnssec-policy "nsec3";
 };
+{% endif %}{# nsec3-xfr-inline.kasp #}

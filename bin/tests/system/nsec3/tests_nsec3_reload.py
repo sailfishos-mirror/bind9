@@ -26,6 +26,18 @@ from nsec3.common import (
 )
 
 
+# include the following zones when rendering named configs
+ZONES = {
+    "nsec3-fails-to-load.kasp",
+}
+
+
+def bootstrap():
+    return {
+        "zones": ZONES,
+    }
+
+
 def test_nsec3_case(ns3):
     # Get test parameters.
     params = {

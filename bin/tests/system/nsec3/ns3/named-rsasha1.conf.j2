@@ -21,6 +21,8 @@ dnssec-policy "rsasha1" {
 	};
 };
 
+
+{% if "rsasha1-to-nsec3.kasp" in zones %}
 /*
  * This zone starts with NSEC, but will be reconfigured to use NSEC3.
  * This should work despite the incompatible RSAHSHA1 algorithm,
@@ -31,7 +33,9 @@ zone "rsasha1-to-nsec3.kasp" {
 	file "rsasha1-to-nsec3.kasp.db";
 	dnssec-policy "@rsasha1_to_nsec3@";
 };
+{% endif %}{# rsasha1-to-nsec3.kasp #}
 
+{% if "rsasha1-to-nsec3-wait.kasp" in zones %}
 /*
  * This zone starts with NSEC, but will be reconfigured to use NSEC3.
  * This should block because RSASHA1 is not compatible with NSEC3,
@@ -42,7 +46,9 @@ zone "rsasha1-to-nsec3-wait.kasp" {
 	file "rsasha1-to-nsec3-wait.kasp.db";
 	dnssec-policy "@rsasha1_to_nsec3@";
 };
+{% endif %}{# rsasha1-to-nsec3-wait.kasp #}
 
+{% if "nsec3-to-rsasha1.kasp" in zones %}
 /*
  * This zone starts with NSEC3, but will be reconfigured to use NSEC with an
  * NSEC only algorithm. This should work despite the incompatible RSAHSHA1
@@ -53,7 +59,9 @@ zone "nsec3-to-rsasha1.kasp" {
 	file "nsec3-to-rsasha1.kasp.db";
 	dnssec-policy "@nsec3_to_rsasha1@";
 };
+{% endif %}{# nsec3-to-rsasha1.kasp #}
 
+{% if "nsec3-to-rsasha1-ds.kasp" in zones %}
 /*
  * This zone starts with NSEC3, but will be reconfigured to use NSEC with an
  * NSEC only algorithm. This should also be fine because we are allowed
@@ -65,3 +73,4 @@ zone "nsec3-to-rsasha1-ds.kasp" {
 	file "nsec3-to-rsasha1-ds.kasp.db";
 	dnssec-policy "@nsec3_to_rsasha1@";
 };
+{% endif %}{# nsec3-to-rsasha1-ds.kasp #}

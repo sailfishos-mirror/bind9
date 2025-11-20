@@ -29,6 +29,19 @@ from nsec3.common import (
 )
 
 
+# include the following zones when rendering named configs
+ZONES = {
+    "nsec3.kasp",
+    "nsec3-other.kasp",
+}
+
+
+def bootstrap():
+    return {
+        "zones": ZONES,
+    }
+
+
 def perform_nsec3_tests(server, params):
     # Get test parameters.
     zone = params["zone"]
