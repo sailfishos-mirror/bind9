@@ -734,5 +734,76 @@ nextpart ns3/named.run | grep 'allow-recursion-on did not match' >/dev/null || r
 if [ $ret != 0 ]; then echo_i "failed"; fi
 status=$((status + ret))
 
+# Test 63 - allow-query-cache inheritance from allow-recursion
+n=$((n + 1))
+copy_setports ns3/named5.conf.in ns3/named.conf
+rndc_reload ns3 10.53.0.3
+
+echo_i "test $n: inheritance of allow-query-cache from allow-recursion"
+ret=0
+# this should be allowed
+$DIG -p ${PORT} @10.53.0.3 e.normal.example a >dig.out.ns3.1.$n || ret=1
+grep 'ANSWER: 1' dig.out.ns3.1.$n >/dev/null || ret=1
+# this should be prohibited
+$DIG -p ${PORT} @10.53.1.2 f.normal.example a >dig.out.ns3.2.$n || ret=1
+grep 'recursion requested but not available' dig.out.ns3.2.$n >/dev/null || ret=1
+grep 'status: REFUSED' dig.out.ns3.2.$n >/dev/null || ret=1
+grep 'EDE: 18 (Prohibited)' dig.out.ns3.2.$n >/dev/null || ret=1
+grep 'EDE: 20' dig.out.ns3.2.$n >/dev/null && ret=1
+if [ $ret != 0 ]; then echo_i "failed"; fi
+status=$((status + ret))
+
+# Test 64 - allow-query-cache no inheritance from allow-recursion as it is
+# defined in the options
+n=$((n + 1))
+copy_setports ns3/named6.conf.in ns3/named.conf
+rndc_reload ns3 10.53.0.3
+
+echo_i "test $n: allow-query-cache defined in options, so it does not inherit from allow-recursion"
+ret=0
+$DIG -p ${PORT} @10.53.0.3 f.normal.example a >dig.out.ns3.1.$n || ret=1
+grep 'recursion requested but not available' dig.out.ns3.1.$n >/dev/null || ret=1
+grep 'status: REFUSED' dig.out.ns3.1.$n >/dev/null || ret=1
+grep 'EDE: 18 (Prohibited)' dig.out.ns3.1.$n >/dev/null || ret=1
+grep 'EDE: 20' dig.out.ns3.1.$n >/dev/null || ret=1
+if [ $ret != 0 ]; then echo_i "failed"; fi
+status=$((status + ret))
+
+# Test 65 - allow-query-cache inherits from allow-recursion before allow-query
+n=$((n + 1))
+copy_setports ns3/named7.conf.in ns3/named.conf
+rndc_reload ns3 10.53.0.3
+
+echo_i "test $n: allow-query-cache inherits from allow-recursion before allow-query"
+ret=0
+$DIG -p ${PORT} -b 10.53.0.3 @10.53.0.3 f.normal.example a >dig.out.ns3.1.$n || ret=1
+grep 'recursion requested but not available' dig.out.ns3.1.$n >/dev/null || ret=1
+grep 'status: REFUSED' dig.out.ns3.1.$n >/dev/null || ret=1
+grep 'EDE: 18 (Prohibited)' dig.out.ns3.1.$n >/dev/null || ret=1
+grep 'EDE: 20' dig.out.ns3.1.$n >/dev/null || ret=1
+if [ $ret != 0 ]; then echo_i "failed"; fi
+status=$((status + ret))
+
+# Test 66 - allow-recursion inheritance from allow-query
+n=$((n + 1))
+copy_setports ns3/named8.conf.in ns3/named.conf
+rndc_reload ns3 10.53.0.3
+
+echo_i "test $n: inheritance of allow-query-cache from allow-recursion"
+ret=0
+# this should be prohibited (10.53.1.2 does not have recursion allowed)
+$DIG -p ${PORT} -b 10.53.1.2 @10.53.1.2 f.normal.example a >dig.out.ns3.1.$n || ret=1
+grep 'recursion requested but not available' dig.out.ns3.1.$n >/dev/null || ret=1
+grep 'status: REFUSED' dig.out.ns3.1.$n >/dev/null || ret=1
+grep 'EDE: 18 (Prohibited)' dig.out.ns3.1.$n >/dev/null || ret=1
+grep 'EDE: 20' dig.out.ns3.1.$n >/dev/null || ret=1
+# this should be allowed
+$DIG -p ${PORT} -b 10.53.0.4 @10.53.0.4 f.normal.example a >dig.out.ns3.2.$n || ret=1
+grep 'ANSWER: 1' dig.out.ns3.2.$n >/dev/null || ret=1
+# this should be allowed
+$DIG -p ${PORT} -b 10.53.0.4 @10.53.0.4 e.normal.example a >dig.out.ns3.3.$n || ret=1
+grep 'ANSWER: 1' dig.out.ns3.3.$n >/dev/null || ret=1
+status=$((status + ret))
+if [ $ret != 0 ]; then echo_i "failed"; fi
 echo_i "exit status: $status"
 [ $status -eq 0 ] || exit 1
