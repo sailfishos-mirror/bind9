@@ -175,6 +175,7 @@ cfg_obj_clone(const cfg_obj_t *source, cfg_obj_t **target) {
 
 	cfg_obj_create(source->mctx, source->file, source->line, source->type,
 		       target);
+	(*target)->cloned = source->cloned;
 	source->type->rep->copy(*target, source);
 }
 
@@ -2989,6 +2990,23 @@ cfg_map_nextclause(const cfg_type_t *map, const void **clauses,
 	return &(*clauseset)[*idx];
 }
 
+const cfg_clausedef_t *
+cfg_map_findclause(const cfg_type_t *map, const char *name) {
+	const cfg_clausedef_t *found = NULL;
+	const void *clauses = NULL;
+	unsigned int idx;
+
+	REQUIRE(map != NULL && map->rep == &cfg_rep_map);
+	REQUIRE(name != NULL);
+
+	found = cfg_map_firstclause(map, &clauses, &idx);
+	while (name != NULL && strcasecmp(name, found->name)) {
+		found = cfg_map_nextclause(map, &clauses, &idx);
+	}
+
+	return ((cfg_clausedef_t *)clauses) + idx;
+}
+
 /* Parse an arbitrary token, storing its raw text representation. */
 static isc_result_t
 parse_token(cfg_parser_t *pctx, const cfg_type_t *type ISC_ATTR_UNUSED,
@@ -3986,6 +4004,12 @@ cfg_obj_istype(const cfg_obj_t *obj, const cfg_type_t *type) {
 	return obj->type == type;
 }
 
+bool
+cfg_obj_iscloned(const cfg_obj_t *obj) {
+	REQUIRE(VALID_CFGOBJ(obj));
+	return obj->cloned;
+}
+
 /*
  * Destroy 'obj'.
  */
@@ -4035,24 +4059,6 @@ cfg_print_grammar(const cfg_type_t *type, unsigned int flags,
 	pctx.indent = 0;
 	pctx.flags = flags;
 	cfg_doc_obj(&pctx, type);
-}
-
-static const cfg_clausedef_t *
-map_lookup_clause(const cfg_obj_t *mapobj, const char *clausename) {
-	const cfg_map_t *map;
-	const cfg_clausedef_t *const *clauseset = NULL;
-	const cfg_clausedef_t *clause = NULL;
-
-	map = &mapobj->value.map;
-	for (clauseset = map->clausesets; *clauseset != NULL; clauseset++) {
-		for (clause = *clauseset; clause->name != NULL; clause++) {
-			if (strcasecmp(clause->name, clausename) == 0) {
-				return clause;
-			}
-		}
-	}
-
-	return NULL;
 }
 
 static isc_result_t
@@ -4110,7 +4116,7 @@ cfg_map_add(cfg_obj_t *mapobj, cfg_obj_t *obj, const char *clausename) {
 	REQUIRE(mapobj->type->rep == &cfg_rep_map);
 	REQUIRE(clausename != NULL);
 
-	clause = map_lookup_clause(mapobj, clausename);
+	clause = cfg_map_findclause(mapobj->type, clausename);
 	if (clause == NULL || clause->name == NULL) {
 		return ISC_R_FAILURE;
 	}
@@ -4142,6 +4148,8 @@ cfg_map_addclone(cfg_obj_t *map, const cfg_obj_t *obj,
 		elt = cfg_list_first(obj);
 		while (elt != NULL && result == ISC_R_SUCCESS) {
 			cfg_obj_clone(elt->obj, &clone);
+			clone->cloned = true;
+
 			result = map_define(map, clone, clause);
 			elt = cfg_list_next(elt);
 
@@ -4153,6 +4161,7 @@ cfg_map_addclone(cfg_obj_t *map, const cfg_obj_t *obj,
 		}
 	} else {
 		cfg_obj_clone(obj, &clone);
+		clone->cloned = true;
 		result = map_define(map, clone, clause);
 	}
 

@@ -201,6 +201,13 @@ struct cfg_obj {
 	isc_mem_t     *mctx;
 	isc_refcount_t references;
 
+	/*%
+	 * Indicates that an object was cloned from the defaults
+	 * or otherwise generated during the configuration merge
+	 * process:
+	 */
+	bool cloned;
+
 	const cfg_type_t *type;
 	union {
 		uint32_t	 uint32;

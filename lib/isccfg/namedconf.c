@@ -1220,6 +1220,16 @@ merge_append(cfg_obj_t *effectiveobj, const cfg_obj_t *defaultobj) {
 }
 
 static void
+cloneto(cfg_obj_t *options, const cfg_obj_t *obj, const char *clausename) {
+	isc_result_t result;
+	const cfg_clausedef_t *clause = cfg_map_findclause(options->type,
+							   clausename);
+
+	result = cfg_map_addclone(options, obj, clause);
+	INSIST(result == ISC_R_SUCCESS);
+}
+
+static void
 options_merge_defaultacl(cfg_obj_t *effectiveoptions,
 			 const cfg_obj_t *defaultoptions, const char *aclname,
 			 bool needsdefault) {
@@ -1233,9 +1243,7 @@ options_merge_defaultacl(cfg_obj_t *effectiveoptions,
 	result = cfg_map_get(defaultoptions, aclname, &obj);
 	INSIST(result == ISC_R_SUCCESS);
 
-	cfg_obj_ref(UNCONST(obj));
-	result = cfg_map_add(effectiveoptions, UNCONST(obj), aclname);
-	INSIST(result == ISC_R_SUCCESS);
+	cloneto(effectiveoptions, obj, aclname);
 }
 
 static void
@@ -1265,19 +1273,13 @@ options_merge(cfg_obj_t *effectiveoptions, const cfg_obj_t *defaultoptions) {
 	if (result != ISC_R_SUCCESS) {
 		result = cfg_map_get(effectiveoptions, "allow-recursion", &obj);
 		if (result == ISC_R_SUCCESS) {
-			cfg_obj_ref(UNCONST(obj));
-			result = cfg_map_add(effectiveoptions, UNCONST(obj),
-					     "allow-query-cache");
-			INSIST(result == ISC_R_SUCCESS);
+			cloneto(effectiveoptions, obj, "allow-query-cache");
 		} else {
 			result = cfg_map_get(effectiveoptions, "allow-query",
 					     &obj);
 			if (result == ISC_R_SUCCESS) {
-				cfg_obj_ref(UNCONST(obj));
-				result = cfg_map_add(effectiveoptions,
-						     UNCONST(obj),
-						     "allow-query-cache");
-				INSIST(result == ISC_R_SUCCESS);
+				cloneto(effectiveoptions, obj,
+					"allow-query-cache");
 			} else {
 				noquerycacheacl = true;
 			}
@@ -1290,19 +1292,13 @@ options_merge(cfg_obj_t *effectiveoptions, const cfg_obj_t *defaultoptions) {
 		result = cfg_map_get(effectiveoptions, "allow-query-cache",
 				     &obj);
 		if (result == ISC_R_SUCCESS) {
-			cfg_obj_ref(UNCONST(obj));
-			result = cfg_map_add(effectiveoptions, UNCONST(obj),
-					     "allow-recursion");
-			INSIST(result == ISC_R_SUCCESS);
+			cloneto(effectiveoptions, obj, "allow-recursion");
 		} else {
 			result = cfg_map_get(effectiveoptions, "allow-query",
 					     &obj);
 			if (result == ISC_R_SUCCESS) {
-				cfg_obj_ref(UNCONST(obj));
-				result = cfg_map_add(effectiveoptions,
-						     UNCONST(obj),
-						     "allow-recursion");
-				INSIST(result == ISC_R_SUCCESS);
+				cloneto(effectiveoptions, obj,
+					"allow-recursion");
 			} else {
 				norecursionacl = true;
 			}
@@ -1315,10 +1311,7 @@ options_merge(cfg_obj_t *effectiveoptions, const cfg_obj_t *defaultoptions) {
 		result = cfg_map_get(effectiveoptions, "allow-recursion-on",
 				     &obj);
 		if (result == ISC_R_SUCCESS) {
-			cfg_obj_ref(UNCONST(obj));
-			result = cfg_map_add(effectiveoptions, UNCONST(obj),
-					     "allow-query-cache-on");
-			INSIST(result == ISC_R_SUCCESS);
+			cloneto(effectiveoptions, obj, "allow-query-cache-on");
 		} else {
 			noquerycacheonacl = true;
 		}
@@ -1330,10 +1323,7 @@ options_merge(cfg_obj_t *effectiveoptions, const cfg_obj_t *defaultoptions) {
 		result = cfg_map_get(effectiveoptions, "allow-query-cache-on",
 				     &obj);
 		if (result == ISC_R_SUCCESS) {
-			cfg_obj_ref(UNCONST(obj));
-			result = cfg_map_add(effectiveoptions, UNCONST(obj),
-					     "allow-recursion-on");
-			INSIST(result == ISC_R_SUCCESS);
+			cloneto(effectiveoptions, obj, "allow-recursion-on");
 		} else {
 			norecursiononacl = true;
 		}

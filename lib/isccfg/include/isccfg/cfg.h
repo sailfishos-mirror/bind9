@@ -549,6 +549,12 @@ cfg_obj_istype(const cfg_obj_t *obj, const cfg_type_t *type);
  * Return true iff 'obj' is of type 'type'.
  */
 
+bool
+cfg_obj_iscloned(const cfg_obj_t *obj);
+/*%<
+ * Return true iff 'obj' has the 'CFG_OBJ_CLONED' flag.
+ */
+
 void
 cfg_obj_log(const cfg_obj_t *obj, int level, const char *fmt, ...)
 	ISC_FORMAT_PRINTF(3, 4);
@@ -577,6 +583,9 @@ cfg_map_firstclause(const cfg_type_t *map, const void **clauses,
 const cfg_clausedef_t *
 cfg_map_nextclause(const cfg_type_t *map, const void **clauses,
 		   unsigned int *idx);
+
+const cfg_clausedef_t *
+cfg_map_findclause(const cfg_type_t *map, const char *name);
 
 typedef isc_result_t(pluginlist_cb_t)(
 	const cfg_obj_t *config, const cfg_obj_t *obj, cfg_aclconfctx_t *aclctx,
