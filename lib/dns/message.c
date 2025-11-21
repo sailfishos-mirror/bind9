@@ -227,6 +227,9 @@ logfmtpacket(dns_message_t *message, const char *description,
 	     isc_logcategory_t category, isc_logmodule_t module,
 	     const dns_master_style_t *style, int level, isc_mem_t *mctx);
 
+static isc_result_t
+buildopt(dns_message_t *message, dns_rdataset_t **rdatasetp);
+
 /*
  * Allocate a new dns_msgblock_t, and return a pointer to it.  If no memory
  * is free, return NULL.
@@ -516,6 +519,23 @@ msgresetsigs(dns_message_t *msg, bool replying) {
 	}
 }
 
+static void
+msgresetedns(dns_message_t *msg) {
+	if (msg->edns.opts != NULL) {
+		INSIST(msg->edns.maxopts != 0);
+		for (size_t i = 0; i < msg->edns.count; i++) {
+			if (msg->edns.opts[i].value != NULL) {
+				isc_mem_put(msg->mctx, msg->edns.opts[i].value,
+					    msg->edns.opts[i].length);
+			}
+		}
+		isc_mem_cput(msg->mctx, msg->edns.opts,
+			     (size_t)msg->edns.maxopts, sizeof(dns_ednsopt_t));
+	}
+	msg->edns.maxopts = 0;
+	msg->edns.count = 0;
+}
+
 /*
  * Free all but one (or everything) for this message.  This is used by
  * both dns_message_reset() and dns__message_destroy().
@@ -528,6 +548,7 @@ msgreset(dns_message_t *msg, bool everything) {
 	msgresetnames(msg, 0);
 	msgresetopt(msg);
 	msgresetsigs(msg, false);
+	msgresetedns(msg);
 
 	/*
 	 * Clean up linked lists.
@@ -2611,8 +2632,9 @@ dns_message_getopt(dns_message_t *msg) {
 }
 
 isc_result_t
-dns_message_setopt(dns_message_t *msg, dns_rdataset_t *opt) {
+dns_message_setopt(dns_message_t *msg) {
 	isc_result_t result;
+	dns_rdataset_t *opt = NULL;
 	dns_rdata_t rdata = DNS_RDATA_INIT;
 
 	/*
@@ -2634,16 +2656,15 @@ dns_message_setopt(dns_message_t *msg, dns_rdataset_t *opt) {
 	 */
 
 	REQUIRE(DNS_MESSAGE_VALID(msg));
-	REQUIRE(opt == NULL || DNS_RDATASET_VALID(opt));
-	REQUIRE(opt == NULL || opt->type == dns_rdatatype_opt);
 	REQUIRE(msg->from_to_wire == DNS_MESSAGE_INTENTRENDER);
 	REQUIRE(msg->state == DNS_SECTION_ANY);
 
-	msgresetopt(msg);
-
-	if (opt == NULL) {
-		return ISC_R_SUCCESS;
+	result = buildopt(msg, &opt);
+	if (result != ISC_R_SUCCESS) {
+		return result;
 	}
+
+	msgresetopt(msg);
 
 	result = dns_rdataset_first(opt);
 	if (result != ISC_R_SUCCESS) {
@@ -4062,6 +4083,8 @@ dns_message_pseudosectiontoyaml(dns_message_t *msg, dns_pseudosection_t section,
 			ADD_STRING(target, "\n");
 		}
 		goto cleanup;
+	default:
+		break;
 	}
 
 	result = ISC_R_UNEXPECTED;
@@ -4483,6 +4506,8 @@ dns_message_pseudosectiontotext(dns_message_t *msg, dns_pseudosection_t section,
 			ADD_STRING(target, "\n");
 		}
 		return result;
+	default:
+		break;
 	}
 	result = ISC_R_UNEXPECTED;
 cleanup:
@@ -4825,15 +4850,62 @@ logfmtpacket(dns_message_t *message, const char *description,
 	}
 }
 
+void
+dns_message_ednsinit(dns_message_t *msg, int16_t version, uint16_t udpsize,
+		     uint32_t flags, uint8_t maxopts) {
+	REQUIRE(DNS_MESSAGE_VALID(msg));
+
+	/* Clear existing EDNS data */
+	msgresetedns(msg);
+
+	msg->edns.version = version;
+	if (version == -1) {
+		return;
+	}
+
+	if (maxopts == 0) {
+		maxopts = DNS_EDNS_MAX_OPTIONS;
+	}
+
+	msg->edns.flags = flags;
+	msg->edns.udpsize = udpsize;
+	msg->edns.opts = isc_mem_cget(msg->mctx, (size_t)maxopts,
+				      sizeof(dns_ednsopt_t));
+	msg->edns.maxopts = maxopts;
+}
+
 isc_result_t
-dns_message_buildopt(dns_message_t *message, dns_rdataset_t **rdatasetp,
-		     unsigned int version, uint16_t udpsize, unsigned int flags,
-		     dns_ednsopt_t *ednsopts, size_t count) {
+dns_message_ednsaddopt(dns_message_t *msg, dns_ednsopt_t *option) {
+	REQUIRE(DNS_MESSAGE_VALID(msg));
+	REQUIRE(msg->edns.opts != NULL);
+
+	if (msg->edns.count >= msg->edns.maxopts) {
+		isc_log_write(ISC_LOGCATEGORY_GENERAL, DNS_LOGMODULE_MESSAGE,
+			      ISC_LOG_DEBUG(3),
+			      "dns_message_ednsaddopt: limit of %u EDNS "
+			      "options exceeded",
+			      msg->edns.maxopts);
+		return ISC_R_NOSPACE;
+	}
+
+	size_t i = msg->edns.count;
+	msg->edns.opts[i].code = option->code;
+	if (option->value != NULL) {
+		msg->edns.opts[i].value = isc_mem_get(msg->mctx,
+						      option->length);
+		memmove(msg->edns.opts[i].value, option->value, option->length);
+		msg->edns.opts[i].length = option->length;
+	}
+	msg->edns.count++;
+	return ISC_R_SUCCESS;
+}
+
+static isc_result_t
+buildopt(dns_message_t *message, dns_rdataset_t **rdatasetp) {
 	dns_rdataset_t *rdataset = NULL;
 	dns_rdatalist_t *rdatalist = NULL;
 	dns_rdata_t *rdata = NULL;
 	isc_result_t result;
-	unsigned int len = 0, i;
 
 	REQUIRE(DNS_MESSAGE_VALID(message));
 	REQUIRE(rdatasetp != NULL && *rdatasetp == NULL);
@@ -4847,22 +4919,24 @@ dns_message_buildopt(dns_message_t *message, dns_rdataset_t **rdatasetp,
 	/*
 	 * Set Maximum UDP buffer size.
 	 */
-	rdatalist->rdclass = udpsize;
+	rdatalist->rdclass = message->edns.udpsize;
 
 	/*
 	 * Set EXTENDED-RCODE and Z to 0.
 	 */
-	rdatalist->ttl = (version << 16);
-	rdatalist->ttl |= (flags & 0xffff);
+	rdatalist->ttl = (message->edns.version << 16);
+	rdatalist->ttl |= (message->edns.flags & 0xffff);
 
 	/*
 	 * Set EDNS options if applicable
 	 */
-	if (count != 0U) {
+	if (message->edns.count != 0U) {
 		isc_buffer_t *buf = NULL;
 		bool seenpad = false;
-		for (i = 0; i < count; i++) {
-			len += ednsopts[i].length + 4;
+		size_t len = 0;
+
+		for (size_t i = 0; i < message->edns.count; i++) {
+			len += message->edns.opts[i].length + 4;
 		}
 
 		if (len > 0xffffU) {
@@ -4872,18 +4946,19 @@ dns_message_buildopt(dns_message_t *message, dns_rdataset_t **rdatasetp,
 
 		isc_buffer_allocate(message->mctx, &buf, len);
 
-		for (i = 0; i < count; i++) {
-			if (ednsopts[i].code == DNS_OPT_PAD &&
-			    ednsopts[i].length == 0U && !seenpad)
+		for (size_t i = 0; i < message->edns.count; i++) {
+			if (message->edns.opts[i].code == DNS_OPT_PAD &&
+			    message->edns.opts[i].length == 0U && !seenpad)
 			{
 				seenpad = true;
 				continue;
 			}
-			isc_buffer_putuint16(buf, ednsopts[i].code);
-			isc_buffer_putuint16(buf, ednsopts[i].length);
-			if (ednsopts[i].length != 0) {
-				isc_buffer_putmem(buf, ednsopts[i].value,
-						  ednsopts[i].length);
+			isc_buffer_putuint16(buf, message->edns.opts[i].code);
+			isc_buffer_putuint16(buf, message->edns.opts[i].length);
+			if (message->edns.opts[i].length != 0) {
+				isc_buffer_putmem(buf,
+						  message->edns.opts[i].value,
+						  message->edns.opts[i].length);
 			}
 		}
 

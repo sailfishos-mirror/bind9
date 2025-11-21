@@ -264,6 +264,8 @@ detailsection(dig_query_t *query, dns_message_t *msg, bool headers,
 		case DNS_SECTION_ADDITIONAL:
 			puts("    ADDITIONAL RECORDS:");
 			break;
+		default:
+			UNREACHABLE();
 		}
 	}
 

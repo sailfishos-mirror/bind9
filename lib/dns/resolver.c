@@ -1831,20 +1831,6 @@ detach:
 	resquery_detach(&query);
 }
 
-static isc_result_t
-fctx_addopt(dns_message_t *message, unsigned int version, uint16_t udpsize,
-	    dns_ednsopt_t *ednsopts, size_t count) {
-	dns_rdataset_t *rdataset = NULL;
-	isc_result_t result;
-
-	result = dns_message_buildopt(message, &rdataset, version, udpsize,
-				      DNS_MESSAGEEXTFLAG_DO, ednsopts, count);
-	if (result != ISC_R_SUCCESS) {
-		return result;
-	}
-	return dns_message_setopt(message, rdataset);
-}
-
 static void
 fctx_setretryinterval(fetchctx_t *fctx, unsigned int rtt) {
 	unsigned int seconds, us;
@@ -2328,8 +2314,6 @@ resquery_send(resquery_t *query) {
 	dns_compress_t cctx;
 	bool useedns;
 	bool tcp = ((query->options & DNS_FETCHOPT_TCP) != 0);
-	dns_ednsopt_t ednsopts[DNS_EDNSOPTIONS];
-	unsigned int ednsopt = 0;
 	uint16_t hint = 0, udpsize = 0; /* No EDNS */
 	isc_sockaddr_t localaddr, *la = NULL;
 #ifdef HAVE_DNSTAP
@@ -2534,43 +2518,57 @@ resquery_send(resquery_t *query) {
 			if (NOCOOKIE(query->addrinfo)) {
 				sendcookie = false;
 			}
+
+			query->ednsversion = version;
+			dns_message_ednsinit(fctx->qmessage, version, udpsize,
+					     DNS_MESSAGEEXTFLAG_DO, 0);
+
 			if (reqnsid) {
-				INSIST(ednsopt < DNS_EDNSOPTIONS);
-				ednsopts[ednsopt].code = DNS_OPT_NSID;
-				ednsopts[ednsopt].length = 0;
-				ednsopts[ednsopt].value = NULL;
-				ednsopt++;
+				dns_ednsopt_t option = {
+					.code = DNS_OPT_NSID,
+				};
+				result = dns_message_ednsaddopt(fctx->qmessage,
+								&option);
+				if (result != ISC_R_SUCCESS) {
+					goto cleanup_message;
+				}
 			}
 			if (reqzoneversion) {
-				INSIST(ednsopt < DNS_EDNSOPTIONS);
-				ednsopts[ednsopt].code = DNS_OPT_ZONEVERSION;
-				ednsopts[ednsopt].length = 0;
-				ednsopts[ednsopt].value = NULL;
-				ednsopt++;
+				dns_ednsopt_t option = {
+					.code = DNS_OPT_ZONEVERSION,
+				};
+				result = dns_message_ednsaddopt(fctx->qmessage,
+								&option);
+				if (result != ISC_R_SUCCESS) {
+					goto cleanup_message;
+				}
 			}
 			if (sendcookie) {
-				INSIST(ednsopt < DNS_EDNSOPTIONS);
-				ednsopts[ednsopt].code = DNS_OPT_COOKIE;
-				ednsopts[ednsopt].length =
-					(uint16_t)dns_adb_getcookie(
-						query->addrinfo, cookie,
-						sizeof(cookie));
-				if (ednsopts[ednsopt].length != 0) {
-					ednsopts[ednsopt].value = cookie;
+				dns_ednsopt_t option = {
+					.code = DNS_OPT_COOKIE,
+				};
+				option.length = (uint16_t)dns_adb_getcookie(
+					query->addrinfo, cookie,
+					sizeof(cookie));
+				if (option.length != 0) {
+					option.value = cookie;
 					inc_stats(
 						fctx->res,
 						dns_resstatscounter_cookieout);
 				} else {
 					compute_cc(query, cookie,
 						   CLIENT_COOKIE_SIZE);
-					ednsopts[ednsopt].value = cookie;
-					ednsopts[ednsopt].length =
-						CLIENT_COOKIE_SIZE;
+					option.value = cookie;
+					option.length = CLIENT_COOKIE_SIZE;
 					inc_stats(
 						fctx->res,
 						dns_resstatscounter_cookienew);
 				}
-				ednsopt++;
+				result = dns_message_ednsaddopt(fctx->qmessage,
+								&option);
+				if (result != ISC_R_SUCCESS) {
+					goto cleanup_message;
+				}
 			}
 
 			/* Add TCP keepalive option if appropriate */
@@ -2579,11 +2577,14 @@ resquery_send(resquery_t *query) {
 							       &tcpkeepalive);
 			}
 			if (tcpkeepalive) {
-				INSIST(ednsopt < DNS_EDNSOPTIONS);
-				ednsopts[ednsopt].code = DNS_OPT_TCP_KEEPALIVE;
-				ednsopts[ednsopt].length = 0;
-				ednsopts[ednsopt].value = NULL;
-				ednsopt++;
+				dns_ednsopt_t option = {
+					.code = DNS_OPT_TCP_KEEPALIVE,
+				};
+				result = dns_message_ednsaddopt(fctx->qmessage,
+								&option);
+				if (result != ISC_R_SUCCESS) {
+					goto cleanup_message;
+				}
 			}
 
 			/* Add PAD for current peer? Require TCP for now
@@ -2592,16 +2593,18 @@ resquery_send(resquery_t *query) {
 				(void)dns_peer_getpadding(peer, &padding);
 			}
 			if (padding != 0) {
-				INSIST(ednsopt < DNS_EDNSOPTIONS);
-				ednsopts[ednsopt].code = DNS_OPT_PAD;
-				ednsopts[ednsopt].length = 0;
-				ednsopt++;
+				dns_ednsopt_t option = {
+					.code = DNS_OPT_PAD,
+				};
+				result = dns_message_ednsaddopt(fctx->qmessage,
+								&option);
+				if (result != ISC_R_SUCCESS) {
+					goto cleanup_message;
+				}
 				dns_message_setpadding(fctx->qmessage, padding);
 			}
 
-			query->ednsversion = version;
-			result = fctx_addopt(fctx->qmessage, version, udpsize,
-					     ednsopts, ednsopt);
+			result = dns_message_setopt(fctx->qmessage);
 			if (result == ISC_R_SUCCESS) {
 				if (reqnsid) {
 					query->options |= DNS_FETCHOPT_WANTNSID;
@@ -2610,7 +2613,7 @@ resquery_send(resquery_t *query) {
 					query->options |=
 						DNS_FETCHOPT_WANTZONEVERSION;
 				}
-			} else if (result != ISC_R_SUCCESS) {
+			} else {
 				/*
 				 * We couldn't add the OPT, but we'll
 				 * press on. We're not using EDNS0, so

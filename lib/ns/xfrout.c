@@ -1413,10 +1413,7 @@ sendstream(xfrout_ctx_t *xfr) {
 		if ((xfr->client->inner.attributes & NS_CLIENTATTR_WANTOPT) !=
 		    0)
 		{
-			dns_rdataset_t *opt = NULL;
-
-			CHECK(ns_client_addopt(xfr->client, msg, &opt));
-			CHECK(dns_message_setopt(msg, opt));
+			CHECK(ns_client_addopt(xfr->client, msg));
 			/*
 			 * Add to first message only.
 			 */
