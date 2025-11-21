@@ -4652,7 +4652,9 @@ configure_view(dns_view_t *view, dns_viewlist_t *viewlist, cfg_obj_t *config,
 					&rootzone);
 		if (rootzone != NULL) {
 			dns_zone_detach(&rootzone);
-		} else {
+		} else if (strcmp(view->name, "_bind") != 0 ||
+			   view->rdclass != dns_rdataclass_chaos)
+		{
 			isc_log_write(NAMED_LOGCATEGORY_GENERAL,
 				      NAMED_LOGMODULE_SERVER, ISC_LOG_WARNING,
 				      "no root hints for view '%s'",
