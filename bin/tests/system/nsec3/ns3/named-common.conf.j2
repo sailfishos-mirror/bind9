@@ -11,19 +11,13 @@
  * information regarding copyright ownership.
  */
 
-// NS2
-
-dnssec-policy "nsec3" {
-	nsec3param;
-};
-
 options {
-	query-source address 10.53.0.2;
-	notify-source 10.53.0.2;
-	transfer-source 10.53.0.2;
+	query-source address 10.53.0.3;
+	notify-source 10.53.0.3;
+	transfer-source 10.53.0.3;
 	port @PORT@;
 	pid-file "named.pid";
-	listen-on { 10.53.0.2; };
+	listen-on { 10.53.0.3; };
 	listen-on-v6 { none; };
 	allow-transfer { any; };
 	recursion no;
@@ -36,11 +30,23 @@ key rndc_key {
 };
 
 controls {
-	inet 10.53.0.2 port @CONTROLPORT@ allow { any; } keys { rndc_key; };
+	inet 10.53.0.3 port @CONTROLPORT@ allow { any; } keys { rndc_key; };
 };
 
-zone "nsec3-xfr-inline.kasp" {
-	type primary;
-	file "nsec3-xfr-inline.kasp.db";
-	dnssec-policy "nsec3";
+dnssec-policy "nsec" {
+	// no need to change configuration: if no 'nsec3param' is set,
+	// NSEC will be used;
 };
+
+dnssec-policy "nsec3" {
+	nsec3param;
+};
+
+dnssec-policy "optout" {
+	nsec3param optout yes;
+};
+
+dnssec-policy "nsec3-other" {
+	nsec3param iterations 0 optout yes salt-length 8;
+};
+
