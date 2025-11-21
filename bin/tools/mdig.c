@@ -588,7 +588,6 @@ sendquery(struct query *query) {
 		unsigned int flags;
 		char ecsbuf[20];
 		unsigned char cookie[40];
-		dns_rdataset_t *rdataset = NULL;
 
 		flags = query->ednsflags;
 		flags &= ~DNS_MESSAGEEXTFLAG_DO;
@@ -702,9 +701,7 @@ sendquery(struct query *query) {
 			}
 		}
 
-		result = dns_message_buildopt(message, &rdataset);
-		CHECK("dns_message_buildopt", result);
-		result = dns_message_setopt(message, rdataset);
+		result = dns_message_setopt(message);
 		CHECK("dns_message_setopt", result);
 	}
 

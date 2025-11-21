@@ -177,13 +177,12 @@ struct ns_client {
 		isc_nmhandle_t *updatehandle;  /* Waiting for update callback */
 		isc_nmhandle_t *restarthandle; /* Waiting for restart callback
 						*/
-		unsigned char  *tcpbuf;
-		size_t		tcpbuf_size;
-		dns_rdataset_t *opt;
-		uint16_t	udpsize;
-		uint16_t	extflags;
-		int16_t		ednsversion; /* -1 noedns */
-		uint16_t	additionaldepth;
+		unsigned char *tcpbuf;
+		size_t	       tcpbuf_size;
+		uint16_t       udpsize;
+		uint16_t       extflags;
+		int16_t	       ednsversion; /* -1 noedns */
+		uint16_t       additionaldepth;
 		void (*cleanup)(ns_client_t *);
 		isc_time_t    requesttime;
 		isc_stdtime_t now;
@@ -455,8 +454,7 @@ isc_result_t
 ns_client_sourceip(dns_clientinfo_t *ci, isc_sockaddr_t **addrp);
 
 isc_result_t
-ns_client_addopt(ns_client_t *client, dns_message_t *message,
-		 dns_rdataset_t **opt);
+ns_client_addopt(ns_client_t *client, dns_message_t *message);
 
 /*%<
  * Get a client object from the inactive queue, or create one, as needed.

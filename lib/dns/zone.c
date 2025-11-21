@@ -12862,7 +12862,6 @@ static isc_result_t
 add_opt(dns_message_t *message, uint16_t udpsize, bool reqnsid,
 	bool reqexpire) {
 	isc_result_t result;
-	dns_rdataset_t *rdataset = NULL;
 
 	dns_message_ednsinit(message, 0, udpsize, 0, 0);
 
@@ -12882,12 +12881,7 @@ add_opt(dns_message_t *message, uint16_t udpsize, bool reqnsid,
 		}
 	}
 
-	result = dns_message_buildopt(message, &rdataset);
-	if (result != ISC_R_SUCCESS) {
-		return result;
-	}
-
-	return dns_message_setopt(message, rdataset);
+	return dns_message_setopt(message);
 }
 
 /*

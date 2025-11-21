@@ -1075,21 +1075,18 @@ dns_message_getopt(dns_message_t *msg);
  */
 
 isc_result_t
-dns_message_setopt(dns_message_t *msg, dns_rdataset_t *opt);
+dns_message_setopt(dns_message_t *msg);
 /*%<
- * Set/clear the OPT record for 'msg'.
+ * Constructs an OPT record for 'msg', based on previous calls to
+ * dns_message_ednsinit() and dns_message_ednsaddopt().
  *
  * Requires:
  *
- *\li	'msg' is a valid message with rendering intent
- *	and no sections have been rendered.
- *
- *\li	'opt' is a valid OPT rdataset or NULL.
+ *\li	'msg' is a valid message with rendering intent,
+ *	no sections have been rendered., and dns_message_ednsinit()
+ *	has been run.
  *
  * Ensures:
- *
- *\li	The OPT record has either been freed or ownership of it has
- *	been transferred to the message.
  *
  *\li	If ISC_R_SUCCESS was returned, the OPT record will be rendered
  *	when dns_message_renderend() is called.
@@ -1433,21 +1430,6 @@ dns_message_ednsaddopt(dns_message_t *msg, dns_ednsopt_t *ednsopt);
  * Requires:
  *\li	'msg' to be a valid message.
  *\li	dns_message_ednsinit() to have been called.
- *
- * Returns:
- *\li	 ISC_R_SUCCESS
- *\li	 ISC_R_NOSPACE
- */
-
-isc_result_t
-dns_message_buildopt(dns_message_t *msg, dns_rdataset_t **opt);
-
-/*%<
- * Build an opt record.
- *
- * Requires:
- *\li	msg be a valid message.
- *\li	opt to be a non NULL and *opt to be NULL.
  *
  * Returns:
  *\li	 ISC_R_SUCCESS

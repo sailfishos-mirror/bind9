@@ -2464,7 +2464,6 @@ resquery_send(resquery_t *query) {
 			bool tcpkeepalive = false;
 			unsigned char cookie[COOKIE_BUFFER_SIZE];
 			uint16_t padding = 0;
-			dns_rdataset_t *rdataset = NULL;
 
 			/*
 			 * Set the default UDP size to what was
@@ -2605,13 +2604,7 @@ resquery_send(resquery_t *query) {
 				dns_message_setpadding(fctx->qmessage, padding);
 			}
 
-			result = dns_message_buildopt(fctx->qmessage,
-						      &rdataset);
-			if (result == ISC_R_SUCCESS) {
-				result = dns_message_setopt(fctx->qmessage,
-							    rdataset);
-			}
-
+			result = dns_message_setopt(fctx->qmessage);
 			if (result == ISC_R_SUCCESS) {
 				if (reqnsid) {
 					query->options |= DNS_FETCHOPT_WANTNSID;

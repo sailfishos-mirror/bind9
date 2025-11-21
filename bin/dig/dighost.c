@@ -2115,7 +2115,6 @@ setup_lookup(dig_lookup_t *lookup) {
 	char cookiebuf[256];
 	char *origin = NULL;
 	char *textname = NULL;
-	dns_rdataset_t *rdataset = NULL;
 
 	REQUIRE(lookup != NULL);
 
@@ -2564,9 +2563,7 @@ setup_lookup(dig_lookup_t *lookup) {
 					       lookup->padding);
 		}
 
-		result = dns_message_buildopt(lookup->sendmsg, &rdataset);
-		check_result(result, "dns_message_buildopt");
-		result = dns_message_setopt(lookup->sendmsg, rdataset);
+		result = dns_message_setopt(lookup->sendmsg);
 		check_result(result, "dns_message_setopt");
 	}
 

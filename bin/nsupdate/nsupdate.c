@@ -1493,7 +1493,6 @@ evaluate_prereq(char *cmdline) {
 static void
 updateopt(void) {
 	isc_result_t result;
-	dns_rdataset_t *opt = NULL;
 	unsigned char ul[8];
 	isc_buffer_t b;
 	dns_ednsopt_t option = {
@@ -1512,9 +1511,8 @@ updateopt(void) {
 
 	dns_message_ednsinit(updatemsg, 0, DEFAULT_EDNS_BUFSIZE, 0, 0);
 	dns_message_ednsaddopt(updatemsg, &option);
-	result = dns_message_buildopt(updatemsg, &opt);
-	check_result(result, "dns_message_buildopt");
-	result = dns_message_setopt(updatemsg, opt);
+	result = dns_message_setopt(updatemsg);
+	check_result(result, "dns_message_setopt");
 }
 
 static uint16_t

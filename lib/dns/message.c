@@ -227,6 +227,9 @@ logfmtpacket(dns_message_t *message, const char *description,
 	     isc_logcategory_t category, isc_logmodule_t module,
 	     const dns_master_style_t *style, int level, isc_mem_t *mctx);
 
+static isc_result_t
+buildopt(dns_message_t *message, dns_rdataset_t **rdatasetp);
+
 /*
  * Allocate a new dns_msgblock_t, and return a pointer to it.  If no memory
  * is free, return NULL.
@@ -2629,8 +2632,9 @@ dns_message_getopt(dns_message_t *msg) {
 }
 
 isc_result_t
-dns_message_setopt(dns_message_t *msg, dns_rdataset_t *opt) {
+dns_message_setopt(dns_message_t *msg) {
 	isc_result_t result;
+	dns_rdataset_t *opt = NULL;
 	dns_rdata_t rdata = DNS_RDATA_INIT;
 
 	/*
@@ -2652,16 +2656,15 @@ dns_message_setopt(dns_message_t *msg, dns_rdataset_t *opt) {
 	 */
 
 	REQUIRE(DNS_MESSAGE_VALID(msg));
-	REQUIRE(opt == NULL || DNS_RDATASET_VALID(opt));
-	REQUIRE(opt == NULL || opt->type == dns_rdatatype_opt);
 	REQUIRE(msg->from_to_wire == DNS_MESSAGE_INTENTRENDER);
 	REQUIRE(msg->state == DNS_SECTION_ANY);
 
-	msgresetopt(msg);
-
-	if (opt == NULL) {
-		return ISC_R_SUCCESS;
+	result = buildopt(msg, &opt);
+	if (result != ISC_R_SUCCESS) {
+		return result;
 	}
+
+	msgresetopt(msg);
 
 	result = dns_rdataset_first(opt);
 	if (result != ISC_R_SUCCESS) {
@@ -4897,8 +4900,8 @@ dns_message_ednsaddopt(dns_message_t *msg, dns_ednsopt_t *option) {
 	return ISC_R_SUCCESS;
 }
 
-isc_result_t
-dns_message_buildopt(dns_message_t *message, dns_rdataset_t **rdatasetp) {
+static isc_result_t
+buildopt(dns_message_t *message, dns_rdataset_t **rdatasetp) {
 	dns_rdataset_t *rdataset = NULL;
 	dns_rdatalist_t *rdatalist = NULL;
 	dns_rdata_t *rdata = NULL;

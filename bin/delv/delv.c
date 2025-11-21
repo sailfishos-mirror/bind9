@@ -2060,7 +2060,6 @@ sendquery(void *arg) {
 	dns_message_t *message = NULL;
 	dns_name_t *query_name = NULL, *mname = NULL;
 	dns_rdataset_t *mrdataset = NULL;
-	dns_rdataset_t *opt = NULL;
 	dns_request_t *request = NULL;
 
 	/* Construct query message */
@@ -2086,8 +2085,7 @@ sendquery(void *arg) {
 	mname = NULL;
 
 	dns_message_ednsinit(message, 0, 0, DNS_MESSAGEEXTFLAG_DO, 0);
-	CHECK(dns_message_buildopt(message, &opt));
-	CHECK(dns_message_setopt(message, opt));
+	CHECK(dns_message_setopt(message));
 
 	CHECK(dns_requestmgr_create(isc_g_mctx, dispatchmgr, NULL, NULL,
 				    &requestmgr));

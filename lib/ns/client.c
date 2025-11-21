@@ -266,12 +266,6 @@ ns_client_endrequest(ns_client_t *client) {
 #endif /* ifdef ENABLE_AFL */
 		dns_view_detach(&client->inner.view);
 	}
-	if (client->inner.opt != NULL) {
-		INSIST(dns_rdataset_isassociated(client->inner.opt));
-		dns_rdataset_disassociate(client->inner.opt);
-		dns_message_puttemprdataset(client->message,
-					    &client->inner.opt);
-	}
 
 	client_zoneversion_reset(client);
 	client->inner.signer = NULL;
@@ -616,8 +610,7 @@ ns_client_send(ns_client_t *client) {
 	 * Create an OPT for our reply.
 	 */
 	if ((client->inner.attributes & NS_CLIENTATTR_WANTOPT) != 0) {
-		result = ns_client_addopt(client, client->message,
-					  &client->inner.opt);
+		result = ns_client_addopt(client, client->message);
 		if (result != ISC_R_SUCCESS) {
 			goto cleanup;
 		}
@@ -653,14 +646,6 @@ ns_client_send(ns_client_t *client) {
 		goto cleanup;
 	}
 
-	if (client->inner.opt != NULL) {
-		result = dns_message_setopt(client->message, client->inner.opt);
-		opt_included = true;
-		client->inner.opt = NULL;
-		if (result != ISC_R_SUCCESS) {
-			goto cleanup;
-		}
-	}
 	result = dns_message_rendersection(client->message,
 					   DNS_SECTION_QUESTION, 0);
 	if (result == ISC_R_NOSPACE) {
@@ -1053,8 +1038,7 @@ ns_client_error(ns_client_t *client, isc_result_t result) {
 }
 
 isc_result_t
-ns_client_addopt(ns_client_t *client, dns_message_t *message,
-		 dns_rdataset_t **opt) {
+ns_client_addopt(ns_client_t *client, dns_message_t *message) {
 	unsigned char ecs[ECS_SIZE];
 	unsigned char cookie[COOKIE_SIZE];
 	isc_result_t result;
@@ -1066,7 +1050,6 @@ ns_client_addopt(ns_client_t *client, dns_message_t *message,
 	dns_aclenv_t *env = NULL;
 
 	REQUIRE(NS_CLIENT_VALID(client));
-	REQUIRE(opt != NULL && *opt == NULL);
 	REQUIRE(message != NULL);
 
 	env = client->manager->aclenv;
@@ -1282,7 +1265,7 @@ ns_client_addopt(ns_client_t *client, dns_message_t *message,
 		}
 	}
 
-	result = dns_message_buildopt(message, opt);
+	result = dns_message_setopt(message);
 	return result;
 }
 
@@ -1723,11 +1706,8 @@ process_opt(ns_client_t *client, dns_rdataset_t *opt) {
 	if (client->inner.ednsversion > DNS_EDNS_VERSION) {
 		ns_stats_increment(client->manager->sctx->nsstats,
 				   ns_statscounter_badednsver);
-		result = ns_client_addopt(client, client->message,
-					  &client->inner.opt);
-		if (result == ISC_R_SUCCESS) {
-			result = DNS_R_BADVERS;
-		}
+		result = DNS_R_BADVERS;
+		client->inner.attributes |= NS_CLIENTATTR_WANTOPT;
 		ns_client_error(client, result);
 		return result;
 	}
@@ -1739,13 +1719,10 @@ process_opt(ns_client_t *client, dns_rdataset_t *opt) {
 	return result;
 
 formerr:
-	if (result == DNS_R_FORMERR || result == DNS_R_OPTERR) {
-		result = ns_client_addopt(client, client->message,
-					  &client->inner.opt);
-		if (result == ISC_R_SUCCESS) {
-			result = DNS_R_FORMERR;
-		}
+	if (result == DNS_R_OPTERR) {
+		result = DNS_R_FORMERR;
 	}
+	client->inner.attributes |= NS_CLIENTATTR_WANTOPT;
 	ns_client_error(client, result);
 	return result;
 }
@@ -1815,13 +1792,6 @@ ns__client_put_cb(void *client0) {
 	client_zoneversion_reset(client);
 
 	client->magic = 0;
-
-	if (client->inner.opt != NULL) {
-		INSIST(dns_rdataset_isassociated(client->inner.opt));
-		dns_rdataset_disassociate(client->inner.opt);
-		dns_message_puttemprdataset(client->message,
-					    &client->inner.opt);
-	}
 
 	ns_client_async_reset(client);
 
@@ -2060,10 +2030,8 @@ ns_client_request(isc_nmhandle_t *handle, isc_result_t eresult,
 		 * (typically FORMERR or SERVFAIL).
 		 */
 		if (result == DNS_R_OPTERR) {
-			(void)ns_client_addopt(client, client->message,
-					       &client->inner.opt);
+			client->inner.attributes |= NS_CLIENTATTR_WANTOPT;
 		}
-
 		ns_client_log(client, NS_LOGCATEGORY_CLIENT,
 			      NS_LOGMODULE_CLIENT, ISC_LOG_DEBUG(1),
 			      "message parsing failed: %s",
