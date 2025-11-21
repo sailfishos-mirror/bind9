@@ -65,6 +65,13 @@ def bootstrap():
 
 @pytest.fixture(scope="module", autouse=True)
 def after_servers_start(ns3, templates):
+    # First make sure all zones are properly signed. Here we specifically need
+    # to wait until all zones have finished key management before we can
+    # reconfigure the server, because changing the DNSSEC policy relies on
+    # zones having finished applying their initial policy.
+    for zone in ZONES:
+        isctest.kasp.wait_keymgr_done(ns3, zone)
+
     # Ensure rsasha1-to-nsec3-wait.kasp is fully signed prior to reconfig.
     with_rsasha1 = "RSASHA1_SUPPORTED"
     assert with_rsasha1 in os.environ, f"{with_rsasha1} env variable undefined"
