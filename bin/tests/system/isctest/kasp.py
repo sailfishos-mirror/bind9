@@ -1609,5 +1609,5 @@ def wait_keymgr_done(server: NamedInstance, zone: str, reconfig: bool = False) -
         messages.append("received control channel command 'reconfig'")
         messages.append("apply_configuration")
     messages.append(f"keymgr: {zone} done")
-    with server.watch_log_from_start() as watcher:
+    with server.watch_log_from_start(timeout=60) as watcher:
         watcher.wait_for_sequence(messages)
