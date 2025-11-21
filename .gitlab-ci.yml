@@ -2151,7 +2151,7 @@ respdiff:recent-named:
   variables:
     CC: gcc
     CFLAGS: "${CFLAGS_COMMON} -Og -DISC_TRACK_PTHREADS_OBJECTS"
-    MAX_DISAGREEMENTS_PERCENTAGE: "0.3"
+    MAX_DISAGREEMENTS_PERCENTAGE: "0.1"
 
 # Performance tests
 
