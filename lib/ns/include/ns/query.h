@@ -231,8 +231,6 @@ struct query_ctx {
 
 	void *zhooks; /* zone hook table */
 
-	bool allocated; /* qctx needs to be freed when destroying */
-
 	isc_result_t result; /* query result */
 	int	     line;   /* line to report error */
 };

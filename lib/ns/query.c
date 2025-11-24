@@ -441,7 +441,10 @@ static void
 qctx_freedata(query_ctx_t *qctx);
 
 static void
-qctx_destroy(query_ctx_t *qctx);
+qctx_destroy(query_ctx_t **qctx);
+
+static void
+qctx_deinit(query_ctx_t *qctx);
 
 static void
 query_setup(ns_client_t *client, dns_rdatatype_t qtype);
@@ -2764,7 +2767,7 @@ stale_refresh_aftermath(ns_client_t *client, isc_result_t result) {
 
 	cleanup:
 		qctx_freedata(&qctx);
-		qctx_destroy(&qctx);
+		qctx_deinit(&qctx);
 	}
 }
 
@@ -5199,13 +5202,17 @@ qctx_freedata(query_ctx_t *qctx) {
 }
 
 static void
-qctx_destroy(query_ctx_t *qctx) {
+qctx_destroy(query_ctx_t **qctxp) {
+	query_ctx_t *qctx = *qctxp;
+	*qctxp = NULL;
+
+	isc_mem_put(qctx->client->manager->mctx, qctx, sizeof(*qctx));
+}
+
+static void
+qctx_deinit(query_ctx_t *qctx) {
 	if (qctx->view) {
 		dns_view_detach(&qctx->view);
-	}
-
-	if (qctx->allocated) {
-		isc_mem_put(qctx->client->manager->mctx, qctx, sizeof(*qctx));
 	}
 }
 
@@ -5258,8 +5265,6 @@ qctx_save(query_ctx_t *src, query_ctx_t **targetp) {
 	/* View has to stay in 'src' for qctx_destroy. */
 	target->view = NULL;
 	dns_view_attach(src->view, &target->view);
-
-	target->allocated = true;
 
 	*targetp = target;
 }
@@ -5328,7 +5333,7 @@ query_setup(ns_client_t *client, dns_rdatatype_t qtype) {
 	(void)ns__query_start(&qctx);
 
 cleanup:
-	qctx_destroy(&qctx);
+	qctx_deinit(&qctx);
 }
 
 static bool
@@ -5817,7 +5822,8 @@ async_restart(void *arg) {
 
 	qctx_clean(qctx);
 	qctx_freedata(qctx);
-	qctx_destroy(qctx);
+	qctx_deinit(qctx);
+	qctx_destroy(&qctx);
 	isc_nmhandle_detach(&handle);
 }
 
@@ -6228,7 +6234,7 @@ fetch_callback(void *arg) {
 		}
 	}
 
-	qctx_destroy(&qctx);
+	qctx_deinit(&qctx);
 	dns_resolver_destroyfetch(&fetch);
 }
 
@@ -6736,7 +6742,8 @@ query_hookresume(void *arg) {
 
 	isc_mem_put(hctx->mctx, rev, sizeof(*rev));
 	hctx->destroy(&hctx);
-	qctx_destroy(qctx);
+	qctx_deinit(qctx);
+	qctx_destroy(&qctx);
 }
 
 isc_result_t
@@ -6801,7 +6808,8 @@ cleanup:
 	if (saved_qctx != NULL) {
 		qctx_clean(saved_qctx);
 		qctx_freedata(saved_qctx);
-		qctx_destroy(saved_qctx);
+		qctx_deinit(saved_qctx);
+		qctx_destroy(&saved_qctx);
 	}
 	return result;
 }
