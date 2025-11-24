@@ -718,6 +718,32 @@ if jemalloc_opt.allowed()
     endif
 endif
 
+foreach fn : [
+    'malloc_usable_size',
+]
+    if cc.has_function(
+        fn,
+        prefix: '#include <malloc.h>',
+        args: sys_defines,
+        dependencies: thread_dep,
+    )
+        config.set('HAVE_@0@'.format(fn.to_upper()), 1)
+    endif
+endforeach
+
+foreach fn : [
+    'malloc_size',
+]
+    if cc.has_function(
+        fn,
+        prefix: '#include <malloc/malloc.h>',
+        args: sys_defines,
+        dependencies: thread_dep,
+    )
+        config.set('HAVE_@0@'.format(fn.to_upper()), 1)
+    endif
+endforeach
+
 ## dnstap
 dnstap_dep = null_dep # Will be filled later
 
