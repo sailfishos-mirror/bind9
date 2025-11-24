@@ -51,6 +51,7 @@
 #include <isc/stdtime.h>
 
 #include <dns/rdataslab.h>
+#include <dns/rdatavec.h>
 #include <dns/rdatastruct.h>
 #include <dns/types.h>
 
@@ -199,6 +200,20 @@ struct dns_rdataset {
 			unsigned int		iter_count;
 			dns_slabheader_proof_t *noqname, *closest;
 		} slab;
+
+		/*
+		 * A vec rdataset provides access to an rdatavec. In
+		 * a QP database, 'header' points to the vecheader
+		 * structure. (There is an exception in the case of
+		 * rdatasets returned by the `getnoqname` and `getclosest`
+		 * methods; see comments in rdatavec.c for details.)
+		 */
+		struct {
+			struct dns_db           *db;
+			dns_dbnode_t           *node;
+			dns_vecheader_t        *header;
+			rdatavec_iter_t        iter;
+		} vec;
 
 		/*
 		 * A simple rdatalist, plus an optional dbnode used by
