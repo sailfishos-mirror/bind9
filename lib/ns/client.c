@@ -614,6 +614,7 @@ ns_client_send(ns_client_t *client) {
 		if (result != ISC_R_SUCCESS) {
 			goto cleanup;
 		}
+		opt_included = true;
 	}
 
 	client_allocsendbuf(client, &buffer, &data);
