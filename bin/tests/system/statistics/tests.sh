@@ -256,6 +256,98 @@ if [ $ret != 0 ]; then echo_i "failed"; fi
 status=$((status + ret))
 n=$((n + 1))
 
+ret=0
+echo_i "checking bind9.xml nsstats statistics ($n)"
+if $FEATURETEST --have-libxml2 && [ -e stats.xml.out ] && [ -x "${XSLTPROC}" ] && [ -x "${XMLLINT}" ]; then
+  [ "$("$XMLLINT" --xpath 'count(/statistics/server/counters[@type="nsstat"]/counter[@name="AuthQryRej" and text()="0"])' stats.xml.out)" -eq 1 ] || ret=1
+  [ "$("$XMLLINT" --xpath 'count(/statistics/server/counters[@type="nsstat"]/counter[@name="CookieBadSize" and text()="0"])' stats.xml.out)" -eq 1 ] || ret=1
+  [ "$("$XMLLINT" --xpath 'count(/statistics/server/counters[@type="nsstat"]/counter[@name="CookieBadTime" and text()="0"])' stats.xml.out)" -eq 1 ] || ret=1
+  [ "$("$XMLLINT" --xpath 'count(/statistics/server/counters[@type="nsstat"]/counter[@name="CookieIn" and text()="4"])' stats.xml.out)" -eq 1 ] || ret=1
+  [ "$("$XMLLINT" --xpath 'count(/statistics/server/counters[@type="nsstat"]/counter[@name="CookieMatch" and text()="0"])' stats.xml.out)" -eq 1 ] || ret=1
+  [ "$("$XMLLINT" --xpath 'count(/statistics/server/counters[@type="nsstat"]/counter[@name="CookieNew" and text()="4"])' stats.xml.out)" -eq 1 ] || ret=1
+  [ "$("$XMLLINT" --xpath 'count(/statistics/server/counters[@type="nsstat"]/counter[@name="CookieNoMatch" and text()="0"])' stats.xml.out)" -eq 1 ] || ret=1
+  [ "$("$XMLLINT" --xpath 'count(/statistics/server/counters[@type="nsstat"]/counter[@name="DNS64" and text()="0"])' stats.xml.out)" -eq 1 ] || ret=1
+  [ "$("$XMLLINT" --xpath 'count(/statistics/server/counters[@type="nsstat"]/counter[@name="ECSOpt" and text()="0"])' stats.xml.out)" -eq 1 ] || ret=1
+  [ "$("$XMLLINT" --xpath 'count(/statistics/server/counters[@type="nsstat"]/counter[@name="ExpireOpt" and text()="0"])' stats.xml.out)" -eq 1 ] || ret=1
+  [ "$("$XMLLINT" --xpath 'count(/statistics/server/counters[@type="nsstat"]/counter[@name="KeepAliveOpt" and text()="0"])' stats.xml.out)" -eq 1 ] || ret=1
+  [ "$("$XMLLINT" --xpath 'count(/statistics/server/counters[@type="nsstat"]/counter[@name="KeyTagOpt" and text()="0"])' stats.xml.out)" -eq 1 ] || ret=1
+  [ "$("$XMLLINT" --xpath 'count(/statistics/server/counters[@type="nsstat"]/counter[@name="NSIDOpt" and text()="0"])' stats.xml.out)" -eq 1 ] || ret=1
+  [ "$("$XMLLINT" --xpath 'count(/statistics/server/counters[@type="nsstat"]/counter[@name="OtherOpt" and text()="0"])' stats.xml.out)" -eq 1 ] || ret=1
+  [ "$("$XMLLINT" --xpath 'count(/statistics/server/counters[@type="nsstat"]/counter[@name="PadOpt" and text()="0"])' stats.xml.out)" -eq 1 ] || ret=1
+  [ "$("$XMLLINT" --xpath 'count(/statistics/server/counters[@type="nsstat"]/counter[@name="Prefetch" and text()="0"])' stats.xml.out)" -eq 1 ] || ret=1
+  [ "$("$XMLLINT" --xpath 'count(/statistics/server/counters[@type="nsstat"]/counter[@name="QryAuthAns" and text()="2"])' stats.xml.out)" -eq 1 ] || ret=1
+  [ "$("$XMLLINT" --xpath 'count(/statistics/server/counters[@type="nsstat"]/counter[@name="QryBADCOOKIE" and text()="0"])' stats.xml.out)" -eq 1 ] || ret=1
+  [ "$("$XMLLINT" --xpath 'count(/statistics/server/counters[@type="nsstat"]/counter[@name="QryDoH" and text()="0"])' stats.xml.out)" -eq 1 ] || ret=1
+  [ "$("$XMLLINT" --xpath 'count(/statistics/server/counters[@type="nsstat"]/counter[@name="QryDoHPlain" and text()="0"])' stats.xml.out)" -eq 1 ] || ret=1
+  [ "$("$XMLLINT" --xpath 'count(/statistics/server/counters[@type="nsstat"]/counter[@name="QryDoT" and text()="0"])' stats.xml.out)" -eq 1 ] || ret=1
+  [ "$("$XMLLINT" --xpath 'count(/statistics/server/counters[@type="nsstat"]/counter[@name="QryDropped" and text()="0"])' stats.xml.out)" -eq 1 ] || ret=1
+  [ "$("$XMLLINT" --xpath 'count(/statistics/server/counters[@type="nsstat"]/counter[@name="QryDuplicate" and text()="0"])' stats.xml.out)" -eq 1 ] || ret=1
+  [ "$("$XMLLINT" --xpath 'count(/statistics/server/counters[@type="nsstat"]/counter[@name="QryEncryptedProxyDoH" and text()="0"])' stats.xml.out)" -eq 1 ] || ret=1
+  [ "$("$XMLLINT" --xpath 'count(/statistics/server/counters[@type="nsstat"]/counter[@name="QryEncryptedProxyDoT" and text()="0"])' stats.xml.out)" -eq 1 ] || ret=1
+  [ "$("$XMLLINT" --xpath 'count(/statistics/server/counters[@type="nsstat"]/counter[@name="QryFORMERR" and text()="0"])' stats.xml.out)" -eq 1 ] || ret=1
+  [ "$("$XMLLINT" --xpath 'count(/statistics/server/counters[@type="nsstat"]/counter[@name="QryFailure" and text()="0"])' stats.xml.out)" -eq 1 ] || ret=1
+  [ "$("$XMLLINT" --xpath 'count(/statistics/server/counters[@type="nsstat"]/counter[@name="QryNXDOMAIN" and text()="0"])' stats.xml.out)" -eq 1 ] || ret=1
+  [ "$("$XMLLINT" --xpath 'count(/statistics/server/counters[@type="nsstat"]/counter[@name="QryNXRedir" and text()="0"])' stats.xml.out)" -eq 1 ] || ret=1
+  [ "$("$XMLLINT" --xpath 'count(/statistics/server/counters[@type="nsstat"]/counter[@name="QryNXRedirRLookup" and text()="0"])' stats.xml.out)" -eq 1 ] || ret=1
+  [ "$("$XMLLINT" --xpath 'count(/statistics/server/counters[@type="nsstat"]/counter[@name="QryNoauthAns" and text()="0"])' stats.xml.out)" -eq 1 ] || ret=1
+  [ "$("$XMLLINT" --xpath 'count(/statistics/server/counters[@type="nsstat"]/counter[@name="QryNxrrset" and text()="0"])' stats.xml.out)" -eq 1 ] || ret=1
+  [ "$("$XMLLINT" --xpath 'count(/statistics/server/counters[@type="nsstat"]/counter[@name="QryProxyDoH" and text()="0"])' stats.xml.out)" -eq 1 ] || ret=1
+  [ "$("$XMLLINT" --xpath 'count(/statistics/server/counters[@type="nsstat"]/counter[@name="QryProxyDoHPlain" and text()="0"])' stats.xml.out)" -eq 1 ] || ret=1
+  [ "$("$XMLLINT" --xpath 'count(/statistics/server/counters[@type="nsstat"]/counter[@name="QryProxyDoT" and text()="0"])' stats.xml.out)" -eq 1 ] || ret=1
+  [ "$("$XMLLINT" --xpath 'count(/statistics/server/counters[@type="nsstat"]/counter[@name="QryProxyTCP" and text()="0"])' stats.xml.out)" -eq 1 ] || ret=1
+  [ "$("$XMLLINT" --xpath 'count(/statistics/server/counters[@type="nsstat"]/counter[@name="QryProxyUDP" and text()="0"])' stats.xml.out)" -eq 1 ] || ret=1
+  [ "$("$XMLLINT" --xpath 'count(/statistics/server/counters[@type="nsstat"]/counter[@name="QryRecursion" and text()="3"])' stats.xml.out)" -eq 1 ] || ret=1
+  [ "$("$XMLLINT" --xpath 'count(/statistics/server/counters[@type="nsstat"]/counter[@name="QryReferral" and text()="0"])' stats.xml.out)" -eq 1 ] || ret=1
+  [ "$("$XMLLINT" --xpath 'count(/statistics/server/counters[@type="nsstat"]/counter[@name="QrySERVFAIL" and text()="1"])' stats.xml.out)" -eq 1 ] || ret=1
+  [ "$("$XMLLINT" --xpath 'count(/statistics/server/counters[@type="nsstat"]/counter[@name="QrySuccess" and text()="2"])' stats.xml.out)" -eq 1 ] || ret=1
+  [ "$("$XMLLINT" --xpath 'count(/statistics/server/counters[@type="nsstat"]/counter[@name="QryTCP" and text()="3"])' stats.xml.out)" -eq 1 ] || ret=1
+  [ "$("$XMLLINT" --xpath 'count(/statistics/server/counters[@type="nsstat"]/counter[@name="QryTryStale" and text()="0"])' stats.xml.out)" -eq 1 ] || ret=1
+  [ "$("$XMLLINT" --xpath 'count(/statistics/server/counters[@type="nsstat"]/counter[@name="QryUDP" and text()="2"])' stats.xml.out)" -eq 1 ] || ret=1
+  [ "$("$XMLLINT" --xpath 'count(/statistics/server/counters[@type="nsstat"]/counter[@name="QryUsedStale" and text()="0"])' stats.xml.out)" -eq 1 ] || ret=1
+  [ "$("$XMLLINT" --xpath 'count(/statistics/server/counters[@type="nsstat"]/counter[@name="RPZRewrites" and text()="0"])' stats.xml.out)" -eq 1 ] || ret=1
+  [ "$("$XMLLINT" --xpath 'count(/statistics/server/counters[@type="nsstat"]/counter[@name="RateDropped" and text()="0"])' stats.xml.out)" -eq 1 ] || ret=1
+  [ "$("$XMLLINT" --xpath 'count(/statistics/server/counters[@type="nsstat"]/counter[@name="RateSlipped" and text()="0"])' stats.xml.out)" -eq 1 ] || ret=1
+  [ "$("$XMLLINT" --xpath 'count(/statistics/server/counters[@type="nsstat"]/counter[@name="RecLimitDropped" and text()="0"])' stats.xml.out)" -eq 1 ] || ret=1
+  [ "$("$XMLLINT" --xpath 'count(/statistics/server/counters[@type="nsstat"]/counter[@name="RecQryRej" and text()="0"])' stats.xml.out)" -eq 1 ] || ret=1
+  [ "$("$XMLLINT" --xpath 'count(/statistics/server/counters[@type="nsstat"]/counter[@name="RecursClients" and text()="2"])' stats.xml.out)" -eq 1 ] || ret=1
+  [ "$("$XMLLINT" --xpath 'count(/statistics/server/counters[@type="nsstat"]/counter[@name="RecursHighwater" and text()="3"])' stats.xml.out)" -eq 1 ] || ret=1
+  [ "$("$XMLLINT" --xpath 'count(/statistics/server/counters[@type="nsstat"]/counter[@name="ReqBadEDNSVer" and text()="0"])' stats.xml.out)" -eq 1 ] || ret=1
+  [ "$("$XMLLINT" --xpath 'count(/statistics/server/counters[@type="nsstat"]/counter[@name="ReqBadSIG" and text()="0"])' stats.xml.out)" -eq 1 ] || ret=1
+  [ "$("$XMLLINT" --xpath 'count(/statistics/server/counters[@type="nsstat"]/counter[@name="ReqEdns0" and text()="4"])' stats.xml.out)" -eq 1 ] || ret=1
+  [ "$("$XMLLINT" --xpath 'count(/statistics/server/counters[@type="nsstat"]/counter[@name="ReqSIG0" and text()="0"])' stats.xml.out)" -eq 1 ] || ret=1
+  [ "$("$XMLLINT" --xpath 'count(/statistics/server/counters[@type="nsstat"]/counter[@name="ReqTCP" and text()="3"])' stats.xml.out)" -eq 1 ] || ret=1
+  [ "$("$XMLLINT" --xpath 'count(/statistics/server/counters[@type="nsstat"]/counter[@name="ReqTSIG" and text()="0"])' stats.xml.out)" -eq 1 ] || ret=1
+  [ "$("$XMLLINT" --xpath 'count(/statistics/server/counters[@type="nsstat"]/counter[@name="Requestv4" and text()="5"])' stats.xml.out)" -eq 1 ] || ret=1
+  [ "$("$XMLLINT" --xpath 'count(/statistics/server/counters[@type="nsstat"]/counter[@name="Requestv6" and text()="0"])' stats.xml.out)" -eq 1 ] || ret=1
+  [ "$("$XMLLINT" --xpath 'count(/statistics/server/counters[@type="nsstat"]/counter[@name="RespEDNS0" and text()="2"])' stats.xml.out)" -eq 1 ] || ret=1
+  [ "$("$XMLLINT" --xpath 'count(/statistics/server/counters[@type="nsstat"]/counter[@name="RespSIG0" and text()="0"])' stats.xml.out)" -eq 1 ] || ret=1
+  [ "$("$XMLLINT" --xpath 'count(/statistics/server/counters[@type="nsstat"]/counter[@name="RespTSIG" and text()="0"])' stats.xml.out)" -eq 1 ] || ret=1
+  [ "$("$XMLLINT" --xpath 'count(/statistics/server/counters[@type="nsstat"]/counter[@name="Response" and text()="3"])' stats.xml.out)" -eq 1 ] || ret=1
+  [ "$("$XMLLINT" --xpath 'count(/statistics/server/counters[@type="nsstat"]/counter[@name="SynthNODATA" and text()="0"])' stats.xml.out)" -eq 1 ] || ret=1
+  [ "$("$XMLLINT" --xpath 'count(/statistics/server/counters[@type="nsstat"]/counter[@name="SynthNXDOMAIN" and text()="0"])' stats.xml.out)" -eq 1 ] || ret=1
+  [ "$("$XMLLINT" --xpath 'count(/statistics/server/counters[@type="nsstat"]/counter[@name="SynthWILDCARD" and text()="0"])' stats.xml.out)" -eq 1 ] || ret=1
+  # TCPConnHighWater varies across runs
+  # [ "$("$XMLLINT" --xpath 'count(/statistics/server/counters[@type="nsstat"]/counter[@name="TCPConnHighWater" and text()="1"])' stats.xml.out)" -eq 1 ] || ret=1
+  [ "$("$XMLLINT" --xpath 'count(/statistics/server/counters[@type="nsstat"]/counter[@name="TruncatedResp" and text()="0"])' stats.xml.out)" -eq 1 ] || ret=1
+  [ "$("$XMLLINT" --xpath 'count(/statistics/server/counters[@type="nsstat"]/counter[@name="UpdateBadPrereq" and text()="0"])' stats.xml.out)" -eq 1 ] || ret=1
+  [ "$("$XMLLINT" --xpath 'count(/statistics/server/counters[@type="nsstat"]/counter[@name="UpdateDone" and text()="0"])' stats.xml.out)" -eq 1 ] || ret=1
+  [ "$("$XMLLINT" --xpath 'count(/statistics/server/counters[@type="nsstat"]/counter[@name="UpdateFail" and text()="0"])' stats.xml.out)" -eq 1 ] || ret=1
+  [ "$("$XMLLINT" --xpath 'count(/statistics/server/counters[@type="nsstat"]/counter[@name="UpdateFwdFail" and text()="0"])' stats.xml.out)" -eq 1 ] || ret=1
+  [ "$("$XMLLINT" --xpath 'count(/statistics/server/counters[@type="nsstat"]/counter[@name="UpdateQuota" and text()="0"])' stats.xml.out)" -eq 1 ] || ret=1
+  [ "$("$XMLLINT" --xpath 'count(/statistics/server/counters[@type="nsstat"]/counter[@name="UpdateRej" and text()="0"])' stats.xml.out)" -eq 1 ] || ret=1
+  [ "$("$XMLLINT" --xpath 'count(/statistics/server/counters[@type="nsstat"]/counter[@name="UpdateReqFwd" and text()="0"])' stats.xml.out)" -eq 1 ] || ret=1
+  [ "$("$XMLLINT" --xpath 'count(/statistics/server/counters[@type="nsstat"]/counter[@name="UpdateRespFwd" and text()="0"])' stats.xml.out)" -eq 1 ] || ret=1
+  [ "$("$XMLLINT" --xpath 'count(/statistics/server/counters[@type="nsstat"]/counter[@name="XfrRej" and text()="0"])' stats.xml.out)" -eq 1 ] || ret=1
+  [ "$("$XMLLINT" --xpath 'count(/statistics/server/counters[@type="nsstat"]/counter[@name="XfrReqDone" and text()="0"])' stats.xml.out)" -eq 1 ] || ret=1
+  [ "$("$XMLLINT" --xpath 'count(/statistics/server/counters[@type="nsstat"]/counter[@name="ZoneVersionOpt" and text()="0"])' stats.xml.out)" -eq 1 ] || ret=1
+
+else
+  echo_i "skipping test as libxml2 and/or stats.xml.out file and/or xsltproc and/or xmllint was not found"
+fi
+if [ $ret != 0 ]; then echo_i "failed"; fi
+status=$((status + ret))
+n=$((n + 1))
+
 echo_i "Check that 'zone-statistics full;' is processed by 'rndc reconfig' ($n)"
 ret=0
 # off by default
