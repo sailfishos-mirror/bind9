@@ -46,3 +46,13 @@ zone "nsec3-xfr-inline.kasp" {
 	dnssec-policy "nsec3";
 };
 {% endif %}{# nsec3-xfr-inline.kasp #}
+
+{% if "retransfer.kasp" in zones %}
+zone "retransfer.kasp" {
+	type primary;
+	file "retransfer.kasp.db";
+	notify explicit;
+	also-notify { 10.53.0.3; };
+	allow-transfer { any; };
+};
+{% endif %}{# nsec3-xfr-inline.kasp #}
