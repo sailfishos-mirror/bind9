@@ -22,7 +22,6 @@ Some of these settings are:
 | `-DCHECK_SIBLING=0`          | Don't check sibling glue in `named-checkzone`                                                                                          |
 | `-DISC_FACILITY=LOG_LOCAL0`  | Change the default syslog facility for `named`                                                                                         |
 | `-DISC_HEAP_CHECK`           | Test heap consistency after every heap operation; used when debugging                                                                  |
-| `-DISC_MEM_DEFAULTFILL=1`    | Overwrite memory with tag values when allocating or freeing it; this impairs performance but makes debugging of memory problems easier |
 | `-DISC_MEM_TRACKLINES=0`     | Don't track memory allocations by file and line number; this improves performance but makes debugging more difficult                   |
 | `-DNAMED_RUN_PID_DIR=0`      | Create default PID files in `${localstatedir}/run` rather than `${localstatedir}/run/named/`                                           |
 | `-DNS_CLIENT_DROPPORT=0`     | Disable dropping queries from particular well-known ports                                                                              |

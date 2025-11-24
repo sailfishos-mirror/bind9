@@ -307,7 +307,6 @@ endif
 
 if developer_mode
     config.set('ISC_LIST_CHECKINIT', 1)
-    config.set('ISC_MEM_DEFAULTFILL', 1)
     config.set('ISC_MEM_TRACKLINES', 1)
     config.set('ISC_MUTEX_ERROR_CHECK', 1)
     config.set('ISC_SOCKET_DETAILS', 1)

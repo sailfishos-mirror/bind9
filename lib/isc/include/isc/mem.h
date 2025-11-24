@@ -35,8 +35,6 @@
 #define ISC_MEM_TRACKLINES 0
 #endif /* ifndef ISC_MEM_TRACKLINES */
 
-extern unsigned int isc_mem_defaultflags;
-
 /*@{*/
 #define ISC_MEM_DEBUGTRACE  0x00000001U
 #define ISC_MEM_DEBUGRECORD 0x00000002U
@@ -75,24 +73,6 @@ extern unsigned int isc_mem_defaultflags;
 #define _ISC_MEM_FILELINE
 #define _ISC_MEM_FLARG
 #endif /* if ISC_MEM_TRACKLINES */
-
-/*
- * Flags for isc_mem_create() calls.
- */
-#define ISC_MEMFLAG_RESERVED1 0x00000001 /* reserved, obsoleted, don't use */
-#define ISC_MEMFLAG_RESERVED2 0x00000002 /* reserved, obsoleted, don't use */
-#define ISC_MEMFLAG_FILL \
-	0x00000004 /* fill with pattern after alloc and frees */
-
-/*%
- * Define ISC_MEM_DEFAULTFILL=1 to turn filling the memory with pattern
- * after alloc and free.
- */
-#if ISC_MEM_DEFAULTFILL
-#define ISC_MEMFLAG_DEFAULT ISC_MEMFLAG_FILL
-#else /* if !ISC_MEM_USE_INTERNAL_MALLOC */
-#define ISC_MEMFLAG_DEFAULT 0
-#endif /* if !ISC_MEM_USE_INTERNAL_MALLOC */
 
 /*%
  * A global 'default' memory context that can be used when we don't need more

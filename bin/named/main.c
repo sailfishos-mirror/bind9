@@ -374,10 +374,7 @@ static struct flag_def {
 			{ "trace", ISC_MEM_DEBUGTRACE, false },
 			{ "record", ISC_MEM_DEBUGRECORD, false },
 			{ "usage", ISC_MEM_DEBUGUSAGE, false },
-			{ NULL, 0, false } },
-  mem_context_flags[] = { { "fill", ISC_MEMFLAG_FILL, false },
-			  { "nofill", ISC_MEMFLAG_FILL, true },
-			  { NULL, 0, false } };
+			{ NULL, 0, false } };
 
 static void
 set_flags(const char *arg, struct flag_def *defs, unsigned int *ret) {
@@ -849,8 +846,7 @@ parse_command_line(int argc, char *argv[]) {
 			named_g_logfile = isc_commandline_argument;
 			break;
 		case 'M':
-			set_flags(isc_commandline_argument, mem_context_flags,
-				  &isc_mem_defaultflags);
+			named_main_earlywarning("option '-M' has been removed");
 			break;
 		case 'm':
 			set_flags(isc_commandline_argument, mem_debug_flags,

@@ -67,7 +67,6 @@
 #endif /* ifndef ISC_MEM_DEBUGGING */
 
 static unsigned int mem_debugging = ISC_MEM_DEBUGGING;
-unsigned int isc_mem_defaultflags = ISC_MEMFLAG_DEFAULT;
 
 volatile void *isc__mem_malloc = mallocx;
 
@@ -127,7 +126,6 @@ typedef union {
 
 struct isc_mem {
 	unsigned int magic;
-	unsigned int flags;
 	unsigned int jemalloc_flags;
 	unsigned int debugging;
 	isc_mutex_t lock;
@@ -319,12 +317,6 @@ mem_get(isc_mem_t *ctx, size_t size, int flags) {
 	ret = mallocx(size, flags | ctx->jemalloc_flags);
 	INSIST(ret != NULL);
 
-	if ((flags & ISC__MEM_ZERO) == 0 &&
-	    (ctx->flags & ISC_MEMFLAG_FILL) != 0)
-	{
-		memset(ret, 0xbe, size); /* Mnemonic for "beef". */
-	}
-
 	return ret;
 }
 
@@ -336,32 +328,17 @@ static void
 mem_put(isc_mem_t *ctx, void *mem, size_t size, int flags) {
 	ADJUST_ZERO_ALLOCATION_SIZE(size);
 
-	if ((ctx->flags & ISC_MEMFLAG_FILL) != 0) {
-		memset(mem, 0xde, size); /* Mnemonic for "dead". */
-	}
 	sdallocx(mem, size, flags | ctx->jemalloc_flags);
 }
 
 static void *
-mem_realloc(isc_mem_t *ctx, void *old_ptr, size_t old_size, size_t new_size,
-	    int flags) {
+mem_realloc(isc_mem_t *ctx, void *old_ptr, size_t new_size, int flags) {
 	void *new_ptr = NULL;
 
 	ADJUST_ZERO_ALLOCATION_SIZE(new_size);
 
 	new_ptr = rallocx(old_ptr, new_size, flags | ctx->jemalloc_flags);
 	INSIST(new_ptr != NULL);
-
-	if ((flags & ISC__MEM_ZERO) == 0 &&
-	    (ctx->flags & ISC_MEMFLAG_FILL) != 0)
-	{
-		if (new_size > old_size) {
-			size_t diff_size = new_size - old_size;
-			void *diff_ptr = (uint8_t *)new_ptr + old_size;
-			/* Mnemonic for "beef". */
-			memset(diff_ptr, 0xbe, diff_size);
-		}
-	}
 
 	return new_ptr;
 }
@@ -485,7 +462,7 @@ isc_mem_debugoff(unsigned int debugging) {
 
 static void
 mem_create(const char *name, isc_mem_t **ctxp, unsigned int debugging,
-	   unsigned int flags, unsigned int jemalloc_flags) {
+	   unsigned int jemalloc_flags) {
 	isc_mem_t *ctx = NULL;
 
 	REQUIRE(ctxp != NULL && *ctxp == NULL);
@@ -497,7 +474,6 @@ mem_create(const char *name, isc_mem_t **ctxp, unsigned int debugging,
 	*ctx = (isc_mem_t){
 		.magic = MEM_MAGIC,
 		.debugging = debugging,
-		.flags = flags,
 		.jemalloc_flags = jemalloc_flags,
 		.checkfree = true,
 		.name = strdup(name),
@@ -748,7 +724,7 @@ isc__mem_reget(isc_mem_t *ctx, void *old_ptr, size_t old_size, size_t new_size,
 		DELETE_TRACE(ctx, old_ptr, old_size, func, file, line);
 		mem_putstats(ctx, old_size);
 
-		new_ptr = mem_realloc(ctx, old_ptr, old_size, new_size, flags);
+		new_ptr = mem_realloc(ctx, old_ptr, new_size, flags);
 
 		mem_getstats(ctx, new_size);
 		ADD_TRACE(ctx, new_ptr, new_size, func, file, line);
@@ -775,24 +751,18 @@ isc__mem_reallocate(isc_mem_t *ctx, void *old_ptr, size_t new_size,
 	} else if (new_size == 0) {
 		isc__mem_free(ctx, old_ptr, flags FLARG_PASS);
 	} else {
-		size_t old_size = sallocx(old_ptr, flags | ctx->jemalloc_flags);
+		size_t size = sallocx(old_ptr, flags | ctx->jemalloc_flags);
 
-		DELETE_TRACE(ctx, old_ptr, old_size, func, file, line);
-		mem_putstats(ctx, old_size);
+		DELETE_TRACE(ctx, old_ptr, size, func, file, line);
+		mem_putstats(ctx, size);
 
-		new_ptr = mem_realloc(ctx, old_ptr, old_size, new_size, flags);
+		new_ptr = mem_realloc(ctx, old_ptr, new_size, flags);
 
 		/* Recalculate the real allocated size */
-		new_size = sallocx(new_ptr, flags | ctx->jemalloc_flags);
+		size = sallocx(new_ptr, flags | ctx->jemalloc_flags);
 
-		mem_getstats(ctx, new_size);
-		ADD_TRACE(ctx, new_ptr, new_size, func, file, line);
-
-		/*
-		 * We want to postpone the call to water in edge case
-		 * where the realloc will exactly hit on the boundary of
-		 * the water and we would call water twice.
-		 */
+		mem_getstats(ctx, size);
+		ADD_TRACE(ctx, new_ptr, size, func, file, line);
 	}
 
 	return new_ptr;
@@ -1449,7 +1419,7 @@ error:
 
 void
 isc__mem_create(const char *name, isc_mem_t **mctxp FLARG) {
-	mem_create(name, mctxp, mem_debugging, isc_mem_defaultflags, 0);
+	mem_create(name, mctxp, mem_debugging, 0);
 #if ISC_MEM_TRACKLINES
 	if ((mem_debugging & ISC_MEM_DEBUGTRACE) != 0) {
 		fprintf(stderr, "create mctx %p func %s file %s line %u\n",
