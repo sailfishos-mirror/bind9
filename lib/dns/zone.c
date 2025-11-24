@@ -16882,6 +16882,17 @@ sync_secure_db(dns_zone_t *seczone, dns_zone_t *raw, dns_db_t *secdb,
 		next = ISC_LIST_NEXT(tuple, link);
 
 		/*
+		 * Skip private records that BIND maintains with inline-signing.
+		 */
+		if (seczone->privatetype != 0 &&
+		    tuple->rdata.type == seczone->privatetype)
+		{
+			ISC_LIST_UNLINK(diff->tuples, tuple, link);
+			dns_difftuple_free(&tuple);
+			continue;
+		}
+
+		/*
 		 * Skip DNSSEC records that BIND maintains with inline-signing.
 		 */
 		if (tuple->rdata.type == dns_rdatatype_nsec ||
