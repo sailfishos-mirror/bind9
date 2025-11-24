@@ -87,7 +87,6 @@ struct dns_rdatasetmethods {
 	void (*getownercase)(const dns_rdataset_t *rdataset, dns_name_t *name);
 	isc_result_t (*addglue)(dns_rdataset_t	*rdataset,
 				dns_dbversion_t *version, dns_message_t *msg);
-	dns_slabheader_t *(*getheader)(const dns_rdataset_t *rdataset);
 };
 
 #define DNS_RDATASET_MAGIC	ISC_MAGIC('D', 'N', 'S', 'R')
@@ -636,16 +635,6 @@ dns_trust_totext(dns_trust_t trust);
  * Display trust in textual form.
  */
 
-dns_slabheader_t *
-dns_rdataset_getheader(const dns_rdataset_t *rdataset);
-/*%<
- * Return a pointer to the slabheader for a slab rdataset. If 'rdataset'
- * is not a slab rdataset or if the slab is raw (lacking a header), return
- * NULL.
- *
- * Requires:
- * \li	'rdataset' is a valid rdataset.
- */
 
 isc_stdtime_t
 dns_rdataset_minresign(dns_rdataset_t *rdataset);
