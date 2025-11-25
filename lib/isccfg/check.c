@@ -84,6 +84,9 @@ keydirexist(const cfg_obj_t *zcgf, const char *optname, dns_name_t *zname,
 static const cfg_obj_t *
 find_maplist(const cfg_obj_t *config, const char *listname, const char *name);
 
+static isc_result_t
+validate_remotes(const cfg_obj_t *obj, const cfg_obj_t *config,
+		 uint32_t *countp, isc_mem_t *mctx);
 static void
 freekey(char *key, unsigned int type, isc_symvalue_t value, void *userarg) {
 	UNUSED(type);
@@ -2082,6 +2085,12 @@ check_remoteserverlist(const cfg_obj_t *cctx, const char *list,
 				    list, name, file, line);
 			isc_mem_free(mctx, tmp);
 			result = tresult;
+			break;
+		}
+
+		uint32_t dummy = 0;
+		result = validate_remotes(obj, cctx, &dummy, mctx);
+		if (result != ISC_R_SUCCESS) {
 			break;
 		}
 	}
