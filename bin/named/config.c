@@ -623,7 +623,7 @@ getipandkeylist(in_port_t defport, in_port_t deftlsport,
 	const cfg_obj_t *portobj = cfg_tuple_get(list, "port");
 	const cfg_obj_t *src4obj = cfg_tuple_get(list, "source");
 	const cfg_obj_t *src6obj = cfg_tuple_get(list, "source-v6");
-	in_port_t port;
+	in_port_t port = (in_port_t)0;
 	isc_sockaddr_t src4;
 	isc_sockaddr_t src6;
 	isc_result_t result = ISC_R_SUCCESS;
