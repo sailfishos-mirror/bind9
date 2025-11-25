@@ -617,9 +617,8 @@ named_config_getipandkeylist(const cfg_obj_t *config, const cfg_obj_t *list,
 	dns_name_t **tlss = NULL;
 	struct {
 		const char *name;
-		in_port_t port;
-		isc_sockaddr_t *src4s;
-		isc_sockaddr_t *src6s;
+		dns_name_t *key;
+		dns_name_t *tls;
 	} *lists = NULL;
 	struct {
 		const cfg_listelt_t *element;
@@ -726,7 +725,20 @@ resume:
 				result = tresult;
 				goto cleanup;
 			}
-			lists[l++].name = listname;
+			lists[l].name = listname;
+
+			result = named_config_getname(mctx, key, &lists[l].key);
+			if (result != ISC_R_SUCCESS) {
+				goto cleanup;
+			}
+
+			result = named_config_getname(mctx, tls, &lists[l].tls);
+			if (result != ISC_R_SUCCESS) {
+				goto cleanup;
+			}
+
+			l++;
+
 			/* Grow stack? */
 			grow_array(mctx, stack, pushed, stackcount);
 			/*
@@ -755,11 +767,23 @@ resume:
 			goto cleanup;
 		}
 
+		if (keys[i] == NULL && lists != NULL && lists[l-1].key != NULL) {
+			keys[i] = isc_mem_get(mctx, sizeof(*keys[i]));
+			dns_name_init(keys[i]);
+			dns_name_dup(lists[l-1].key, mctx, keys[i]);
+		}
+
 		result = named_config_getname(mctx, tls, &tlss[i]);
 		if (result != ISC_R_SUCCESS) {
 			i++; /* Increment here so that cleanup on error works.
 			      */
 			goto cleanup;
+		}
+
+		if (tlss[i] == NULL && lists != NULL && lists[l-1].tls != NULL) {
+			tlss[i] = isc_mem_get(mctx, sizeof(*tlss[i]));
+			dns_name_init(tlss[i]);
+			dns_name_dup(lists[l-1].tls, mctx, tlss[i]);
 		}
 
 		/* If the port is unset, take it from one of the upper levels */
@@ -800,6 +824,7 @@ resume:
 		port = stack[pushed].port;
 		src4 = stack[pushed].src4;
 		src6 = stack[pushed].src6;
+		l--;
 		goto resume;
 	}
 
@@ -809,6 +834,23 @@ resume:
 	shrink_array(mctx, sources, i, srccount);
 
 	if (lists != NULL) {
+		for (size_t j = 0; j < listcount; j++) {
+			if (lists[j].key != NULL) {
+				if (dns_name_dynamic(lists[j].key)) {
+					dns_name_free(lists[j].key, mctx);
+				}
+				isc_mem_put(mctx, lists[j].key,
+					    sizeof(*lists[j].key));
+			}
+
+			if (lists[j].tls != NULL) {
+				if (dns_name_dynamic(lists[j].tls)) {
+					dns_name_free(lists[j].tls, mctx);
+				}
+				isc_mem_put(mctx, lists[j].tls,
+					    sizeof(*lists[j].tls));
+			}
+		}
 		isc_mem_cput(mctx, lists, listcount, sizeof(lists[0]));
 	}
 	if (stack != NULL) {
@@ -860,6 +902,23 @@ cleanup:
 		isc_mem_cput(mctx, sources, srccount, sizeof(sources[0]));
 	}
 	if (lists != NULL) {
+		for (size_t j = 0; j < listcount; j++) {
+			if (lists[j].key != NULL) {
+				if (dns_name_dynamic(lists[j].key)) {
+					dns_name_free(lists[j].key, mctx);
+				}
+				isc_mem_put(mctx, lists[j].key,
+					    sizeof(*lists[j].key));
+			}
+
+			if (lists[j].tls != NULL) {
+				if (dns_name_dynamic(lists[j].tls)) {
+					dns_name_free(lists[j].tls, mctx);
+				}
+				isc_mem_put(mctx, lists[j].tls,
+					    sizeof(*lists[j].tls));
+			}
+		}
 		isc_mem_cput(mctx, lists, listcount, sizeof(lists[0]));
 	}
 	if (stack != NULL) {
