@@ -60,7 +60,9 @@ flaky_isc_test = [
     'proxystream',
 ]
 
-if config.has('HAVE_LIBNGHTTP2')
+is_el8 = run_command('grep', '-q', '-F', 'platform:el8', '/etc/os-release', check: false).returncode() == 0
+
+if config.has('HAVE_LIBNGHTTP2') and not is_el8
     isc_test += 'doh'
 endif
 
