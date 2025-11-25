@@ -510,11 +510,6 @@ notify_queue(dns_notify_t *notify, bool startup, bool dequeue) {
 }
 
 isc_result_t
-dns_notify_dequeue(dns_notify_t *notify, bool startup) {
-	return notify_queue(notify, startup, true);
-}
-
-isc_result_t
 dns_notify_queue(dns_notify_t *notify, bool startup) {
 	return notify_queue(notify, startup, false);
 }
