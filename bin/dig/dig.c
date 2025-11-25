@@ -306,6 +306,7 @@ help(void) {
 	       "                 +[no]showbadvers    (Show BADVERS message)\n"
 	       "                 +[no]showsearch     (Search with intermediate "
 	       "results)\n"
+	       "                 +[no]showtruncated  (Show truncated message)\n"
 	       "                 +[no]split=##       (Split hex/base64 fields "
 	       "into chunks)\n"
 	       "                 +[no]stats          (Control display of "
@@ -2332,6 +2333,10 @@ plus_option(char *option, bool is_batchfile, bool *need_clone,
 						showsearch = state;
 						usesearch = state;
 					}
+					break;
+				case 't':
+					FULLCHECK("showtruncated");
+					lookup->showtruncated = state;
 					break;
 				default:
 					goto invalid_option;

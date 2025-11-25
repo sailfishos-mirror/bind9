@@ -631,6 +631,12 @@ abbreviation is unambiguous; for example, :option:`+cd` is equivalent to
 
    This option performs [or does not perform] a search showing intermediate results.
 
+.. option:: +showtruncated, +noshowtruncated
+
+   This option toggles whether to show the truncated message before
+   retrying the request over TCP or not. The default is to not show
+   the messages.
+
 .. option:: +split=W
 
    This option splits long hex- or base64-formatted fields in resource records into
