@@ -284,7 +284,7 @@ def check_add_cdnskey(server, zone, keys, expected, extra_keys, extra, primary=N
         f"- zone {zone} {primary.identifier}: update zone with CDNSKEY from other providers"
     )
 
-    # Retrieve CDNSKEY records from the other providers.
+    # Update the server with the CDNSKEY record from the other providers.
     update_msg = dns.update.UpdateMessage(zone)
     for ksk in extra_keys:
         dnskey = ksk.dnskey().split()
@@ -400,7 +400,7 @@ def check_add_cds(server, zone, keys, expected, extra_keys, extra, primary=None)
         f"- zone {zone} {primary.identifier}: update zone with CDS from other providers"
     )
 
-    # Retrieve CDS records from the other providers.
+    # Update the server with the CDS record from the other providers.
     update_msg = dns.update.UpdateMessage(zone)
     for ksk in extra_keys:
         ds = dsfromkey(ksk)
