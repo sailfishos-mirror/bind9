@@ -721,7 +721,7 @@ dns_adb_getstats(dns_adb_t *adb);
  */
 
 isc_result_t
-dns_adb_dumpquota(dns_adb_t *adb, isc_buffer_t **buf);
+dns_adb_dumpquota(dns_adb_t *adb, isc_buffer_t *buf);
 /*%
  * Dump the addresses, current quota values, and current ATR values
  * for all servers that are currently being fetchlimited. Servers

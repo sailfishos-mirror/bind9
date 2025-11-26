@@ -10823,7 +10823,7 @@ dns_resolver_dumpfetches(dns_resolver_t *res, isc_statsformat_t format,
 }
 
 isc_result_t
-dns_resolver_dumpquota(dns_resolver_t *res, isc_buffer_t **buf) {
+dns_resolver_dumpquota(dns_resolver_t *res, isc_buffer_t *buf) {
 	isc_result_t result;
 	isc_hashmap_iter_t *it = NULL;
 	uint_fast32_t spill;
@@ -10863,11 +10863,11 @@ dns_resolver_dumpquota(dns_resolver_t *res, isc_buffer_t **buf) {
 			 " spilled %" PRIuFAST32 ")",
 			 nb, count, allowed, dropped);
 
-		result = isc_buffer_reserve(*buf, strlen(text));
+		result = isc_buffer_reserve(buf, strlen(text));
 		if (result != ISC_R_SUCCESS) {
 			goto cleanup;
 		}
-		isc_buffer_putstr(*buf, text);
+		isc_buffer_putstr(buf, text);
 	}
 	if (result == ISC_R_NOMORE) {
 		result = ISC_R_SUCCESS;

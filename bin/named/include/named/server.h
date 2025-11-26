@@ -156,14 +156,14 @@ named_server_flushonshutdown(named_server_t *server, bool flush);
 
 isc_result_t
 named_server_reloadcommand(named_server_t *server, isc_lex_t *lex,
-			   isc_buffer_t **text);
+			   isc_buffer_t *text);
 /*%<
  * Act on a "reload" command from the command channel.
  */
 
 isc_result_t
 named_server_resetstatscommand(named_server_t *server, isc_lex_t *lex,
-			       isc_buffer_t **text);
+			       isc_buffer_t *text);
 /*%<
  * Act on a "reset-stats" command from the command channel.
  */
@@ -176,21 +176,21 @@ named_server_reconfigcommand(named_server_t *server, isc_buffer_t *text);
 
 isc_result_t
 named_server_notifycommand(named_server_t *server, isc_lex_t *lex,
-			   isc_buffer_t **text);
+			   isc_buffer_t *text);
 /*%<
  * Act on a "notify" command from the command channel.
  */
 
 isc_result_t
 named_server_refreshcommand(named_server_t *server, isc_lex_t *lex,
-			    isc_buffer_t **text);
+			    isc_buffer_t *text);
 /*%<
  * Act on a "refresh" command from the command channel.
  */
 
 isc_result_t
 named_server_retransfercommand(named_server_t *server, isc_lex_t *lex,
-			       isc_buffer_t **text);
+			       isc_buffer_t *text);
 /*%<
  * Act on a "retransfer" command from the command channel.
  */
@@ -234,15 +234,14 @@ named_server_dumpstats(named_server_t *server);
  * Dump the current cache to the dump file.
  */
 isc_result_t
-named_server_dumpdb(named_server_t *server, isc_lex_t *lex,
-		    isc_buffer_t **text);
+named_server_dumpdb(named_server_t *server, isc_lex_t *lex, isc_buffer_t *text);
 
 /*%
  * Dump the current security roots to the secroots file.
  */
 isc_result_t
 named_server_dumpsecroots(named_server_t *server, isc_lex_t *lex,
-			  isc_buffer_t **text);
+			  isc_buffer_t *text);
 
 /*%
  * Change or increment the server debug level.
@@ -268,20 +267,20 @@ named_server_flushnode(named_server_t *server, isc_lex_t *lex, bool tree);
  * Report the server's status.
  */
 isc_result_t
-named_server_status(named_server_t *server, isc_buffer_t **text);
+named_server_status(named_server_t *server, isc_buffer_t *text);
 
 /*%
  * Enable or disable updates for a zone.
  */
 isc_result_t
 named_server_freeze(named_server_t *server, bool freeze, isc_lex_t *lex,
-		    isc_buffer_t **text);
+		    isc_buffer_t *text);
 
 /*%
  * Dump zone updates to disk, optionally removing the journal file
  */
 isc_result_t
-named_server_sync(named_server_t *server, isc_lex_t *lex, isc_buffer_t **text);
+named_server_sync(named_server_t *server, isc_lex_t *lex, isc_buffer_t *text);
 
 /*%
  * Update a zone's DNSKEY set from the key repository.  If
@@ -291,7 +290,7 @@ named_server_sync(named_server_t *server, isc_lex_t *lex, isc_buffer_t **text);
  * take place incrementally.
  */
 isc_result_t
-named_server_rekey(named_server_t *server, isc_lex_t *lex, isc_buffer_t **text);
+named_server_rekey(named_server_t *server, isc_lex_t *lex, isc_buffer_t *text);
 
 /*%
  * Dump the current recursive queries.
@@ -304,49 +303,48 @@ named_server_dumprecursing(named_server_t *server);
  */
 isc_result_t
 named_server_validation(named_server_t *server, isc_lex_t *lex,
-			isc_buffer_t **text);
+			isc_buffer_t *text);
 
 /*%
  * Add a zone to a running process, or modify an existing zone
  */
 isc_result_t
 named_server_changezone(named_server_t *server, char *command,
-			isc_buffer_t **text);
+			isc_buffer_t *text);
 
 /*%
  * Deletes a zone from a running process
  */
 isc_result_t
 named_server_delzone(named_server_t *server, isc_lex_t *lex,
-		     isc_buffer_t **text);
+		     isc_buffer_t *text);
 
 /*%
  * Show current configuration for a given zone
  */
 isc_result_t
 named_server_showzone(named_server_t *server, isc_lex_t *lex,
-		      isc_buffer_t **text);
+		      isc_buffer_t *text);
 
 /*%
  * Show the full current user configuration.
  */
 isc_result_t
 named_server_showconf(named_server_t *server, isc_lex_t *lex,
-		      isc_buffer_t **text);
+		      isc_buffer_t *text);
 
 /*%
  * Lists the status of the signing records for a given zone.
  */
 isc_result_t
 named_server_signing(named_server_t *server, isc_lex_t *lex,
-		     isc_buffer_t **text);
+		     isc_buffer_t *text);
 
 /*%
  * Lists the DNSSEC status for a given zone.
  */
 isc_result_t
-named_server_dnssec(named_server_t *server, isc_lex_t *lex,
-		    isc_buffer_t **text);
+named_server_dnssec(named_server_t *server, isc_lex_t *lex, isc_buffer_t *text);
 
 /*%
  * Lists status information for a given zone (e.g., name, type, files,
@@ -354,7 +352,7 @@ named_server_dnssec(named_server_t *server, isc_lex_t *lex,
  */
 isc_result_t
 named_server_zonestatus(named_server_t *server, isc_lex_t *lex,
-			isc_buffer_t **text);
+			isc_buffer_t *text);
 
 /*%
  * Adds/updates a Negative Trust Anchor (NTA) for a specified name and
@@ -362,33 +360,32 @@ named_server_zonestatus(named_server_t *server, isc_lex_t *lex,
  */
 isc_result_t
 named_server_nta(named_server_t *server, isc_lex_t *lex, bool readonly,
-		 isc_buffer_t **text);
+		 isc_buffer_t *text);
 
 /*%
  * Generates a test sequence that is only for use in system tests. The
  * argument is the size of required output in bytes.
  */
 isc_result_t
-named_server_testgen(isc_lex_t *lex, isc_buffer_t **text);
+named_server_testgen(isc_lex_t *lex, isc_buffer_t *text);
 
 /*%
  * Force fefresh or print status for managed keys zones.
  */
 isc_result_t
-named_server_mkeys(named_server_t *server, isc_lex_t *lex, isc_buffer_t **text);
+named_server_mkeys(named_server_t *server, isc_lex_t *lex, isc_buffer_t *text);
 
 /*%
  * Close and reopen DNSTAP output file.
  */
 isc_result_t
-named_server_dnstap(named_server_t *server, isc_lex_t *lex,
-		    isc_buffer_t **text);
+named_server_dnstap(named_server_t *server, isc_lex_t *lex, isc_buffer_t *text);
 
 /*%
  * Display or update tcp-{initial,idle,keepalive,advertised}-timeout options.
  */
 isc_result_t
-named_server_tcptimeouts(isc_lex_t *lex, isc_buffer_t **text);
+named_server_tcptimeouts(isc_lex_t *lex, isc_buffer_t *text);
 
 /*%
  * Control whether stale answers are served or not when configured in
@@ -396,20 +393,20 @@ named_server_tcptimeouts(isc_lex_t *lex, isc_buffer_t **text);
  */
 isc_result_t
 named_server_servestale(named_server_t *server, isc_lex_t *lex,
-			isc_buffer_t **text);
+			isc_buffer_t *text);
 
 /*%
  * Report fetch-limited ADB server addresses.
  */
 isc_result_t
 named_server_fetchlimit(named_server_t *server, isc_lex_t *lex,
-			isc_buffer_t **text);
+			isc_buffer_t *text);
 
 /*%
  * Import SKR file for offline KSK signing.
  */
 isc_result_t
-named_server_skr(named_server_t *server, isc_lex_t *lex, isc_buffer_t **text);
+named_server_skr(named_server_t *server, isc_lex_t *lex, isc_buffer_t *text);
 
 /*%
  * Toggle memory profiling if supported.

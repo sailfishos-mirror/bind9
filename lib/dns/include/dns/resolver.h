@@ -569,7 +569,7 @@ void
 dns_resolver_dumpfetches(dns_resolver_t *resolver, isc_statsformat_t format,
 			 FILE *fp);
 isc_result_t
-dns_resolver_dumpquota(dns_resolver_t *res, isc_buffer_t **buf);
+dns_resolver_dumpquota(dns_resolver_t *res, isc_buffer_t *buf);
 
 #ifdef ENABLE_AFL
 /*%
