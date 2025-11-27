@@ -10083,6 +10083,8 @@ dns_resolver__destroy(dns_resolver_t *res) {
 	isc_hashmap_destroy(&res->counters);
 	isc_rwlock_destroy(&res->counters_lock);
 
+	isc_tlsctx_cache_detach(&res->tlsctx_cache);
+
 	if (res->dispatches4 != NULL) {
 		dns_dispatchset_destroy(&res->dispatches4);
 	}
@@ -10160,7 +10162,6 @@ dns_resolver_create(dns_view_t *view, isc_loopmgr_t *loopmgr, isc_nm_t *nm,
 		.rdclass = view->rdclass,
 		.nm = nm,
 		.options = options,
-		.tlsctx_cache = tlsctx_cache,
 		.spillatmin = 10,
 		.spillat = 10,
 		.spillatmax = 100,
@@ -10204,6 +10205,8 @@ dns_resolver_create(dns_view_t *view, isc_loopmgr_t *loopmgr, isc_nm_t *nm,
 		dns_dispatchset_create(res->mctx, dispatchv6, &res->dispatches6,
 				       res->nloops);
 	}
+
+	isc_tlsctx_cache_attach(tlsctx_cache, &res->tlsctx_cache);
 
 	isc_mutex_init(&res->lock);
 	isc_mutex_init(&res->primelock);
