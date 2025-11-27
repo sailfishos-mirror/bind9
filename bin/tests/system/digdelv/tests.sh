@@ -69,9 +69,7 @@ KEYDATA="$(sed <ns2/keydata -e 's/+/[+]/g')"
 NOSPLIT="$(sed <ns2/keydata -e 's/+/[+]/g' -e 's/ //g')"
 
 HAS_PYYAML=0
-if [ -x "$PYTHON" ]; then
-  $PYTHON -c "import yaml" 2>/dev/null && HAS_PYYAML=1
-fi
+$PYTHON -c "import yaml" 2>/dev/null && HAS_PYYAML=1
 
 #
 # test whether ans7/ans.pl will be able to send a UPDATE response.
