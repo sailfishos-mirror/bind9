@@ -54,3 +54,17 @@ else:
         class EDEOption:
             def __new__(cls, *args, **kwargs):
                 raise RuntimeError("Using EDEOption requires dnspython>=2.2.0")
+
+
+# pylint: disable=unused-import
+try:
+    from dns.dnssec import DSDigest
+except ImportError:  # dnspython<2.0.0
+    import enum
+
+    class DSDigest(enum.IntEnum):  # type: ignore
+        """DNSSEC Delgation Signer Digest Algorithm"""
+
+        SHA1 = 1
+        SHA256 = 2
+        SHA384 = 4

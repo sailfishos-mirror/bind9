@@ -21,7 +21,6 @@ from typing import Dict, List, Optional, Tuple, Union
 
 import dns
 import dns.dnssec
-from dns.dnssectypes import DSDigest
 import dns.rdatatype
 import dns.rrset
 import dns.tsig
@@ -31,6 +30,7 @@ import pytest
 import isctest.log
 import isctest.query
 import isctest.util
+from isctest.compat import DSDigest
 from isctest.instance import NamedInstance
 from isctest.template import TrustAnchor
 from isctest.vars.algorithms import Algorithm, ALL_ALGORITHMS_BY_NUM
