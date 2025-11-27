@@ -724,7 +724,21 @@ isc__mem_reget(isc_mem_t *ctx, void *old_ptr, size_t old_size, size_t new_size,
 		DELETE_TRACE(ctx, old_ptr, old_size, func, file, line);
 		mem_putstats(ctx, old_size);
 
+		ADJUST_ZERO_ALLOCATION_SIZE(new_size);
+
+#ifdef HAVE_JEMALLOC
 		new_ptr = mem_realloc(ctx, old_ptr, new_size, flags);
+#else
+		new_ptr = mem_realloc(ctx, old_ptr, new_size,
+				      flags & ~ISC__MEM_ZERO);
+
+		if ((flags & ISC__MEM_ZERO) != 0) {
+			if (new_size > old_size) {
+				memset((uint8_t *)new_ptr + old_size, 0,
+				       new_size - old_size);
+			}
+		}
+#endif
 
 		mem_getstats(ctx, new_size);
 		ADD_TRACE(ctx, new_ptr, new_size, func, file, line);
