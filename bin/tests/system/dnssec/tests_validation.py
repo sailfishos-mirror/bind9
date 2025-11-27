@@ -737,6 +737,9 @@ def test_cache(ns4):
     for rrset in res2.answer:
         assert rrset.ttl <= 300
 
+    # first query for a NS record, to cache NSEC and RRSIG(NSEC)
+    msg = isctest.query.create("normalthenrrsig.secure.example", "NS")
+    isctest.query.tcp(msg, "10.53.0.4")
     # query for a record, then follow it with a query for the
     # corresponding RRSIG, check that it's answered from the cache
     msg = isctest.query.create("normalthenrrsig.secure.example", "A")
