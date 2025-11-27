@@ -923,28 +923,79 @@ assert(
 
 # LTO
 
+# Taken from Meson's compilers/mixins/clang.py:get_lto_compile_args
+# (technically mold requires version 1.1)
+supported_clang_lto_linkers = [
+    'ld64',
+    'lld-link',
+    'ld.lld',
+    'ld.gold',
+    'ld.mold',
+]
+
+is_darwin = host_machine.system() == 'darwin'
+is_auto_lto = named_lto_opt == 'auto'
+is_supported_linker = cc.get_linker_id() in supported_clang_lto_linkers
+has_fat_lto = cc.has_argument('-ffat-lto-objects') and not is_darwin
+has_fuzzing_backend = fuzzing_backend_opt != 'none'
+
+# First, resolution of the 'auto' case for LTO.
+if is_auto_lto
+    if has_fuzzing_backend
+        # Fuzzers might need sanitizer converage sections, which LTO discards.
+        # Disable LTO when a fuzzing backend is configured.
+        # NB: enabling -Dfuzzing is fine since it justs builds the binaries.
+        named_lto_opt = 'disabled'
+    elif is_darwin
+        # On Mac OS, the has_argument('-ffat-lto-objects') check returns true,
+        # but compilation fails, so we simply disable LTO.
+        named_lto_opt = 'disabled'
+    elif not has_fat_lto
+        # Some very old compilers don't support fat lto objects.
+        named_lto_opt = 'disabled'
+    elif cc.get_id() == 'clang' and not is_supported_linker
+        # Per LLVM docs [1], -ffat-lto-objects is supported only with lld and gold,
+        # and gold is deprecated/unmantained. Manual testing shows that mold
+        # works too though.
+        named_lto_opt = 'disabled'
+    elif get_option('auto_features').disabled()
+        # Fake being a boolean option for the purpose of -Dauto-features
+        named_lto_opt = 'disabled'
+    else
+        named_lto_opt = 'thin'
+    endif
+endif
+
 static_lto_c_args = []
 static_lto_link_args = []
 
-if named_lto_opt == 'full'
+if developer_mode and is_auto_lto
+    # Build a static `named` but do not enable -flto to improve compilation speed.
+elif named_lto_opt == 'full'
     static_lto_c_args = ['-ffat-lto-objects', '-flto']
     static_lto_link_args = ['-flto']
-elif named_lto_opt == 'thin' and cc.get_id() == 'clang' and cc.get_linker_id() == 'ld.lld'
-    # Per LLVM docs [1], -ffat-lto-objects is supported only with lld and gold,
-    # and gold is deprecated/unmantained.
-    # [1]: https://llvm.org/docs/FatLTO.html
-
+elif named_lto_opt == 'thin' and cc.get_id() == 'clang' and is_supported_linker
     static_lto_c_args = ['-ffat-lto-objects', '-flto=thin']
     static_lto_link_args = ['-flto=thin']
 elif named_lto_opt == 'thin' and cc.get_id() == 'gcc'
     static_lto_c_args = ['-ffat-lto-objects', '-flto=auto']
     static_lto_link_args = ['-flto=auto']
 elif named_lto_opt == 'thin'
-    error('LTO requires clang with ld.lld, or gcc with any linker')
+    if cc.get_id() == 'clang'
+        error(
+            'Clang ThinLTO only works with gold, lld, lld-link, ld64 or mold, not '
+            + cc.get_linker_id()
+            + '. To build, use a supported linker or disable LTO with -Dnamed-lto=disabled.',
+        )
+    else
+        error(
+            'Unsupported configuration for LTO. To build, use a supported linker or disable LTO with -Dnamed-lto=disabled.',
+        )
+    endif
 endif
 
 add_project_arguments(static_lto_c_args, language: 'c')
-if named_lto_opt != 'off' and cc.get_id() == 'clang' and sanitizer.contains('address')
+if named_lto_opt != 'disabled' and cc.get_id() == 'clang' and sanitizer.contains('address')
     # Needed to suppress the
     #    warning: Redundant instrumentation detected, with module flag:
     #    nosanitize_address [-Werror,-Wbackend-plugin]
@@ -957,7 +1008,7 @@ if named_lto_opt != 'off' and cc.get_id() == 'clang' and sanitizer.contains('add
     add_project_arguments('-Wno-backend-plugin', language: 'c')
 endif
 
-if meson_lto and named_lto_opt != 'off'
+if meson_lto and named_lto_opt != 'disabled'
     # Meson's builtin LTO settings do not set -ffat-lto-objects, which can cause
     # build issues.
     # Since we don't want two, possibly conflicting, sets of LTO flags, we
@@ -966,7 +1017,7 @@ if meson_lto and named_lto_opt != 'off'
     error(
         '''
             Meson builtin -Db_lto and BIND's -Dnamed-lto options are incompatible.
-            Either disable named-lto with -Dnamed-lto=off, or avoid setting
+            Either disable named-lto with -Dnamed-lto=disabled, or avoid setting
             -Db_lto.
 
             Note that using -Db_lto is not a recommended configuration, might
@@ -1542,7 +1593,7 @@ executable(
 
 named_deps = []
 
-if named_lto_opt == 'off'
+if named_lto_opt == 'disabled'
     named_deps = [
         libdns_dep,
         libisc_dep,
