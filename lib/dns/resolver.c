@@ -10072,7 +10072,7 @@ fctx_minimize_qname(fetchctx_t *fctx) {
 		} else if (fctx->qmin_labels < 35) {
 			fctx->qmin_labels = 35;
 		} else {
-			fctx->qmin_labels = nlabels + 1;
+			fctx->qmin_labels = nlabels;
 		}
 	} else if (fctx->qmin_labels > DNS_QMIN_MAXLABELS) {
 		fctx->qmin_labels = DNS_NAME_MAXLABELS;
@@ -10112,18 +10112,10 @@ fctx_minimize_qname(fetchctx_t *fctx) {
 				break;
 			}
 			break;
-		} while (fctx->qmin_labels <= nlabels);
+		} while (fctx->qmin_labels < nlabels);
 	}
 
-	/*
-	 * DS lookups come from the parent zone so we don't need to do a
-	 * NS lookup at the QNAME.  If the QTYPE is NS we are not leaking
-	 * the type if we just do the final NS lookup.
-	 */
-	if (fctx->qmin_labels < nlabels ||
-	    (fctx->type != dns_rdatatype_ns && fctx->type != dns_rdatatype_ds &&
-	     fctx->qmin_labels == nlabels))
-	{
+	if (fctx->qmin_labels < nlabels) {
 		dns_name_copy(&name, fctx->qminname);
 		fctx->qmintype = dns_rdatatype_ns;
 		fctx->minimized = true;
