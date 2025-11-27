@@ -615,6 +615,11 @@ abbreviation is unambiguous; for example, :option:`+cd` is equivalent to
    form. This option always has a global effect; it cannot be set globally and
    then overridden on a per-lookup basis.
 
+.. option:: +showallmessages, +noshowallmessages
+
+   This options sets / clears +qr, +showbadcookie, +showbadvers and
+   +showtruncated.
+
 .. option:: +showbadcookie, +noshowbadcookie
 
    This option toggles whether to show the message containing the

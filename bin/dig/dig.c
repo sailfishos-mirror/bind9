@@ -302,6 +302,7 @@ help(void) {
 	       "short\n"
 	       "                                      form of answers - global "
 	       "option)\n"
+	       "                 +[no]showallmessages (Show all messages)\n"
 	       "                 +[no]showbadcookie  (Show BADCOOKIE message)\n"
 	       "                 +[no]showbadvers    (Show BADVERS message)\n"
 	       "                 +[no]showsearch     (Search with intermediate "
@@ -2313,6 +2314,13 @@ plus_option(char *option, bool is_batchfile, bool *need_clone,
 				break;
 			case 'w': /* showsearch */
 				switch (cmd[4]) {
+				case 'a':
+					FULLCHECK("showallmessages");
+					lookup->showbadcookie = state;
+					lookup->showbadvers = state;
+					lookup->showtruncated = state;
+					lookup->qr = state;
+					break;
 				case 'b':
 					switch (cmd[7]) {
 					case 'c':
