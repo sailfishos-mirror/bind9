@@ -84,6 +84,9 @@ keydirexist(const cfg_obj_t *zcgf, const char *optname, dns_name_t *zname,
 static const cfg_obj_t *
 find_maplist(const cfg_obj_t *config, const char *listname, const char *name);
 
+static isc_result_t
+validate_remotes(const cfg_obj_t *obj, const cfg_obj_t *config,
+		 uint32_t *countp, isc_mem_t *mctx);
 static void
 freekey(char *key, unsigned int type, isc_symvalue_t value, void *userarg) {
 	UNUSED(type);
@@ -2084,6 +2087,12 @@ check_remoteserverlist(const cfg_obj_t *cctx, const char *list,
 			result = tresult;
 			break;
 		}
+
+		uint32_t dummy = 0;
+		result = validate_remotes(obj, cctx, &dummy, mctx);
+		if (result != ISC_R_SUCCESS) {
+			break;
+		}
 	}
 	return result;
 }
@@ -2415,6 +2424,96 @@ get_remoteservers_def(const char *name, const cfg_obj_t *cctx,
 }
 
 static isc_result_t
+validate_remotes_key(const cfg_obj_t *config, const cfg_obj_t *key) {
+	isc_result_t result = ISC_R_SUCCESS;
+
+	if (cfg_obj_isstring(key)) {
+		const cfg_obj_t *keys = NULL;
+		const char *str = cfg_obj_asstring(key);
+		dns_fixedname_t fname;
+		dns_name_t *nm = dns_fixedname_initname(&fname);
+		bool found = false;
+
+		result = dns_name_fromstring(nm, str, dns_rootname, 0, NULL);
+		if (result != ISC_R_SUCCESS) {
+			cfg_obj_log(key, ISC_LOG_ERROR,
+				    "'%s' is not a valid name", str);
+		}
+
+		result = cfg_map_get(config, "key", &keys);
+		CFG_LIST_FOREACH(keys, elt) {
+			/*
+			 * `key` are normalized TSIG which must be identified by
+			 * a domain name, so this is needed. Otherwise, with a
+			 * raw string comparison we could have:
+			 *
+			 * remote-servers { x.y.z.s key foo };
+			 * key foo. {
+			 *  ...
+			 * };
+			 *
+			 * This would otherwise fail, even though the key
+			 * exists.
+			 */
+			const cfg_obj_t *foundkey = cfg_listelt_value(elt);
+			const char *foundkeystr =
+				cfg_obj_asstring(cfg_map_getname(foundkey));
+			dns_fixedname_t foundfname;
+			dns_name_t *foundkeyname =
+				dns_fixedname_initname(&foundfname);
+
+			result = dns_name_fromstring(foundkeyname, foundkeystr,
+						     dns_rootname, 0, NULL);
+
+			if (dns_name_equal(nm, foundkeyname)) {
+				found = true;
+				break;
+			}
+		}
+
+		if (!found) {
+			cfg_obj_log(key, ISC_LOG_ERROR,
+				    "key '%s' is not defined",
+				    cfg_obj_asstring(key));
+			result = ISC_R_FAILURE;
+		}
+	}
+
+	return result;
+}
+
+static isc_result_t
+validate_remotes_tls(const cfg_obj_t *config, const cfg_obj_t *tls) {
+	isc_result_t result = ISC_R_SUCCESS;
+
+	if (cfg_obj_isstring(tls)) {
+		const char *str = cfg_obj_asstring(tls);
+		dns_fixedname_t fname;
+		dns_name_t *nm = dns_fixedname_initname(&fname);
+
+		result = dns_name_fromstring(nm, str, dns_rootname, 0, NULL);
+		if (result != ISC_R_SUCCESS) {
+			cfg_obj_log(tls, ISC_LOG_ERROR,
+				    "'%s' is not a valid name", str);
+		}
+
+		if (strcasecmp(str, "ephemeral") != 0) {
+			const cfg_obj_t *tlsmap = NULL;
+
+			tlsmap = find_maplist(config, "tls", str);
+			if (tlsmap == NULL) {
+				cfg_obj_log(tls, ISC_LOG_ERROR,
+					    "tls '%s' is not defined",
+					    cfg_obj_asstring(tls));
+				result = ISC_R_FAILURE;
+			}
+		}
+	}
+
+	return result;
+}
+
+static isc_result_t
 validate_remotes(const cfg_obj_t *obj, const cfg_obj_t *config,
 		 uint32_t *countp, isc_mem_t *mctx) {
 	isc_result_t result = ISC_R_SUCCESS;
@@ -2445,68 +2544,20 @@ resume:
 		key = cfg_tuple_get(cfg_listelt_value(element), "key");
 		tls = cfg_tuple_get(cfg_listelt_value(element), "tls");
 
+		result = validate_remotes_key(config, key);
+		if (result != ISC_R_SUCCESS) {
+			goto out;
+		}
+
+		result = validate_remotes_tls(config, tls);
+		if (result != ISC_R_SUCCESS) {
+			goto out;
+		}
+
 		if (cfg_obj_issockaddr(addr)) {
 			count++;
-			if (cfg_obj_isstring(key)) {
-				const char *str = cfg_obj_asstring(key);
-				dns_fixedname_t fname;
-				dns_name_t *nm = dns_fixedname_initname(&fname);
-				tresult = dns_name_fromstring(
-					nm, str, dns_rootname, 0, NULL);
-				if (tresult != ISC_R_SUCCESS) {
-					cfg_obj_log(key, ISC_LOG_ERROR,
-						    "'%s' is not a valid name",
-						    str);
-					if (result == ISC_R_SUCCESS) {
-						result = tresult;
-					}
-				}
-			}
-			if (cfg_obj_isstring(tls)) {
-				const char *str = cfg_obj_asstring(tls);
-				dns_fixedname_t fname;
-				dns_name_t *nm = dns_fixedname_initname(&fname);
-				tresult = dns_name_fromstring(
-					nm, str, dns_rootname, 0, NULL);
-				if (tresult != ISC_R_SUCCESS) {
-					cfg_obj_log(tls, ISC_LOG_ERROR,
-						    "'%s' is not a valid name",
-						    str);
-					if (result == ISC_R_SUCCESS) {
-						result = tresult;
-					}
-				}
 
-				if (strcasecmp(str, "ephemeral") != 0) {
-					const cfg_obj_t *tlsmap = NULL;
-
-					tlsmap = find_maplist(config, "tls",
-							      str);
-					if (tlsmap == NULL) {
-						cfg_obj_log(
-							tls, ISC_LOG_ERROR,
-							"tls '%s' is not "
-							"defined",
-							cfg_obj_asstring(tls));
-						result = ISC_R_FAILURE;
-					}
-				}
-			}
 			continue;
-		}
-		if (!cfg_obj_isvoid(key)) {
-			cfg_obj_log(key, ISC_LOG_ERROR, "unexpected token '%s'",
-				    cfg_obj_asstring(key));
-			if (result == ISC_R_SUCCESS) {
-				result = ISC_R_FAILURE;
-			}
-		}
-		if (!cfg_obj_isvoid(tls)) {
-			cfg_obj_log(key, ISC_LOG_ERROR, "unexpected token '%s'",
-				    cfg_obj_asstring(tls));
-			if (result == ISC_R_SUCCESS) {
-				result = ISC_R_FAILURE;
-			}
 		}
 		listname = cfg_obj_asstring(addr);
 		symvalue.as_cpointer = addr;
@@ -2539,11 +2590,14 @@ resume:
 		element = stack[--pushed];
 		goto resume;
 	}
+
+	*countp = count;
+
+out:
 	if (stack != NULL) {
 		isc_mem_cput(mctx, stack, stackcount, sizeof(*stack));
 	}
 	isc_symtab_destroy(&symtab);
-	*countp = count;
 	return result;
 }
 

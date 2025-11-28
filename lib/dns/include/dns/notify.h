@@ -110,15 +110,6 @@ dns_notify_queue(dns_notify_t *notify, bool startup);
  *              'notify' is a valid notify.
  */
 
-isc_result_t
-dns_notify_dequeue(dns_notify_t *notify, bool startup);
-/*%<
- *      Dequeue notify.
- *
- *      Requires:
- *              'notify' is a valid notify.
- */
-
 void
 dns_notify_find_address(dns_notify_t *notify);
 /*%<
