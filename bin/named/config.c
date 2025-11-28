@@ -555,6 +555,7 @@ named_config_getipandkeylist(const cfg_obj_t *config, const cfg_obj_t *list,
 	isc_result_t result;
 	in_port_t def_port;
 	in_port_t def_tlsport;
+	getipandkeylist_state_t s = {};
 
 	REQUIRE(ipkl != NULL);
 	REQUIRE(ipkl->count == 0);
@@ -580,7 +581,6 @@ named_config_getipandkeylist(const cfg_obj_t *config, const cfg_obj_t *list,
 	/*
 	 * Process the (nested) list(s).
 	 */
-	getipandkeylist_state_t s = {};
 	result = getipandkeylist(def_port, def_tlsport, config, list,
 				 (in_port_t)0, NULL, NULL, mctx, &s);
 	if (result != ISC_R_SUCCESS) {
