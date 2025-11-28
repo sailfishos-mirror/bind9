@@ -392,7 +392,7 @@ control_command(void *arg) {
 	/* Don't run the command if we already started the shutdown */
 	if (!conn->shuttingdown) {
 		conn->result = named_control_docommand(
-			conn->request, conn->listener->readonly, &conn->text);
+			conn->request, conn->listener->readonly, conn->text);
 		control_respond(conn);
 	}
 

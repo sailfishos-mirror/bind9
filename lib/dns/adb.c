@@ -2350,20 +2350,20 @@ print_find_list(FILE *f, dns_adbname_t *name) {
 }
 
 static isc_result_t
-putstr(isc_buffer_t **b, const char *str) {
+putstr(isc_buffer_t *b, const char *str) {
 	isc_result_t result;
 
-	result = isc_buffer_reserve(*b, strlen(str));
+	result = isc_buffer_reserve(b, strlen(str));
 	if (result != ISC_R_SUCCESS) {
 		return result;
 	}
 
-	isc_buffer_putstr(*b, str);
+	isc_buffer_putstr(b, str);
 	return ISC_R_SUCCESS;
 }
 
 isc_result_t
-dns_adb_dumpquota(dns_adb_t *adb, isc_buffer_t **buf) {
+dns_adb_dumpquota(dns_adb_t *adb, isc_buffer_t *buf) {
 	REQUIRE(DNS_ADB_VALID(adb));
 
 	dns_adbentry_t *adbentry = NULL;

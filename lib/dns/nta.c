@@ -452,21 +452,21 @@ done:
 }
 
 static isc_result_t
-putstr(isc_buffer_t **b, const char *str) {
+putstr(isc_buffer_t *b, const char *str) {
 	isc_result_t result;
 
-	result = isc_buffer_reserve(*b, strlen(str));
+	result = isc_buffer_reserve(b, strlen(str));
 	if (result != ISC_R_SUCCESS) {
 		return result;
 	}
 
-	isc_buffer_putstr(*b, str);
+	isc_buffer_putstr(b, str);
 	return ISC_R_SUCCESS;
 }
 
 isc_result_t
 dns_ntatable_totext(dns_ntatable_t *ntatable, const char *view,
-		    isc_buffer_t **buf) {
+		    isc_buffer_t *buf) {
 	isc_result_t result = ISC_R_SUCCESS;
 	isc_stdtime_t now = isc_stdtime_now();
 	dns_qpread_t qpr;
