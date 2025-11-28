@@ -34,19 +34,21 @@
 #define TOKEN_STRING(pctx) (pctx->token.value.as_textregion.base)
 
 /*% Check a return value. */
-#define CHECK(op)                            \
-	do {                                 \
-		result = (op);               \
-		if (result != ISC_R_SUCCESS) \
-			goto cleanup;        \
-	} while (0)
+#define CHECK(op)                              \
+	{                                      \
+		result = (op);                 \
+		if (result != ISC_R_SUCCESS) { \
+			goto cleanup;          \
+		}                              \
+	}
 
 /*% Clean up a configuration object if non-NULL. */
 #define CLEANUP_OBJ(obj)                        \
-	do {                                    \
-		if ((obj) != NULL)              \
+	{                                       \
+		if ((obj) != NULL) {            \
 			cfg_obj_detach(&(obj)); \
-	} while (0)
+		}                               \
+	}
 
 /*%
  * Forward declarations of static functions.
@@ -1384,42 +1386,43 @@ view_merge(const cfg_obj_t *config, cfg_obj_t *eff, const cfg_obj_t *def) {
  * file only.
  */
 static cfg_clausedef_t namedconf_clauses[] = {
-	{ "acl", &cfg_type_acl, CFG_CLAUSEFLAG_MULTI },
-	{ "controls", &cfg_type_controls, CFG_CLAUSEFLAG_MULTI },
+	{ "acl", &cfg_type_acl, CFG_CLAUSEFLAG_MULTI, NULL },
+	{ "controls", &cfg_type_controls, CFG_CLAUSEFLAG_MULTI, NULL },
 	{ "dnssec-policy", &cfg_type_dnssecpolicy, CFG_CLAUSEFLAG_MULTI,
 	  policy_merge },
 #if HAVE_LIBNGHTTP2
 	{ "http", &cfg_type_http_description,
-	  CFG_CLAUSEFLAG_MULTI | CFG_CLAUSEFLAG_OPTIONAL },
+	  CFG_CLAUSEFLAG_MULTI | CFG_CLAUSEFLAG_OPTIONAL, NULL },
 #else
 	{ "http", &cfg_type_http_description,
-	  CFG_CLAUSEFLAG_MULTI | CFG_CLAUSEFLAG_NOTCONFIGURED },
+	  CFG_CLAUSEFLAG_MULTI | CFG_CLAUSEFLAG_NOTCONFIGURED, NULL },
 #endif
-	{ "key-store", &cfg_type_keystore, CFG_CLAUSEFLAG_MULTI },
-	{ "logging", &cfg_type_logging, 0 },
-	{ "lwres", NULL, CFG_CLAUSEFLAG_MULTI | CFG_CLAUSEFLAG_ANCIENT },
+	{ "key-store", &cfg_type_keystore, CFG_CLAUSEFLAG_MULTI, NULL },
+	{ "logging", &cfg_type_logging, 0, NULL },
+	{ "lwres", NULL, CFG_CLAUSEFLAG_MULTI | CFG_CLAUSEFLAG_ANCIENT, NULL },
 	{ "masters", &cfg_type_serverlist,
-	  CFG_CLAUSEFLAG_MULTI | CFG_CLAUSEFLAG_NODOC },
+	  CFG_CLAUSEFLAG_MULTI | CFG_CLAUSEFLAG_NODOC, NULL },
 	{ "options", &cfg_type_options, 0, options_merge },
 	{ "parental-agents", &cfg_type_serverlist,
-	  CFG_CLAUSEFLAG_MULTI | CFG_CLAUSEFLAG_NODOC },
+	  CFG_CLAUSEFLAG_MULTI | CFG_CLAUSEFLAG_NODOC, NULL },
 	{ "primaries", &cfg_type_serverlist,
-	  CFG_CLAUSEFLAG_MULTI | CFG_CLAUSEFLAG_NODOC },
-	{ "remote-servers", &cfg_type_serverlist, CFG_CLAUSEFLAG_MULTI },
+	  CFG_CLAUSEFLAG_MULTI | CFG_CLAUSEFLAG_NODOC, NULL },
+	{ "remote-servers", &cfg_type_serverlist, CFG_CLAUSEFLAG_MULTI, NULL },
 #if defined(HAVE_LIBXML2) || defined(HAVE_JSON_C)
 	{ "statistics-channels", &cfg_type_statschannels,
-	  CFG_CLAUSEFLAG_MULTI | CFG_CLAUSEFLAG_OPTIONAL },
+	  CFG_CLAUSEFLAG_MULTI | CFG_CLAUSEFLAG_OPTIONAL, NULL },
 #else
 	{ "statistics-channels", &cfg_type_statschannels,
-	  CFG_CLAUSEFLAG_MULTI | CFG_CLAUSEFLAG_NOTCONFIGURED },
+	  CFG_CLAUSEFLAG_MULTI | CFG_CLAUSEFLAG_NOTCONFIGURED, NULL },
 #endif
-	{ "template", &cfg_type_template, CFG_CLAUSEFLAG_MULTI },
+	{ "template", &cfg_type_template, CFG_CLAUSEFLAG_MULTI, NULL },
 	{ "builtin-trust-anchors", &cfg_type_builtin_dnsseckeys,
 	  CFG_CLAUSEFLAG_MULTI | CFG_CLAUSEFLAG_BUILTINONLY |
-		  CFG_CLAUSEFLAG_NODOC },
-	{ "tls", &cfg_type_tlsconf, CFG_CLAUSEFLAG_MULTI },
+		  CFG_CLAUSEFLAG_NODOC,
+	  NULL },
+	{ "tls", &cfg_type_tlsconf, CFG_CLAUSEFLAG_MULTI, NULL },
 	{ "view", &cfg_type_view, CFG_CLAUSEFLAG_MULTI, view_merge },
-	{ NULL, NULL, 0 }
+	{ NULL, NULL, 0, NULL }
 };
 
 /*%
@@ -1427,17 +1430,19 @@ static cfg_clausedef_t namedconf_clauses[] = {
  * statement, but not in the options block.
  */
 static cfg_clausedef_t namedconf_or_view_clauses[] = {
-	{ "dlz", &cfg_type_dlz, CFG_CLAUSEFLAG_MULTI },
-	{ "dyndb", &cfg_type_dyndb, CFG_CLAUSEFLAG_MULTI },
-	{ "key", &cfg_type_key, CFG_CLAUSEFLAG_MULTI },
+	{ "dlz", &cfg_type_dlz, CFG_CLAUSEFLAG_MULTI, NULL },
+	{ "dyndb", &cfg_type_dyndb, CFG_CLAUSEFLAG_MULTI, NULL },
+	{ "key", &cfg_type_key, CFG_CLAUSEFLAG_MULTI, NULL },
 	{ "managed-keys", &cfg_type_dnsseckeys,
-	  CFG_CLAUSEFLAG_MULTI | CFG_CLAUSEFLAG_ANCIENT },
-	{ "plugin", &cfg_type_plugin, CFG_CLAUSEFLAG_MULTI },
-	{ "server", &cfg_type_server, CFG_CLAUSEFLAG_MULTI },
-	{ "trust-anchors", &cfg_type_dnsseckeys, CFG_CLAUSEFLAG_MULTI },
-	{ "trusted-keys", NULL, CFG_CLAUSEFLAG_MULTI | CFG_CLAUSEFLAG_ANCIENT },
-	{ "zone", &cfg_type_zone, CFG_CLAUSEFLAG_MULTI | CFG_CLAUSEFLAG_NODOC },
-	{ NULL, NULL, 0 }
+	  CFG_CLAUSEFLAG_MULTI | CFG_CLAUSEFLAG_ANCIENT, NULL },
+	{ "plugin", &cfg_type_plugin, CFG_CLAUSEFLAG_MULTI, NULL },
+	{ "server", &cfg_type_server, CFG_CLAUSEFLAG_MULTI, NULL },
+	{ "trust-anchors", &cfg_type_dnsseckeys, CFG_CLAUSEFLAG_MULTI, NULL },
+	{ "trusted-keys", NULL, CFG_CLAUSEFLAG_MULTI | CFG_CLAUSEFLAG_ANCIENT,
+	  NULL },
+	{ "zone", &cfg_type_zone, CFG_CLAUSEFLAG_MULTI | CFG_CLAUSEFLAG_NODOC,
+	  NULL },
+	{ NULL, NULL, 0, NULL }
 };
 
 /*%
@@ -1446,10 +1451,11 @@ static cfg_clausedef_t namedconf_or_view_clauses[] = {
  */
 static cfg_clausedef_t bindkeys_clauses[] = {
 	{ "managed-keys", &cfg_type_dnsseckeys,
-	  CFG_CLAUSEFLAG_MULTI | CFG_CLAUSEFLAG_ANCIENT },
-	{ "trust-anchors", &cfg_type_dnsseckeys, CFG_CLAUSEFLAG_MULTI },
-	{ "trusted-keys", NULL, CFG_CLAUSEFLAG_MULTI | CFG_CLAUSEFLAG_ANCIENT },
-	{ NULL, NULL, 0 }
+	  CFG_CLAUSEFLAG_MULTI | CFG_CLAUSEFLAG_ANCIENT, NULL },
+	{ "trust-anchors", &cfg_type_dnsseckeys, CFG_CLAUSEFLAG_MULTI, NULL },
+	{ "trusted-keys", NULL, CFG_CLAUSEFLAG_MULTI | CFG_CLAUSEFLAG_ANCIENT,
+	  NULL },
+	{ NULL, NULL, 0, NULL }
 };
 
 static const char *fstrm_model_enums[] = { "mpsc", "spsc", NULL };
@@ -1462,157 +1468,165 @@ static cfg_type_t cfg_type_fstrm_model = {
  * Clauses that can be found within the 'options' statement.
  */
 static cfg_clausedef_t options_clauses[] = {
-	{ "answer-cookie", &cfg_type_boolean, 0 },
-	{ "automatic-interface-scan", &cfg_type_boolean, 0 },
-	{ "avoid-v4-udp-ports", NULL, CFG_CLAUSEFLAG_ANCIENT },
-	{ "avoid-v6-udp-ports", NULL, CFG_CLAUSEFLAG_ANCIENT },
-	{ "bindkeys-file", &cfg_type_qstring, CFG_CLAUSEFLAG_ANCIENT },
-	{ "blackhole", &cfg_type_bracketed_aml, 0 },
-	{ "cookie-algorithm", &cfg_type_cookiealg, 0 },
-	{ "cookie-secret", &cfg_type_sstring, CFG_CLAUSEFLAG_MULTI },
-	{ "coresize", NULL, CFG_CLAUSEFLAG_ANCIENT },
-	{ "datasize", NULL, CFG_CLAUSEFLAG_ANCIENT },
-	{ "deallocate-on-exit", NULL, CFG_CLAUSEFLAG_ANCIENT },
-	{ "directory", &cfg_type_qstring, CFG_CLAUSEFLAG_CHDIR },
-	{ "dnsrps-library", &cfg_type_qstring, CFG_CLAUSEFLAG_OBSOLETE },
+	{ "answer-cookie", &cfg_type_boolean, 0, NULL },
+	{ "automatic-interface-scan", &cfg_type_boolean, 0, NULL },
+	{ "avoid-v4-udp-ports", NULL, CFG_CLAUSEFLAG_ANCIENT, NULL },
+	{ "avoid-v6-udp-ports", NULL, CFG_CLAUSEFLAG_ANCIENT, NULL },
+	{ "bindkeys-file", &cfg_type_qstring, CFG_CLAUSEFLAG_ANCIENT, NULL },
+	{ "blackhole", &cfg_type_bracketed_aml, 0, NULL },
+	{ "cookie-algorithm", &cfg_type_cookiealg, 0, NULL },
+	{ "cookie-secret", &cfg_type_sstring, CFG_CLAUSEFLAG_MULTI, NULL },
+	{ "coresize", NULL, CFG_CLAUSEFLAG_ANCIENT, NULL },
+	{ "datasize", NULL, CFG_CLAUSEFLAG_ANCIENT, NULL },
+	{ "deallocate-on-exit", NULL, CFG_CLAUSEFLAG_ANCIENT, NULL },
+	{ "directory", &cfg_type_qstring, CFG_CLAUSEFLAG_CHDIR, NULL },
+	{ "dnsrps-library", &cfg_type_qstring, CFG_CLAUSEFLAG_OBSOLETE, NULL },
 #ifdef HAVE_DNSTAP
-	{ "dnstap-output", &cfg_type_dnstapoutput, CFG_CLAUSEFLAG_OPTIONAL },
-	{ "dnstap-identity", &cfg_type_serverid, CFG_CLAUSEFLAG_OPTIONAL },
-	{ "dnstap-version", &cfg_type_qstringornone, CFG_CLAUSEFLAG_OPTIONAL },
+	{ "dnstap-output", &cfg_type_dnstapoutput, CFG_CLAUSEFLAG_OPTIONAL,
+	  NULL },
+	{ "dnstap-identity", &cfg_type_serverid, CFG_CLAUSEFLAG_OPTIONAL,
+	  NULL },
+	{ "dnstap-version", &cfg_type_qstringornone, CFG_CLAUSEFLAG_OPTIONAL,
+	  NULL },
 #else  /* ifdef HAVE_DNSTAP */
-	{ "dnstap-output", &cfg_type_dnstapoutput,
-	  CFG_CLAUSEFLAG_NOTCONFIGURED },
-	{ "dnstap-identity", &cfg_type_serverid, CFG_CLAUSEFLAG_NOTCONFIGURED },
+	{ "dnstap-output", &cfg_type_dnstapoutput, CFG_CLAUSEFLAG_NOTCONFIGURED,
+	  NULL },
+	{ "dnstap-identity", &cfg_type_serverid, CFG_CLAUSEFLAG_NOTCONFIGURED,
+	  NULL },
 	{ "dnstap-version", &cfg_type_qstringornone,
-	  CFG_CLAUSEFLAG_NOTCONFIGURED },
+	  CFG_CLAUSEFLAG_NOTCONFIGURED, NULL },
 #endif /* ifdef HAVE_DNSTAP */
-	{ "dscp", NULL, CFG_CLAUSEFLAG_ANCIENT },
-	{ "dump-file", &cfg_type_qstring, 0 },
-	{ "fake-iquery", NULL, CFG_CLAUSEFLAG_ANCIENT },
-	{ "files", NULL, CFG_CLAUSEFLAG_ANCIENT },
-	{ "flush-zones-on-shutdown", &cfg_type_boolean, 0 },
+	{ "dscp", NULL, CFG_CLAUSEFLAG_ANCIENT, NULL },
+	{ "dump-file", &cfg_type_qstring, 0, NULL },
+	{ "fake-iquery", NULL, CFG_CLAUSEFLAG_ANCIENT, NULL },
+	{ "files", NULL, CFG_CLAUSEFLAG_ANCIENT, NULL },
+	{ "flush-zones-on-shutdown", &cfg_type_boolean, 0, NULL },
 #ifdef HAVE_DNSTAP
-	{ "fstrm-set-buffer-hint", &cfg_type_uint32, CFG_CLAUSEFLAG_OPTIONAL },
-	{ "fstrm-set-flush-timeout", &cfg_type_uint32,
-	  CFG_CLAUSEFLAG_OPTIONAL },
+	{ "fstrm-set-buffer-hint", &cfg_type_uint32, CFG_CLAUSEFLAG_OPTIONAL,
+	  NULL },
+	{ "fstrm-set-flush-timeout", &cfg_type_uint32, CFG_CLAUSEFLAG_OPTIONAL,
+	  NULL },
 	{ "fstrm-set-input-queue-size", &cfg_type_uint32,
-	  CFG_CLAUSEFLAG_OPTIONAL },
+	  CFG_CLAUSEFLAG_OPTIONAL, NULL },
 	{ "fstrm-set-output-notify-threshold", &cfg_type_uint32,
-	  CFG_CLAUSEFLAG_OPTIONAL },
+	  CFG_CLAUSEFLAG_OPTIONAL, NULL },
 	{ "fstrm-set-output-queue-model", &cfg_type_fstrm_model,
-	  CFG_CLAUSEFLAG_OPTIONAL },
+	  CFG_CLAUSEFLAG_OPTIONAL, NULL },
 	{ "fstrm-set-output-queue-size", &cfg_type_uint32,
-	  CFG_CLAUSEFLAG_OPTIONAL },
+	  CFG_CLAUSEFLAG_OPTIONAL, NULL },
 	{ "fstrm-set-reopen-interval", &cfg_type_duration,
-	  CFG_CLAUSEFLAG_OPTIONAL },
+	  CFG_CLAUSEFLAG_OPTIONAL, NULL },
 #else  /* ifdef HAVE_DNSTAP */
 	{ "fstrm-set-buffer-hint", &cfg_type_uint32,
-	  CFG_CLAUSEFLAG_NOTCONFIGURED },
+	  CFG_CLAUSEFLAG_NOTCONFIGURED, NULL },
 	{ "fstrm-set-flush-timeout", &cfg_type_uint32,
-	  CFG_CLAUSEFLAG_NOTCONFIGURED },
+	  CFG_CLAUSEFLAG_NOTCONFIGURED, NULL },
 	{ "fstrm-set-input-queue-size", &cfg_type_uint32,
-	  CFG_CLAUSEFLAG_NOTCONFIGURED },
+	  CFG_CLAUSEFLAG_NOTCONFIGURED, NULL },
 	{ "fstrm-set-output-notify-threshold", &cfg_type_uint32,
-	  CFG_CLAUSEFLAG_NOTCONFIGURED },
+	  CFG_CLAUSEFLAG_NOTCONFIGURED, NULL },
 	{ "fstrm-set-output-queue-model", &cfg_type_fstrm_model,
-	  CFG_CLAUSEFLAG_NOTCONFIGURED },
+	  CFG_CLAUSEFLAG_NOTCONFIGURED, NULL },
 	{ "fstrm-set-output-queue-size", &cfg_type_uint32,
-	  CFG_CLAUSEFLAG_NOTCONFIGURED },
+	  CFG_CLAUSEFLAG_NOTCONFIGURED, NULL },
 	{ "fstrm-set-reopen-interval", &cfg_type_duration,
-	  CFG_CLAUSEFLAG_NOTCONFIGURED },
+	  CFG_CLAUSEFLAG_NOTCONFIGURED, NULL },
 #endif /* HAVE_DNSTAP */
 #if defined(HAVE_GEOIP2)
-	{ "geoip-directory", &cfg_type_qstringornone, 0 },
+	{ "geoip-directory", &cfg_type_qstringornone, 0, NULL },
 #else  /* if defined(HAVE_GEOIP2) */
 	{ "geoip-directory", &cfg_type_qstringornone,
-	  CFG_CLAUSEFLAG_NOTCONFIGURED },
+	  CFG_CLAUSEFLAG_NOTCONFIGURED, NULL },
 #endif /* HAVE_GEOIP2 */
-	{ "geoip-use-ecs", NULL, CFG_CLAUSEFLAG_ANCIENT },
-	{ "has-old-clients", NULL, CFG_CLAUSEFLAG_ANCIENT },
-	{ "heartbeat-interval", NULL, CFG_CLAUSEFLAG_ANCIENT },
-	{ "host-statistics", NULL, CFG_CLAUSEFLAG_ANCIENT },
-	{ "host-statistics-max", NULL, CFG_CLAUSEFLAG_ANCIENT },
-	{ "hostname", &cfg_type_qstringornone, 0 },
-	{ "interface-interval", &cfg_type_duration, 0 },
+	{ "geoip-use-ecs", NULL, CFG_CLAUSEFLAG_ANCIENT, NULL },
+	{ "has-old-clients", NULL, CFG_CLAUSEFLAG_ANCIENT, NULL },
+	{ "heartbeat-interval", NULL, CFG_CLAUSEFLAG_ANCIENT, NULL },
+	{ "host-statistics", NULL, CFG_CLAUSEFLAG_ANCIENT, NULL },
+	{ "host-statistics-max", NULL, CFG_CLAUSEFLAG_ANCIENT, NULL },
+	{ "hostname", &cfg_type_qstringornone, 0, NULL },
+	{ "interface-interval", &cfg_type_duration, 0, NULL },
 	{ "keep-response-order", &cfg_type_bracketed_aml,
-	  CFG_CLAUSEFLAG_OBSOLETE },
-	{ "listen-on", &cfg_type_listenon, CFG_CLAUSEFLAG_MULTI },
-	{ "listen-on-v6", &cfg_type_listenon, CFG_CLAUSEFLAG_MULTI },
-	{ "lock-file", NULL, CFG_CLAUSEFLAG_ANCIENT },
-	{ "managed-keys-directory", &cfg_type_qstring, 0 },
-	{ "match-mapped-addresses", &cfg_type_boolean, 0 },
-	{ "max-rsa-exponent-size", &cfg_type_uint32, 0 },
-	{ "memstatistics", &cfg_type_boolean, 0 },
-	{ "memstatistics-file", &cfg_type_qstring, 0 },
-	{ "multiple-cnames", NULL, CFG_CLAUSEFLAG_ANCIENT },
-	{ "named-xfer", NULL, CFG_CLAUSEFLAG_ANCIENT },
-	{ "notify-rate", &cfg_type_uint32, 0 },
-	{ "pid-file", &cfg_type_qstringornone, 0 },
-	{ "port", &cfg_type_uint32, 0 },
-	{ "tls-port", &cfg_type_uint32, 0 },
+	  CFG_CLAUSEFLAG_OBSOLETE, NULL },
+	{ "listen-on", &cfg_type_listenon, CFG_CLAUSEFLAG_MULTI, NULL },
+	{ "listen-on-v6", &cfg_type_listenon, CFG_CLAUSEFLAG_MULTI, NULL },
+	{ "lock-file", NULL, CFG_CLAUSEFLAG_ANCIENT, NULL },
+	{ "managed-keys-directory", &cfg_type_qstring, 0, NULL },
+	{ "match-mapped-addresses", &cfg_type_boolean, 0, NULL },
+	{ "max-rsa-exponent-size", &cfg_type_uint32, 0, NULL },
+	{ "memstatistics", &cfg_type_boolean, 0, NULL },
+	{ "memstatistics-file", &cfg_type_qstring, 0, NULL },
+	{ "multiple-cnames", NULL, CFG_CLAUSEFLAG_ANCIENT, NULL },
+	{ "named-xfer", NULL, CFG_CLAUSEFLAG_ANCIENT, NULL },
+	{ "notify-rate", &cfg_type_uint32, 0, NULL },
+	{ "pid-file", &cfg_type_qstringornone, 0, NULL },
+	{ "port", &cfg_type_uint32, 0, NULL },
+	{ "tls-port", &cfg_type_uint32, 0, NULL },
 #if HAVE_LIBNGHTTP2
-	{ "http-port", &cfg_type_uint32, CFG_CLAUSEFLAG_OPTIONAL },
-	{ "http-listener-clients", &cfg_type_uint32, CFG_CLAUSEFLAG_OPTIONAL },
+	{ "http-port", &cfg_type_uint32, CFG_CLAUSEFLAG_OPTIONAL, NULL },
+	{ "http-listener-clients", &cfg_type_uint32, CFG_CLAUSEFLAG_OPTIONAL,
+	  NULL },
 	{ "http-streams-per-connection", &cfg_type_uint32,
-	  CFG_CLAUSEFLAG_OPTIONAL },
-	{ "https-port", &cfg_type_uint32, CFG_CLAUSEFLAG_OPTIONAL },
+	  CFG_CLAUSEFLAG_OPTIONAL, NULL },
+	{ "https-port", &cfg_type_uint32, CFG_CLAUSEFLAG_OPTIONAL, NULL },
 #else
-	{ "http-port", &cfg_type_uint32, CFG_CLAUSEFLAG_NOTCONFIGURED },
+	{ "http-port", &cfg_type_uint32, CFG_CLAUSEFLAG_NOTCONFIGURED, NULL },
 	{ "http-listener-clients", &cfg_type_uint32,
-	  CFG_CLAUSEFLAG_NOTCONFIGURED },
+	  CFG_CLAUSEFLAG_NOTCONFIGURED, NULL },
 	{ "http-streams-per-connection", &cfg_type_uint32,
-	  CFG_CLAUSEFLAG_NOTCONFIGURED },
-	{ "https-port", &cfg_type_uint32, CFG_CLAUSEFLAG_NOTCONFIGURED },
+	  CFG_CLAUSEFLAG_NOTCONFIGURED, NULL },
+	{ "https-port", &cfg_type_uint32, CFG_CLAUSEFLAG_NOTCONFIGURED, NULL },
 #endif
-	{ "querylog", &cfg_type_boolean, 0 },
-	{ "random-device", NULL, CFG_CLAUSEFLAG_ANCIENT },
-	{ "recursing-file", &cfg_type_qstring, 0 },
-	{ "recursive-clients", &cfg_type_uint32, 0 },
-	{ "reuseport", &cfg_type_boolean, 0 },
-	{ "reserved-sockets", NULL, CFG_CLAUSEFLAG_ANCIENT },
-	{ "responselog", &cfg_type_boolean, 0 },
-	{ "secroots-file", &cfg_type_qstring, 0 },
-	{ "serial-queries", NULL, CFG_CLAUSEFLAG_ANCIENT },
-	{ "serial-query-rate", &cfg_type_uint32, 0 },
-	{ "server-id", &cfg_type_serverid, 0 },
-	{ "session-keyalg", &cfg_type_astring, 0 },
-	{ "session-keyfile", &cfg_type_qstringornone, 0 },
-	{ "session-keyname", &cfg_type_astring, 0 },
-	{ "sig0checks-quota", &cfg_type_uint32, CFG_CLAUSEFLAG_EXPERIMENTAL },
+	{ "querylog", &cfg_type_boolean, 0, NULL },
+	{ "random-device", NULL, CFG_CLAUSEFLAG_ANCIENT, NULL },
+	{ "recursing-file", &cfg_type_qstring, 0, NULL },
+	{ "recursive-clients", &cfg_type_uint32, 0, NULL },
+	{ "reuseport", &cfg_type_boolean, 0, NULL },
+	{ "reserved-sockets", NULL, CFG_CLAUSEFLAG_ANCIENT, NULL },
+	{ "responselog", &cfg_type_boolean, 0, NULL },
+	{ "secroots-file", &cfg_type_qstring, 0, NULL },
+	{ "serial-queries", NULL, CFG_CLAUSEFLAG_ANCIENT, NULL },
+	{ "serial-query-rate", &cfg_type_uint32, 0, NULL },
+	{ "server-id", &cfg_type_serverid, 0, NULL },
+	{ "session-keyalg", &cfg_type_astring, 0, NULL },
+	{ "session-keyfile", &cfg_type_qstringornone, 0, NULL },
+	{ "session-keyname", &cfg_type_astring, 0, NULL },
+	{ "sig0checks-quota", &cfg_type_uint32, CFG_CLAUSEFLAG_EXPERIMENTAL,
+	  NULL },
 	{ "sig0checks-quota-exempt", &cfg_type_bracketed_aml,
-	  CFG_CLAUSEFLAG_EXPERIMENTAL },
-	{ "sit-secret", NULL, CFG_CLAUSEFLAG_ANCIENT },
-	{ "stacksize", NULL, CFG_CLAUSEFLAG_ANCIENT },
-	{ "startup-notify-rate", &cfg_type_uint32, 0 },
-	{ "statistics-file", &cfg_type_qstring, 0 },
-	{ "statistics-interval", NULL, CFG_CLAUSEFLAG_ANCIENT },
-	{ "tcp-advertised-timeout", &cfg_type_uint32, 0 },
-	{ "tcp-clients", &cfg_type_uint32, 0 },
-	{ "tcp-idle-timeout", &cfg_type_uint32, 0 },
-	{ "tcp-initial-timeout", &cfg_type_uint32, 0 },
-	{ "tcp-keepalive-timeout", &cfg_type_uint32, 0 },
-	{ "tcp-listen-queue", &cfg_type_uint32, 0 },
-	{ "tcp-primaries-timeout", &cfg_type_uint32, 0 },
-	{ "tcp-receive-buffer", &cfg_type_uint32, 0 },
-	{ "tcp-send-buffer", &cfg_type_uint32, 0 },
-	{ "tkey-dhkey", NULL, CFG_CLAUSEFLAG_ANCIENT },
-	{ "tkey-domain", &cfg_type_qstring, CFG_CLAUSEFLAG_ANCIENT },
-	{ "tkey-gssapi-credential", &cfg_type_qstring, CFG_CLAUSEFLAG_ANCIENT },
-	{ "tkey-gssapi-keytab", &cfg_type_qstring, 0 },
-	{ "transfer-message-size", &cfg_type_uint32, 0 },
-	{ "transfers-in", &cfg_type_uint32, 0 },
-	{ "transfers-out", &cfg_type_uint32, 0 },
-	{ "transfers-per-ns", &cfg_type_uint32, 0 },
-	{ "treat-cr-as-space", NULL, CFG_CLAUSEFLAG_ANCIENT },
-	{ "udp-receive-buffer", &cfg_type_uint32, 0 },
-	{ "udp-send-buffer", &cfg_type_uint32, 0 },
-	{ "update-quota", &cfg_type_uint32, 0 },
-	{ "use-id-pool", NULL, CFG_CLAUSEFLAG_ANCIENT },
-	{ "use-ixfr", NULL, CFG_CLAUSEFLAG_ANCIENT },
-	{ "use-v4-udp-ports", NULL, CFG_CLAUSEFLAG_ANCIENT },
-	{ "use-v6-udp-ports", NULL, CFG_CLAUSEFLAG_ANCIENT },
-	{ "version", &cfg_type_qstringornone, 0 },
-	{ NULL, NULL, 0 }
+	  CFG_CLAUSEFLAG_EXPERIMENTAL, NULL },
+	{ "sit-secret", NULL, CFG_CLAUSEFLAG_ANCIENT, NULL },
+	{ "stacksize", NULL, CFG_CLAUSEFLAG_ANCIENT, NULL },
+	{ "startup-notify-rate", &cfg_type_uint32, 0, NULL },
+	{ "statistics-file", &cfg_type_qstring, 0, NULL },
+	{ "statistics-interval", NULL, CFG_CLAUSEFLAG_ANCIENT, NULL },
+	{ "tcp-advertised-timeout", &cfg_type_uint32, 0, NULL },
+	{ "tcp-clients", &cfg_type_uint32, 0, NULL },
+	{ "tcp-idle-timeout", &cfg_type_uint32, 0, NULL },
+	{ "tcp-initial-timeout", &cfg_type_uint32, 0, NULL },
+	{ "tcp-keepalive-timeout", &cfg_type_uint32, 0, NULL },
+	{ "tcp-listen-queue", &cfg_type_uint32, 0, NULL },
+	{ "tcp-primaries-timeout", &cfg_type_uint32, 0, NULL },
+	{ "tcp-receive-buffer", &cfg_type_uint32, 0, NULL },
+	{ "tcp-send-buffer", &cfg_type_uint32, 0, NULL },
+	{ "tkey-dhkey", NULL, CFG_CLAUSEFLAG_ANCIENT, NULL },
+	{ "tkey-domain", &cfg_type_qstring, CFG_CLAUSEFLAG_ANCIENT, NULL },
+	{ "tkey-gssapi-credential", &cfg_type_qstring, CFG_CLAUSEFLAG_ANCIENT,
+	  NULL },
+	{ "tkey-gssapi-keytab", &cfg_type_qstring, 0, NULL },
+	{ "transfer-message-size", &cfg_type_uint32, 0, NULL },
+	{ "transfers-in", &cfg_type_uint32, 0, NULL },
+	{ "transfers-out", &cfg_type_uint32, 0, NULL },
+	{ "transfers-per-ns", &cfg_type_uint32, 0, NULL },
+	{ "treat-cr-as-space", NULL, CFG_CLAUSEFLAG_ANCIENT, NULL },
+	{ "udp-receive-buffer", &cfg_type_uint32, 0, NULL },
+	{ "udp-send-buffer", &cfg_type_uint32, 0, NULL },
+	{ "update-quota", &cfg_type_uint32, 0, NULL },
+	{ "use-id-pool", NULL, CFG_CLAUSEFLAG_ANCIENT, NULL },
+	{ "use-ixfr", NULL, CFG_CLAUSEFLAG_ANCIENT, NULL },
+	{ "use-v4-udp-ports", NULL, CFG_CLAUSEFLAG_ANCIENT, NULL },
+	{ "use-v6-udp-ports", NULL, CFG_CLAUSEFLAG_ANCIENT, NULL },
+	{ "version", &cfg_type_qstringornone, 0, NULL },
+	{ NULL, NULL, 0, NULL }
 };
 
 static cfg_type_t cfg_type_namelist = { "namelist",
@@ -2156,22 +2170,22 @@ static cfg_type_t cfg_type_catz = {
  * rate-limit
  */
 static cfg_clausedef_t rrl_clauses[] = {
-	{ "all-per-second", &cfg_type_uint32, 0 },
-	{ "errors-per-second", &cfg_type_uint32, 0 },
-	{ "exempt-clients", &cfg_type_bracketed_aml, 0 },
-	{ "ipv4-prefix-length", &cfg_type_uint32, 0 },
-	{ "ipv6-prefix-length", &cfg_type_uint32, 0 },
-	{ "log-only", &cfg_type_boolean, 0 },
-	{ "max-table-size", &cfg_type_uint32, 0 },
-	{ "min-table-size", &cfg_type_uint32, 0 },
-	{ "nodata-per-second", &cfg_type_uint32, 0 },
-	{ "nxdomains-per-second", &cfg_type_uint32, 0 },
-	{ "qps-scale", &cfg_type_uint32, 0 },
-	{ "referrals-per-second", &cfg_type_uint32, 0 },
-	{ "responses-per-second", &cfg_type_uint32, 0 },
-	{ "slip", &cfg_type_uint32, 0 },
-	{ "window", &cfg_type_uint32, 0 },
-	{ NULL, NULL, 0 }
+	{ "all-per-second", &cfg_type_uint32, 0, NULL },
+	{ "errors-per-second", &cfg_type_uint32, 0, NULL },
+	{ "exempt-clients", &cfg_type_bracketed_aml, 0, NULL },
+	{ "ipv4-prefix-length", &cfg_type_uint32, 0, NULL },
+	{ "ipv6-prefix-length", &cfg_type_uint32, 0, NULL },
+	{ "log-only", &cfg_type_boolean, 0, NULL },
+	{ "max-table-size", &cfg_type_uint32, 0, NULL },
+	{ "min-table-size", &cfg_type_uint32, 0, NULL },
+	{ "nodata-per-second", &cfg_type_uint32, 0, NULL },
+	{ "nxdomains-per-second", &cfg_type_uint32, 0, NULL },
+	{ "qps-scale", &cfg_type_uint32, 0, NULL },
+	{ "referrals-per-second", &cfg_type_uint32, 0, NULL },
+	{ "responses-per-second", &cfg_type_uint32, 0, NULL },
+	{ "slip", &cfg_type_uint32, 0, NULL },
+	{ "window", &cfg_type_uint32, 0, NULL },
+	{ NULL, NULL, 0, NULL }
 };
 
 static cfg_clausedef_t *rrl_clausesets[] = { rrl_clauses, NULL };
@@ -2221,13 +2235,13 @@ static cfg_type_t cfg_type_prefetch = { "prefetch",	 cfg_parse_tuple,
  * DNS64.
  */
 static cfg_clausedef_t dns64_clauses[] = {
-	{ "break-dnssec", &cfg_type_boolean, 0 },
-	{ "clients", &cfg_type_bracketed_aml, 0 },
-	{ "exclude", &cfg_type_bracketed_aml, 0 },
-	{ "mapped", &cfg_type_bracketed_aml, 0 },
-	{ "recursive-only", &cfg_type_boolean, 0 },
-	{ "suffix", &cfg_type_netaddr6, 0 },
-	{ NULL, NULL, 0 },
+	{ "break-dnssec", &cfg_type_boolean, 0, NULL },
+	{ "clients", &cfg_type_bracketed_aml, 0, NULL },
+	{ "exclude", &cfg_type_bracketed_aml, 0, NULL },
+	{ "mapped", &cfg_type_bracketed_aml, 0, NULL },
+	{ "recursive-only", &cfg_type_boolean, 0, NULL },
+	{ "suffix", &cfg_type_netaddr6, 0, NULL },
+	{ NULL, NULL, 0, NULL },
 };
 
 static cfg_clausedef_t *dns64_clausesets[] = { dns64_clauses, NULL };
@@ -2327,161 +2341,164 @@ checknames_merge(const cfg_obj_t *config ISC_ATTR_UNUSED,
  */
 
 static cfg_clausedef_t view_clauses[] = {
-	{ "acache-cleaning-interval", NULL, CFG_CLAUSEFLAG_ANCIENT },
-	{ "acache-enable", NULL, CFG_CLAUSEFLAG_ANCIENT },
-	{ "additional-from-auth", NULL, CFG_CLAUSEFLAG_ANCIENT },
-	{ "additional-from-cache", NULL, CFG_CLAUSEFLAG_ANCIENT },
-	{ "allow-new-zones", &cfg_type_boolean, 0 },
-	{ "allow-proxy", &cfg_type_bracketed_aml, CFG_CLAUSEFLAG_EXPERIMENTAL },
+	{ "acache-cleaning-interval", NULL, CFG_CLAUSEFLAG_ANCIENT, NULL },
+	{ "acache-enable", NULL, CFG_CLAUSEFLAG_ANCIENT, NULL },
+	{ "additional-from-auth", NULL, CFG_CLAUSEFLAG_ANCIENT, NULL },
+	{ "additional-from-cache", NULL, CFG_CLAUSEFLAG_ANCIENT, NULL },
+	{ "allow-new-zones", &cfg_type_boolean, 0, NULL },
+	{ "allow-proxy", &cfg_type_bracketed_aml, CFG_CLAUSEFLAG_EXPERIMENTAL,
+	  NULL },
 	{ "allow-proxy-on", &cfg_type_bracketed_aml,
-	  CFG_CLAUSEFLAG_EXPERIMENTAL },
-	{ "allow-query-cache", &cfg_type_bracketed_aml, 0 },
-	{ "allow-query-cache-on", &cfg_type_bracketed_aml, 0 },
-	{ "allow-recursion", &cfg_type_bracketed_aml, 0 },
-	{ "allow-recursion-on", &cfg_type_bracketed_aml, 0 },
-	{ "allow-v6-synthesis", NULL, CFG_CLAUSEFLAG_ANCIENT },
-	{ "attach-cache", &cfg_type_astring, 0 },
-	{ "auth-nxdomain", &cfg_type_boolean, 0 },
-	{ "cache-file", NULL, CFG_CLAUSEFLAG_ANCIENT },
-	{ "catalog-zones", &cfg_type_catz, 0 },
+	  CFG_CLAUSEFLAG_EXPERIMENTAL, NULL },
+	{ "allow-query-cache", &cfg_type_bracketed_aml, 0, NULL },
+	{ "allow-query-cache-on", &cfg_type_bracketed_aml, 0, NULL },
+	{ "allow-recursion", &cfg_type_bracketed_aml, 0, NULL },
+	{ "allow-recursion-on", &cfg_type_bracketed_aml, 0, NULL },
+	{ "allow-v6-synthesis", NULL, CFG_CLAUSEFLAG_ANCIENT, NULL },
+	{ "attach-cache", &cfg_type_astring, 0, NULL },
+	{ "auth-nxdomain", &cfg_type_boolean, 0, NULL },
+	{ "cache-file", NULL, CFG_CLAUSEFLAG_ANCIENT, NULL },
+	{ "catalog-zones", &cfg_type_catz, 0, NULL },
 	{ "check-names", &cfg_type_checknames, CFG_CLAUSEFLAG_MULTI,
 	  checknames_merge },
-	{ "cleaning-interval", NULL, CFG_CLAUSEFLAG_ANCIENT },
-	{ "clients-per-query", &cfg_type_uint32, 0 },
-	{ "deny-answer-addresses", &cfg_type_denyaddresses, 0 },
-	{ "deny-answer-aliases", &cfg_type_denyaliases, 0 },
+	{ "cleaning-interval", NULL, CFG_CLAUSEFLAG_ANCIENT, NULL },
+	{ "clients-per-query", &cfg_type_uint32, 0, NULL },
+	{ "deny-answer-addresses", &cfg_type_denyaddresses, 0, NULL },
+	{ "deny-answer-aliases", &cfg_type_denyaliases, 0, NULL },
 	{ "disable-algorithms", &cfg_type_disablealgorithm,
-	  CFG_CLAUSEFLAG_MULTI },
-	{ "disable-ds-digests", &cfg_type_disabledsdigest,
-	  CFG_CLAUSEFLAG_MULTI },
-	{ "disable-empty-zone", &cfg_type_astring, CFG_CLAUSEFLAG_MULTI },
-	{ "dns64", &cfg_type_dns64, CFG_CLAUSEFLAG_MULTI },
-	{ "dns64-contact", &cfg_type_astring, 0 },
-	{ "dns64-server", &cfg_type_astring, 0 },
-	{ "dnsrps-enable", &cfg_type_boolean, CFG_CLAUSEFLAG_OBSOLETE },
-	{ "dnsrps-options", &cfg_type_bracketed_text, CFG_CLAUSEFLAG_OBSOLETE },
-	{ "dnssec-accept-expired", &cfg_type_boolean, 0 },
-	{ "dnssec-enable", NULL, CFG_CLAUSEFLAG_ANCIENT },
+	  CFG_CLAUSEFLAG_MULTI, NULL },
+	{ "disable-ds-digests", &cfg_type_disabledsdigest, CFG_CLAUSEFLAG_MULTI,
+	  NULL },
+	{ "disable-empty-zone", &cfg_type_astring, CFG_CLAUSEFLAG_MULTI, NULL },
+	{ "dns64", &cfg_type_dns64, CFG_CLAUSEFLAG_MULTI, NULL },
+	{ "dns64-contact", &cfg_type_astring, 0, NULL },
+	{ "dns64-server", &cfg_type_astring, 0, NULL },
+	{ "dnsrps-enable", &cfg_type_boolean, CFG_CLAUSEFLAG_OBSOLETE, NULL },
+	{ "dnsrps-options", &cfg_type_bracketed_text, CFG_CLAUSEFLAG_OBSOLETE,
+	  NULL },
+	{ "dnssec-accept-expired", &cfg_type_boolean, 0, NULL },
+	{ "dnssec-enable", NULL, CFG_CLAUSEFLAG_ANCIENT, NULL },
 	{ "dnssec-lookaside", NULL,
-	  CFG_CLAUSEFLAG_MULTI | CFG_CLAUSEFLAG_ANCIENT },
+	  CFG_CLAUSEFLAG_MULTI | CFG_CLAUSEFLAG_ANCIENT, NULL },
 	{ "dnssec-must-be-secure", NULL,
-	  CFG_CLAUSEFLAG_MULTI | CFG_CLAUSEFLAG_ANCIENT },
-	{ "dnssec-validation", &cfg_type_boolorauto, 0 },
+	  CFG_CLAUSEFLAG_MULTI | CFG_CLAUSEFLAG_ANCIENT, NULL },
+	{ "dnssec-validation", &cfg_type_boolorauto, 0, NULL },
 #ifdef HAVE_DNSTAP
-	{ "dnstap", &cfg_type_dnstap, CFG_CLAUSEFLAG_OPTIONAL },
+	{ "dnstap", &cfg_type_dnstap, CFG_CLAUSEFLAG_OPTIONAL, NULL },
 #else  /* ifdef HAVE_DNSTAP */
-	{ "dnstap", &cfg_type_dnstap, CFG_CLAUSEFLAG_NOTCONFIGURED },
+	{ "dnstap", &cfg_type_dnstap, CFG_CLAUSEFLAG_NOTCONFIGURED, NULL },
 #endif /* HAVE_DNSTAP */
-	{ "dual-stack-servers", &cfg_type_nameportiplist, 0 },
-	{ "edns-udp-size", &cfg_type_uint32, 0 },
-	{ "empty-contact", &cfg_type_astring, 0 },
-	{ "empty-server", &cfg_type_astring, 0 },
-	{ "empty-zones-enable", &cfg_type_boolean, 0 },
-	{ "fetch-glue", NULL, CFG_CLAUSEFLAG_ANCIENT },
-	{ "fetch-quota-params", &cfg_type_fetchquota, 0 },
-	{ "fetches-per-server", &cfg_type_fetchesper, 0 },
-	{ "fetches-per-zone", &cfg_type_fetchesper, 0 },
-	{ "filter-aaaa", NULL, CFG_CLAUSEFLAG_ANCIENT },
-	{ "filter-aaaa-on-v4", NULL, CFG_CLAUSEFLAG_ANCIENT },
-	{ "filter-aaaa-on-v6", NULL, CFG_CLAUSEFLAG_ANCIENT },
-	{ "glue-cache", NULL, CFG_CLAUSEFLAG_ANCIENT },
-	{ "ipv4only-enable", &cfg_type_boolean, 0 },
-	{ "ipv4only-contact", &cfg_type_astring, 0 },
-	{ "ipv4only-server", &cfg_type_astring, 0 },
-	{ "ixfr-from-differences", &cfg_type_ixfrdifftype, 0 },
-	{ "lame-ttl", &cfg_type_duration, 0 },
+	{ "dual-stack-servers", &cfg_type_nameportiplist, 0, NULL },
+	{ "edns-udp-size", &cfg_type_uint32, 0, NULL },
+	{ "empty-contact", &cfg_type_astring, 0, NULL },
+	{ "empty-server", &cfg_type_astring, 0, NULL },
+	{ "empty-zones-enable", &cfg_type_boolean, 0, NULL },
+	{ "fetch-glue", NULL, CFG_CLAUSEFLAG_ANCIENT, NULL },
+	{ "fetch-quota-params", &cfg_type_fetchquota, 0, NULL },
+	{ "fetches-per-server", &cfg_type_fetchesper, 0, NULL },
+	{ "fetches-per-zone", &cfg_type_fetchesper, 0, NULL },
+	{ "filter-aaaa", NULL, CFG_CLAUSEFLAG_ANCIENT, NULL },
+	{ "filter-aaaa-on-v4", NULL, CFG_CLAUSEFLAG_ANCIENT, NULL },
+	{ "filter-aaaa-on-v6", NULL, CFG_CLAUSEFLAG_ANCIENT, NULL },
+	{ "glue-cache", NULL, CFG_CLAUSEFLAG_ANCIENT, NULL },
+	{ "ipv4only-enable", &cfg_type_boolean, 0, NULL },
+	{ "ipv4only-contact", &cfg_type_astring, 0, NULL },
+	{ "ipv4only-server", &cfg_type_astring, 0, NULL },
+	{ "ixfr-from-differences", &cfg_type_ixfrdifftype, 0, NULL },
+	{ "lame-ttl", &cfg_type_duration, 0, NULL },
 #ifdef HAVE_LMDB
-	{ "lmdb-mapsize", &cfg_type_sizeval, CFG_CLAUSEFLAG_OPTIONAL },
+	{ "lmdb-mapsize", &cfg_type_sizeval, CFG_CLAUSEFLAG_OPTIONAL, NULL },
 #else  /* ifdef HAVE_LMDB */
-	{ "lmdb-mapsize", &cfg_type_sizeval, CFG_CLAUSEFLAG_NOTCONFIGURED },
+	{ "lmdb-mapsize", &cfg_type_sizeval, CFG_CLAUSEFLAG_NOTCONFIGURED,
+	  NULL },
 #endif /* ifdef HAVE_LMDB */
-	{ "max-acache-size", NULL, CFG_CLAUSEFLAG_ANCIENT },
-	{ "max-cache-size", &cfg_type_maxcachesize, 0 },
-	{ "max-cache-ttl", &cfg_type_duration, 0 },
-	{ "max-clients-per-query", &cfg_type_uint32, 0 },
-	{ "max-ncache-ttl", &cfg_type_duration, 0 },
-	{ "max-recursion-depth", &cfg_type_uint32, 0 },
-	{ "max-recursion-queries", &cfg_type_uint32, 0 },
-	{ "max-query-count", &cfg_type_uint32, 0 },
-	{ "max-query-restarts", &cfg_type_uint32, 0 },
-	{ "max-stale-ttl", &cfg_type_duration, 0 },
-	{ "max-udp-size", &cfg_type_uint32, 0 },
+	{ "max-acache-size", NULL, CFG_CLAUSEFLAG_ANCIENT, NULL },
+	{ "max-cache-size", &cfg_type_maxcachesize, 0, NULL },
+	{ "max-cache-ttl", &cfg_type_duration, 0, NULL },
+	{ "max-clients-per-query", &cfg_type_uint32, 0, NULL },
+	{ "max-ncache-ttl", &cfg_type_duration, 0, NULL },
+	{ "max-recursion-depth", &cfg_type_uint32, 0, NULL },
+	{ "max-recursion-queries", &cfg_type_uint32, 0, NULL },
+	{ "max-query-count", &cfg_type_uint32, 0, NULL },
+	{ "max-query-restarts", &cfg_type_uint32, 0, NULL },
+	{ "max-stale-ttl", &cfg_type_duration, 0, NULL },
+	{ "max-udp-size", &cfg_type_uint32, 0, NULL },
 	{ "max-validations-per-fetch", &cfg_type_uint32,
-	  CFG_CLAUSEFLAG_EXPERIMENTAL },
+	  CFG_CLAUSEFLAG_EXPERIMENTAL, NULL },
 	{ "max-validation-failures-per-fetch", &cfg_type_uint32,
-	  CFG_CLAUSEFLAG_EXPERIMENTAL },
-	{ "message-compression", &cfg_type_boolean, 0 },
-	{ "min-cache-ttl", &cfg_type_duration, 0 },
-	{ "min-ncache-ttl", &cfg_type_duration, 0 },
-	{ "min-roots", NULL, CFG_CLAUSEFLAG_ANCIENT },
-	{ "minimal-any", &cfg_type_boolean, 0 },
-	{ "minimal-responses", &cfg_type_minimal, 0 },
-	{ "new-zones-directory", &cfg_type_qstring, 0 },
-	{ "no-case-compress", &cfg_type_bracketed_aml, 0 },
-	{ "nocookie-udp-size", &cfg_type_uint32, 0 },
-	{ "nosit-udp-size", NULL, CFG_CLAUSEFLAG_ANCIENT },
-	{ "nta-lifetime", &cfg_type_duration, 0 },
-	{ "nta-recheck", &cfg_type_duration, 0 },
-	{ "nxdomain-redirect", &cfg_type_astring, 0 },
-	{ "preferred-glue", &cfg_type_astring, 0 },
+	  CFG_CLAUSEFLAG_EXPERIMENTAL, NULL },
+	{ "message-compression", &cfg_type_boolean, 0, NULL },
+	{ "min-cache-ttl", &cfg_type_duration, 0, NULL },
+	{ "min-ncache-ttl", &cfg_type_duration, 0, NULL },
+	{ "min-roots", NULL, CFG_CLAUSEFLAG_ANCIENT, NULL },
+	{ "minimal-any", &cfg_type_boolean, 0, NULL },
+	{ "minimal-responses", &cfg_type_minimal, 0, NULL },
+	{ "new-zones-directory", &cfg_type_qstring, 0, NULL },
+	{ "no-case-compress", &cfg_type_bracketed_aml, 0, NULL },
+	{ "nocookie-udp-size", &cfg_type_uint32, 0, NULL },
+	{ "nosit-udp-size", NULL, CFG_CLAUSEFLAG_ANCIENT, NULL },
+	{ "nta-lifetime", &cfg_type_duration, 0, NULL },
+	{ "nta-recheck", &cfg_type_duration, 0, NULL },
+	{ "nxdomain-redirect", &cfg_type_astring, 0, NULL },
+	{ "preferred-glue", &cfg_type_astring, 0, NULL },
 	{ "prefetch", &cfg_type_prefetch, 0, prefetch_merge },
-	{ "provide-ixfr", &cfg_type_boolean, 0 },
-	{ "qname-minimization", &cfg_type_qminmethod, 0 },
+	{ "provide-ixfr", &cfg_type_boolean, 0, NULL },
+	{ "qname-minimization", &cfg_type_qminmethod, 0, NULL },
 	/*
 	 * Note that the query-source option syntax is different
 	 * from the other -source options.
 	 */
-	{ "query-source", &cfg_type_querysource4, 0 },
-	{ "query-source-v6", &cfg_type_querysource6, 0 },
-	{ "queryport-pool-ports", NULL, CFG_CLAUSEFLAG_ANCIENT },
-	{ "queryport-pool-updateinterval", NULL, CFG_CLAUSEFLAG_ANCIENT },
-	{ "rate-limit", &cfg_type_rrl, 0 },
-	{ "recursion", &cfg_type_boolean, 0 },
-	{ "request-nsid", &cfg_type_boolean, 0 },
-	{ "request-sit", NULL, CFG_CLAUSEFLAG_ANCIENT },
-	{ "request-zoneversion", &cfg_type_boolean, 0 },
-	{ "require-server-cookie", &cfg_type_boolean, 0 },
-	{ "resolver-nonbackoff-tries", NULL, CFG_CLAUSEFLAG_ANCIENT },
-	{ "resolver-query-timeout", &cfg_type_uint32, 0 },
-	{ "resolver-retry-interval", NULL, CFG_CLAUSEFLAG_ANCIENT },
-	{ "response-padding", &cfg_type_resppadding, 0 },
-	{ "response-policy", &cfg_type_rpz, 0 },
-	{ "rfc2308-type1", NULL, CFG_CLAUSEFLAG_ANCIENT },
-	{ "root-delegation-only", NULL, CFG_CLAUSEFLAG_ANCIENT },
-	{ "root-key-sentinel", &cfg_type_boolean, 0 },
-	{ "rrset-order", &cfg_type_rrsetorder, 0 },
-	{ "send-cookie", &cfg_type_boolean, 0 },
-	{ "servfail-ttl", &cfg_type_duration, 0 },
-	{ "sig0key-checks-limit", &cfg_type_uint32, 0 },
-	{ "sig0message-checks-limit", &cfg_type_uint32, 0 },
-	{ "sortlist", &cfg_type_bracketed_aml, CFG_CLAUSEFLAG_ANCIENT },
-	{ "stale-answer-enable", &cfg_type_boolean, 0 },
-	{ "stale-answer-client-timeout", &cfg_type_staleanswerclienttimeout,
-	  0 },
-	{ "stale-answer-ttl", &cfg_type_duration, 0 },
-	{ "stale-cache-enable", &cfg_type_boolean, 0 },
-	{ "stale-refresh-time", &cfg_type_duration, 0 },
-	{ "suppress-initial-notify", NULL, CFG_CLAUSEFLAG_ANCIENT },
-	{ "synth-from-dnssec", &cfg_type_boolean, 0 },
-	{ "topology", NULL, CFG_CLAUSEFLAG_ANCIENT },
-	{ "transfer-format", &cfg_type_transferformat, 0 },
-	{ "trust-anchor-telemetry", &cfg_type_boolean, 0 },
-	{ "resolver-use-dns64", &cfg_type_boolean, 0 },
-	{ "use-queryport-pool", NULL, CFG_CLAUSEFLAG_ANCIENT },
-	{ "validate-except", &cfg_type_namelist, 0 },
-	{ "v6-bias", &cfg_type_uint32, 0 },
-	{ "zero-no-soa-ttl-cache", &cfg_type_boolean, 0 },
-	{ NULL, NULL, 0 }
+	{ "query-source", &cfg_type_querysource4, 0, NULL },
+	{ "query-source-v6", &cfg_type_querysource6, 0, NULL },
+	{ "queryport-pool-ports", NULL, CFG_CLAUSEFLAG_ANCIENT, NULL },
+	{ "queryport-pool-updateinterval", NULL, CFG_CLAUSEFLAG_ANCIENT, NULL },
+	{ "rate-limit", &cfg_type_rrl, 0, NULL },
+	{ "recursion", &cfg_type_boolean, 0, NULL },
+	{ "request-nsid", &cfg_type_boolean, 0, NULL },
+	{ "request-sit", NULL, CFG_CLAUSEFLAG_ANCIENT, NULL },
+	{ "request-zoneversion", &cfg_type_boolean, 0, NULL },
+	{ "require-server-cookie", &cfg_type_boolean, 0, NULL },
+	{ "resolver-nonbackoff-tries", NULL, CFG_CLAUSEFLAG_ANCIENT, NULL },
+	{ "resolver-query-timeout", &cfg_type_uint32, 0, NULL },
+	{ "resolver-retry-interval", NULL, CFG_CLAUSEFLAG_ANCIENT, NULL },
+	{ "response-padding", &cfg_type_resppadding, 0, NULL },
+	{ "response-policy", &cfg_type_rpz, 0, NULL },
+	{ "rfc2308-type1", NULL, CFG_CLAUSEFLAG_ANCIENT, NULL },
+	{ "root-delegation-only", NULL, CFG_CLAUSEFLAG_ANCIENT, NULL },
+	{ "root-key-sentinel", &cfg_type_boolean, 0, NULL },
+	{ "rrset-order", &cfg_type_rrsetorder, 0, NULL },
+	{ "send-cookie", &cfg_type_boolean, 0, NULL },
+	{ "servfail-ttl", &cfg_type_duration, 0, NULL },
+	{ "sig0key-checks-limit", &cfg_type_uint32, 0, NULL },
+	{ "sig0message-checks-limit", &cfg_type_uint32, 0, NULL },
+	{ "sortlist", &cfg_type_bracketed_aml, CFG_CLAUSEFLAG_ANCIENT, NULL },
+	{ "stale-answer-enable", &cfg_type_boolean, 0, NULL },
+	{ "stale-answer-client-timeout", &cfg_type_staleanswerclienttimeout, 0,
+	  NULL },
+	{ "stale-answer-ttl", &cfg_type_duration, 0, NULL },
+	{ "stale-cache-enable", &cfg_type_boolean, 0, NULL },
+	{ "stale-refresh-time", &cfg_type_duration, 0, NULL },
+	{ "suppress-initial-notify", NULL, CFG_CLAUSEFLAG_ANCIENT, NULL },
+	{ "synth-from-dnssec", &cfg_type_boolean, 0, NULL },
+	{ "topology", NULL, CFG_CLAUSEFLAG_ANCIENT, NULL },
+	{ "transfer-format", &cfg_type_transferformat, 0, NULL },
+	{ "trust-anchor-telemetry", &cfg_type_boolean, 0, NULL },
+	{ "resolver-use-dns64", &cfg_type_boolean, 0, NULL },
+	{ "use-queryport-pool", NULL, CFG_CLAUSEFLAG_ANCIENT, NULL },
+	{ "validate-except", &cfg_type_namelist, 0, NULL },
+	{ "v6-bias", &cfg_type_uint32, 0, NULL },
+	{ "zero-no-soa-ttl-cache", &cfg_type_boolean, 0, NULL },
+	{ NULL, NULL, 0, NULL }
 };
 
 /*%
  * Clauses that can be found within the 'view' statement only.
  */
 static cfg_clausedef_t view_only_clauses[] = {
-	{ "match-clients", &cfg_type_bracketed_aml, 0 },
-	{ "match-destinations", &cfg_type_bracketed_aml, 0 },
-	{ "match-recursive-only", &cfg_type_boolean, 0 },
-	{ NULL, NULL, 0 }
+	{ "match-clients", &cfg_type_bracketed_aml, 0, NULL },
+	{ "match-destinations", &cfg_type_bracketed_aml, 0, NULL },
+	{ "match-recursive-only", &cfg_type_boolean, 0, NULL },
+	{ NULL, NULL, 0, NULL }
 };
 
 /*%
@@ -2521,27 +2538,27 @@ static cfg_type_t cfg_type_checkdstype = {
  * Clauses that can be found in a 'dnssec-policy' statement.
  */
 static cfg_clausedef_t dnssecpolicy_clauses[] = {
-	{ "cdnskey", &cfg_type_boolean, 0 },
-	{ "cds-digest-types", &cfg_type_algorithmlist, 0 },
-	{ "dnskey-ttl", &cfg_type_duration, 0 },
-	{ "inline-signing", &cfg_type_boolean, 0 },
-	{ "keys", &cfg_type_kaspkeys, 0 },
-	{ "manual-mode", &cfg_type_boolean, 0 },
-	{ "max-zone-ttl", &cfg_type_duration, 0 },
-	{ "nsec3param", &cfg_type_nsec3, 0 },
-	{ "offline-ksk", &cfg_type_boolean, 0 },
-	{ "parent-ds-ttl", &cfg_type_duration, 0 },
-	{ "parent-propagation-delay", &cfg_type_duration, 0 },
-	{ "parent-registration-delay", NULL, CFG_CLAUSEFLAG_ANCIENT },
-	{ "publish-safety", &cfg_type_duration, 0 },
-	{ "purge-keys", &cfg_type_duration, 0 },
-	{ "retire-safety", &cfg_type_duration, 0 },
-	{ "signatures-jitter", &cfg_type_duration, 0 },
-	{ "signatures-refresh", &cfg_type_duration, 0 },
-	{ "signatures-validity", &cfg_type_duration, 0 },
-	{ "signatures-validity-dnskey", &cfg_type_duration, 0 },
-	{ "zone-propagation-delay", &cfg_type_duration, 0 },
-	{ NULL, NULL, 0 }
+	{ "cdnskey", &cfg_type_boolean, 0, NULL },
+	{ "cds-digest-types", &cfg_type_algorithmlist, 0, NULL },
+	{ "dnskey-ttl", &cfg_type_duration, 0, NULL },
+	{ "inline-signing", &cfg_type_boolean, 0, NULL },
+	{ "keys", &cfg_type_kaspkeys, 0, NULL },
+	{ "manual-mode", &cfg_type_boolean, 0, NULL },
+	{ "max-zone-ttl", &cfg_type_duration, 0, NULL },
+	{ "nsec3param", &cfg_type_nsec3, 0, NULL },
+	{ "offline-ksk", &cfg_type_boolean, 0, NULL },
+	{ "parent-ds-ttl", &cfg_type_duration, 0, NULL },
+	{ "parent-propagation-delay", &cfg_type_duration, 0, NULL },
+	{ "parent-registration-delay", NULL, CFG_CLAUSEFLAG_ANCIENT, NULL },
+	{ "publish-safety", &cfg_type_duration, 0, NULL },
+	{ "purge-keys", &cfg_type_duration, 0, NULL },
+	{ "retire-safety", &cfg_type_duration, 0, NULL },
+	{ "signatures-jitter", &cfg_type_duration, 0, NULL },
+	{ "signatures-refresh", &cfg_type_duration, 0, NULL },
+	{ "signatures-validity", &cfg_type_duration, 0, NULL },
+	{ "signatures-validity-dnskey", &cfg_type_duration, 0, NULL },
+	{ "zone-propagation-delay", &cfg_type_duration, 0, NULL },
+	{ NULL, NULL, 0, NULL }
 };
 
 /*
@@ -2574,157 +2591,180 @@ static cfg_type_t cfg_type_min_transfer_rate_in = {
  */
 static cfg_clausedef_t zone_clauses[] = {
 	{ "allow-notify", &cfg_type_bracketed_aml,
-	  CFG_ZONE_SECONDARY | CFG_ZONE_MIRROR },
+	  CFG_ZONE_SECONDARY | CFG_ZONE_MIRROR, NULL },
 	{ "allow-query", &cfg_type_bracketed_aml,
 	  CFG_ZONE_PRIMARY | CFG_ZONE_SECONDARY | CFG_ZONE_MIRROR |
-		  CFG_ZONE_STUB | CFG_ZONE_REDIRECT | CFG_ZONE_STATICSTUB },
+		  CFG_ZONE_STUB | CFG_ZONE_REDIRECT | CFG_ZONE_STATICSTUB,
+	  NULL },
 	{ "allow-query-on", &cfg_type_bracketed_aml,
 	  CFG_ZONE_PRIMARY | CFG_ZONE_SECONDARY | CFG_ZONE_MIRROR |
-		  CFG_ZONE_STUB | CFG_ZONE_REDIRECT | CFG_ZONE_STATICSTUB },
+		  CFG_ZONE_STUB | CFG_ZONE_REDIRECT | CFG_ZONE_STATICSTUB,
+	  NULL },
 	{ "allow-transfer", &cfg_type_transport_acl,
-	  CFG_ZONE_PRIMARY | CFG_ZONE_SECONDARY | CFG_ZONE_MIRROR },
-	{ "allow-update", &cfg_type_bracketed_aml, CFG_ZONE_PRIMARY },
+	  CFG_ZONE_PRIMARY | CFG_ZONE_SECONDARY | CFG_ZONE_MIRROR, NULL },
+	{ "allow-update", &cfg_type_bracketed_aml, CFG_ZONE_PRIMARY, NULL },
 	{ "allow-update-forwarding", &cfg_type_bracketed_aml,
-	  CFG_ZONE_SECONDARY | CFG_ZONE_MIRROR },
+	  CFG_ZONE_SECONDARY | CFG_ZONE_MIRROR, NULL },
 	{ "also-notify", &cfg_type_namesockaddrkeylist,
-	  CFG_ZONE_PRIMARY | CFG_ZONE_SECONDARY | CFG_ZONE_MIRROR },
+	  CFG_ZONE_PRIMARY | CFG_ZONE_SECONDARY | CFG_ZONE_MIRROR, NULL },
 	{ "alt-transfer-source", NULL,
 	  CFG_ZONE_PRIMARY | CFG_ZONE_SECONDARY | CFG_ZONE_MIRROR |
-		  CFG_CLAUSEFLAG_ANCIENT },
+		  CFG_CLAUSEFLAG_ANCIENT,
+	  NULL },
 	{ "alt-transfer-source-v6", NULL,
 	  CFG_ZONE_PRIMARY | CFG_ZONE_SECONDARY | CFG_ZONE_MIRROR |
-		  CFG_CLAUSEFLAG_ANCIENT },
+		  CFG_CLAUSEFLAG_ANCIENT,
+	  NULL },
 	{ "auto-dnssec", NULL,
-	  CFG_ZONE_PRIMARY | CFG_ZONE_SECONDARY | CFG_CLAUSEFLAG_ANCIENT },
-	{ "check-dup-records", &cfg_type_checkmode, CFG_ZONE_PRIMARY },
-	{ "check-integrity", &cfg_type_boolean, CFG_ZONE_PRIMARY },
-	{ "check-mx", &cfg_type_checkmode, CFG_ZONE_PRIMARY },
-	{ "check-mx-cname", &cfg_type_checkmode, CFG_ZONE_PRIMARY },
-	{ "check-sibling", &cfg_type_boolean, CFG_ZONE_PRIMARY },
-	{ "check-spf", &cfg_type_warn, CFG_ZONE_PRIMARY },
-	{ "check-srv-cname", &cfg_type_checkmode, CFG_ZONE_PRIMARY },
-	{ "check-svcb", &cfg_type_boolean, CFG_ZONE_PRIMARY },
-	{ "check-wildcard", &cfg_type_boolean, CFG_ZONE_PRIMARY },
+	  CFG_ZONE_PRIMARY | CFG_ZONE_SECONDARY | CFG_CLAUSEFLAG_ANCIENT,
+	  NULL },
+	{ "check-dup-records", &cfg_type_checkmode, CFG_ZONE_PRIMARY, NULL },
+	{ "check-integrity", &cfg_type_boolean, CFG_ZONE_PRIMARY, NULL },
+	{ "check-mx", &cfg_type_checkmode, CFG_ZONE_PRIMARY, NULL },
+	{ "check-mx-cname", &cfg_type_checkmode, CFG_ZONE_PRIMARY, NULL },
+	{ "check-sibling", &cfg_type_boolean, CFG_ZONE_PRIMARY, NULL },
+	{ "check-spf", &cfg_type_warn, CFG_ZONE_PRIMARY, NULL },
+	{ "check-srv-cname", &cfg_type_checkmode, CFG_ZONE_PRIMARY, NULL },
+	{ "check-svcb", &cfg_type_boolean, CFG_ZONE_PRIMARY, NULL },
+	{ "check-wildcard", &cfg_type_boolean, CFG_ZONE_PRIMARY, NULL },
 	{ "dialup", NULL,
 	  CFG_ZONE_PRIMARY | CFG_ZONE_SECONDARY | CFG_ZONE_STUB |
-		  CFG_CLAUSEFLAG_ANCIENT },
+		  CFG_CLAUSEFLAG_ANCIENT,
+	  NULL },
 	{ "dnssec-dnskey-kskonly", &cfg_type_boolean,
-	  CFG_ZONE_PRIMARY | CFG_ZONE_SECONDARY | CFG_CLAUSEFLAG_OBSOLETE },
+	  CFG_ZONE_PRIMARY | CFG_ZONE_SECONDARY | CFG_CLAUSEFLAG_OBSOLETE,
+	  NULL },
 	{ "dnssec-loadkeys-interval", &cfg_type_uint32,
-	  CFG_ZONE_PRIMARY | CFG_ZONE_SECONDARY },
+	  CFG_ZONE_PRIMARY | CFG_ZONE_SECONDARY, NULL },
 	{ "dnssec-policy", &cfg_type_astring,
-	  CFG_ZONE_PRIMARY | CFG_ZONE_SECONDARY },
+	  CFG_ZONE_PRIMARY | CFG_ZONE_SECONDARY, NULL },
 	{ "dnssec-secure-to-insecure", &cfg_type_boolean,
-	  CFG_ZONE_PRIMARY | CFG_CLAUSEFLAG_OBSOLETE },
+	  CFG_ZONE_PRIMARY | CFG_CLAUSEFLAG_OBSOLETE, NULL },
 	{ "dnssec-update-mode", &cfg_type_dnssecupdatemode,
-	  CFG_ZONE_PRIMARY | CFG_ZONE_SECONDARY | CFG_CLAUSEFLAG_OBSOLETE },
+	  CFG_ZONE_PRIMARY | CFG_ZONE_SECONDARY | CFG_CLAUSEFLAG_OBSOLETE,
+	  NULL },
 	{ "forward", &cfg_type_forwardtype,
 	  CFG_ZONE_PRIMARY | CFG_ZONE_SECONDARY | CFG_ZONE_STUB |
-		  CFG_ZONE_STATICSTUB | CFG_ZONE_FORWARD },
+		  CFG_ZONE_STATICSTUB | CFG_ZONE_FORWARD,
+	  NULL },
 	{ "forwarders", &cfg_type_portiplist,
 	  CFG_ZONE_PRIMARY | CFG_ZONE_SECONDARY | CFG_ZONE_STUB |
-		  CFG_ZONE_STATICSTUB | CFG_ZONE_FORWARD },
+		  CFG_ZONE_STATICSTUB | CFG_ZONE_FORWARD,
+	  NULL },
 	{ "key-directory", &cfg_type_qstring,
-	  CFG_ZONE_PRIMARY | CFG_ZONE_SECONDARY },
-	{ "maintain-ixfr-base", NULL, CFG_CLAUSEFLAG_ANCIENT },
+	  CFG_ZONE_PRIMARY | CFG_ZONE_SECONDARY, NULL },
+	{ "maintain-ixfr-base", NULL, CFG_CLAUSEFLAG_ANCIENT, NULL },
 	{ "masterfile-format", &cfg_type_masterformat,
 	  CFG_ZONE_PRIMARY | CFG_ZONE_SECONDARY | CFG_ZONE_MIRROR |
-		  CFG_ZONE_STUB | CFG_ZONE_REDIRECT },
+		  CFG_ZONE_STUB | CFG_ZONE_REDIRECT,
+	  NULL },
 	{ "masterfile-style", &cfg_type_masterstyle,
 	  CFG_ZONE_PRIMARY | CFG_ZONE_SECONDARY | CFG_ZONE_MIRROR |
-		  CFG_ZONE_STUB | CFG_ZONE_REDIRECT },
-	{ "max-ixfr-log-size", NULL, CFG_CLAUSEFLAG_ANCIENT },
+		  CFG_ZONE_STUB | CFG_ZONE_REDIRECT,
+	  NULL },
+	{ "max-ixfr-log-size", NULL, CFG_CLAUSEFLAG_ANCIENT, NULL },
 	{ "max-ixfr-ratio", &cfg_type_ixfrratio,
-	  CFG_ZONE_PRIMARY | CFG_ZONE_SECONDARY | CFG_ZONE_MIRROR },
+	  CFG_ZONE_PRIMARY | CFG_ZONE_SECONDARY | CFG_ZONE_MIRROR, NULL },
 	{ "max-journal-size", &cfg_type_size,
-	  CFG_ZONE_PRIMARY | CFG_ZONE_SECONDARY | CFG_ZONE_MIRROR },
+	  CFG_ZONE_PRIMARY | CFG_ZONE_SECONDARY | CFG_ZONE_MIRROR, NULL },
 	{ "max-records", &cfg_type_uint32,
 	  CFG_ZONE_PRIMARY | CFG_ZONE_SECONDARY | CFG_ZONE_MIRROR |
-		  CFG_ZONE_STUB | CFG_ZONE_STATICSTUB | CFG_ZONE_REDIRECT },
+		  CFG_ZONE_STUB | CFG_ZONE_STATICSTUB | CFG_ZONE_REDIRECT,
+	  NULL },
 	{ "max-records-per-type", &cfg_type_uint32,
 	  CFG_ZONE_PRIMARY | CFG_ZONE_SECONDARY | CFG_ZONE_MIRROR |
-		  CFG_ZONE_STUB | CFG_ZONE_STATICSTUB | CFG_ZONE_REDIRECT },
+		  CFG_ZONE_STUB | CFG_ZONE_STATICSTUB | CFG_ZONE_REDIRECT,
+	  NULL },
 	{ "max-types-per-name", &cfg_type_uint32,
 	  CFG_ZONE_PRIMARY | CFG_ZONE_SECONDARY | CFG_ZONE_MIRROR |
-		  CFG_ZONE_STUB | CFG_ZONE_STATICSTUB | CFG_ZONE_REDIRECT },
+		  CFG_ZONE_STUB | CFG_ZONE_STATICSTUB | CFG_ZONE_REDIRECT,
+	  NULL },
 	{ "max-refresh-time", &cfg_type_uint32,
-	  CFG_ZONE_SECONDARY | CFG_ZONE_MIRROR | CFG_ZONE_STUB },
+	  CFG_ZONE_SECONDARY | CFG_ZONE_MIRROR | CFG_ZONE_STUB, NULL },
 	{ "max-retry-time", &cfg_type_uint32,
-	  CFG_ZONE_SECONDARY | CFG_ZONE_MIRROR | CFG_ZONE_STUB },
+	  CFG_ZONE_SECONDARY | CFG_ZONE_MIRROR | CFG_ZONE_STUB, NULL },
 	{ "min-transfer-rate-in", &cfg_type_min_transfer_rate_in,
-	  CFG_ZONE_SECONDARY | CFG_ZONE_MIRROR | CFG_ZONE_STUB },
+	  CFG_ZONE_SECONDARY | CFG_ZONE_MIRROR | CFG_ZONE_STUB, NULL },
 	{ "max-transfer-idle-in", &cfg_type_uint32,
-	  CFG_ZONE_SECONDARY | CFG_ZONE_MIRROR | CFG_ZONE_STUB },
+	  CFG_ZONE_SECONDARY | CFG_ZONE_MIRROR | CFG_ZONE_STUB, NULL },
 	{ "max-transfer-idle-out", &cfg_type_uint32,
-	  CFG_ZONE_PRIMARY | CFG_ZONE_MIRROR | CFG_ZONE_SECONDARY },
+	  CFG_ZONE_PRIMARY | CFG_ZONE_MIRROR | CFG_ZONE_SECONDARY, NULL },
 	{ "max-transfer-time-in", &cfg_type_uint32,
-	  CFG_ZONE_SECONDARY | CFG_ZONE_MIRROR | CFG_ZONE_STUB },
+	  CFG_ZONE_SECONDARY | CFG_ZONE_MIRROR | CFG_ZONE_STUB, NULL },
 	{ "max-transfer-time-out", &cfg_type_uint32,
-	  CFG_ZONE_PRIMARY | CFG_ZONE_MIRROR | CFG_ZONE_SECONDARY },
+	  CFG_ZONE_PRIMARY | CFG_ZONE_MIRROR | CFG_ZONE_SECONDARY, NULL },
 	{ "max-zone-ttl", &cfg_type_maxduration,
-	  CFG_ZONE_PRIMARY | CFG_ZONE_REDIRECT | CFG_CLAUSEFLAG_DEPRECATED },
+	  CFG_ZONE_PRIMARY | CFG_ZONE_REDIRECT | CFG_CLAUSEFLAG_DEPRECATED,
+	  NULL },
 	{ "min-refresh-time", &cfg_type_uint32,
-	  CFG_ZONE_SECONDARY | CFG_ZONE_MIRROR | CFG_ZONE_STUB },
+	  CFG_ZONE_SECONDARY | CFG_ZONE_MIRROR | CFG_ZONE_STUB, NULL },
 	{ "min-retry-time", &cfg_type_uint32,
-	  CFG_ZONE_SECONDARY | CFG_ZONE_MIRROR | CFG_ZONE_STUB },
+	  CFG_ZONE_SECONDARY | CFG_ZONE_MIRROR | CFG_ZONE_STUB, NULL },
 	{ "multi-master", &cfg_type_boolean,
-	  CFG_ZONE_SECONDARY | CFG_ZONE_MIRROR | CFG_ZONE_STUB },
+	  CFG_ZONE_SECONDARY | CFG_ZONE_MIRROR | CFG_ZONE_STUB, NULL },
 	{ "notify", &cfg_type_notifytype,
-	  CFG_ZONE_PRIMARY | CFG_ZONE_SECONDARY | CFG_ZONE_MIRROR },
+	  CFG_ZONE_PRIMARY | CFG_ZONE_SECONDARY | CFG_ZONE_MIRROR, NULL },
 	{ "notify-defer", &cfg_type_uint32,
-	  CFG_ZONE_PRIMARY | CFG_ZONE_SECONDARY | CFG_ZONE_MIRROR },
+	  CFG_ZONE_PRIMARY | CFG_ZONE_SECONDARY | CFG_ZONE_MIRROR, NULL },
 	{ "notify-delay", &cfg_type_uint32,
-	  CFG_ZONE_PRIMARY | CFG_ZONE_SECONDARY | CFG_ZONE_MIRROR },
+	  CFG_ZONE_PRIMARY | CFG_ZONE_SECONDARY | CFG_ZONE_MIRROR, NULL },
 	{ "notify-source", &cfg_type_sockaddr4wild,
-	  CFG_ZONE_PRIMARY | CFG_ZONE_SECONDARY | CFG_ZONE_MIRROR },
+	  CFG_ZONE_PRIMARY | CFG_ZONE_SECONDARY | CFG_ZONE_MIRROR, NULL },
 	{ "notify-source-v6", &cfg_type_sockaddr6wild,
-	  CFG_ZONE_PRIMARY | CFG_ZONE_SECONDARY | CFG_ZONE_MIRROR },
+	  CFG_ZONE_PRIMARY | CFG_ZONE_SECONDARY | CFG_ZONE_MIRROR, NULL },
 	{ "notify-to-soa", &cfg_type_boolean,
-	  CFG_ZONE_PRIMARY | CFG_ZONE_SECONDARY },
+	  CFG_ZONE_PRIMARY | CFG_ZONE_SECONDARY, NULL },
 	{ "nsec3-test-zone", &cfg_type_boolean,
-	  CFG_CLAUSEFLAG_TESTONLY | CFG_ZONE_PRIMARY | CFG_ZONE_SECONDARY },
+	  CFG_CLAUSEFLAG_TESTONLY | CFG_ZONE_PRIMARY | CFG_ZONE_SECONDARY,
+	  NULL },
 	{ "parental-source", &cfg_type_sockaddr4wild,
-	  CFG_ZONE_PRIMARY | CFG_ZONE_SECONDARY },
+	  CFG_ZONE_PRIMARY | CFG_ZONE_SECONDARY, NULL },
 	{ "parental-source-v6", &cfg_type_sockaddr6wild,
-	  CFG_ZONE_PRIMARY | CFG_ZONE_SECONDARY },
+	  CFG_ZONE_PRIMARY | CFG_ZONE_SECONDARY, NULL },
 	{ "provide-zoneversion", &cfg_type_boolean,
-	  CFG_ZONE_PRIMARY | CFG_ZONE_SECONDARY | CFG_ZONE_MIRROR },
+	  CFG_ZONE_PRIMARY | CFG_ZONE_SECONDARY | CFG_ZONE_MIRROR, NULL },
 	{ "send-report-channel", &cfg_type_astring,
-	  CFG_ZONE_PRIMARY | CFG_ZONE_SECONDARY },
+	  CFG_ZONE_PRIMARY | CFG_ZONE_SECONDARY, NULL },
 	{ "request-expire", &cfg_type_boolean,
-	  CFG_ZONE_SECONDARY | CFG_ZONE_MIRROR },
+	  CFG_ZONE_SECONDARY | CFG_ZONE_MIRROR, NULL },
 	{ "request-ixfr", &cfg_type_boolean,
-	  CFG_ZONE_SECONDARY | CFG_ZONE_MIRROR },
+	  CFG_ZONE_SECONDARY | CFG_ZONE_MIRROR, NULL },
 	{ "request-ixfr-max-diffs", &cfg_type_uint32,
-	  CFG_ZONE_SECONDARY | CFG_ZONE_MIRROR },
-	{ "serial-update-method", &cfg_type_updatemethod, CFG_ZONE_PRIMARY },
+	  CFG_ZONE_SECONDARY | CFG_ZONE_MIRROR, NULL },
+	{ "serial-update-method", &cfg_type_updatemethod, CFG_ZONE_PRIMARY,
+	  NULL },
 	{ "sig-signing-nodes", &cfg_type_uint32,
-	  CFG_ZONE_PRIMARY | CFG_ZONE_SECONDARY },
+	  CFG_ZONE_PRIMARY | CFG_ZONE_SECONDARY, NULL },
 	{ "sig-signing-signatures", &cfg_type_uint32,
-	  CFG_ZONE_PRIMARY | CFG_ZONE_SECONDARY },
+	  CFG_ZONE_PRIMARY | CFG_ZONE_SECONDARY, NULL },
 	{ "sig-signing-type", &cfg_type_uint32,
-	  CFG_ZONE_PRIMARY | CFG_ZONE_SECONDARY },
+	  CFG_ZONE_PRIMARY | CFG_ZONE_SECONDARY, NULL },
 	{ "sig-validity-interval", &cfg_type_validityinterval,
-	  CFG_ZONE_PRIMARY | CFG_ZONE_SECONDARY | CFG_CLAUSEFLAG_OBSOLETE },
+	  CFG_ZONE_PRIMARY | CFG_ZONE_SECONDARY | CFG_CLAUSEFLAG_OBSOLETE,
+	  NULL },
 	{ "dnskey-sig-validity", &cfg_type_uint32,
-	  CFG_ZONE_PRIMARY | CFG_ZONE_SECONDARY | CFG_CLAUSEFLAG_OBSOLETE },
+	  CFG_ZONE_PRIMARY | CFG_ZONE_SECONDARY | CFG_CLAUSEFLAG_OBSOLETE,
+	  NULL },
 	{ "transfer-source", &cfg_type_sockaddr4wild,
-	  CFG_ZONE_SECONDARY | CFG_ZONE_MIRROR | CFG_ZONE_STUB },
+	  CFG_ZONE_SECONDARY | CFG_ZONE_MIRROR | CFG_ZONE_STUB, NULL },
 	{ "transfer-source-v6", &cfg_type_sockaddr6wild,
-	  CFG_ZONE_SECONDARY | CFG_ZONE_MIRROR | CFG_ZONE_STUB },
+	  CFG_ZONE_SECONDARY | CFG_ZONE_MIRROR | CFG_ZONE_STUB, NULL },
 	{ "try-tcp-refresh", &cfg_type_boolean,
-	  CFG_ZONE_SECONDARY | CFG_ZONE_MIRROR },
+	  CFG_ZONE_SECONDARY | CFG_ZONE_MIRROR, NULL },
 	{ "update-check-ksk", &cfg_type_boolean,
-	  CFG_ZONE_PRIMARY | CFG_ZONE_SECONDARY | CFG_CLAUSEFLAG_OBSOLETE },
+	  CFG_ZONE_PRIMARY | CFG_ZONE_SECONDARY | CFG_CLAUSEFLAG_OBSOLETE,
+	  NULL },
 	{ "use-alt-transfer-source", NULL,
 	  CFG_ZONE_SECONDARY | CFG_ZONE_MIRROR | CFG_ZONE_STUB |
-		  CFG_CLAUSEFLAG_ANCIENT },
+		  CFG_CLAUSEFLAG_ANCIENT,
+	  NULL },
 	{ "zero-no-soa-ttl", &cfg_type_boolean,
-	  CFG_ZONE_PRIMARY | CFG_ZONE_SECONDARY | CFG_ZONE_MIRROR },
+	  CFG_ZONE_PRIMARY | CFG_ZONE_SECONDARY | CFG_ZONE_MIRROR, NULL },
 	{ "zone-statistics", &cfg_type_zonestat,
 	  CFG_ZONE_PRIMARY | CFG_ZONE_SECONDARY | CFG_ZONE_MIRROR |
-		  CFG_ZONE_STUB | CFG_ZONE_STATICSTUB | CFG_ZONE_REDIRECT },
-	{ NULL, NULL, 0 }
+		  CFG_ZONE_STUB | CFG_ZONE_STATICSTUB | CFG_ZONE_REDIRECT,
+	  NULL },
+	{ NULL, NULL, 0, NULL }
 };
 
 /*%
@@ -2741,60 +2781,69 @@ static cfg_clausedef_t zone_only_clauses[] = {
 	{ "type", &cfg_type_zonetype,
 	  CFG_ZONE_PRIMARY | CFG_ZONE_SECONDARY | CFG_ZONE_MIRROR |
 		  CFG_ZONE_STUB | CFG_ZONE_STATICSTUB | CFG_ZONE_HINT |
-		  CFG_ZONE_REDIRECT | CFG_ZONE_FORWARD },
+		  CFG_ZONE_REDIRECT | CFG_ZONE_FORWARD,
+	  NULL },
 	{ "check-names", &cfg_type_checkmode,
 	  CFG_ZONE_PRIMARY | CFG_ZONE_SECONDARY | CFG_ZONE_MIRROR |
-		  CFG_ZONE_HINT | CFG_ZONE_STUB },
+		  CFG_ZONE_HINT | CFG_ZONE_STUB,
+	  NULL },
 	{ "checkds", &cfg_type_checkdstype,
-	  CFG_ZONE_PRIMARY | CFG_ZONE_SECONDARY },
+	  CFG_ZONE_PRIMARY | CFG_ZONE_SECONDARY, NULL },
 	{ "database", &cfg_type_astring,
 	  CFG_ZONE_PRIMARY | CFG_ZONE_SECONDARY | CFG_ZONE_MIRROR |
-		  CFG_ZONE_STUB },
+		  CFG_ZONE_STUB,
+	  NULL },
 	{ "delegation-only", NULL,
 	  CFG_ZONE_HINT | CFG_ZONE_STUB | CFG_ZONE_FORWARD |
-		  CFG_CLAUSEFLAG_ANCIENT },
+		  CFG_CLAUSEFLAG_ANCIENT,
+	  NULL },
 	{ "dlz", &cfg_type_astring,
-	  CFG_ZONE_PRIMARY | CFG_ZONE_SECONDARY | CFG_ZONE_REDIRECT },
+	  CFG_ZONE_PRIMARY | CFG_ZONE_SECONDARY | CFG_ZONE_REDIRECT, NULL },
 	{ "file", &cfg_type_qstring,
 	  CFG_ZONE_PRIMARY | CFG_ZONE_SECONDARY | CFG_ZONE_MIRROR |
-		  CFG_ZONE_STUB | CFG_ZONE_HINT | CFG_ZONE_REDIRECT },
-	{ "initial-file", &cfg_type_qstring, CFG_ZONE_PRIMARY },
+		  CFG_ZONE_STUB | CFG_ZONE_HINT | CFG_ZONE_REDIRECT,
+	  NULL },
+	{ "initial-file", &cfg_type_qstring, CFG_ZONE_PRIMARY, NULL },
 	{ "inline-signing", &cfg_type_boolean,
-	  CFG_ZONE_PRIMARY | CFG_ZONE_SECONDARY },
-	{ "ixfr-base", NULL, CFG_CLAUSEFLAG_ANCIENT },
+	  CFG_ZONE_PRIMARY | CFG_ZONE_SECONDARY, NULL },
+	{ "ixfr-base", NULL, CFG_CLAUSEFLAG_ANCIENT, NULL },
 	{ "ixfr-from-differences", &cfg_type_boolean,
-	  CFG_ZONE_PRIMARY | CFG_ZONE_SECONDARY | CFG_ZONE_MIRROR },
-	{ "ixfr-tmp-file", NULL, CFG_CLAUSEFLAG_ANCIENT },
+	  CFG_ZONE_PRIMARY | CFG_ZONE_SECONDARY | CFG_ZONE_MIRROR, NULL },
+	{ "ixfr-tmp-file", NULL, CFG_CLAUSEFLAG_ANCIENT, NULL },
 	{ "journal", &cfg_type_qstring,
-	  CFG_ZONE_PRIMARY | CFG_ZONE_SECONDARY | CFG_ZONE_MIRROR },
+	  CFG_ZONE_PRIMARY | CFG_ZONE_SECONDARY | CFG_ZONE_MIRROR, NULL },
 	{ "log-report-channel", &cfg_type_boolean,
-	  CFG_ZONE_PRIMARY | CFG_ZONE_SECONDARY },
+	  CFG_ZONE_PRIMARY | CFG_ZONE_SECONDARY, NULL },
 	{ "masters", &cfg_type_namesockaddrkeylist,
 	  CFG_ZONE_SECONDARY | CFG_ZONE_MIRROR | CFG_ZONE_STUB |
-		  CFG_ZONE_REDIRECT | CFG_CLAUSEFLAG_NODOC },
+		  CFG_ZONE_REDIRECT | CFG_CLAUSEFLAG_NODOC,
+	  NULL },
 	{ "parental-agents", &cfg_type_namesockaddrkeylist,
-	  CFG_ZONE_PRIMARY | CFG_ZONE_SECONDARY },
+	  CFG_ZONE_PRIMARY | CFG_ZONE_SECONDARY, NULL },
 	{ "plugin", &cfg_type_plugin,
 	  CFG_CLAUSEFLAG_MULTI | CFG_ZONE_PRIMARY | CFG_ZONE_SECONDARY |
-		  CFG_ZONE_REDIRECT | CFG_ZONE_MIRROR },
+		  CFG_ZONE_REDIRECT | CFG_ZONE_MIRROR,
+	  NULL },
 	{ "primaries", &cfg_type_namesockaddrkeylist,
 	  CFG_ZONE_SECONDARY | CFG_ZONE_MIRROR | CFG_ZONE_STUB |
-		  CFG_ZONE_REDIRECT },
-	{ "pubkey", NULL, CFG_CLAUSEFLAG_ANCIENT },
+		  CFG_ZONE_REDIRECT,
+	  NULL },
+	{ "pubkey", NULL, CFG_CLAUSEFLAG_ANCIENT, NULL },
 	{ "server-addresses", &cfg_type_bracketed_netaddrlist,
-	  CFG_ZONE_STATICSTUB },
-	{ "server-names", &cfg_type_namelist, CFG_ZONE_STATICSTUB },
-	{ "update-policy", &cfg_type_updatepolicy, CFG_ZONE_PRIMARY },
-	{ NULL, NULL, 0 }
+	  CFG_ZONE_STATICSTUB, NULL },
+	{ "server-names", &cfg_type_namelist, CFG_ZONE_STATICSTUB, NULL },
+	{ "update-policy", &cfg_type_updatepolicy, CFG_ZONE_PRIMARY, NULL },
+	{ NULL, NULL, 0, NULL }
 };
 
 static cfg_clausedef_t non_template_clauses[] = {
-	{ "in-view", &cfg_type_astring, CFG_ZONE_INVIEW },
+	{ "in-view", &cfg_type_astring, CFG_ZONE_INVIEW, NULL },
 	{ "template", &cfg_type_astring,
 	  CFG_ZONE_PRIMARY | CFG_ZONE_SECONDARY | CFG_ZONE_MIRROR |
 		  CFG_ZONE_STUB | CFG_ZONE_STATICSTUB | CFG_ZONE_HINT |
-		  CFG_ZONE_REDIRECT | CFG_ZONE_FORWARD },
-	{ NULL, NULL, 0 }
+		  CFG_ZONE_REDIRECT | CFG_ZONE_FORWARD,
+	  NULL },
+	{ NULL, NULL, 0, NULL }
 };
 
 /*% The top-level named.conf syntax. */
@@ -2861,9 +2910,11 @@ cfg_type_t cfg_type_dnssecpolicyopts = {
 
 /*% The "dynamically loadable zones" statement syntax. */
 
-static cfg_clausedef_t dlz_clauses[] = { { "database", &cfg_type_astring, 0 },
-					 { "search", &cfg_type_boolean, 0 },
-					 { NULL, NULL, 0 } };
+static cfg_clausedef_t dlz_clauses[] = {
+	{ "database", &cfg_type_astring, 0, NULL },
+	{ "search", &cfg_type_boolean, 0, NULL },
+	{ NULL, NULL, 0, NULL }
+};
 static cfg_clausedef_t *dlz_clausesets[] = { dlz_clauses, NULL };
 static cfg_type_t cfg_type_dlz = { "dlz",	  cfg_parse_named_map,
 				   cfg_print_map, cfg_doc_map,
@@ -2906,9 +2957,11 @@ static cfg_type_t cfg_type_plugin = { "plugin",	       cfg_parse_tuple,
 /*%
  * Clauses that can be found within the 'key' statement.
  */
-static cfg_clausedef_t key_clauses[] = { { "algorithm", &cfg_type_astring, 0 },
-					 { "secret", &cfg_type_sstring, 0 },
-					 { NULL, NULL, 0 } };
+static cfg_clausedef_t key_clauses[] = {
+	{ "algorithm", &cfg_type_astring, 0, NULL },
+	{ "secret", &cfg_type_sstring, 0, NULL },
+	{ NULL, NULL, 0, NULL }
+};
 
 static cfg_clausedef_t *key_clausesets[] = { key_clauses, NULL };
 static cfg_type_t cfg_type_key = { "key",	  cfg_parse_named_map,
@@ -2919,9 +2972,9 @@ static cfg_type_t cfg_type_key = { "key",	  cfg_parse_named_map,
  * A key-store statement.
  */
 static cfg_clausedef_t keystore_clauses[] = {
-	{ "directory", &cfg_type_astring, 0 },
-	{ "pkcs11-uri", &cfg_type_qstring, 0 },
-	{ NULL, NULL, 0 }
+	{ "directory", &cfg_type_astring, 0, NULL },
+	{ "pkcs11-uri", &cfg_type_qstring, 0, NULL },
+	{ NULL, NULL, 0, NULL }
 };
 
 static cfg_clausedef_t *keystore_clausesets[] = { keystore_clauses, NULL };
@@ -2947,34 +3000,34 @@ static cfg_type_t cfg_type_keystore = { "key-store",	 cfg_parse_tuple,
  * exercise the new clause when adding new clauses.
  */
 static cfg_clausedef_t server_clauses[] = {
-	{ "bogus", &cfg_type_boolean, 0 },
-	{ "edns", &cfg_type_boolean, 0 },
-	{ "edns-udp-size", &cfg_type_uint32, 0 },
-	{ "edns-version", &cfg_type_uint32, 0 },
-	{ "keys", &cfg_type_server_key_kludge, 0 },
-	{ "max-udp-size", &cfg_type_uint32, 0 },
-	{ "notify-source", &cfg_type_sockaddr4wild, 0 },
-	{ "notify-source-v6", &cfg_type_sockaddr6wild, 0 },
-	{ "padding", &cfg_type_uint32, 0 },
-	{ "provide-ixfr", &cfg_type_boolean, 0 },
-	{ "query-source", &cfg_type_server_querysource4, 0 },
-	{ "query-source-v6", &cfg_type_server_querysource6, 0 },
-	{ "request-expire", &cfg_type_boolean, 0 },
-	{ "request-ixfr", &cfg_type_boolean, 0 },
-	{ "request-ixfr-max-diffs", &cfg_type_uint32, 0 },
-	{ "request-nsid", &cfg_type_boolean, 0 },
-	{ "request-zoneversion", &cfg_type_boolean, 0 },
-	{ "request-sit", NULL, CFG_CLAUSEFLAG_ANCIENT },
-	{ "require-cookie", &cfg_type_boolean, 0 },
-	{ "send-cookie", &cfg_type_boolean, 0 },
-	{ "support-ixfr", NULL, CFG_CLAUSEFLAG_ANCIENT },
-	{ "tcp-keepalive", &cfg_type_boolean, 0 },
-	{ "tcp-only", &cfg_type_boolean, 0 },
-	{ "transfer-format", &cfg_type_transferformat, 0 },
-	{ "transfer-source", &cfg_type_sockaddr4wild, 0 },
-	{ "transfer-source-v6", &cfg_type_sockaddr6wild, 0 },
-	{ "transfers", &cfg_type_uint32, 0 },
-	{ NULL, NULL, 0 }
+	{ "bogus", &cfg_type_boolean, 0, NULL },
+	{ "edns", &cfg_type_boolean, 0, NULL },
+	{ "edns-udp-size", &cfg_type_uint32, 0, NULL },
+	{ "edns-version", &cfg_type_uint32, 0, NULL },
+	{ "keys", &cfg_type_server_key_kludge, 0, NULL },
+	{ "max-udp-size", &cfg_type_uint32, 0, NULL },
+	{ "notify-source", &cfg_type_sockaddr4wild, 0, NULL },
+	{ "notify-source-v6", &cfg_type_sockaddr6wild, 0, NULL },
+	{ "padding", &cfg_type_uint32, 0, NULL },
+	{ "provide-ixfr", &cfg_type_boolean, 0, NULL },
+	{ "query-source", &cfg_type_server_querysource4, 0, NULL },
+	{ "query-source-v6", &cfg_type_server_querysource6, 0, NULL },
+	{ "request-expire", &cfg_type_boolean, 0, NULL },
+	{ "request-ixfr", &cfg_type_boolean, 0, NULL },
+	{ "request-ixfr-max-diffs", &cfg_type_uint32, 0, NULL },
+	{ "request-nsid", &cfg_type_boolean, 0, NULL },
+	{ "request-zoneversion", &cfg_type_boolean, 0, NULL },
+	{ "request-sit", NULL, CFG_CLAUSEFLAG_ANCIENT, NULL },
+	{ "require-cookie", &cfg_type_boolean, 0, NULL },
+	{ "send-cookie", &cfg_type_boolean, 0, NULL },
+	{ "support-ixfr", NULL, CFG_CLAUSEFLAG_ANCIENT, NULL },
+	{ "tcp-keepalive", &cfg_type_boolean, 0, NULL },
+	{ "tcp-only", &cfg_type_boolean, 0, NULL },
+	{ "transfer-format", &cfg_type_transferformat, 0, NULL },
+	{ "transfer-source", &cfg_type_sockaddr4wild, 0, NULL },
+	{ "transfer-source-v6", &cfg_type_sockaddr6wild, 0, NULL },
+	{ "transfers", &cfg_type_uint32, 0, NULL },
+	{ NULL, NULL, 0, NULL }
 };
 static cfg_clausedef_t *server_clausesets[] = { server_clauses, NULL };
 static cfg_type_t cfg_type_server = { "server",	     cfg_parse_netprefix_map,
@@ -3006,17 +3059,17 @@ static cfg_type_t cfg_type_printtime = { "printtime",	    parse_printtime,
 
 static cfg_clausedef_t channel_clauses[] = {
 	/* Destinations.  We no longer require these to be first. */
-	{ "file", &cfg_type_logfile, 0 },
-	{ "syslog", &cfg_type_optional_facility, 0 },
-	{ "null", &cfg_type_void, 0 },
-	{ "stderr", &cfg_type_void, 0 },
+	{ "file", &cfg_type_logfile, 0, NULL },
+	{ "syslog", &cfg_type_optional_facility, 0, NULL },
+	{ "null", &cfg_type_void, 0, NULL },
+	{ "stderr", &cfg_type_void, 0, NULL },
 	/* Options.  We now accept these for the null channel, too. */
-	{ "severity", &cfg_type_logseverity, 0 },
-	{ "print-time", &cfg_type_printtime, 0 },
-	{ "print-severity", &cfg_type_boolean, 0 },
-	{ "print-category", &cfg_type_boolean, 0 },
-	{ "buffered", &cfg_type_boolean, 0 },
-	{ NULL, NULL, 0 }
+	{ "severity", &cfg_type_logseverity, 0, NULL },
+	{ "print-time", &cfg_type_printtime, 0, NULL },
+	{ "print-severity", &cfg_type_boolean, 0, NULL },
+	{ "print-category", &cfg_type_boolean, 0, NULL },
+	{ "buffered", &cfg_type_boolean, 0, NULL },
+	{ NULL, NULL, 0, NULL }
 };
 static cfg_clausedef_t *channel_clausesets[] = { channel_clauses, NULL };
 static cfg_type_t cfg_type_channel = { "channel",     cfg_parse_named_map,
@@ -3035,9 +3088,9 @@ static cfg_type_t cfg_type_destinationlist = { "destinationlist",
  * Clauses that can be found in a 'logging' statement.
  */
 static cfg_clausedef_t logging_clauses[] = {
-	{ "channel", &cfg_type_channel, CFG_CLAUSEFLAG_MULTI },
-	{ "category", &cfg_type_category, CFG_CLAUSEFLAG_MULTI },
-	{ NULL, NULL, 0 }
+	{ "channel", &cfg_type_channel, CFG_CLAUSEFLAG_MULTI, NULL },
+	{ "category", &cfg_type_category, CFG_CLAUSEFLAG_MULTI, NULL },
+	{ NULL, NULL, 0, NULL }
 };
 static cfg_clausedef_t *logging_clausesets[] = { logging_clauses, NULL };
 static cfg_type_t cfg_type_logging = { "logging",     cfg_parse_map,
@@ -3058,9 +3111,9 @@ static cfg_type_t cfg_type_addzone = { "zone",		cfg_parse_tuple,
 				       cfg_print_tuple, cfg_doc_tuple,
 				       &cfg_rep_tuple,	addzone_fields };
 
-static cfg_clausedef_t addzoneconf_clauses[] = {
-	{ "zone", &cfg_type_addzone, CFG_CLAUSEFLAG_MULTI }, { NULL, NULL, 0 }
-};
+static cfg_clausedef_t addzoneconf_clauses[] = { { "zone", &cfg_type_addzone,
+						   CFG_CLAUSEFLAG_MULTI, NULL },
+						 { NULL, NULL, 0, NULL } };
 
 static cfg_clausedef_t *addzoneconf_clausesets[] = { addzoneconf_clauses,
 						     NULL };
@@ -3489,9 +3542,9 @@ static cfg_type_t cfg_type_unixcontrol = {
 };
 
 static cfg_clausedef_t controls_clauses[] = {
-	{ "inet", &cfg_type_inetcontrol, CFG_CLAUSEFLAG_MULTI },
-	{ "unix", &cfg_type_unixcontrol, CFG_CLAUSEFLAG_MULTI },
-	{ NULL, NULL, 0 }
+	{ "inet", &cfg_type_inetcontrol, CFG_CLAUSEFLAG_MULTI, NULL },
+	{ "unix", &cfg_type_unixcontrol, CFG_CLAUSEFLAG_MULTI, NULL },
+	{ NULL, NULL, 0, NULL }
 };
 
 static cfg_clausedef_t *controls_clausesets[] = { controls_clauses, NULL };
@@ -3531,8 +3584,8 @@ static cfg_type_t cfg_type_statschannel = {
 };
 
 static cfg_clausedef_t statservers_clauses[] = {
-	{ "inet", &cfg_type_statschannel, CFG_CLAUSEFLAG_MULTI },
-	{ NULL, NULL, 0 }
+	{ "inet", &cfg_type_statschannel, CFG_CLAUSEFLAG_MULTI, NULL },
+	{ NULL, NULL, 0, NULL }
 };
 
 static cfg_clausedef_t *statservers_clausesets[] = { statservers_clauses,
@@ -3968,12 +4021,12 @@ static cfg_type_t cfg_type_optional_sourceaddr6 = {
  */
 
 static cfg_clausedef_t rndcconf_options_clauses[] = {
-	{ "default-key", &cfg_type_astring, 0 },
-	{ "default-port", &cfg_type_uint32, 0 },
-	{ "default-server", &cfg_type_astring, 0 },
-	{ "default-source-address", &cfg_type_netaddr4wild, 0 },
-	{ "default-source-address-v6", &cfg_type_netaddr6wild, 0 },
-	{ NULL, NULL, 0 }
+	{ "default-key", &cfg_type_astring, 0, NULL },
+	{ "default-port", &cfg_type_uint32, 0, NULL },
+	{ "default-server", &cfg_type_astring, 0, NULL },
+	{ "default-source-address", &cfg_type_netaddr4wild, 0, NULL },
+	{ "default-source-address-v6", &cfg_type_netaddr6wild, 0, NULL },
+	{ NULL, NULL, 0, NULL }
 };
 
 static cfg_clausedef_t *rndcconf_options_clausesets[] = {
@@ -3986,12 +4039,12 @@ static cfg_type_t cfg_type_rndcconf_options = {
 };
 
 static cfg_clausedef_t rndcconf_server_clauses[] = {
-	{ "key", &cfg_type_astring, 0 },
-	{ "port", &cfg_type_uint32, 0 },
-	{ "source-address", &cfg_type_netaddr4wild, 0 },
-	{ "source-address-v6", &cfg_type_netaddr6wild, 0 },
-	{ "addresses", &cfg_type_bracketed_sockaddrnameportlist, 0 },
-	{ NULL, NULL, 0 }
+	{ "key", &cfg_type_astring, 0, NULL },
+	{ "port", &cfg_type_uint32, 0, NULL },
+	{ "source-address", &cfg_type_netaddr4wild, 0, NULL },
+	{ "source-address-v6", &cfg_type_netaddr6wild, 0, NULL },
+	{ "addresses", &cfg_type_bracketed_sockaddrnameportlist, 0, NULL },
+	{ NULL, NULL, 0, NULL }
 };
 
 static cfg_clausedef_t *rndcconf_server_clausesets[] = {
@@ -4004,10 +4057,10 @@ static cfg_type_t cfg_type_rndcconf_server = {
 };
 
 static cfg_clausedef_t rndcconf_clauses[] = {
-	{ "key", &cfg_type_key, CFG_CLAUSEFLAG_MULTI },
-	{ "server", &cfg_type_rndcconf_server, CFG_CLAUSEFLAG_MULTI },
-	{ "options", &cfg_type_rndcconf_options, 0 },
-	{ NULL, NULL, 0 }
+	{ "key", &cfg_type_key, CFG_CLAUSEFLAG_MULTI, NULL },
+	{ "server", &cfg_type_rndcconf_server, CFG_CLAUSEFLAG_MULTI, NULL },
+	{ "options", &cfg_type_rndcconf_options, 0, NULL },
+	{ NULL, NULL, 0, NULL }
 };
 
 static cfg_clausedef_t *rndcconf_clausesets[] = { rndcconf_clauses, NULL };
@@ -4016,8 +4069,8 @@ cfg_type_t cfg_type_rndcconf = { "rndcconf",	    cfg_parse_mapbody,
 				 cfg_print_mapbody, cfg_doc_mapbody,
 				 &cfg_rep_map,	    rndcconf_clausesets };
 
-static cfg_clausedef_t rndckey_clauses[] = { { "key", &cfg_type_key, 0 },
-					     { NULL, NULL, 0 } };
+static cfg_clausedef_t rndckey_clauses[] = { { "key", &cfg_type_key, 0, NULL },
+					     { NULL, NULL, 0, NULL } };
 
 static cfg_clausedef_t *rndckey_clausesets[] = { rndckey_clauses, NULL };
 
@@ -4325,17 +4378,17 @@ static cfg_type_t cfg_type_tlsprotos = { "tls_protocols",
 					 &cfg_type_astring };
 
 static cfg_clausedef_t tls_clauses[] = {
-	{ "key-file", &cfg_type_qstring, 0 },
-	{ "cert-file", &cfg_type_qstring, 0 },
-	{ "ca-file", &cfg_type_qstring, 0 },
-	{ "remote-hostname", &cfg_type_qstring, 0 },
-	{ "dhparam-file", &cfg_type_qstring, 0 },
-	{ "protocols", &cfg_type_tlsprotos, 0 },
-	{ "ciphers", &cfg_type_astring, 0 },
-	{ "cipher-suites", &cfg_type_astring, 0 },
-	{ "prefer-server-ciphers", &cfg_type_boolean, 0 },
-	{ "session-tickets", &cfg_type_boolean, 0 },
-	{ NULL, NULL, 0 }
+	{ "key-file", &cfg_type_qstring, 0, NULL },
+	{ "cert-file", &cfg_type_qstring, 0, NULL },
+	{ "ca-file", &cfg_type_qstring, 0, NULL },
+	{ "remote-hostname", &cfg_type_qstring, 0, NULL },
+	{ "dhparam-file", &cfg_type_qstring, 0, NULL },
+	{ "protocols", &cfg_type_tlsprotos, 0, NULL },
+	{ "ciphers", &cfg_type_astring, 0, NULL },
+	{ "cipher-suites", &cfg_type_astring, 0, NULL },
+	{ "prefer-server-ciphers", &cfg_type_boolean, 0, NULL },
+	{ "session-tickets", &cfg_type_boolean, 0, NULL },
+	{ NULL, NULL, 0, NULL }
 };
 
 static cfg_clausedef_t *tls_clausesets[] = { tls_clauses, NULL };
@@ -4361,10 +4414,10 @@ static cfg_type_t cfg_type_bracketed_http_endpoint_list = {
 };
 
 static cfg_clausedef_t cfg_http_description_clauses[] = {
-	{ "endpoints", &cfg_type_bracketed_http_endpoint_list, 0 },
-	{ "listener-clients", &cfg_type_uint32, 0 },
-	{ "streams-per-connection", &cfg_type_uint32, 0 },
-	{ NULL, NULL, 0 }
+	{ "endpoints", &cfg_type_bracketed_http_endpoint_list, 0, NULL },
+	{ "listener-clients", &cfg_type_uint32, 0, NULL },
+	{ "streams-per-connection", &cfg_type_uint32, 0, NULL },
+	{ NULL, NULL, 0, NULL }
 };
 
 static cfg_clausedef_t *http_description_clausesets[] = {

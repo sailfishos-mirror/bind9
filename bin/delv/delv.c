@@ -164,8 +164,8 @@ static char anchortext[] = TRUST_ANCHORS;
 
 static cfg_clausedef_t delv_clauses[] = { { "builtin-trust-anchors",
 					    &cfg_type_builtin_dnsseckeys,
-					    CFG_CLAUSEFLAG_MULTI },
-					  { NULL, NULL, 0 } };
+					    CFG_CLAUSEFLAG_MULTI, NULL },
+					  { NULL, NULL, 0, NULL } };
 static cfg_clausedef_t *delv_clausesets[] = { delv_clauses, NULL };
 static cfg_type_t delv_type = { "delv", cfg_parse_mapbody, NULL,
 				NULL,	&cfg_rep_map,	   delv_clausesets };

@@ -192,9 +192,9 @@ static cfg_type_t cfg_type_filter_aaaa = {
 };
 
 static cfg_clausedef_t param_clauses[] = {
-	{ "filter-aaaa", &cfg_type_bracketed_aml, 0 },
-	{ "filter-aaaa-on-v4", &cfg_type_filter_aaaa, 0 },
-	{ "filter-aaaa-on-v6", &cfg_type_filter_aaaa, 0 },
+	{ "filter-aaaa", &cfg_type_bracketed_aml, 0, NULL },
+	{ "filter-aaaa-on-v4", &cfg_type_filter_aaaa, 0, NULL },
+	{ "filter-aaaa-on-v6", &cfg_type_filter_aaaa, 0, NULL },
 };
 
 static cfg_clausedef_t *param_clausesets[] = { param_clauses, NULL };
