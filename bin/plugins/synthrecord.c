@@ -402,10 +402,10 @@ synthrecord_entry(void *arg, void *cbdata, isc_result_t *resp) {
 }
 
 static cfg_clausedef_t synthrecord_cfgclauses[] = {
-	{ "prefix", &cfg_type_astring, 0 },
-	{ "origin", &cfg_type_astring, 0 },
-	{ "allow-synth", &cfg_type_bracketed_aml, 0 },
-	{ "ttl", &cfg_type_uint32, 0 }
+	{ "prefix", &cfg_type_astring, 0, NULL },
+	{ "origin", &cfg_type_astring, 0, NULL },
+	{ "allow-synth", &cfg_type_bracketed_aml, 0, NULL },
+	{ "ttl", &cfg_type_uint32, 0, NULL }
 };
 
 static cfg_clausedef_t *synthrecord_cfgparamsclausesets[] = {

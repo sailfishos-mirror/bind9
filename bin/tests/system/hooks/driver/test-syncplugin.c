@@ -66,9 +66,9 @@ syncplugin__hook(void *arg, void *cbdata, isc_result_t *resp) {
 }
 
 static cfg_clausedef_t syncplugin__cfgclauses[] = {
-	{ "rcode", &cfg_type_astring, 0 },
-	{ "source", &cfg_type_astring, 0 },
-	{ "firstlbl", &cfg_type_qstring, CFG_CLAUSEFLAG_OPTIONAL }
+	{ "rcode", &cfg_type_astring, 0, NULL },
+	{ "source", &cfg_type_astring, 0, NULL },
+	{ "firstlbl", &cfg_type_qstring, CFG_CLAUSEFLAG_OPTIONAL, NULL }
 };
 
 static cfg_clausedef_t *syncplugin__cfgparamsclausesets[] = {
