@@ -164,7 +164,7 @@ def check_add_zsk(server, zone, keys, expected, extra_keys, extra, primary=None)
 
     update_msg = dns.update.UpdateMessage(zone)
     for zsk in extra_keys:
-        dnskey = zsk.dnskey().split()
+        dnskey = str(zsk.dnskey).split()
         rdata = " ".join(dnskey[4:])
         update_msg.add(f"{zone}.", TTL, "DNSKEY", rdata)
     primary.nsupdate(update_msg)
@@ -205,7 +205,7 @@ def _check_remove_zsk_fail(
     )
 
     zsks = [k for k in keys if not k.is_ksk()]
-    dnskey = zsks[0].dnskey().split()
+    dnskey = str(zsks[0].dnskey).split()
     rdata = " ".join(dnskey[4:])
     update_msg = dns.update.UpdateMessage(zone)
     update_msg.delete(f"{zone}.", "DNSKEY", rdata)
@@ -251,7 +251,7 @@ def check_remove_zsk(
 
     update_msg = dns.update.UpdateMessage(zone)
     for zsk in extra_keys:
-        dnskey = zsk.dnskey().split()
+        dnskey = str(zsk.dnskey).split()
         rdata = " ".join(dnskey[4:])
         update_msg.delete(f"{zone}.", "DNSKEY", rdata)
     primary.nsupdate(update_msg)
@@ -287,7 +287,7 @@ def check_add_cdnskey(server, zone, keys, expected, extra_keys, extra, primary=N
     # Update the server with the CDNSKEY record from the other providers.
     update_msg = dns.update.UpdateMessage(zone)
     for ksk in extra_keys:
-        dnskey = ksk.dnskey().split()
+        dnskey = str(ksk.dnskey).split()
         rdata = " ".join(dnskey[4:])
         update_msg.add(f"{zone}.", TTL, "CDNSKEY", rdata)
     primary.nsupdate(update_msg)
@@ -321,7 +321,7 @@ def _check_remove_cdnskey_fail(
     )
 
     ksks = [k for k in keys if not k.is_ksk()]
-    dnskey = ksks[0].dnskey().split()
+    dnskey = str(ksks[0].dnskey).split()
     rdata = " ".join(dnskey[4:])
     update_msg = dns.update.UpdateMessage(zone)
     update_msg.delete(f"{zone}.", "CDNSKEY", rdata)
@@ -367,7 +367,7 @@ def check_remove_cdnskey(
 
     update_msg = dns.update.UpdateMessage(zone)
     for ksk in extra_keys:
-        dnskey = ksk.dnskey().split()
+        dnskey = str(ksk.dnskey).split()
         rdata = " ".join(dnskey[4:])
         update_msg.delete(f"{zone}.", "CDNSKEY", rdata)
     primary.nsupdate(update_msg)
