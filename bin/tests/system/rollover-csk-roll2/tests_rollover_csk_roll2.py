@@ -376,6 +376,8 @@ def test_csk_roll2_step6(tld, alg, size, ns3):
         # Next key event is when the new successor needs to be published.
         # This is the Lcsk, minus time passed since the key was published.
         "nextev": CSK_LIFETIME - IRET - IPUB - KEYTTLPROP,
+        # Include hidden keys in output.
+        "verbose": True,
     }
     isctest.kasp.check_rollover_step(ns3, CONFIG, policy, step)
 
@@ -405,5 +407,7 @@ def test_csk_roll2_step7(tld, alg, size, ns3):
         ],
         "keyrelationships": [0, 1],
         "nextev": None,
+        # Include hidden keys in output.
+        "verbose": True,
     }
     isctest.kasp.check_rollover_step(ns3, CONFIG, policy, step)

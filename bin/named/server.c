@@ -14169,6 +14169,7 @@ named_server_dnssec(named_server_t *server, isc_lex_t *lex,
 	dst_algorithm_t algorithm = 0;
 	/* variables for -status */
 	bool status = false;
+	bool verbose = false;
 	char output[4096];
 	isc_stdtime_t now, when;
 	isc_time_t timenow, timewhen;
@@ -14206,6 +14207,25 @@ named_server_dnssec(named_server_t *server, isc_lex_t *lex,
 		forcestep = true;
 	} else {
 		CHECK(DNS_R_SYNTAX);
+	}
+
+	if (status) {
+		/* Check for options */
+		for (;;) {
+			ptr = next_token(lex, text);
+			if (ptr == NULL) {
+				msg = "Bad format";
+				CHECK(ISC_R_UNEXPECTEDEND);
+			} else if (argcheck(ptr, "v")) {
+				verbose = true;
+			} else if (ptr[0] == '-') {
+				msg = "Unknown option";
+				CHECK(DNS_R_SYNTAX);
+			} else {
+				zonetext = ptr;
+			}
+			break;
+		}
 	}
 
 	if (rollover || checkds) {
@@ -14324,10 +14344,8 @@ named_server_dnssec(named_server_t *server, isc_lex_t *lex,
 		 * Output the DNSSEC status of the key and signing policy.
 		 */
 		isc_result_t r;
-		LOCK(&kasp->lock);
-		r = dns_keymgr_status(kasp, &keys, now, &output[0],
-				      sizeof(output));
-		UNLOCK(&kasp->lock);
+		r = dns_zone_dnssecstatus(zone, kasp, &keys, now, verbose,
+					  &output[0], sizeof(output));
 		CHECK(putstr(text, output));
 		if (r != ISC_R_SUCCESS) {
 			CHECK(putstr(text,

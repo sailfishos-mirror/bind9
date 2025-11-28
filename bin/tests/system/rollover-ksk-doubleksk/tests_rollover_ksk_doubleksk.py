@@ -316,6 +316,8 @@ def test_ksk_doubleksk_step5(tld, alg, size, ns3):
         # Next key event is when the new successor needs to be published.
         # This is the KSK lifetime minus Ipub minus Iret minus time elapsed.
         "nextev": KSK_LIFETIME - KSK_IPUB - KSK_IRET - KSK_KEYTTLPROP,
+        # Include hidden keys in output.
+        "verbose": True,
     }
     isctest.kasp.check_rollover_step(ns3, KSK_CONFIG, policy, step)
 

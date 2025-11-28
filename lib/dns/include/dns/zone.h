@@ -691,6 +691,28 @@ dns_zone_unload(dns_zone_t *zone);
  *\li	'zone' to be a valid zone.
  */
 
+isc_result_t
+dns_zone_dnssecstatus(dns_zone_t *zone, dns_kasp_t *kasp,
+		      dns_dnsseckeylist_t *keys, isc_stdtime_t now,
+		      bool verbose, char *out, size_t out_len);
+/*%<
+ * Retrieve the DNSSEC status of given 'zone' and store the printable output
+ * in the 'out' buffer.
+ *
+ *      Requires:
+ *\li           'zone' is not NULL.
+ *\li           'kasp' is not NULL.
+ *\li           'keys' is not NULL.
+ *\li           'out' is not NULL.
+ *
+ *      Returns:
+ *\li           ISC_R_SUCCESS on success.
+ *\li           ISC_R_NOSPACE if the 'out' buffer is too small.
+ *\li           ISC_R_FAILURE if other error occurred.
+ *\li           Printable status in 'out'.
+ *
+ */
+
 dns_kasp_t *
 dns_zone_getkasp(dns_zone_t *zone);
 /*%<

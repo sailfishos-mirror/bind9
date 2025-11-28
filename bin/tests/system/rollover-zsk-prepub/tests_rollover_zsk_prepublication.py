@@ -229,7 +229,7 @@ def test_zsk_prepub_step3(tld, alg, size, ns3):
 
     step["smooth"] = False
     step["nextev"] = Iret(CONFIG, smooth=False)
-    isctest.kasp.check_rollover_step(ns3, CONFIG, POLICY, step)
+    isctest.kasp.check_rollover_step(ns3, CONFIG, policy, step)
 
 
 @pytest.mark.parametrize(
@@ -322,6 +322,8 @@ def test_zsk_prepub_step5(tld, alg, size, ns3):
         # this is the zsk lifetime minus IRET minus IPUB minus time
         # elapsed.
         "nextev": ZSK_LIFETIME - IRET - IPUB - KEYTTLPROP,
+        # Include hidden keys in output.
+        "verbose": True,
     }
     isctest.kasp.check_rollover_step(ns3, CONFIG, policy, step)
 

@@ -486,6 +486,13 @@ class Key:
     def is_zsk(self) -> bool:
         return self.get_metadata("ZSK") == "yes"
 
+    def role(self) -> str:
+        if self.is_ksk() and self.is_zsk():
+            return "CSK"
+        if self.is_ksk():
+            return "KSK"
+        return "ZSK"
+
     @property
     def algorithm(self) -> Algorithm:
         num = int(self.get_metadata("Algorithm"))
@@ -844,25 +851,31 @@ def check_dnssec_verify(server, zone, tsig=None):
     assert verified
 
 
-def check_dnssecstatus(server, zone, keys, policy=None, view=None):
+def check_dnssecstatus(server, zone, keys, policy=None, view=None, verbose=False):
     # Call rndc dnssec -status on 'server' for 'zone'. Expect 'policy' in
     # the output. This is a loose verification, it just tests if the right
     # policy name is returned, and if all expected keys are listed.
     response = ""
+
+    # Verbose output.
+    v = ""
+    if verbose:
+        v = "-v "
+
     if view is None:
-        response = server.rndc(f"dnssec -status {zone}", log=False)
+        response = server.rndc(f"dnssec -status {v}{zone}", log=False)
     else:
-        response = server.rndc(f"dnssec -status {zone} in {view}", log=False)
+        response = server.rndc(f"dnssec -status {v}{zone} in {view}", log=False)
 
     if policy is None:
         assert "Zone does not have dnssec-policy" in response
         return
 
-    assert f"dnssec-policy: {policy}" in response
+    assert f"DNSSEC status for zone '{zone}' using policy '{policy}'" in response
 
     for key in keys:
         if not key.external:
-            assert f"key: {key.tag}" in response
+            assert f"{key.role()} {key.tag}" in response
 
 
 def _check_signatures(
@@ -1250,6 +1263,7 @@ def check_rollover_step(server, config, policy, step):
     check_keytimes_flag = step.get("check-keytimes", True)
     zone_signed = step.get("zone-signed", True)
     manual_mode = step.get("manual-mode", False)
+    verbose = step.get("verbose", False)
 
     isctest.log.info(f"check rollover step {zone}")
 
@@ -1311,7 +1325,7 @@ def check_rollover_step(server, config, policy, step):
     if check_keytimes_flag:
         check_keytimes(keys, expected)
 
-    check_dnssecstatus(server, zone, keys, policy=policy)
+    check_dnssecstatus(server, zone, keys, policy=policy, verbose=verbose)
     check_apex(
         server,
         zone,

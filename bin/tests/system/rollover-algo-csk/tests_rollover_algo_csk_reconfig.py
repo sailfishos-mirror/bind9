@@ -330,5 +330,7 @@ def test_algoroll_csk_reconfig_step6(tld, ns6, alg, size):
         # keys have an unlimited lifetime.  Fallback to the default
         # loadkeys interval.
         "nextev": TIMEDELTA["PT1H"],
+        # Include hidden keys in output.
+        "verbose": True,
     }
     isctest.kasp.check_rollover_step(ns6, CONFIG, policy, step)
