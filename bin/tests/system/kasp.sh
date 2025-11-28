@@ -299,12 +299,11 @@ set_keytime() {
 # $3: Value
 # $4: Additional time.
 set_addkeytime() {
-  if [ -x "$PYTHON" ]; then
-    # Convert "%Y%m%d%H%M%S" format to epoch seconds.
-    # Then, add the additional time (can be negative).
-    _value=$3
-    _plus=$4
-    $PYTHON >python.out.$ZONE.$1.$2 <<EOF
+  # Convert "%Y%m%d%H%M%S" format to epoch seconds.
+  # Then, add the additional time (can be negative).
+  _value=$3
+  _plus=$4
+  $PYTHON >python.out.$ZONE.$1.$2 <<EOF
 from datetime import datetime
 from datetime import timedelta
 _now = datetime.strptime("$_value", "%Y%m%d%H%M%S")
@@ -312,9 +311,8 @@ _delta = timedelta(seconds=$_plus)
 _then = _now + _delta
 print(_then.strftime("%Y%m%d%H%M%S"));
 EOF
-    # Set the expected timing metadata.
-    key_set "$1" "$2" $(cat python.out.$ZONE.$1.$2)
-  fi
+  # Set the expected timing metadata.
+  key_set "$1" "$2" $(cat python.out.$ZONE.$1.$2)
 }
 
 # Set key state metadata. Set to "none" to unset.
@@ -646,20 +644,17 @@ check_timingmetadata() {
 
 check_keytimes() {
   # The script relies on Python to set keytimes.
-  if [ -x "$PYTHON" ]; then
-
-    if [ "$(key_get KEY1 EXPECT)" = "yes" ]; then
-      check_timingmetadata "KEY1"
-    fi
-    if [ "$(key_get KEY2 EXPECT)" = "yes" ]; then
-      check_timingmetadata "KEY2"
-    fi
-    if [ "$(key_get KEY3 EXPECT)" = "yes" ]; then
-      check_timingmetadata "KEY3"
-    fi
-    if [ "$(key_get KEY4 EXPECT)" = "yes" ]; then
-      check_timingmetadata "KEY4"
-    fi
+  if [ "$(key_get KEY1 EXPECT)" = "yes" ]; then
+    check_timingmetadata "KEY1"
+  fi
+  if [ "$(key_get KEY2 EXPECT)" = "yes" ]; then
+    check_timingmetadata "KEY2"
+  fi
+  if [ "$(key_get KEY3 EXPECT)" = "yes" ]; then
+    check_timingmetadata "KEY3"
+  fi
+  if [ "$(key_get KEY4 EXPECT)" = "yes" ]; then
+    check_timingmetadata "KEY4"
   fi
 }
 
