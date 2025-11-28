@@ -71,72 +71,44 @@ NOSPLIT="$(sed <ns2/keydata -e 's/+/[+]/g' -e 's/ //g')"
 HAS_PYYAML=0
 $PYTHON -c "import yaml" 2>/dev/null && HAS_PYYAML=1
 
-#
-# test whether ans7/ans.pl will be able to send a UPDATE response.
-# if it can't, we will log that below.
-#
-if "$PERL" -e 'use Net::DNS; use Net::DNS::Packet; my $p = new Net::DNS::Packet; $p->header->opcode(5);' >/dev/null 2>&1; then
-  checkupdate=1
-else
-  checkupdate=0
-fi
+n=$((n + 1))
+echo_i "check nslookup handles UPDATE response ($n)"
+ret=0
+"$NSLOOKUP" -q=CNAME -timeout=1 "-port=$PORT" foo.bar 10.53.0.7 >nslookup.out.test$n 2>&1 && ret=1
+grep "Opcode mismatch" nslookup.out.test$n >/dev/null || ret=1
+if [ $ret -ne 0 ]; then echo_i "failed"; fi
+status=$((status + ret))
 
-if [ -x "$NSLOOKUP" -a $checkupdate -eq 1 ]; then
+n=$((n + 1))
+echo_i "check host handles UPDATE response ($n)"
+ret=0
+"$HOST" -W 1 -t CNAME -p $PORT foo.bar 10.53.0.7 >host.out.test$n 2>&1 && ret=1
+grep "Opcode mismatch" host.out.test$n >/dev/null || ret=1
+if [ $ret -ne 0 ]; then echo_i "failed"; fi
+status=$((status + ret))
 
-  n=$((n + 1))
-  echo_i "check nslookup handles UPDATE response ($n)"
-  ret=0
-  "$NSLOOKUP" -q=CNAME -timeout=1 "-port=$PORT" foo.bar 10.53.0.7 >nslookup.out.test$n 2>&1 && ret=1
-  grep "Opcode mismatch" nslookup.out.test$n >/dev/null || ret=1
-  if [ $ret -ne 0 ]; then echo_i "failed"; fi
-  status=$((status + ret))
-
-fi
-
-if [ -x "$HOST" -a $checkupdate -eq 1 ]; then
-
-  n=$((n + 1))
-  echo_i "check host handles UPDATE response ($n)"
-  ret=0
-  "$HOST" -W 1 -t CNAME -p $PORT foo.bar 10.53.0.7 >host.out.test$n 2>&1 && ret=1
-  grep "Opcode mismatch" host.out.test$n >/dev/null || ret=1
-  if [ $ret -ne 0 ]; then echo_i "failed"; fi
-  status=$((status + ret))
-
-fi
-
-if [ -x "$NSUPDATE" -a $checkupdate -eq 1 ]; then
-
-  n=$((n + 1))
-  echo_i "check nsupdate handles UPDATE response to QUERY ($n)"
-  ret=0
-  res=0
-  $NSUPDATE <<EOF >nsupdate.out.test$n 2>&1 || res=$?
+n=$((n + 1))
+echo_i "check nsupdate handles UPDATE response to QUERY ($n)"
+ret=0
+res=0
+$NSUPDATE <<EOF >nsupdate.out.test$n 2>&1 || res=$?
 server 10.53.0.7 ${PORT}
 add x.example.com 300 in a 1.2.3.4
 send
 EOF
-  test $res -eq 1 || ret=1
-  grep "invalid OPCODE in response to SOA query" nsupdate.out.test$n >/dev/null || ret=1
-  if [ $ret -ne 0 ]; then echo_i "failed"; fi
-  status=$((status + ret))
-
-fi
+test $res -eq 1 || ret=1
+grep "invalid OPCODE in response to SOA query" nsupdate.out.test$n >/dev/null || ret=1
+if [ $ret -ne 0 ]; then echo_i "failed"; fi
+status=$((status + ret))
 
 if [ -x "$DIG" ]; then
-
-  if [ $checkupdate -eq 1 ]; then
-
-    n=$((n + 1))
-    echo_i "check dig handles UPDATE response ($n)"
-    ret=0
-    dig_with_opts @10.53.0.7 +tries=1 +timeout=1 cname foo.bar >dig.out.test$n 2>&1 && ret=1
-    grep "Opcode mismatch" dig.out.test$n >/dev/null || ret=1
-    if [ $ret -ne 0 ]; then echo_i "failed"; fi
-    status=$((status + ret))
-  else
-    echo_i "Skipped UPDATE handling test"
-  fi
+  n=$((n + 1))
+  echo_i "check dig handles UPDATE response ($n)"
+  ret=0
+  dig_with_opts @10.53.0.7 +tries=1 +timeout=1 cname foo.bar >dig.out.test$n 2>&1 && ret=1
+  grep "Opcode mismatch" dig.out.test$n >/dev/null || ret=1
+  if [ $ret -ne 0 ]; then echo_i "failed"; fi
+  status=$((status + ret))
 
   n=$((n + 1))
   echo_i "checking dig short form works ($n)"
