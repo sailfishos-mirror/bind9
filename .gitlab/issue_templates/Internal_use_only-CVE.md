@@ -6,17 +6,18 @@ if it involves an assertion failure or other crash in `named` that can be
 triggered repeatedly - then please make sure that you make the new issue
 confidential!
 -->
-| Quick Links              | :link:                               |
-| ------------------------ | ------------------------------------ |
-| Incident Manager:        | @user                                |
-| Deputy Incident Manager: | @user                                |
-| Public Disclosure Date:  | YYYY-MM-DD                           |
-| CVSS Score:              | [0.0][cvss_score]                    |
-| CWE:                     | [CWE-NNN][cwe_category]
-| Security Advisory:       | isc-private/printing-press!NNN       |
-| Mattermost Channel:      | [CVE-YYYY-NNNN][mattermost_url]      |
-| Support Ticket:          | [URL]                                |
-| Release Checklist:       | #NNNN                                |
+| Quick Links              | :link:                                          |
+| ------------------------ | ----------------------------------------------- |
+| Incident Manager:        | @user                                           |
+| Deputy Incident Manager: | @user                                           |
+| Public Disclosure Date:  | YYYY-MM-DD                                      |
+| CVSS Score:              | [0.0][cvss_score]                               |
+| CWE:                     | [CWE-NNN][cwe_category]                         |
+| Earliest Notification:   | support-team/earliest-notification-drafting!NNN |
+| Security Advisory:       | isc-private/printing-press!NNN                  |
+| Mattermost Channel:      | [CVE-YYYY-NNNN][mattermost_url]                 |
+| Support Ticket:          | [URL]                                           |
+| Release Checklist:       | #NNNN                                           |
 
 [cvss_score]: https://nvd.nist.gov/vuln-metrics/cvss/v3-calculator?vector=AV:X/AC:X/PR:X/UI:X/S:X/C:X/I:X/A:X&version=3.1
 [cwe_category]: https://cwe.mitre.org/data/definitions/NNN.html
