@@ -11,39 +11,6 @@
  * information regarding copyright ownership.
  */
 
-// NS3
-
-include "policies/kasp.conf";
-include "policies/autosign.conf";
-
-options {
-	query-source address 10.53.0.3;
-	notify-source 10.53.0.3;
-	transfer-source 10.53.0.3;
-	port @PORT@;
-	pid-file "named.pid";
-	listen-on { 10.53.0.3; };
-	listen-on-v6 { none; };
-	allow-transfer { any; };
-	recursion no;
-	dnssec-policy "rsasha256";
-	dnssec-validation no;
-};
-
-key rndc_key {
-        secret "1234abcd8765";
-        algorithm @DEFAULT_HMAC@;
-};
-
-controls {
-        inet 10.53.0.3 port @CONTROLPORT@ allow { any; } keys { rndc_key; };
-};
-
-zone "." {
-	type hint;
-	file "../../_common/root.hint.blackhole";
-};
-
 /* Zones that are getting initially signed */
 
 /* The default case: No keys created, using default policy. */
@@ -54,7 +21,7 @@ zone "default.kasp" {
 };
 
 /* A zone with special characters. */
-zone "i-am.\":\;?&[]\@!\$*+,|=\.\(\)special.kasp." {
+zone {% raw %}"i-am.\":\;?&[]\@!\$*+,|=\.\(\)special.kasp."{% endraw %} {
         type primary;
         file "i-am.special.kasp.db";
         check-names ignore;
