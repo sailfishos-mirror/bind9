@@ -1430,6 +1430,14 @@ if [ -x "$DIG" ]; then
   status=$((status + ret))
 
   n=$((n + 1))
+  echo_i "check that dig +showtruncated works ($n)"
+  dig_with_opts @10.53.0.2 +qr +showtruncated truncated.example TXT >dig.out.test$n 2>&1 || ret=1
+  grep 'flags:[^;]* tc[ ;].*ANSWER: 0' dig.out.test$n >/dev/null || ret=1
+  grep 'ANSWER: 100,' dig.out.test$n >/dev/null || ret=1
+  if [ $ret -ne 0 ]; then echo_i "failed"; fi
+  status=$((status + ret))
+
+  n=$((n + 1))
   echo_i "check dig's +nocrypto flag ($n)"
   ret=0
   dig_with_opts +dnssec +norec +nocrypto DNSKEY . @10.53.0.1 >dig.out.dnskey.test$n || ret=1

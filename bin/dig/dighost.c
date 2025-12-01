@@ -727,6 +727,7 @@ clone_lookup(dig_lookup_t *lookold, bool servers) {
 
 	looknew->showbadcookie = lookold->showbadcookie;
 	looknew->showbadvers = lookold->showbadvers;
+	looknew->showtruncated = lookold->showtruncated;
 	looknew->sendcookie = lookold->sendcookie;
 	looknew->seenbadcookie = lookold->seenbadcookie;
 	looknew->badcookie = lookold->badcookie;
@@ -4261,6 +4262,11 @@ recv_done(isc_nmhandle_t *handle, isc_result_t eresult, isc_region_t *region,
 	if ((msg->flags & DNS_MESSAGEFLAG_TC) != 0 && !l->ignore &&
 	    !l->tcp_mode)
 	{
+		if (l->showtruncated) {
+			dighost_printmessage(query, &b, msg, true);
+			dighost_received(isc_buffer_usedlength(&b), &peer,
+					 query);
+		}
 		if (l->cookie == NULL && l->sendcookie && msg->opt != NULL) {
 			process_opt(l, msg);
 		}

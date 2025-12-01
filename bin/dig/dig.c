@@ -302,10 +302,12 @@ help(void) {
 	       "short\n"
 	       "                                      form of answers - global "
 	       "option)\n"
+	       "                 +[no]showallmessages (Show all messages)\n"
 	       "                 +[no]showbadcookie  (Show BADCOOKIE message)\n"
 	       "                 +[no]showbadvers    (Show BADVERS message)\n"
 	       "                 +[no]showsearch     (Search with intermediate "
 	       "results)\n"
+	       "                 +[no]showtruncated  (Show truncated message)\n"
 	       "                 +[no]split=##       (Split hex/base64 fields "
 	       "into chunks)\n"
 	       "                 +[no]stats          (Control display of "
@@ -2312,6 +2314,13 @@ plus_option(char *option, bool is_batchfile, bool *need_clone,
 				break;
 			case 'w': /* showsearch */
 				switch (cmd[4]) {
+				case 'a':
+					FULLCHECK("showallmessages");
+					lookup->showbadcookie = state;
+					lookup->showbadvers = state;
+					lookup->showtruncated = state;
+					lookup->qr = state;
+					break;
 				case 'b':
 					switch (cmd[7]) {
 					case 'c':
@@ -2332,6 +2341,10 @@ plus_option(char *option, bool is_batchfile, bool *need_clone,
 						showsearch = state;
 						usesearch = state;
 					}
+					break;
+				case 't':
+					FULLCHECK("showtruncated");
+					lookup->showtruncated = state;
 					break;
 				default:
 					goto invalid_option;
