@@ -80,3 +80,5 @@ def test_algoroll_csk_initial(tld, ns3):
         "nextev": TIMEDELTA["PT1H"],
     }
     isctest.kasp.check_rollover_step(ns3, config, policy, step)
+
+    assert f"zone {zone}/IN (signed): dsyncfetch" not in ns3.log

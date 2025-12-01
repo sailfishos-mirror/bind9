@@ -48,3 +48,5 @@ def test_lifetime_initial(zone, policy, lifetime, alg, size, ns3):
         "nextev": None,
     }
     isctest.kasp.check_rollover_step(ns3, config, policy, step)
+
+    assert f"zone {zone}/IN (signed): dsyncfetch" not in ns3.log
