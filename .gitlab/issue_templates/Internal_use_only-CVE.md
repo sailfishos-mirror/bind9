@@ -11,17 +11,17 @@ confidential!
 | Incident Manager:        | @user                                           |
 | Deputy Incident Manager: | @user                                           |
 | Public Disclosure Date:  | YYYY-MM-DD                                      |
-| CVSS Score:              | [0.0][cvss_score]                               |
-| CWE:                     | [CWE-NNN][cwe_category]                         |
+| CVSS Score:              | [0.0][cvss_score_url]                           |
+| CWE:                     | [CWE-NNN][cwe_category_url]                     |
 | Earliest Notification:   | support-team/earliest-notification-drafting!NNN |
 | Security Advisory:       | isc-private/printing-press!NNN                  |
 | Mattermost Channel:      | [CVE-YYYY-NNNN][mattermost_url]                 |
 | Support Ticket:          | [URL]                                           |
 | Release Checklist:       | #NNNN                                           |
 
-[cvss_score]: https://nvd.nist.gov/vuln-metrics/cvss/v3-calculator?vector=AV:X/AC:X/PR:X/UI:X/S:X/C:X/I:X/A:X&version=3.1
-[cwe_category]: https://cwe.mitre.org/data/definitions/NNN.html
-[mattermost_url]:
+[cvss_score_url]: https://nvd.nist.gov/vuln-metrics/cvss/v3-calculator?vector=AV:X/AC:X/PR:X/UI:X/S:X/C:X/I:X/A:X&version=3.1
+[cwe_category_url]: https://cwe.mitre.org/data/definitions/NNN.html
+[mattermost_url]: https://mattermost.isc.org/isc/channels/cve-YYYY-NNNN
 
 :bulb: **Click [here][checklist_explanations] (internal resource) for general information about the security incident handling process.**
 
