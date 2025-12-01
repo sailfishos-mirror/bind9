@@ -6,21 +6,22 @@ if it involves an assertion failure or other crash in `named` that can be
 triggered repeatedly - then please make sure that you make the new issue
 confidential!
 -->
-| Quick Links              | :link:                               |
-| ------------------------ | ------------------------------------ |
-| Incident Manager:        | @user                                |
-| Deputy Incident Manager: | @user                                |
-| Public Disclosure Date:  | YYYY-MM-DD                           |
-| CVSS Score:              | [0.0][cvss_score]                    |
-| CWE:                     | [CWE-NNN][cwe_category]
-| Security Advisory:       | isc-private/printing-press!NNN       |
-| Mattermost Channel:      | [CVE-YYYY-NNNN][mattermost_url]      |
-| Support Ticket:          | [URL]                                |
-| Release Checklist:       | #NNNN                                |
+| Quick Links              | :link:                                          |
+| ------------------------ | ----------------------------------------------- |
+| Incident Manager:        | @user                                           |
+| Deputy Incident Manager: | @user                                           |
+| Public Disclosure Date:  | YYYY-MM-DD                                      |
+| CVSS Score:              | [0.0][cvss_score_url]                           |
+| CWE:                     | [CWE-NNN][cwe_category_url]                     |
+| Earliest Notification:   | support-team/earliest-notification-drafting!NNN |
+| Security Advisory:       | isc-private/printing-press!NNN                  |
+| Mattermost Channel:      | [CVE-YYYY-NNNN][mattermost_url]                 |
+| Support Ticket:          | [URL]                                           |
+| Release Checklist:       | #NNNN                                           |
 
-[cvss_score]: https://nvd.nist.gov/vuln-metrics/cvss/v3-calculator?vector=AV:X/AC:X/PR:X/UI:X/S:X/C:X/I:X/A:X&version=3.1
-[cwe_category]: https://cwe.mitre.org/data/definitions/NNN.html
-[mattermost_url]:
+[cvss_score_url]: https://nvd.nist.gov/vuln-metrics/cvss/v3-calculator?vector=AV:X/AC:X/PR:X/UI:X/S:X/C:X/I:X/A:X&version=3.1
+[cwe_category_url]: https://cwe.mitre.org/data/definitions/NNN.html
+[mattermost_url]: https://mattermost.isc.org/isc/channels/cve-YYYY-NNNN
 
 :bulb: **Click [here][checklist_explanations] (internal resource) for general information about the security incident handling process.**
 
@@ -54,17 +55,17 @@ confidential!
 
   - [ ] [:link:][step_merge_fixes]       **(QA)** Merge the CVE fixes in CVE identifier order
   - [ ] [:link:][step_patches]           **(QA)** Prepare a standalone patch for the last stable release of each affected (and still maintained) product branch
-  - [ ] [:link:][step_asn_releases]      **(QA)** Prepare ASN releases (as outlined in the Release Checklist)
+  - [ ] [:link:][step_evn_releases]      **(QA)** Prepare EVN releases (as outlined in the Release Checklist)
 
 ### At T-5
 
-  - [ ] [:link:][step_asn_links]         **(Marketing)** (BIND 9 only) Update the BIND -S information document in the support portal with download links to the new versions
-  - [ ] [:link:][step_asn_send_t_5]      **(Support)** Notify eligible customers by adding a ticket to the 5-Day queue in RT with the text of the advisory (earliest, and T-5)
+  - [ ] [:link:][step_evn_links]         **(Marketing)** (BIND 9 only) Update the BIND -S information document in the support portal with download links to the new versions
+  - [ ] [:link:][step_evn_send_t_5]      **(Support)** Notify eligible customers by adding a ticket to the 5-Day queue in RT with the text of the advisory (earliest, and T-5)
   - [ ] [:link:][step_preannouncement]   **(Marketing)** Send a pre-announcement email to the appropriate *-announce* mailing list to alert users that the upcoming release will include security fixes
 
 ### At T-3
 
-  - [ ] [:link:][step_asn_send_t_3]      **(Support)** Notify eligible customers by adding a ticket to the 3-Day queue in RT with the text of the advisory (T-3)
+  - [ ] [:link:][step_evn_send_t_3]      **(Support)** Notify eligible customers by adding a ticket to the 3-Day queue in RT with the text of the advisory (T-3)
 
 ### At T-1
 
@@ -81,7 +82,7 @@ confidential!
   - [ ] [:link:][step_mitre]             **(First IM)** Advise MITRE about the disclosed CVEs
   - [ ] [:link:][step_merge_advisory]    **(First IM)** Merge the Security Advisory merge request
   - [ ] [:link:][step_embargo_end]       **(IM)** Inform original reporter (if external) that the security disclosure process is complete
-  - [ ] [:link:][step_asn_clear]         **(Support)** Update the tickets in the ASN queues in RT that the embargo is lifted
+  - [ ] [:link:][step_evn_clear]         **(Support)** Update the tickets in the EVN queues in RT that the embargo is lifted
   - [ ] [:link:][step_customers]         **(Marketing)** Ensure that a ticket has been sent in the appropriate announce queue in RT to notify customers that the release is published (as outlined in the release checklist)
 
 ### After Public Disclosure
@@ -107,17 +108,17 @@ confidential!
 [step_review_docs]:       https://gitlab.isc.org/isc-private/isc-wiki/-/wikis/Security-Incident-Handling-Checklist-Explanations#review-the-documentation-changes-introduced-by-the-merge-request-with-the-fix
 [step_backports]:         https://gitlab.isc.org/isc-private/isc-wiki/-/wikis/Security-Incident-Handling-Checklist-Explanations#prepare-backports-of-the-merge-request-addressing-the-problem-for-all-affected-and-still-maintained-branches-of-a-given-product
 [step_finish_advisory]:   https://gitlab.isc.org/isc-private/isc-wiki/-/wikis/Security-Incident-Handling-Checklist-Explanations#finish-preparing-the-security-advisory
-[step_meta_issue]:        https://gitlab.isc.org/isc-private/isc-wiki/-/wikis/Security-Incident-Handling-Checklist-Explanations#create-or-update-the-private-issue-containing-links-to-fixes-reproducers-for-all-cves-fixed-in-a-given-release-cycle
+[step_meta_issue]:        https://gitlab.isc.org/isc-private/isc-wiki/-/wikis/Security-Incident-Handling-Checklist-Explanations#create-or-update-the-private-issue-containing-links-to-fixes--reproducers-for-all-cves-fixed-in-a-given-release-cycle
 [step_coordinate_check]:  https://gitlab.isc.org/isc-private/isc-wiki/-/wikis/Security-Incident-Handling-Checklist-Explanations#make-sure-other-vendors-are-able-to-release-on-the-date-that-was-previously-agreed-upon
 [step_merge_fixes]:       https://gitlab.isc.org/isc-private/isc-wiki/-/wikis/Security-Incident-Handling-Checklist-Explanations#merge-the-cve-fixes-in-cve-identifier-order
 [step_patches]:           https://gitlab.isc.org/isc-private/isc-wiki/-/wikis/Security-Incident-Handling-Checklist-Explanations#prepare-a-standalone-patch-for-the-last-stable-release-of-each-affected-and-still-maintained-product-branch
-[step_asn_releases]:      https://gitlab.isc.org/isc-private/isc-wiki/-/wikis/Security-Incident-Handling-Checklist-Explanations#prepare-asn-releases-as-outlined-in-the-release-checklist
-[step_asn_links]:         https://gitlab.isc.org/isc-private/isc-wiki/-/wikis/Security-Incident-Handling-Checklist-Explanations#bind-9-only-update-the-bind-s-information-document-in-the-support-portal-with-download-links-to-the-new-versions
-[step_asn_send_t_5]:      https://gitlab.isc.org/isc-private/isc-wiki/-/wikis/Security-Incident-Handling-Checklist-Explanations#notify-eligible-customers-by-adding-a-ticket-to-the-5-day-queue-in-rt-with-the-text-of-the-advisory-earliest-and-t-5
+[step_evn_releases]:      https://gitlab.isc.org/isc-private/isc-wiki/-/wikis/Security-Incident-Handling-Checklist-Explanations#prepare-evn-releases-as-outlined-in-the-release-checklist
+[step_evn_links]:         https://gitlab.isc.org/isc-private/isc-wiki/-/wikis/Security-Incident-Handling-Checklist-Explanations#bind-9-only-update-the-bind--s-information-document-in-the-support-portal-with-download-links-to-the-new-versions
+[step_evn_send_t_5]:      https://gitlab.isc.org/isc-private/isc-wiki/-/wikis/Security-Incident-Handling-Checklist-Explanations#notify-eligible-customers-by-adding-a-ticket-to-the-5-day-queue-in-rt-with-the-text-of-the-advisory-earliest-and-t-5
 [step_preannouncement]:   https://gitlab.isc.org/isc-private/isc-wiki/-/wikis/Security-Incident-Handling-Checklist-Explanations#send-a-pre-announcement-email-to-the-appropriate--announce-mailing-list-to-alert-users-that-the-upcoming-release-will-include-security-fixes
-[step_asn_send_t_3]:      https://gitlab.isc.org/isc-private/isc-wiki/-/wikis/Security-Incident-Handling-Checklist-Explanations#notify-eligible-customers-by-adding-a-ticket-to-the-3-day-queue-in-rt-with-the-text-of-the-advisory-t-3
+[step_evn_send_t_3]:      https://gitlab.isc.org/isc-private/isc-wiki/-/wikis/Security-Incident-Handling-Checklist-Explanations#notify-eligible-customers-by-adding-a-ticket-to-the-3-day-queue-in-rt-with-the-text-of-the-advisory-t-3
 [step_packager_emails]:   https://gitlab.isc.org/isc-private/isc-wiki/-/wikis/Security-Incident-Handling-Checklist-Explanations#send-notifications-to-os-packagers
-[step_clearance]:         https://gitlab.isc.org/isc-private/isc-wiki/-/wikis/Security-Incident-Handling-Checklist-Explanations#grant-qa-marketing-clearance-to-proceed-with-public-release
+[step_clearance]:         https://gitlab.isc.org/isc-private/isc-wiki/-/wikis/Security-Incident-Handling-Checklist-Explanations#grant-qa--marketing-clearance-to-proceed-with-public-release
 [step_matrix]:            https://gitlab.isc.org/isc-private/isc-wiki/-/wikis/Security-Incident-Handling-Checklist-Explanations#bind-9-only-add-the-new-cves-to-the-vulnerability-matrix-in-the-knowledge-base
 [step_bump_advisory]:     https://gitlab.isc.org/isc-private/isc-wiki/-/wikis/Security-Incident-Handling-Checklist-Explanations#bump-document-version-for-the-security-advisory-in-printing-press
 [step_publish_advisory]:  https://gitlab.isc.org/isc-private/isc-wiki/-/wikis/Security-Incident-Handling-Checklist-Explanations#publish-the-security-advisory-in-the-knowledge-base
@@ -126,7 +127,7 @@ confidential!
 [step_mitre]:             https://gitlab.isc.org/isc-private/isc-wiki/-/wikis/Security-Incident-Handling-Checklist-Explanations#advise-mitre-about-the-disclosed-cves
 [step_merge_advisory]:    https://gitlab.isc.org/isc-private/isc-wiki/-/wikis/Security-Incident-Handling-Checklist-Explanations#merge-the-security-advisory-merge-request
 [step_embargo_end]:       https://gitlab.isc.org/isc-private/isc-wiki/-/wikis/Security-Incident-Handling-Checklist-Explanations#inform-original-reporter-if-external-that-the-security-disclosure-process-is-complete
-[step_asn_clear]:         https://gitlab.isc.org/isc-private/isc-wiki/-/wikis/Security-Incident-Handling-Checklist-Explanations#update-the-tickets-in-the-asn-queues-in-rt-that-the-embargo-is-lifted
+[step_evn_clear]:         https://gitlab.isc.org/isc-private/isc-wiki/-/wikis/Security-Incident-Handling-Checklist-Explanations#update-the-tickets-in-the-evn-queues-in-rt-that-the-embargo-is-lifted
 [step_customers]:         https://gitlab.isc.org/isc-private/isc-wiki/-/wikis/Security-Incident-Handling-Checklist-Explanations#ensure-that-a-ticket-has-been-sent-in-the-appropriate-announce-queue-in-rt-to-notify-customers-that-the-release-is-published-as-outlined-in-the-release-checklist
 [step_regression]:        https://gitlab.isc.org/isc-private/isc-wiki/-/wikis/Security-Incident-Handling-Checklist-Explanations#merge-a-regression-test-reproducing-the-bug-into-all-affected-and-still-maintained-branches
 
