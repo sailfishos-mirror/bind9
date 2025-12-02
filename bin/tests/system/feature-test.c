@@ -53,7 +53,6 @@ usage(void) {
 	fprintf(stderr, "\t--md5\n");
 	fprintf(stderr, "\t--rsasha1\n");
 	fprintf(stderr, "\t--tsan\n");
-	fprintf(stderr, "\t--with-dlz-filesystem\n");
 	fprintf(stderr, "\t--with-libidn2\n");
 	fprintf(stderr, "\t--with-lmdb\n");
 	fprintf(stderr, "\t--with-libnghttp2\n");
@@ -226,14 +225,6 @@ main(int argc, char **argv) {
 		dst_lib_destroy();
 		isc_mem_detach(&mctx);
 		return answer;
-	}
-
-	if (strcmp(argv[1], "--with-dlz-filesystem") == 0) {
-#ifdef DLZ_FILESYSTEM
-		return 0;
-#else  /* ifdef DLZ_FILESYSTEM */
-		return 1;
-#endif /* ifdef DLZ_FILESYSTEM */
 	}
 
 	if (strcmp(argv[1], "--with-libidn2") == 0) {
