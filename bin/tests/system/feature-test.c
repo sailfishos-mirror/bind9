@@ -50,7 +50,6 @@ usage(void) {
 	fprintf(stderr, "\t--have-json-c\n");
 	fprintf(stderr, "\t--have-libxml2\n");
 	fprintf(stderr, "\t--have-openssl-cipher-suites\n");
-	fprintf(stderr, "\t--ipv6only=no\n");
 	fprintf(stderr, "\t--md5\n");
 	fprintf(stderr, "\t--rsasha1\n");
 	fprintf(stderr, "\t--tsan\n");
@@ -216,25 +215,6 @@ main(int argc, char **argv) {
 		dst_lib_destroy();
 		isc_mem_detach(&mctx);
 		return answer;
-	}
-
-	if (strcmp(argv[1], "--ipv6only=no") == 0) {
-#if defined(IPPROTO_IPV6) && defined(IPV6_V6ONLY)
-		int s;
-		int n = -1;
-		int v6only = -1;
-		socklen_t len = sizeof(v6only);
-
-		s = socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
-		if (s >= 0) {
-			n = getsockopt(s, IPPROTO_IPV6, IPV6_V6ONLY,
-				       (void *)&v6only, &len);
-			close(s);
-		}
-		return (n == 0 && v6only == 0) ? 0 : 1;
-#else  /* defined(IPPROTO_IPV6) && defined(IPV6_V6ONLY) */
-		return 1;
-#endif /* defined(IPPROTO_IPV6) && defined(IPV6_V6ONLY) */
 	}
 
 	if (strcasecmp(argv[1], "--rsasha1") == 0) {
