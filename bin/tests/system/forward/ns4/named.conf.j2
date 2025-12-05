@@ -11,22 +11,27 @@
  * information regarding copyright ownership.
  */
 
+{% if FEATURE_FIPS_DH == "1" %}
 include "named-tls.conf";
+{% endif %}
 
 options {
 	query-source address 10.53.0.4;
 	notify-source 10.53.0.4;
 	transfer-source 10.53.0.4;
 	port @PORT@;
-	include "options-tls.conf";
 	pid-file "named.pid";
 	listen-on { 10.53.0.4; };
 	listen-on-v6 { none; };
 	recursion yes;
 	dnssec-validation no;
 	minimal-responses yes;
-};
 
+{% if FEATURE_FIPS_DH == "1" %}
+	tls-port @TLSPORT@;
+{% endif %}
+
+};
 
 statistics-channels { inet 10.53.0.4 port @EXTRAPORT1@ allow { localhost; }; };
 
