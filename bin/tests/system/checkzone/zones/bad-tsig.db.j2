@@ -9,9 +9,11 @@
 ; See the COPYRIGHT file distributed with this work for additional
 ; information regarding copyright ownership.
 
+{% raw %}
 $TTL 600
 @		SOA	ns hostmaster 2011012708 3600 1200 604800 1200
 		NS	ns
 ns		A	192.0.2.1
+{% endraw %}
 
 tsig		TSIG    @DEFAULT_HMAC@ 1516135665 300 20 thBt8DheAD7qpqSFTiGK999sxGg= 54994 NOERROR 0
