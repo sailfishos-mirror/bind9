@@ -11,20 +11,20 @@
  * information regarding copyright ownership.
  */
 
-// NS6
+// NS4
 
 options {
-	query-source address 10.53.0.6;
-	notify-source 10.53.0.6;
-	transfer-source 10.53.0.6;
+	query-source address 10.53.0.4;
+	notify-source 10.53.0.4;
+	transfer-source 10.53.0.4;
 	port @PORT@;
 	pid-file "named.pid";
-	listen-on { 10.53.0.6; };
+	listen-on { 10.53.0.4; };
 	listen-on-v6 { none; };
 	recursion yes;
 	notify no;
-	dnssec-validation no;
-	synth-from-dnssec yes;
+	dnssec-validation yes;
+	synth-from-dnssec no;
 };
 
 key rndc_key {
@@ -33,10 +33,14 @@ key rndc_key {
 };
 
 controls {
-	inet 10.53.0.6 port @CONTROLPORT@ allow { any; } keys { rndc_key; };
+	inet 10.53.0.4 port @CONTROLPORT@ allow { any; } keys { rndc_key; };
 };
 
-include "statistics-channels.conf";
+{% if FEATURE_LIBXML2 == "1" or FEATURE_JSON_C == "1" %}
+statistics-channels {
+	inet 10.53.0.4 port @EXTRAPORT1@ allow { any; };
+};
+{% endif %}
 
 zone "." {
 	type hint;

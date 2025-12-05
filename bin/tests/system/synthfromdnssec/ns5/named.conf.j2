@@ -11,19 +11,21 @@
  * information regarding copyright ownership.
  */
 
-// NS2
+// NS5
 
 options {
-	query-source address 10.53.0.2;
-	notify-source 10.53.0.2;
-	transfer-source 10.53.0.2;
+	query-source address 10.53.0.5;
+	notify-source 10.53.0.5;
+	transfer-source 10.53.0.5;
 	port @PORT@;
 	pid-file "named.pid";
-	listen-on { 10.53.0.2; };
+	listen-on { 10.53.0.5; };
 	listen-on-v6 { none; };
 	recursion yes;
 	notify no;
 	dnssec-validation yes;
+	synth-from-dnssec yes;
+	validate-except { example.internal; };
 };
 
 key rndc_key {
@@ -32,10 +34,14 @@ key rndc_key {
 };
 
 controls {
-	inet 10.53.0.2 port @CONTROLPORT@ allow { any; } keys { rndc_key; };
+	inet 10.53.0.5 port @CONTROLPORT@ allow { any; } keys { rndc_key; };
 };
 
-include "statistics-channels.conf";
+{% if FEATURE_LIBXML2 == "1" or FEATURE_JSON_C == "1" %}
+statistics-channels {
+	inet 10.53.0.5 port @EXTRAPORT1@ allow { any; };
+};
+{% endif %}
 
 zone "." {
 	type hint;
@@ -43,13 +49,14 @@ zone "." {
 };
 
 zone "example.internal" {
-	type primary;
-	file "example.internal.db";
+	type forward;
+	forward only;
+	forwarders { 10.53.0.2; };
 };
 
-zone "example.internal2" {
+zone "internal2" {
 	type primary;
-	file "example.internal.db";
+	file "internal2.db";
 };
 
 include "../ns1/trusted.conf";

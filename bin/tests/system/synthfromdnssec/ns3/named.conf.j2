@@ -35,7 +35,11 @@ controls {
 	inet 10.53.0.3 port @CONTROLPORT@ allow { any; } keys { rndc_key; };
 };
 
-include "statistics-channels.conf";
+{% if FEATURE_LIBXML2 == "1" or FEATURE_JSON_C == "1" %}
+statistics-channels {
+	inet 10.53.0.3 port @EXTRAPORT1@ allow { any; };
+};
+{% endif %}
 
 zone "." {
 	type hint;
