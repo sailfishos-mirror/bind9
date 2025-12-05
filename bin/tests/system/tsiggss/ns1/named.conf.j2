@@ -39,11 +39,13 @@ zone "example.nil." IN {
 	type primary;
 	file "example.nil.db";
 
+{% raw %}
 	update-policy {
 		grant Administrator@EXAMPLE.NIL wildcard * A AAAA SRV CNAME;
 		grant testdenied@EXAMPLE.NIL wildcard * TXT;
 		grant "local:auth.sock" external * CNAME;
 	};
+{% endraw %}
 
 	/* we need to use check-names ignore so _msdcs A records can be created */
 	check-names ignore;
