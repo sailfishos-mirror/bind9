@@ -11,6 +11,8 @@
  * information regarding copyright ownership.
  */
 
+{% set example_zone = example_zone | default(True) %}
+
 key rndc_key {
 	secret "1234abcd8765";
 	algorithm @DEFAULT_HMAC@;
@@ -33,7 +35,12 @@ options {
 	notify no;
 };
 
-EXAMPLE_ZONE_PLACEHOLDER
+{% if example_zone %}
+zone "example" {
+	type primary;
+	file "example.db.signed";
+};
+{% endif %}
 
 zone "example.org" {
 	type primary;
