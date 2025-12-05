@@ -24,7 +24,11 @@ options {
 	notify yes;
 };
 
-include "statistics-channels.conf";
+{% if FEATURE_LIBXML2 == "1" or FEATURE_JSON_C == "1" %}
+statistics-channels {
+	inet 10.53.0.2 port @EXTRAPORT1@ allow { any; };
+};
+{% endif %}
 
 key rndc_key {
 	secret "1234abcd8765";
@@ -45,5 +49,4 @@ zone "example" {
 	type primary;
 	file "example.db";
 	allow-update { any; };
-	zone-statistics full;
 };
