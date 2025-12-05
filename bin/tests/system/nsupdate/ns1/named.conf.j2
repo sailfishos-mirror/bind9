@@ -11,7 +11,9 @@
  * information regarding copyright ownership.
  */
 
+{% if FEATURE_FIPS_DH == "1" %}
 include "tls.conf";
+{% endif %}
 
 options {
 	query-source address 10.53.0.1;
@@ -27,7 +29,15 @@ options {
 	minimal-responses no;
 	update-quota 1;
 	dnssec-validation no;
-	include "tls.options";
+
+{% if FEATURE_FIPS_DH == "1" %}
+	tls-port @TLSPORT@;
+	listen-on tls ephemeral { 10.53.0.1; };
+	listen-on port @EXTRAPORT1@ tls tls-forward-secrecy { 10.53.0.1; };
+	listen-on port @EXTRAPORT2@ tls tls-forward-secrecy-mutual-tls { 10.53.0.1; };
+	listen-on port @EXTRAPORT3@ tls tls-expired { 10.53.0.1; };
+{% endif %}
+
 };
 
 acl named-acl {

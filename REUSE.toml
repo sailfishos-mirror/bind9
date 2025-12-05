@@ -93,7 +93,7 @@ path = [
 	"bin/tests/system/nsupdate/CA/index.txt.attr",
 	"bin/tests/system/nsupdate/CA/serial",
 	"bin/tests/system/nsupdate/commandlist",
-	"bin/tests/system/nsupdate/verylarge.in",
+	"bin/tests/system/nsupdate/verylarge.j2",
 	"bin/tests/system/org.isc.bind.system.plist",
 	"bin/tests/system/pipelined/input",
 	"bin/tests/system/pipelined/inputb",
