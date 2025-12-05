@@ -26,7 +26,13 @@ options {
 	notify yes;
 	minimal-responses no;
 	dnssec-validation no;
-	@TKEY_CONFIGURATION@
+
+{% if FEATURE_GSSAPI == "1" %}
+{% raw %}
+	tkey-gssapi-credential "DNS/ns10.example.com@EXAMPLE.COM";
+{% endraw %}
+{% endif %}
+
 };
 
 key rndc_key {
