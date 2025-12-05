@@ -11,7 +11,9 @@
  * information regarding copyright ownership.
  */
 
+{% if FEATURE_FIPS_DH == "1" %}
 include "named-tls.conf";
+{% endif %}
 
 options {
 	query-source address 10.53.0.2;
@@ -19,7 +21,6 @@ options {
 	notify-source-v6 fd92:7065:b8e:ffff::2;
 	transfer-source 10.53.0.2;
 	port @PORT@;
-	include "options-tls.conf";
 	pid-file "named.pid";
 	listen-on { 10.53.0.2; };
 	listen-on-v6 { none; };
@@ -28,6 +29,15 @@ options {
 	notify yes;
 	startup-notify-rate 5;
 	dnssec-validation no;
+
+{% if FEATURE_FIPS_DH == "1" %}
+	tls-port @TLSPORT@;
+	listen-on tls ephemeral { 10.53.0.2; };
+	listen-on port @EXTRAPORT1@ tls tls-forward-secrecy { 10.53.0.2; };
+	listen-on port @EXTRAPORT3@ tls tls-forward-secrecy-mutual-tls { 10.53.0.2; };
+	listen-on port @EXTRAPORT4@ tls tls-expired { 10.53.0.2; };
+{% endif %}
+
 };
 
 key rndc_key {
