@@ -24,6 +24,10 @@ options {
 	notify no;
 };
 
+{% if FEATURE_MD5 == "1" %}
+include "named-md5.conf";
+{% endif %}
+
 key "sha1" {
 	secret "FrSt77yPTFx6hTs4i2tKLB9LmE0=";
 	algorithm hmac-sha1;
