@@ -2858,7 +2858,8 @@ commit(dns_rdatacallbacks_t *callbacks, dns_loadctx_t *lctx,
 			dataset.resign = resign_fromlist(this, lctx);
 		}
 		result = callbacks->update(callbacks->add_private, owner,
-					&dataset, DNS_DIFFOP_ADD DNS__DB_FILELINE);
+					   &dataset,
+					   DNS_DIFFOP_ADD DNS__DB_FILELINE);
 		if (result != ISC_R_SUCCESS) {
 			dns_name_format(owner, namebuf, sizeof(namebuf));
 			if (source != NULL) {
