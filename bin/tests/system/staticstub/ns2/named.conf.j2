@@ -11,6 +11,8 @@
  * information regarding copyright ownership.
  */
 
+{% set server_config_use_addr = server_config_use_addr | default(False) %}
+
 key rndc_key {
 	secret "1234abcd8765";
 	algorithm @DEFAULT_HMAC@;
@@ -49,7 +51,11 @@ zone "example" {
 
 zone "example.org" {
 	type static-stub;
-	SERVER_CONFIG_PLACEHOLDER
+{% if server_config_use_addr %}
+	server-addresses { 10.53.0.4; };
+{% else %}
+	server-names { "ns.example.net"; };
+{% endif %}
 };
 
 zone "example.info" {
