@@ -67,3 +67,17 @@ vecheader_next(rdatavec_iter_t *iter);
 
 void
 vecheader_current(rdatavec_iter_t *iter, dns_rdata_t *rdata);
+
+/* clang-format off */
+/*
+ * An adaptation of DNS_RDATASET_FOREACH from rdataset.h. Used to manipulate a
+ * vecheader without going through the rdataset interface, e.g. in qpzone.c.
+ */
+#define DNS__VECHEADER_CONNECT(x,y) x##y
+#define DNS__VECHEADER_CONCAT(x,y) DNS__VECHEADER_CONNECT(x,y)
+#define DNS_VECHEADER_FOREACH_RES(iter, header, rdclass, res)          \
+	for (isc_result_t res = vecheader_first((iter), (header), (rdclass)); \
+	     res == ISC_R_SUCCESS; res = vecheader_next((iter)))
+#define DNS_VECHEADER_FOREACH(iter, header, rdclass)               \
+	DNS_VECHEADER_FOREACH_RES(iter, header, rdclass, DNS__VECHEADER_CONCAT(x, __LINE__))
+/* clang-format on */

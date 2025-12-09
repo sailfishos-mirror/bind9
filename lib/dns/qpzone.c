@@ -1076,10 +1076,7 @@ setnsec3parameters(dns_db_t *db, qpz_version_t *version) {
 		 */
 
 		rdatavec_iter_t iter;
-		for (isc_result_t res = vecheader_first(&iter, found, qpdb->common.rdclass);
-		     res == ISC_R_SUCCESS;
-		     res = vecheader_next(&iter))
-		{
+		DNS_VECHEADER_FOREACH(&iter, found, qpdb->common.rdclass) {
 			dns_rdata_t rdata = DNS_RDATA_INIT;
 			vecheader_current(&iter, &rdata);
 
@@ -2564,10 +2561,7 @@ matchparams(dns_vecheader_t *header, qpz_search_t *search) {
 	REQUIRE(header->typepair == DNS_TYPEPAIR(dns_rdatatype_nsec3));
 
 	rdatavec_iter_t iter;
-	for (isc_result_t res = vecheader_first(&iter, header, search->qpdb->common.rdclass);
-	     res == ISC_R_SUCCESS;
-	     res = vecheader_next(&iter))
-	{
+	DNS_VECHEADER_FOREACH(&iter, header, search->qpdb->common.rdclass) {
 		dns_rdata_t rdata = DNS_RDATA_INIT;
 		vecheader_current(&iter, &rdata);
 
