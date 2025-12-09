@@ -386,6 +386,8 @@ zone "dname-at-apex-nsec3.example" {
 	dnssec-policy nsec3;
 };
 
+{% if RSASHA1_SUPPORTED == "1" %}
 include "nsec-only.conf";
+{% endif %}
 
 include "trusted.conf";
