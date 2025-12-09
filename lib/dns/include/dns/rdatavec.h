@@ -58,15 +58,14 @@
 
 #define DNS_RDATAVEC_OFFLINE 0x01 /* RRSIG is for offline DNSKEY */
 
-
-typedef struct dns_vectop dns_vectop_t;
+typedef struct dns_vectop    dns_vectop_t;
 typedef struct dns_vecheader dns_vecheader_t;
 
 struct rdatavec_iter {
-	unsigned char *iter_pos;
-	unsigned int   iter_count;
+	unsigned char	*iter_pos;
+	unsigned int	 iter_count;
 	dns_rdataclass_t iter_rdclass;
-	dns_rdatatype_t  iter_type;
+	dns_rdatatype_t	 iter_type;
 };
 
 typedef struct rdatavec_iter rdatavec_iter_t;
@@ -91,7 +90,8 @@ struct dns_vecheader {
 	dns_ttl_t      ttl;
 	dns_typepair_t typepair;
 
-	/* resigning (zone). The lsb is not adjacent for struct packing reasons */
+	/* resigning (zone). The lsb is not adjacent for struct packing reasons
+	 */
 	isc_stdtime_t resign;
 
 	/*%
@@ -102,7 +102,7 @@ struct dns_vecheader {
 	/*%
 	 * The database node objects containing this rdataset, if any.
 	 */
-	dns_dbnode_t   *node;
+	dns_dbnode_t *node;
 
 	/*%
 	 * Cached glue records for an rdataset of type NS (zone only).
@@ -114,15 +114,14 @@ struct dns_vecheader {
 	 * character in the owner name needs to be AND'd with 0x20,
 	 * rendering that character upper case.
 	 */
-	unsigned char	upper[32];
+	unsigned char upper[32];
 
 	/*%
 	 * Flexible member indicates the address of the raw data
 	 * following this header.
 	 */
-	unsigned char	raw[];
+	unsigned char raw[];
 };
-
 
 enum {
 	DNS_VECHEADERATTR_NONEXISTENT = 1 << 0,
@@ -151,7 +150,7 @@ extern dns_rdatasetmethods_t dns_rdatavec_rdatasetmethods;
 
 isc_result_t
 dns_rdatavec_fromrdataset(dns_rdataset_t *rdataset, isc_mem_t *mctx,
-			   isc_region_t *region, uint32_t limit);
+			  isc_region_t *region, uint32_t limit);
 /*%<
  * Allocate space for a vec to hold the data in rdataset, and copy the
  * data into it.  The resulting vec will be returned in 'region'.
@@ -204,18 +203,18 @@ dns_rdatavec_count(dns_vecheader_t *header);
 
 isc_result_t
 dns_rdatavec_merge(dns_vecheader_t *oheader, dns_vecheader_t *nheader,
-		    isc_mem_t *mctx, dns_rdataclass_t rdclass,
-		    dns_rdatatype_t type, unsigned int flags,
-		    uint32_t maxrrperset, dns_vecheader_t **theaderp);
+		   isc_mem_t *mctx, dns_rdataclass_t rdclass,
+		   dns_rdatatype_t type, unsigned int flags,
+		   uint32_t maxrrperset, dns_vecheader_t **theaderp);
 /*%<
  * Merge the vecs following 'oheader' and 'nheader'.
  */
 
 isc_result_t
 dns_rdatavec_subtract(dns_vecheader_t *mheader, dns_vecheader_t *sheader,
-		       isc_mem_t *mctx, dns_rdataclass_t rdclass,
-		       dns_rdatatype_t type, unsigned int flags,
-		       dns_vecheader_t **theaderp);
+		      isc_mem_t *mctx, dns_rdataclass_t rdclass,
+		      dns_rdatatype_t type, unsigned int flags,
+		      dns_vecheader_t **theaderp);
 /*%<
  * Subtract the vec following 'sheader' from the one following 'mheader'.
  * If 'exact' is true then all elements from the 'sheader' vec must exist
@@ -224,7 +223,6 @@ dns_rdatavec_subtract(dns_vecheader_t *mheader, dns_vecheader_t *sheader,
  * XXX
  * valid flags are DNS_RDATAVEC_EXACT
  */
-
 
 void
 dns_vecheader_setownercase(dns_vecheader_t *header, const dns_name_t *name);
@@ -235,7 +233,6 @@ dns_vecheader_setownercase(dns_vecheader_t *header, const dns_name_t *name);
  * \li	'header' is a valid vecheader.
  * \li	'name' is a valid name.
  */
-
 
 void
 dns_vecheader_reset(dns_vecheader_t *h, dns_dbnode_t *node);
@@ -256,7 +253,6 @@ dns_vecheader_destroy(dns_vecheader_t **headerp);
 /*%<
  * Free all memory associated with '*headerp'.
  */
-
 
 dns_vectop_t *
 dns_vectop_new(isc_mem_t *mctx, dns_typepair_t typepair);

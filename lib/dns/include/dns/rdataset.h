@@ -51,8 +51,8 @@
 #include <isc/stdtime.h>
 
 #include <dns/rdataslab.h>
-#include <dns/rdatavec.h>
 #include <dns/rdatastruct.h>
+#include <dns/rdatavec.h>
 #include <dns/types.h>
 
 #define DNS_RDATASET_MAXADDITIONAL 13
@@ -208,10 +208,10 @@ struct dns_rdataset {
 		 * methods; see comments in rdatavec.c for details.)
 		 */
 		struct {
-			struct dns_db           *db;
-			dns_dbnode_t           *node;
-			dns_vecheader_t        *header;
-			rdatavec_iter_t        iter;
+			struct dns_db	*db;
+			dns_dbnode_t	*node;
+			dns_vecheader_t *header;
+			rdatavec_iter_t	 iter;
 		} vec;
 
 		/*
@@ -634,7 +634,6 @@ dns_trust_totext(dns_trust_t trust);
 /*%<
  * Display trust in textual form.
  */
-
 
 isc_stdtime_t
 dns_rdataset_minresign(dns_rdataset_t *rdataset);

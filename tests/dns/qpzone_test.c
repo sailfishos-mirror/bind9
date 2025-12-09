@@ -33,8 +33,8 @@
 #include <dns/qp.h>
 #include <dns/rdatalist.h>
 #include <dns/rdataset.h>
-#include <dns/rdatavec.h>
 #include <dns/rdatastruct.h>
+#include <dns/rdatavec.h>
 #define KEEP_BEFORE
 
 #include "rdatavec_p.h"

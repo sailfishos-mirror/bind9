@@ -44,9 +44,9 @@
 
 /* Helper function to create a vecheader directly */
 static isc_result_t
-create_vecheader(isc_mem_t *mctx, dns_rdatatype_t type, dns_rdataclass_t rdclass,
-		 dns_ttl_t ttl, const char *rdata_text, dns_vecheader_t **headerp)
-{
+create_vecheader(isc_mem_t *mctx, dns_rdatatype_t type,
+		 dns_rdataclass_t rdclass, dns_ttl_t ttl,
+		 const char *rdata_text, dns_vecheader_t **headerp) {
 	dns_rdataset_t rdataset;
 	dns_rdatalist_t *rdatalist;
 	dns_rdata_t *rdata;
@@ -68,8 +68,8 @@ create_vecheader(isc_mem_t *mctx, dns_rdatatype_t type, dns_rdataclass_t rdclass
 
 	/* Create rdata */
 	dns_rdata_init(rdata);
-	CHECK(dns_test_rdatafromstring(rdata, rdclass, type, data,
-				       256, rdata_text, false));
+	CHECK(dns_test_rdatafromstring(rdata, rdclass, type, data, 256,
+				       rdata_text, false));
 
 	ISC_LIST_APPEND(rdatalist->rdata, rdata, link);
 	dns_rdatalist_tordataset(rdatalist, &rdataset);
@@ -92,9 +92,9 @@ cleanup:
 
 /* Helper function to create an rdataset from a vecheader */
 static void
-create_rdataset_from_vecheader(dns_vecheader_t *header, dns_rdataclass_t rdclass,
-				dns_rdatatype_t type, dns_rdataset_t *rdataset)
-{
+create_rdataset_from_vecheader(dns_vecheader_t *header,
+			       dns_rdataclass_t rdclass, dns_rdatatype_t type,
+			       dns_rdataset_t *rdataset) {
 	dns_rdataset_init(rdataset);
 	rdataset->methods = &dns_rdatavec_rdatasetmethods;
 	rdataset->rdclass = rdclass;
@@ -112,11 +112,11 @@ ISC_RUN_TEST_IMPL(merge_headers) {
 	isc_result_t result;
 
 	/* Create vecheaders with A records */
-	CHECK(create_vecheader(mctx, dns_rdatatype_a, dns_rdataclass_in,
-			       300, "192.168.1.1", &header1));
+	CHECK(create_vecheader(mctx, dns_rdatatype_a, dns_rdataclass_in, 300,
+			       "192.168.1.1", &header1));
 
-	CHECK(create_vecheader(mctx, dns_rdatatype_a, dns_rdataclass_in,
-			       300, "192.168.1.2", &header2));
+	CHECK(create_vecheader(mctx, dns_rdatatype_a, dns_rdataclass_in, 300,
+			       "192.168.1.2", &header2));
 
 	/* Get sizes and counts before merging */
 	size1 = dns_rdatavec_size(header1);
@@ -133,7 +133,8 @@ ISC_RUN_TEST_IMPL(merge_headers) {
 	merged_size = dns_rdatavec_size(merged_header);
 	merged_count = dns_rdatavec_count(merged_header);
 
-	/* Test: merged size should be first_size + second_size - sizeof(header) - count_field_size */
+	/* Test: merged size should be first_size + second_size - sizeof(header)
+	 * - count_field_size */
 	expected_size = size1 + size2 - sizeof(dns_vecheader_t) - 2;
 	assert_int_equal(merged_size, expected_size);
 
@@ -173,11 +174,11 @@ ISC_RUN_TEST_IMPL(merge_case_preservation) {
 	dns_test_namefromstring("example.com", &fname2);
 
 	/* Create vecheaders */
-	CHECK(create_vecheader(mctx, dns_rdatatype_a, dns_rdataclass_in,
-			       300, "192.168.1.1", &header1));
+	CHECK(create_vecheader(mctx, dns_rdatatype_a, dns_rdataclass_in, 300,
+			       "192.168.1.1", &header1));
 
-	CHECK(create_vecheader(mctx, dns_rdatatype_a, dns_rdataclass_in,
-			       300, "192.168.1.2", &header2));
+	CHECK(create_vecheader(mctx, dns_rdatatype_a, dns_rdataclass_in, 300,
+			       "192.168.1.2", &header2));
 
 	/* Set case on first header */
 	dns_vecheader_setownercase(header1, name1);
@@ -242,8 +243,8 @@ ISC_RUN_TEST_IMPL(setcase_size_consistency) {
 	dns_test_namefromstring("Example.COM", &fname);
 
 	/* Create vecheader */
-	CHECK(create_vecheader(mctx, dns_rdatatype_a, dns_rdataclass_in,
-			       300, "192.168.1.1", &header));
+	CHECK(create_vecheader(mctx, dns_rdatatype_a, dns_rdataclass_in, 300,
+			       "192.168.1.1", &header));
 
 	/* Get original size */
 	original_size = dns_rdatavec_size(header);

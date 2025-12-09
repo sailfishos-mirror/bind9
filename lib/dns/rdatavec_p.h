@@ -58,9 +58,9 @@ dns_vecheader_getheader(const dns_rdataset_t *rdataset);
  * \li	'rdataset' is a valid rdataset using rdatavec methods.
  */
 
-
 isc_result_t
-vecheader_first(rdatavec_iter_t *iter, dns_vecheader_t *header, dns_rdataclass_t rdclass);
+vecheader_first(rdatavec_iter_t *iter, dns_vecheader_t *header,
+		dns_rdataclass_t rdclass);
 
 isc_result_t
 vecheader_next(rdatavec_iter_t *iter);

@@ -21,9 +21,9 @@
  * similar to isc/list.h but optimized for forward-only traversal.
  */
 
-#define ISC_SLIST_INITIALIZER  \
-	{                      \
-		.head = NULL,  \
+#define ISC_SLIST_INITIALIZER \
+	{                     \
+		.head = NULL, \
 	}
 
 #define ISC_SLINK_INITIALIZER \
@@ -44,16 +44,16 @@
 #define ISC_SLIST_HEAD(list)  ((list).head)
 #define ISC_SLIST_EMPTY(list) ((list).head == NULL)
 
-#define ISC_SLIST_PREPEND(list, elt, link) \
-	({                                  \
+#define ISC_SLIST_PREPEND(list, elt, link)      \
+	({                                      \
 		(elt)->link.next = (list).head; \
 		(list).head = (elt);            \
 	})
 
-#define ISC_SLIST_INSERTAFTER(after, elt, link) \
-	({                                       \
+#define ISC_SLIST_INSERTAFTER(after, elt, link)        \
+	({                                             \
 		(elt)->link.next = (after)->link.next; \
-		(after)->link.next = (elt);         \
+		(after)->link.next = (elt);            \
 	})
 
 #define ISC_SLIST_NEXT(elt, link) ((elt)->link.next)
@@ -73,7 +73,7 @@
 
 /* Iteration over pointer-to-pointer for safe operations */
 #define ISC_SLIST_FOREACH_PTR(p, head) \
-	for (typeof(head) p = (head); *p != NULL; )
+	for (typeof(head) p = (head); *p != NULL;)
 
 #define ISC_SLIST_PTR_REMOVE(p, elt, link_field) \
 	(*(p) = ISC_SLIST_NEXT(elt, link_field))

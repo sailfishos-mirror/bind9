@@ -97,27 +97,27 @@ compare_rdata(const void *p1, const void *p2) {
 }
 
 static size_t
-header_size(const dns_vecheader_t* header) {
+header_size(const dns_vecheader_t *header) {
 	UNUSED(header);
 	return sizeof(dns_vecheader_t);
 }
 
-static unsigned char*
-rdatavec_raw(dns_vecheader_t* header) {
-	unsigned char *as_char_star = (unsigned char*) header;
-	unsigned char* raw = as_char_star + header_size(header);
+static unsigned char *
+rdatavec_raw(dns_vecheader_t *header) {
+	unsigned char *as_char_star = (unsigned char *)header;
+	unsigned char *raw = as_char_star + header_size(header);
 
 	return raw;
 }
 
-static unsigned char*
-rdatavec_data(dns_vecheader_t* header) {
+static unsigned char *
+rdatavec_data(dns_vecheader_t *header) {
 	return rdatavec_raw(header) + 2;
 }
 
-static unsigned int 
-rdatavec_count(dns_vecheader_t* header) {
-	unsigned char* raw = rdatavec_raw(header);
+static unsigned int
+rdatavec_count(dns_vecheader_t *header) {
+	unsigned char *raw = rdatavec_raw(header);
 	unsigned int count = get_uint16(raw);
 
 	return count;
@@ -125,7 +125,7 @@ rdatavec_count(dns_vecheader_t* header) {
 
 static isc_result_t
 makevec(dns_rdataset_t *rdataset, isc_mem_t *mctx, isc_region_t *region,
-	 uint32_t maxrrperset) {
+	uint32_t maxrrperset) {
 	/*
 	 * Use &removed as a sentinel pointer for duplicate
 	 * rdata as rdata.data == NULL is valid.
@@ -318,7 +318,7 @@ free_rdatas:
 
 isc_result_t
 dns_rdatavec_fromrdataset(dns_rdataset_t *rdataset, isc_mem_t *mctx,
-			   isc_region_t *region, uint32_t maxrrperset) {
+			  isc_region_t *region, uint32_t maxrrperset) {
 	isc_result_t result;
 
 	if (rdataset->type == dns_rdatatype_none &&
@@ -389,7 +389,7 @@ dns_rdatavec_count(dns_vecheader_t *header) {
  */
 static void
 rdata_from_vecitem(unsigned char **current, dns_rdataclass_t rdclass,
-		    dns_rdatatype_t type, dns_rdata_t *rdata) {
+		   dns_rdatatype_t type, dns_rdata_t *rdata) {
 	unsigned char *tcurrent = *current;
 	isc_region_t region;
 	bool offline = false;
@@ -414,7 +414,7 @@ rdata_from_vecitem(unsigned char **current, dns_rdataclass_t rdclass,
 
 static void
 rdata_to_vecitem(unsigned char **current, dns_rdatatype_t type,
-		  dns_rdata_t *rdata) {
+		 dns_rdata_t *rdata) {
 	unsigned int length = rdata->length;
 	unsigned char *data = rdata->data;
 	unsigned char *p = *current;
@@ -439,9 +439,9 @@ typedef struct vecinfo {
 
 isc_result_t
 dns_rdatavec_merge(dns_vecheader_t *oheader, dns_vecheader_t *nheader,
-		    isc_mem_t *mctx, dns_rdataclass_t rdclass,
-		    dns_rdatatype_t type, unsigned int flags,
-		    uint32_t maxrrperset, dns_vecheader_t **theaderp) {
+		   isc_mem_t *mctx, dns_rdataclass_t rdclass,
+		   dns_rdatatype_t type, unsigned int flags,
+		   uint32_t maxrrperset, dns_vecheader_t **theaderp) {
 	isc_result_t result = ISC_R_SUCCESS;
 	unsigned char *ocurrent = NULL, *ncurrent = NULL, *tcurrent = NULL;
 	unsigned int ocount, ncount, tlength, tcount = 0;
@@ -561,9 +561,9 @@ dns_rdatavec_merge(dns_vecheader_t *oheader, dns_vecheader_t *nheader,
 
 	/* Allocate the target buffer and copy the new vec's header */
 	unsigned char *tstart = isc_mem_get(mctx, tlength);
-	dns_vecheader_t *as_header = (dns_vecheader_t*) tstart;
+	dns_vecheader_t *as_header = (dns_vecheader_t *)tstart;
 
-	/* 
+	/*
 	 * Preserve the case of the old header, but the rest from the new
 	 * header
 	 */
@@ -626,9 +626,9 @@ cleanup:
 
 isc_result_t
 dns_rdatavec_subtract(dns_vecheader_t *oheader, dns_vecheader_t *sheader,
-		       isc_mem_t *mctx, dns_rdataclass_t rdclass,
-		       dns_rdatatype_t type, unsigned int flags,
-		       dns_vecheader_t **theaderp) {
+		      isc_mem_t *mctx, dns_rdataclass_t rdclass,
+		      dns_rdatatype_t type, unsigned int flags,
+		      dns_vecheader_t **theaderp) {
 	isc_result_t result = ISC_R_SUCCESS;
 	unsigned char *ocurrent = NULL, *scurrent = NULL;
 	unsigned char *tstart = NULL, *tcurrent = NULL;
@@ -756,7 +756,6 @@ cleanup:
 	return result;
 }
 
-
 void
 dns_vecheader_setownercase(dns_vecheader_t *header, const dns_name_t *name) {
 	REQUIRE(!CASESET(header));
@@ -775,8 +774,7 @@ dns_vecheader_setownercase(dns_vecheader_t *header, const dns_name_t *name) {
 		}
 	}
 	if (casefullylower) {
-		DNS_VECHEADER_SETATTR(header,
-				       DNS_VECHEADERATTR_CASEFULLYLOWER);
+		DNS_VECHEADER_SETATTR(header, DNS_VECHEADERATTR_CASEFULLYLOWER);
 	}
 	DNS_VECHEADER_SETATTR(header, DNS_VECHEADERATTR_CASESET);
 }
@@ -826,7 +824,8 @@ dns_vecheader_destroy(dns_vecheader_t **headerp) {
 /* Iterators for already bound rdatavec */
 
 isc_result_t
-vecheader_first(rdatavec_iter_t *iter, dns_vecheader_t *header, dns_rdataclass_t rdclass) {
+vecheader_first(rdatavec_iter_t *iter, dns_vecheader_t *header,
+		dns_rdataclass_t rdclass) {
 	unsigned char *raw = rdatavec_data(header);
 	uint16_t count = rdatavec_count(header);
 	if (count == 0) {
@@ -899,7 +898,6 @@ vecheader_current(rdatavec_iter_t *iter, dns_rdata_t *rdata) {
 	rdata->flags |= flags;
 }
 
-
 /* Fixed RRSet helper macros */
 
 static void
@@ -911,7 +909,8 @@ rdataset_disassociate(dns_rdataset_t *rdataset DNS__DB_FLARG) {
 
 static isc_result_t
 rdataset_first(dns_rdataset_t *rdataset) {
-	return vecheader_first(&rdataset->vec.iter, rdataset->vec.header, rdataset->rdclass);
+	return vecheader_first(&rdataset->vec.iter, rdataset->vec.header,
+			       rdataset->rdclass);
 }
 
 static isc_result_t
