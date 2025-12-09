@@ -541,8 +541,8 @@ dns_qp_getname(dns_qpreadable_t qpr, const dns_name_t *name,
 
 isc_result_t
 dns_qp_lookup(dns_qpreadable_t qpr, const dns_name_t *name,
-	      dns_namespace_t space, dns_qpiter_t *iter,
-	      dns_qpchain_t *chain, void **pval_r, uint32_t *ival_r);
+	      dns_namespace_t space, dns_qpiter_t *iter, dns_qpchain_t *chain,
+	      void **pval_r, uint32_t *ival_r);
 /*%<
  * Look up a leaf in a qp-trie that is equal to, or an ancestor domain of,
  * 'name' in the namespace 'space'.
@@ -679,7 +679,6 @@ dns_qpiter_prev(dns_qpiter_t *qpi, void **pval_r, uint32_t *ival_r);
  * \li  ISC_R_NOMORE otherwise
  */
 
-
 isc_result_t
 dns_qpiter_current(dns_qpiter_t *qpi, void **pval_r, uint32_t *ival_r);
 /*%<
@@ -696,7 +695,6 @@ dns_qpiter_current(dns_qpiter_t *qpi, void **pval_r, uint32_t *ival_r);
  * \li  ISC_R_FAILURE if the iterator is not initialized or not pointing
  *      at a leaf node
  */
-
 
 void
 dns_qpchain_init(dns_qpreadable_t qpr, dns_qpchain_t *chain);
@@ -718,8 +716,8 @@ dns_qpchain_length(dns_qpchain_t *chain);
  */
 
 void
-dns_qpchain_node(dns_qpchain_t *chain, unsigned int level,
-		 void **pval_r, uint32_t *ival_r);
+dns_qpchain_node(dns_qpchain_t *chain, unsigned int level, void **pval_r,
+		 uint32_t *ival_r);
 /*%<
  * Sets 'name' to the name of the leaf referenced at `chain->stack[level]`.
  *

@@ -1637,8 +1637,7 @@ qpcache_find(dns_db_t *db, const dns_name_t *name, dns_dbversion_t *version,
 		isc_result_t zcresult;
 		qpcnode_t *encloser = NULL;
 
-		dns_qpchain_node(&search.chain, i, (void **)&encloser,
-				 NULL);
+		dns_qpchain_node(&search.chain, i, (void **)&encloser, NULL);
 
 		zcresult = check_zonecut(encloser,
 					 (void *)&search DNS__DB_FLARG_PASS);
@@ -2072,8 +2071,8 @@ qpcache_findzonecut(dns_db_t *db, const dns_name_t *name, unsigned int options,
 			INSIST(len >= 2);
 
 			node = NULL;
-			dns_qpchain_node(&search.chain, len - 2,
-					 (void **)&node, NULL);
+			dns_qpchain_node(&search.chain, len - 2, (void **)&node,
+					 NULL);
 			search.chain.len = len - 1;
 		}
 
@@ -3516,8 +3515,8 @@ resume_iteration(qpc_dbit_t *qpdbiter, bool continuing) {
 	if (continuing && qpdbiter->node != NULL) {
 		isc_result_t result;
 		result = dns_qp_lookup(qpdb->tree, qpdbiter->name,
-				       DNS_DBNAMESPACE_NORMAL,
-				       &qpdbiter->iter, NULL, NULL, NULL);
+				       DNS_DBNAMESPACE_NORMAL, &qpdbiter->iter,
+				       NULL, NULL, NULL);
 		INSIST(result == ISC_R_SUCCESS);
 	}
 
@@ -3567,8 +3566,8 @@ dbiterator_first(dns_dbiterator_t *iterator DNS__DB_FLARG) {
 	dereference_iter_node(qpdbiter DNS__DB_FLARG_PASS);
 
 	dns_qpiter_init(qpdb->tree, &qpdbiter->iter);
-	result = dns_qpiter_next(&qpdbiter->iter,
-				 (void **)&qpdbiter->node, NULL);
+	result = dns_qpiter_next(&qpdbiter->iter, (void **)&qpdbiter->node,
+				 NULL);
 
 	if (result == ISC_R_SUCCESS &&
 	    qpdbiter->node->nspace == DNS_DBNAMESPACE_NORMAL)
@@ -3657,8 +3656,8 @@ dbiterator_next(dns_dbiterator_t *iterator DNS__DB_FLARG) {
 
 	dereference_iter_node(qpdbiter DNS__DB_FLARG_PASS);
 
-	result = dns_qpiter_next(&qpdbiter->iter,
-				 (void **)&qpdbiter->node, NULL);
+	result = dns_qpiter_next(&qpdbiter->iter, (void **)&qpdbiter->node,
+				 NULL);
 
 	if (result == ISC_R_SUCCESS &&
 	    qpdbiter->node->nspace == DNS_DBNAMESPACE_NORMAL)

@@ -1881,8 +1881,8 @@ dns_qpchain_length(dns_qpchain_t *chain) {
 }
 
 void
-dns_qpchain_node(dns_qpchain_t *chain, unsigned int level,
-		 void **pval_r, uint32_t *ival_r) {
+dns_qpchain_node(dns_qpchain_t *chain, unsigned int level, void **pval_r,
+		 uint32_t *ival_r) {
 	dns_qpnode_t *node = NULL;
 
 	REQUIRE(QPCHAIN_VALID(chain));
@@ -2029,8 +2029,6 @@ dns_qpiter_prev(dns_qpiter_t *qpi, void **pval_r, uint32_t *ival_r) {
 	return iterate(false, qpi, pval_r, ival_r);
 }
 
-
-
 isc_result_t
 dns_qpiter_current(dns_qpiter_t *qpi, void **pval_r, uint32_t *ival_r) {
 	dns_qpnode_t *node = NULL;
@@ -2046,7 +2044,6 @@ dns_qpiter_current(dns_qpiter_t *qpi, void **pval_r, uint32_t *ival_r) {
 	SET_IF_NOT_NULL(ival_r, leaf_ival(node));
 	return ISC_R_SUCCESS;
 }
-
 
 /***********************************************************************
  *
@@ -2271,8 +2268,8 @@ fix_chain(dns_qpchain_t *chain, size_t offset) {
 
 isc_result_t
 dns_qp_lookup(dns_qpreadable_t qpr, const dns_name_t *name,
-	      dns_namespace_t space, dns_qpiter_t *iter,
-	      dns_qpchain_t *chain, void **pval_r, uint32_t *ival_r) {
+	      dns_namespace_t space, dns_qpiter_t *iter, dns_qpchain_t *chain,
+	      void **pval_r, uint32_t *ival_r) {
 	dns_qpreader_t *qp = dns_qpreader(qpr);
 	dns_qpkey_t search, found;
 	size_t searchlen, foundlen;
