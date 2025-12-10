@@ -162,7 +162,7 @@ path = [
 	"**/.gitattributes",
 	"**/.gitignore",
 	"**/named**.args",
-	"**/named**.args.in",
+	"**/named**.args.j2",
 	"**/named.dropedns",
 	"**/named.ednsformerr",
 	"**/named.ednsnotimp",
