@@ -38,16 +38,26 @@
  * The memory structure of an rdatavec is as follows:
  *
  *	header		(dns_vecheader_t)
- *	record count	(2 bytes)
+ *	record count	(2 bytes, big endian)
  *	data records
- *		data length	(2 bytes)
- *		order		(2 bytes)
- *		meta data	(1 byte for RRSIG, 0 for all other types)
+ *		data length	(2 bytes, big endian)
+ *		meta data	(1 byte for RRSIG, 0 bytes for all other types)
  *		data		(data length bytes)
  *
- * A "bare" rdatavec is everything after "header".
+ * A "bare" rdatavec is everything after the header. The first two bytes
+ * contain the count of rdata records in the rdatavec. For records with
+ * the DNS_VECHEADERATTR_NONEXISTENT attribute, the record count is omitted
+ * entirely.
  *
- * When a vec is created, data records are sorted into DNSSEC order.
+ * After the count, the rdata records are stored sequentially in memory.
+ * Each record consists of a length field, optional metadata, and the actual
+ * rdata bytes.
+ *
+ * The rdata format depends on the RR type and is defined by the type-specific
+ * *_fromwire and *_towire functions (e.g., lib/dns/rdata/in_1/a_1.c for A
+ * records). The data is typically stored in wire format.
+ *
+ * When a vec is created, data records are sorted into DNSSEC canonical order.
  */
 
 static void
