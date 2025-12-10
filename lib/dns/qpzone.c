@@ -2916,6 +2916,8 @@ previous_closest_nsec(dns_rdatatype_t type, qpz_search_t *search,
 	dns_qpmulti_query(search->qpdb->tree, &qpr);
 
 	for (;;) {
+		qpznode_t *nsec_node = NULL;
+
 		if (*firstp) {
 			/*
 			 * This is the first attempt to find 'name' in the
@@ -2924,7 +2926,6 @@ previous_closest_nsec(dns_rdatatype_t type, qpz_search_t *search,
 			*firstp = false;
 			result = dns_qp_lookup(&qpr, name, DNS_DBNAMESPACE_NSEC,
 					       nit, NULL, NULL, NULL);
-			qpznode_t *node = NULL;
 
 			INSIST(result != ISC_R_NOTFOUND);
 			if (result == ISC_R_SUCCESS) {
@@ -2936,11 +2937,8 @@ previous_closest_nsec(dns_rdatatype_t type, qpz_search_t *search,
 				 * NSEC record; we want the previous node
 				 * in the NSEC tree.
 				 */
-				result = dns_qpiter_prev(nit, (void **)&node,
-							 NULL);
-				if (result == ISC_R_SUCCESS) {
-					dns_name_copy(&node->name, name);
-				}
+				result = dns_qpiter_prev(
+					nit, (void **)&nsec_node, NULL);
 			} else if (result == DNS_R_PARTIALMATCH) {
 				/*
 				 * This was a partial match, so the
@@ -2949,10 +2947,8 @@ previous_closest_nsec(dns_rdatatype_t type, qpz_search_t *search,
 				 * what we want.
 				 */
 				isc_result_t iresult = dns_qpiter_current(
-					nit, (void **)&node, NULL);
-				if (iresult == ISC_R_SUCCESS) {
-					dns_name_copy(&node->name, name);
-				}
+					nit, (void **)&nsec_node, NULL);
+				REQUIRE(iresult == ISC_R_SUCCESS);
 				result = ISC_R_SUCCESS;
 			}
 		} else {
@@ -2963,21 +2959,20 @@ previous_closest_nsec(dns_rdatatype_t type, qpz_search_t *search,
 			 * work; perhaps they lacked signature records.
 			 * Keep searching.
 			 */
-			qpznode_t *tempnode = NULL;
-			result = dns_qpiter_prev(nit, (void **)&tempnode, NULL);
-			if (result == ISC_R_SUCCESS) {
-				dns_name_copy(&tempnode->name, name);
-			}
+			result = dns_qpiter_prev(nit, (void **)&nsec_node,
+						 NULL);
 		}
+
 		if (result != ISC_R_SUCCESS) {
 			break;
 		}
 
 		*nodep = NULL;
-		result = dns_qp_lookup(&search->qpr, name,
+		result = dns_qp_lookup(&search->qpr, &nsec_node->name,
 				       DNS_DBNAMESPACE_NORMAL, &search->iter,
 				       &search->chain, (void **)nodep, NULL);
 		if (result == ISC_R_SUCCESS) {
+			dns_name_copy(&nsec_node->name, name);
 			break;
 		}
 
