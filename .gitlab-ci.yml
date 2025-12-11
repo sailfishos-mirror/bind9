@@ -354,6 +354,9 @@ stages:
       $EXTRA_CONFIGURE
       || (test -s config.log && cat config.log; exit 1)
 
+.git-clone-bind9-qa: &git_clone_bind9-qa
+  - git clone --depth 1 https://gitlab.isc.org/isc-projects/bind9-qa.git
+
 # change directory to the workspace before including this
 .find_python: &find_python
   - PYTHON="$(source bin/tests/system/conf.sh; echo $PYTHON)"
@@ -618,7 +621,7 @@ stages:
     - *configure
     - make -j${BUILD_PARALLEL_JOBS:-1} V=1
     - *setup_interfaces
-    - git clone --depth 1 https://gitlab.isc.org/isc-projects/bind9-qa.git
+    - *git_clone_bind9-qa
     - cd bind9-qa/respdiff
   needs: []
   artifacts:
@@ -694,7 +697,7 @@ ci-variables:
 ci-orphaned-anchors:
   <<: *precheck_job
   script:
-    - git clone --depth 1 https://gitlab.isc.org/isc-projects/bind9-qa.git
+    - *git_clone_bind9-qa
     - bind9-qa/ci-orphaned-anchors/check-orphaned-anchors-ci.py .gitlab-ci.yml
   needs: []
   rules:
@@ -1782,7 +1785,7 @@ publish:
   <<: *manual_release_job
   <<: *base_image
   before_script:
-    - git clone --depth 1 https://gitlab.isc.org/isc-projects/bind9-qa.git
+    - *git_clone_bind9-qa
   needs:
     - job: staging
       artifacts: false
@@ -1887,7 +1890,7 @@ customer-git:branch:
         BRANCH: '$CI_COMMIT_BRANCH'
   before_script:
     - test -n "$CUSTOMER"
-    - git clone --depth 1 https://gitlab.isc.org/isc-projects/bind9-qa.git
+    - *git_clone_bind9-qa
   script:
     - git checkout -b "$BRANCH"  # ensure refs/heads/$BRANCH exists; GitLab clones with detached HEAD
     - bind9-qa/releng/push_to_customer_repository.py --branch "$BRANCH" --customer "$CUSTOMER" --force
@@ -1900,7 +1903,7 @@ customer-git:tag:
   rules:
     - *rule_tag
   before_script:
-    - git clone --depth 1 https://gitlab.isc.org/isc-projects/bind9-qa.git
+    - *git_clone_bind9-qa
     - git clone --depth 1 "https://token:${ISC_CUSTOMERS_WRITE_TOKEN}@gitlab.isc.org/isc-customers/isc-customer-settings.git"
   script:
     - bind9-qa/releng/push_to_customer_repository.py --tag "$CI_COMMIT_TAG" --entitlements isc-customer-settings/entitlements.yaml --force
@@ -2077,7 +2080,7 @@ generate-stress-test-configs:
   <<: *default_triggering_rules
   stage: precheck
   script:
-    - git clone --depth 1 https://gitlab.isc.org/isc-projects/bind9-qa.git
+    - *git_clone_bind9-qa
     - bind9-qa/stress/generate-stress-test-configs.py > stress-test-configs.yml
   artifacts:
     paths:
@@ -2179,7 +2182,7 @@ pairwise:
     - >
       : stop if this is not a merge request in the current project\'s namespace
     - test -n "$MERGE_REQUEST_ID" || exit 0
-    - git clone --depth 1 https://gitlab.isc.org/isc-projects/bind9-qa.git
+    - *git_clone_bind9-qa
 
 backports:
   <<: *post_merge
