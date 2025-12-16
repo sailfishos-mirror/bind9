@@ -1840,14 +1840,14 @@ add(qpzonedb_t *qpdb, qpznode_t *node, const dns_name_t *nodename,
 			result = ISC_R_SUCCESS;
 
 			if ((options & DNS_DBADD_EXACT) != 0) {
-				flags |= DNS_RDATASLAB_EXACT;
+				flags |= DNS_RDATAVEC_EXACT;
 			}
 			if ((options & DNS_DBADD_EXACTTTL) != 0 &&
 			    newheader->ttl != header->ttl)
 			{
 				result = DNS_R_NOTEXACT;
 			} else if (newheader->ttl != header->ttl) {
-				flags |= DNS_RDATASLAB_FORCE;
+				flags |= DNS_RDATAVEC_FORCE;
 			}
 			if (result == ISC_R_SUCCESS) {
 				result = dns_rdatavec_merge(
@@ -4943,7 +4943,7 @@ qpzone_subtractrdataset(dns_db_t *db, dns_dbnode_t *dbnode,
 		subresult = NULL;
 		result = ISC_R_SUCCESS;
 		if ((options & DNS_DBSUB_EXACT) != 0) {
-			flags |= DNS_RDATASLAB_EXACT;
+			flags |= DNS_RDATAVEC_EXACT;
 			if (newheader->ttl != header->ttl) {
 				result = DNS_R_NOTEXACT;
 			}
