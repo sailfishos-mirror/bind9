@@ -20,6 +20,10 @@ zone=example.
 infile=example.db.in
 zonefile=example.db
 
+# The zone is signed but it's broken: instead of having a ZSK and a KSK (which
+# is the DNSKEY pointed by the parent's DS), it has two ZSKs. As a result,
+# `example.` validations will always fail, resulting into a SERVFAIL on
+# validating resolvers.
 keyname1=$("$KEYGEN" -q -a "$DEFAULT_ALGORITHM" -b "$DEFAULT_BITS" "$zone")
 keyname2=$("$KEYGEN" -q -a "$DEFAULT_ALGORITHM" -b "$DEFAULT_BITS" "$zone")
 
