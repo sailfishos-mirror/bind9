@@ -82,17 +82,23 @@ struct dns_vecheader {
 	_Atomic(dns_trust_t) trust;
 
 	/*%
+	 * Locked by the heap lock. Can't be packed together with other fields
+	 * since it is protected by a different lock.
+	 */
+	unsigned int heap_index;
+
+	/*%
 	 * Locked by the owning node's lock.
 	 */
-	uint16_t       resign_lsb : 1;
-	unsigned int   heap_index : 31;
 	uint32_t       serial;
 	dns_ttl_t      ttl;
 	dns_typepair_t typepair;
 
-	/* resigning (zone). The lsb is not adjacent for struct packing reasons
+	/*
+	 * resigning (zone).
 	 */
 	isc_stdtime_t resign;
+	uint16_t      resign_lsb : 1;
 
 	/*%
 	 * Link to the other versions of this rdataset.
