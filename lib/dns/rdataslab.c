@@ -17,6 +17,8 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
+#include <urcu/list.h>
+
 #include <isc/ascii.h>
 #include <isc/atomic.h>
 #include <isc/list.h>
@@ -100,6 +102,24 @@ compare_rdata(const void *p1, const void *p2) {
 	return dns_rdata_compare(p1, p2);
 }
 
+static unsigned char *
+newslab(dns_rdataset_t *rdataset, isc_mem_t *mctx, isc_region_t *region,
+	size_t size) {
+	dns_slabheader_t *header = isc_mem_get(mctx, size);
+
+	*header = (dns_slabheader_t){
+		.headers_link = CDS_LIST_HEAD_INIT(header->headers_link),
+		.trust = rdataset->trust,
+		.ttl = rdataset->ttl,
+		.dirtylink = ISC_LINK_INITIALIZER,
+	};
+
+	region->base = (unsigned char *)header;
+	region->length = size;
+
+	return (unsigned char *)header + sizeof(*header);
+}
+
 static isc_result_t
 makeslab(dns_rdataset_t *rdataset, isc_mem_t *mctx, isc_region_t *region,
 	 uint32_t maxrrperset) {
@@ -128,11 +148,11 @@ makeslab(dns_rdataset_t *rdataset, isc_mem_t *mctx, isc_region_t *region,
 		dns_slabheader_t *header = rdataset_getheader(rdataset);
 		buflen = dns_rdataslab_size(header);
 
-		rawbuf = isc_mem_get(mctx, buflen);
-		region->base = rawbuf;
-		region->length = buflen;
+		rawbuf = newslab(rdataset, mctx, region, buflen);
 
-		memmove(rawbuf, header, buflen);
+		INSIST(headerlen <= buflen);
+		memmove(rawbuf, (unsigned char *)header + headerlen,
+			buflen - headerlen);
 		return ISC_R_SUCCESS;
 	}
 
@@ -145,10 +165,7 @@ makeslab(dns_rdataset_t *rdataset, isc_mem_t *mctx, isc_region_t *region,
 		if (rdataset->type != 0) {
 			return ISC_R_FAILURE;
 		}
-		rawbuf = isc_mem_get(mctx, buflen);
-		region->base = rawbuf;
-		region->length = buflen;
-		rawbuf += headerlen;
+		rawbuf = newslab(rdataset, mctx, region, buflen);
 		put_uint16(rawbuf, 0);
 		return ISC_R_SUCCESS;
 	}
@@ -253,11 +270,7 @@ makeslab(dns_rdataset_t *rdataset, isc_mem_t *mctx, isc_region_t *region,
 	 * Allocate the memory, set up a buffer, start copying in
 	 * data.
 	 */
-	rawbuf = isc_mem_get(mctx, buflen);
-
-	region->base = rawbuf;
-	region->length = buflen;
-	rawbuf += headerlen;
+	rawbuf = newslab(rdataset, mctx, region, buflen);
 	put_uint16(rawbuf, nitems);
 
 	for (i = 0; i < nalloc; i++) {
@@ -306,29 +319,20 @@ dns_rdataslab_fromrdataset(dns_rdataset_t *rdataset, isc_mem_t *mctx,
 
 	result = makeslab(rdataset, mctx, region, maxrrperset);
 	if (result == ISC_R_SUCCESS) {
-		dns_slabheader_t *new = (dns_slabheader_t *)region->base;
-		dns_typepair_t typepair;
+		dns_slabheader_t *header = (dns_slabheader_t *)region->base;
 
 		if (rdataset->attributes.negative) {
 			INSIST(rdataset->type == dns_rdatatype_none);
 			INSIST(rdataset->covers != dns_rdatatype_none);
-			typepair = DNS_TYPEPAIR_VALUE(rdataset->covers,
-						      dns_rdatatype_none);
+			header->typepair = DNS_TYPEPAIR_VALUE(
+				rdataset->covers, dns_rdatatype_none);
 		} else {
 			INSIST(rdataset->type != dns_rdatatype_none);
 			INSIST(dns_rdatatype_issig(rdataset->type) ||
 			       rdataset->covers == dns_rdatatype_none);
-			typepair = DNS_TYPEPAIR_VALUE(rdataset->type,
-						      rdataset->covers);
+			header->typepair = DNS_TYPEPAIR_VALUE(rdataset->type,
+							      rdataset->covers);
 		}
-
-		*new = (dns_slabheader_t){
-			.headers_link = CDS_LIST_HEAD_INIT(new->headers_link),
-			.typepair = typepair,
-			.trust = rdataset->trust,
-			.ttl = rdataset->ttl,
-			.dirtylink = ISC_LINK_INITIALIZER,
-		};
 	}
 
 	return result;
