@@ -123,6 +123,23 @@ rdatavec_count(dns_vecheader_t *header) {
 	return count;
 }
 
+static unsigned char *
+newvec(dns_rdataset_t *rdataset, isc_mem_t *mctx, isc_region_t *region,
+       size_t size) {
+	dns_vecheader_t *header = isc_mem_get(mctx, size);
+
+	*header = (dns_vecheader_t){
+		.next_header = ISC_SLINK_INITIALIZER,
+		.trust = rdataset->trust,
+		.ttl = rdataset->ttl,
+	};
+
+	region->base = (unsigned char *)header;
+	region->length = size;
+
+	return (unsigned char *)header + sizeof(*header);
+}
+
 static isc_result_t
 makevec(dns_rdataset_t *rdataset, isc_mem_t *mctx, isc_region_t *region,
 	uint32_t maxrrperset) {
@@ -151,11 +168,11 @@ makevec(dns_rdataset_t *rdataset, isc_mem_t *mctx, isc_region_t *region,
 		dns_vecheader_t *header = dns_vecheader_getheader(rdataset);
 		buflen = dns_rdatavec_size(header);
 
-		rawbuf = isc_mem_get(mctx, buflen);
-		region->base = rawbuf;
-		region->length = buflen;
+		rawbuf = newvec(rdataset, mctx, region, buflen);
 
-		memmove(rawbuf, header, buflen);
+		INSIST(headerlen <= buflen);
+		memmove(rawbuf, (unsigned char *)header + headerlen,
+			buflen - headerlen);
 		return ISC_R_SUCCESS;
 	}
 
@@ -168,10 +185,7 @@ makevec(dns_rdataset_t *rdataset, isc_mem_t *mctx, isc_region_t *region,
 		if (rdataset->type != 0) {
 			return ISC_R_FAILURE;
 		}
-		rawbuf = isc_mem_get(mctx, buflen);
-		region->base = rawbuf;
-		region->length = buflen;
-		rawbuf += headerlen;
+		rawbuf = newvec(rdataset, mctx, region, buflen);
 		put_uint16(rawbuf, 0);
 		return ISC_R_SUCCESS;
 	}
@@ -276,11 +290,7 @@ makevec(dns_rdataset_t *rdataset, isc_mem_t *mctx, isc_region_t *region,
 	 * Allocate the memory, set up a buffer, start copying in
 	 * data.
 	 */
-	rawbuf = isc_mem_get(mctx, buflen);
-
-	region->base = rawbuf;
-	region->length = buflen;
-	rawbuf += headerlen;
+	rawbuf = newvec(rdataset, mctx, region, buflen);
 	put_uint16(rawbuf, nitems);
 
 	for (i = 0; i < nalloc; i++) {
