@@ -20,9 +20,11 @@ def check_sfcache_ede(ns, ede):
     res = isctest.query.udp(msg, ns.ip)
     isctest.check.servfail(res)
     if ede:
+        # The SERVFAIL is cached, so now it shows up the EDE CACHED_ERROR, but not the DNSKEY_MISSING.
         isctest.check.ede(res, EDECode.CACHED_ERROR)
     else:
-        isctest.check.noede(res)
+        # example. domain DNSSEC is misconfigured on ns2, as it have two ZSK but no KSK. As a result, the DNSKEY for example. can't be found.
+        isctest.check.ede(res, EDECode.DNSKEY_MISSING)
 
 
 def test_sfcache_ede(ns5, templates):
