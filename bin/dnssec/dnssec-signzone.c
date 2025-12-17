@@ -2724,15 +2724,15 @@ findkeys:
 	/* Get the CDS rdataset */
 	result = dns_db_findrdataset(gdb, node, ver, dns_rdatatype_cds,
 				     dns_rdatatype_none, 0, &cdsset, NULL);
-	if (result != ISC_R_SUCCESS && dns_rdataset_isassociated(&cdsset)) {
-		dns_rdataset_disassociate(&cdsset);
+	if (result != ISC_R_SUCCESS) {
+		dns_rdataset_cleanup(&cdsset);
 	}
 
 	/* Get the CDNSKEY rdataset */
 	result = dns_db_findrdataset(gdb, node, ver, dns_rdatatype_cdnskey,
 				     dns_rdatatype_none, 0, &cdnskeyset, NULL);
-	if (result != ISC_R_SUCCESS && dns_rdataset_isassociated(&cdnskeyset)) {
-		dns_rdataset_disassociate(&cdnskeyset);
+	if (result != ISC_R_SUCCESS) {
+		dns_rdataset_cleanup(&cdnskeyset);
 	}
 
 	dns_diff_init(isc_g_mctx, &diff);

@@ -1230,10 +1230,8 @@ seek_dnskey(dns_validator_t *val) {
 		break;
 	}
 
-	if (dns_rdataset_isassociated(&val->frdataset) &&
-	    val->keyset != &val->frdataset)
-	{
-		dns_rdataset_disassociate(&val->frdataset);
+	if (val->keyset != &val->frdataset) {
+		dns_rdataset_cleanup(&val->frdataset);
 	}
 	dns_rdataset_cleanup(&val->fsigrdataset);
 

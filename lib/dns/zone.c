@@ -21347,11 +21347,9 @@ zone_rekey(dns_zone_t *zone) {
 	/* Get the current CDS rdataset */
 	result = dns_db_findrdataset(db, node, ver, dns_rdatatype_cds,
 				     dns_rdatatype_none, 0, &cdsset, NULL);
-	if (result != ISC_R_SUCCESS && dns_rdataset_isassociated(&cdsset)) {
-		dns_rdataset_disassociate(&cdsset);
-	} else if (result == ISC_R_SUCCESS && kasp != NULL &&
-		   ttl != cdsset.ttl && !offlineksk)
-	{
+	if (result != ISC_R_SUCCESS) {
+		dns_rdataset_cleanup(&cdsset);
+	} else if (kasp != NULL && ttl != cdsset.ttl && !offlineksk) {
 		update_ttl(&cdsset, &zone->origin, ttl, &diff);
 		dnssec_log(zone, ISC_LOG_INFO, "Updating CDS TTL from %u to %u",
 			   cdsset.ttl, ttl);
@@ -21361,11 +21359,9 @@ zone_rekey(dns_zone_t *zone) {
 	/* Get the current CDNSKEY rdataset */
 	result = dns_db_findrdataset(db, node, ver, dns_rdatatype_cdnskey,
 				     dns_rdatatype_none, 0, &cdnskeyset, NULL);
-	if (result != ISC_R_SUCCESS && dns_rdataset_isassociated(&cdnskeyset)) {
-		dns_rdataset_disassociate(&cdnskeyset);
-	} else if (result == ISC_R_SUCCESS && kasp != NULL &&
-		   ttl != cdnskeyset.ttl && !offlineksk)
-	{
+	if (result != ISC_R_SUCCESS) {
+		dns_rdataset_cleanup(&cdnskeyset);
+	} else if (kasp != NULL && ttl != cdnskeyset.ttl && !offlineksk) {
 		update_ttl(&cdnskeyset, &zone->origin, ttl, &diff);
 		dnssec_log(zone, ISC_LOG_INFO,
 			   "Updating CDNSKEY TTL from %u to %u", cdnskeyset.ttl,

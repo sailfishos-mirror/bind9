@@ -915,10 +915,8 @@ db_find:
 	}
 
 cleanup:
-	if (dns_rdataset_isassociated(&zrdataset)) {
-		dns_rdataset_disassociate(&zrdataset);
-		dns_rdataset_cleanup(&zsigrdataset);
-	}
+	dns_rdataset_cleanup(&zrdataset);
+	dns_rdataset_cleanup(&zsigrdataset);
 
 	if (zdb != NULL) {
 		if (znode != NULL) {
@@ -1137,10 +1135,9 @@ db_find:
 
 finish:
 	if (use_zone) {
-		if (dns_rdataset_isassociated(rdataset)) {
-			dns_rdataset_disassociate(rdataset);
-			dns_rdataset_cleanup(sigrdataset);
-		}
+		dns_rdataset_cleanup(rdataset);
+		dns_rdataset_cleanup(sigrdataset);
+
 		dns_name_copy(zfname, fname);
 		if (dcname != NULL) {
 			dns_name_copy(zfname, dcname);
@@ -1171,10 +1168,9 @@ finish:
 	}
 
 cleanup:
-	if (dns_rdataset_isassociated(&zrdataset)) {
-		dns_rdataset_disassociate(&zrdataset);
-		dns_rdataset_cleanup(&zsigrdataset);
-	}
+	dns_rdataset_cleanup(&zrdataset);
+	dns_rdataset_cleanup(&zsigrdataset);
+
 	if (db != NULL) {
 		dns_db_detach(&db);
 	}

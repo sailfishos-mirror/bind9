@@ -6365,8 +6365,8 @@ negcache(dns_message_t *message, fetchctx_t *fctx, const dns_name_t *name,
 	result = dns_ncache_add(message, cache, node, covers, now, minttl,
 				maxttl, optout, secure, added);
 
-	if (added == &rdataset && dns_rdataset_isassociated(added)) {
-		dns_rdataset_disassociate(added);
+	if (added == &rdataset) {
+		dns_rdataset_cleanup(added);
 	}
 
 	*nodep = node;

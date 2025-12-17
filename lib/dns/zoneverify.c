@@ -299,11 +299,9 @@ check_no_rrsig(const vctx_t *vctx, const dns_rdataset_t *rdataset,
 	       const dns_name_t *name, dns_dbnode_t *node) {
 	char namebuf[DNS_NAME_FORMATSIZE];
 	char typebuf[DNS_RDATATYPE_FORMATSIZE];
-	dns_rdataset_t sigrdataset = DNS_RDATASET_INIT;
 	dns_rdatasetiter_t *rdsiter = NULL;
 	isc_result_t result;
 
-	dns_rdataset_init(&sigrdataset);
 	result = dns_db_allrdatasets(vctx->db, node, vctx->ver, 0, 0, &rdsiter);
 	if (result != ISC_R_SUCCESS) {
 		zoneverify_log_error(vctx, "dns_db_allrdatasets(): %s",
@@ -311,10 +309,12 @@ check_no_rrsig(const vctx_t *vctx, const dns_rdataset_t *rdataset,
 		return result;
 	}
 	DNS_RDATASETITER_FOREACH(rdsiter) {
+		dns_rdataset_t sigrdataset = DNS_RDATASET_INIT;
 		dns_rdatasetiter_current(rdsiter, &sigrdataset);
 		if (sigrdataset.type == dns_rdatatype_rrsig &&
 		    sigrdataset.covers == rdataset->type)
 		{
+			dns_rdataset_disassociate(&sigrdataset);
 			dns_name_format(name, namebuf, sizeof(namebuf));
 			dns_rdatatype_format(rdataset->type, typebuf,
 					     sizeof(typebuf));
@@ -327,7 +327,6 @@ check_no_rrsig(const vctx_t *vctx, const dns_rdataset_t *rdataset,
 		}
 		dns_rdataset_disassociate(&sigrdataset);
 	}
-	dns_rdataset_cleanup(&sigrdataset);
 	dns_rdatasetiter_destroy(&rdsiter);
 
 	return ISC_R_SUCCESS;

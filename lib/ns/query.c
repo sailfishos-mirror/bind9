@@ -1693,10 +1693,8 @@ query_additionalauthfind(dns_db_t *db, dns_dbversion_t *version,
 	/*
 	 * Do not return signatures if the zone is not fully signed.
 	 */
-	if (sigrdataset != NULL && !dns_db_issecure(db) &&
-	    dns_rdataset_isassociated(sigrdataset))
-	{
-		dns_rdataset_disassociate(sigrdataset);
+	if (!dns_db_issecure(db)) {
+		dns_rdataset_cleanup(sigrdataset);
 	}
 
 	*nodep = node;
@@ -2029,7 +2027,7 @@ found:
 		if (result == DNS_R_NCACHENXDOMAIN) {
 			goto addname;
 		} else if (result == DNS_R_NCACHENXRRSET) {
-			dns_rdataset_disassociate(rdataset);
+			dns_rdataset_cleanup(rdataset);
 			dns_rdataset_cleanup(sigrdataset);
 		} else if (result == ISC_R_SUCCESS) {
 			bool invalid = false;
@@ -2044,7 +2042,7 @@ found:
 						    sigrdataset);
 			}
 			if (invalid && DNS_TRUST_PENDING(rdataset->trust)) {
-				dns_rdataset_disassociate(rdataset);
+				dns_rdataset_cleanup(rdataset);
 				dns_rdataset_cleanup(sigrdataset);
 			} else if (!query_isduplicate(client, fname,
 						      dns_rdatatype_a, &mname))
@@ -2070,7 +2068,7 @@ found:
 				}
 				rdataset = ns_client_newrdataset(client);
 			} else {
-				dns_rdataset_disassociate(rdataset);
+				dns_rdataset_cleanup(rdataset);
 				dns_rdataset_cleanup(sigrdataset);
 			}
 		}
@@ -2085,7 +2083,7 @@ found:
 		if (result == DNS_R_NCACHENXDOMAIN) {
 			goto addname;
 		} else if (result == DNS_R_NCACHENXRRSET) {
-			dns_rdataset_disassociate(rdataset);
+			dns_rdataset_cleanup(rdataset);
 			dns_rdataset_cleanup(sigrdataset);
 		} else if (result == ISC_R_SUCCESS) {
 			bool invalid = false;
@@ -2102,7 +2100,7 @@ found:
 			}
 
 			if (invalid && DNS_TRUST_PENDING(rdataset->trust)) {
-				dns_rdataset_disassociate(rdataset);
+				dns_rdataset_cleanup(rdataset);
 				dns_rdataset_cleanup(sigrdataset);
 			} else if (!query_isduplicate(client, fname,
 						      dns_rdatatype_aaaa,
@@ -2933,10 +2931,8 @@ rpz_clean(dns_zone_t **zonep, dns_db_t **dbp, dns_dbnode_t **nodep,
 	if (zonep != NULL && *zonep != NULL) {
 		dns_zone_detach(zonep);
 	}
-	if (rdatasetp != NULL && *rdatasetp != NULL &&
-	    dns_rdataset_isassociated(*rdatasetp))
-	{
-		dns_rdataset_disassociate(*rdatasetp);
+	if (rdatasetp != NULL) {
+		dns_rdataset_cleanup(*rdatasetp);
 	}
 }
 
@@ -4588,7 +4584,7 @@ again:
 		if (found != NULL && optout &&
 		    dns_name_issubdomain(&name, dns_db_origin(db)))
 		{
-			dns_rdataset_disassociate(rdataset);
+			dns_rdataset_cleanup(rdataset);
 			dns_rdataset_cleanup(sigrdataset);
 			skip++;
 			dns_name_getlabelsequence(qname, skip, labels - skip,

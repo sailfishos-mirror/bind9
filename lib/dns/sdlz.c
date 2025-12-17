@@ -897,8 +897,8 @@ find(dns_db_t *db, const dns_name_t *name, dns_dbversion_t *version,
 		break;
 	}
 
-	if (rdataset == &xrdataset && dns_rdataset_isassociated(rdataset)) {
-		dns_rdataset_disassociate(rdataset);
+	if (rdataset == &xrdataset) {
+		dns_rdataset_cleanup(rdataset);
 	}
 
 	if (foundname != NULL) {
