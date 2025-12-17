@@ -63,11 +63,9 @@ class SilentThenServfailHandler(DomainHandler):
 def main() -> None:
     server = AsyncDnsServer()
     server.install_response_handlers(
-        [
-            CloseHandler(),
-            SilentHandler(),
-            SilentThenServfailHandler(),
-        ]
+        CloseHandler(),
+        SilentHandler(),
+        SilentThenServfailHandler(),
     )
     server.run()
 
