@@ -2224,9 +2224,7 @@ cleanup:
 	if (node != NULL) {
 		dns_db_detachnode(&node);
 	}
-	if (dns_rdataset_isassociated(&rdataset)) {
-		dns_rdataset_disassociate(&rdataset);
-	}
+	dns_rdataset_cleanup(&rdataset);
 	return result;
 }
 

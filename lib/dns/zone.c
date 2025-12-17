@@ -3133,9 +3133,7 @@ zone_check_glue(dns_zone_t *zone, dns_db_t *db, bool *has_a, bool *has_aaaa,
 	case DNS_R_CNAME:
 		break;
 	default:
-		if (dns_rdataset_isassociated(&a)) {
-			dns_rdataset_disassociate(&a);
-		}
+		dns_rdataset_cleanup(&a);
 		result = dns_db_find(db, name, NULL, dns_rdatatype_a,
 				     DNS_DBFIND_GLUEOK, 0, NULL, foundname, &a,
 				     NULL);
@@ -3150,9 +3148,7 @@ zone_check_glue(dns_zone_t *zone, dns_db_t *db, bool *has_a, bool *has_aaaa,
 			if (result == ISC_R_SUCCESS) {
 				*has_aaaa = true;
 			}
-			if (dns_rdataset_isassociated(&aaaa)) {
-				dns_rdataset_disassociate(&aaaa);
-			}
+			dns_rdataset_cleanup(&aaaa);
 		}
 		return true;
 	} else if (result == DNS_R_GLUE && has_a != NULL) {
@@ -3168,9 +3164,7 @@ zone_check_glue(dns_zone_t *zone, dns_db_t *db, bool *has_a, bool *has_aaaa,
 				      DNS_DBFIND_GLUEOK, 0, NULL, foundname,
 				      &aaaa, NULL);
 		if (tresult == ISC_R_SUCCESS) {
-			if (dns_rdataset_isassociated(&a)) {
-				dns_rdataset_disassociate(&a);
-			}
+			dns_rdataset_cleanup(&a);
 			SET_IF_NOT_NULL(has_aaaa, true);
 			dns_rdataset_disassociate(&aaaa);
 			return true;
@@ -3189,12 +3183,8 @@ zone_check_glue(dns_zone_t *zone, dns_db_t *db, bool *has_a, bool *has_aaaa,
 				answer = (zone->checkns)(zone, name, owner, &a,
 							 &aaaa);
 			}
-			if (dns_rdataset_isassociated(&a)) {
-				dns_rdataset_disassociate(&a);
-			}
-			if (dns_rdataset_isassociated(&aaaa)) {
-				dns_rdataset_disassociate(&aaaa);
-			}
+			dns_rdataset_cleanup(&a);
+			dns_rdataset_cleanup(&aaaa);
 			return answer;
 		}
 	}
@@ -3247,12 +3237,8 @@ zone_check_glue(dns_zone_t *zone, dns_db_t *db, bool *has_a, bool *has_aaaa,
 		/* answer = false; */
 	}
 
-	if (dns_rdataset_isassociated(&a)) {
-		dns_rdataset_disassociate(&a);
-	}
-	if (dns_rdataset_isassociated(&aaaa)) {
-		dns_rdataset_disassociate(&aaaa);
-	}
+	dns_rdataset_cleanup(&a);
+	dns_rdataset_cleanup(&aaaa);
 	return answer;
 }
 
@@ -3411,9 +3397,7 @@ zone_is_served_by(dns_zone_t *zone, dns_db_t *db, dns_rdatatype_t type,
 	dns_rdataset_init(&rdataset);
 	result = dns_db_find(db, name, NULL, type, 0, 0, NULL, foundname,
 			     &rdataset, NULL);
-	if (dns_rdataset_isassociated(&rdataset)) {
-		dns_rdataset_disassociate(&rdataset);
-	}
+	dns_rdataset_cleanup(&rdataset);
 	switch (result) {
 	case DNS_R_DELEGATION:
 		if (zone->checkisservedby != NULL) {
@@ -3762,9 +3746,7 @@ integrity_checks(dns_zone_t *zone, dns_db_t *db) {
 		result = dns_db_find(db, &zone->origin, NULL, dns_rdatatype_ns,
 				     0, 0, NULL, name, &rdataset, NULL);
 		if (result != ISC_R_SUCCESS) {
-			if (dns_rdataset_isassociated(&rdataset)) {
-				dns_rdataset_disassociate(&rdataset);
-			}
+			dns_rdataset_cleanup(&rdataset);
 			goto cleanup;
 		}
 
@@ -3794,9 +3776,7 @@ integrity_checks(dns_zone_t *zone, dns_db_t *db) {
 		result = dns_db_find(db, &zone->origin, NULL, dns_rdatatype_ns,
 				     0, 0, NULL, name, &rdataset, NULL);
 		if (result != ISC_R_SUCCESS) {
-			if (dns_rdataset_isassociated(&rdataset)) {
-				dns_rdataset_disassociate(&rdataset);
-			}
+			dns_rdataset_cleanup(&rdataset);
 			goto cleanup;
 		}
 
@@ -4434,9 +4414,7 @@ check_nsec3param(dns_zone_t *zone, dns_db_t *db) {
 	}
 
 cleanup:
-	if (dns_rdataset_isassociated(&rdataset)) {
-		dns_rdataset_disassociate(&rdataset);
-	}
+	dns_rdataset_cleanup(&rdataset);
 	dns_db_closeversion(db, &version, false);
 	dns_db_detachnode(&node);
 	return result;
@@ -6775,9 +6753,7 @@ findzonekeys(dns_zone_t *zone, dns_db_t *db, dns_dbversion_t *ver,
 	}
 
 cleanup:
-	if (dns_rdataset_isassociated(&rdataset)) {
-		dns_rdataset_disassociate(&rdataset);
-	}
+	dns_rdataset_cleanup(&rdataset);
 	if (pubkey != NULL) {
 		dst_key_free(&pubkey);
 	}
@@ -6904,9 +6880,7 @@ dns_zone_getdnsseckeys(dns_zone_t *zone, dns_db_t *db, dns_dbversion_t *ver,
 	}
 
 cleanup:
-	if (dns_rdataset_isassociated(&keyset)) {
-		dns_rdataset_disassociate(&keyset);
-	}
+	dns_rdataset_cleanup(&keyset);
 	if (node != NULL) {
 		dns_db_detachnode(&node);
 	}
@@ -7458,9 +7432,7 @@ add_sigs(dns_db_t *db, dns_dbversion_t *ver, dns_name_t *name, dns_zone_t *zone,
 	}
 
 cleanup:
-	if (dns_rdataset_isassociated(&rdataset)) {
-		dns_rdataset_disassociate(&rdataset);
-	}
+	dns_rdataset_cleanup(&rdataset);
 	if (node != NULL) {
 		dns_db_detachnode(&node);
 	}
@@ -7981,9 +7953,7 @@ sign_a_node(dns_db_t *db, dns_zone_t *zone, dns_name_t *name,
 	DNS_RDATASETITER_FOREACH(iterator) {
 		isc_stdtime_t when;
 
-		if (dns_rdataset_isassociated(&rdataset)) {
-			dns_rdataset_disassociate(&rdataset);
-		}
+		dns_rdataset_cleanup(&rdataset);
 
 		dns_rdatasetiter_current(iterator, &rdataset);
 		if (rdataset.type == dns_rdatatype_soa ||
@@ -8061,9 +8031,7 @@ sign_a_node(dns_db_t *db, dns_zone_t *zone, dns_name_t *name,
 	}
 
 cleanup:
-	if (dns_rdataset_isassociated(&rdataset)) {
-		dns_rdataset_disassociate(&rdataset);
-	}
+	dns_rdataset_cleanup(&rdataset);
 	if (iterator != NULL) {
 		dns_rdatasetiter_destroy(&iterator);
 	}
@@ -8086,9 +8054,7 @@ updatesecure(dns_db_t *db, dns_dbversion_t *version, dns_name_t *name,
 		result = dns_db_findrdataset(
 			db, node, version, dns_rdatatype_nsec,
 			dns_rdatatype_none, 0, &rdataset, NULL);
-		if (dns_rdataset_isassociated(&rdataset)) {
-			dns_rdataset_disassociate(&rdataset);
-		}
+		dns_rdataset_cleanup(&rdataset);
 		if (result == ISC_R_NOTFOUND) {
 			goto success;
 		}
@@ -8221,9 +8187,7 @@ updatesignwithkey(dns_zone_t *zone, dns_signing_t *signing,
 	}
 
 cleanup:
-	if (dns_rdataset_isassociated(&rdataset)) {
-		dns_rdataset_disassociate(&rdataset);
-	}
+	dns_rdataset_cleanup(&rdataset);
 	if (node != NULL) {
 		dns_db_detachnode(&node);
 	}
@@ -8284,9 +8248,7 @@ fixup_nsec3param(dns_db_t *db, dns_dbversion_t *ver, dns_nsec3chain_t *chain,
 		ttl = soa.minimum;
 		dns_rdata_reset(&rdata);
 	}
-	if (dns_rdataset_isassociated(&rdataset)) {
-		dns_rdataset_disassociate(&rdataset);
-	}
+	dns_rdataset_cleanup(&rdataset);
 
 	result = dns_db_findrdataset(db, node, ver, dns_rdatatype_nsec3param, 0,
 				     0, &rdataset, NULL);
@@ -8426,9 +8388,7 @@ add:
 
 cleanup:
 	dns_db_detachnode(&node);
-	if (dns_rdataset_isassociated(&rdataset)) {
-		dns_rdataset_disassociate(&rdataset);
-	}
+	dns_rdataset_cleanup(&rdataset);
 	return result;
 }
 
@@ -8573,9 +8533,7 @@ need_nsec_chain(dns_db_t *db, dns_dbversion_t *ver,
 	*answer = !active;
 
 cleanup:
-	if (dns_rdataset_isassociated(&rdataset)) {
-		dns_rdataset_disassociate(&rdataset);
-	}
+	dns_rdataset_cleanup(&rdataset);
 	dns_db_detachnode(&node);
 	return result;
 }
@@ -9604,9 +9562,7 @@ del_sig(dns_db_t *db, dns_dbversion_t *version, dns_name_t *name,
 	 */
 	*has_algp = (alg_found && !alg_missed);
 cleanup:
-	if (dns_rdataset_isassociated(&rdataset)) {
-		dns_rdataset_disassociate(&rdataset);
-	}
+	dns_rdataset_cleanup(&rdataset);
 	dns_rdatasetiter_destroy(&iterator);
 	return result;
 }
@@ -10603,9 +10559,7 @@ keyfetch_cleanup(dns_zonefetch_t *fetch) {
 
 	dns_db_detach(&kfetch->db);
 
-	if (dns_rdataset_isassociated(&kfetch->keydataset)) {
-		dns_rdataset_disassociate(&kfetch->keydataset);
-	}
+	dns_rdataset_cleanup(&kfetch->keydataset);
 }
 
 /*
@@ -16195,25 +16149,19 @@ sync_secure_db(dns_zone_t *seczone, dns_zone_t *raw, dns_db_t *secdb,
 			secdb, node, secver, dns_rdatatype_dnskey,
 			dns_rdatatype_none, 0, &rdataset, NULL);
 		keyttl = (result == ISC_R_SUCCESS) ? rdataset.ttl : ttl;
-		if (dns_rdataset_isassociated(&rdataset)) {
-			dns_rdataset_disassociate(&rdataset);
-		}
+		dns_rdataset_cleanup(&rdataset);
 
 		result = dns_db_findrdataset(
 			secdb, node, secver, dns_rdatatype_cdnskey,
 			dns_rdatatype_none, 0, &rdataset, NULL);
 		ckeyttl = (result == ISC_R_SUCCESS) ? rdataset.ttl : ttl;
-		if (dns_rdataset_isassociated(&rdataset)) {
-			dns_rdataset_disassociate(&rdataset);
-		}
+		dns_rdataset_cleanup(&rdataset);
 
 		result = dns_db_findrdataset(
 			secdb, node, secver, dns_rdatatype_cds,
 			dns_rdatatype_none, 0, &rdataset, NULL);
 		cdsttl = (result == ISC_R_SUCCESS) ? rdataset.ttl : ttl;
-		if (dns_rdataset_isassociated(&rdataset)) {
-			dns_rdataset_disassociate(&rdataset);
-		}
+		dns_rdataset_cleanup(&rdataset);
 		dns_db_detachnode(&node);
 	}
 
@@ -16822,12 +16770,8 @@ cleanup:
 	if (db != NULL) {
 		dns_db_detach(&db);
 	}
-	if (dns_rdataset_isassociated(&rdataset)) {
-		dns_rdataset_disassociate(&rdataset);
-	}
-	if (dns_rdataset_isassociated(&prdataset)) {
-		dns_rdataset_disassociate(&prdataset);
-	}
+	dns_rdataset_cleanup(&rdataset);
+	dns_rdataset_cleanup(&prdataset);
 	return result;
 }
 
@@ -19988,9 +19932,7 @@ clean_nsec3param(dns_zone_t *zone, dns_db_t *db, dns_dbversion_t *ver,
 
 	result = dns_db_findrdataset(db, node, ver, dns_rdatatype_dnskey,
 				     dns_rdatatype_none, 0, &rdataset, NULL);
-	if (dns_rdataset_isassociated(&rdataset)) {
-		dns_rdataset_disassociate(&rdataset);
-	}
+	dns_rdataset_cleanup(&rdataset);
 	if (result != ISC_R_NOTFOUND) {
 		goto cleanup;
 	}
@@ -21405,11 +21347,9 @@ zone_rekey(dns_zone_t *zone) {
 	/* Get the current CDS rdataset */
 	result = dns_db_findrdataset(db, node, ver, dns_rdatatype_cds,
 				     dns_rdatatype_none, 0, &cdsset, NULL);
-	if (result != ISC_R_SUCCESS && dns_rdataset_isassociated(&cdsset)) {
-		dns_rdataset_disassociate(&cdsset);
-	} else if (result == ISC_R_SUCCESS && kasp != NULL &&
-		   ttl != cdsset.ttl && !offlineksk)
-	{
+	if (result != ISC_R_SUCCESS) {
+		dns_rdataset_cleanup(&cdsset);
+	} else if (kasp != NULL && ttl != cdsset.ttl && !offlineksk) {
 		update_ttl(&cdsset, &zone->origin, ttl, &diff);
 		dnssec_log(zone, ISC_LOG_INFO, "Updating CDS TTL from %u to %u",
 			   cdsset.ttl, ttl);
@@ -21419,11 +21359,9 @@ zone_rekey(dns_zone_t *zone) {
 	/* Get the current CDNSKEY rdataset */
 	result = dns_db_findrdataset(db, node, ver, dns_rdatatype_cdnskey,
 				     dns_rdatatype_none, 0, &cdnskeyset, NULL);
-	if (result != ISC_R_SUCCESS && dns_rdataset_isassociated(&cdnskeyset)) {
-		dns_rdataset_disassociate(&cdnskeyset);
-	} else if (result == ISC_R_SUCCESS && kasp != NULL &&
-		   ttl != cdnskeyset.ttl && !offlineksk)
-	{
+	if (result != ISC_R_SUCCESS) {
+		dns_rdataset_cleanup(&cdnskeyset);
+	} else if (kasp != NULL && ttl != cdnskeyset.ttl && !offlineksk) {
 		update_ttl(&cdnskeyset, &zone->origin, ttl, &diff);
 		dnssec_log(zone, ISC_LOG_INFO,
 			   "Updating CDNSKEY TTL from %u to %u", cdnskeyset.ttl,
@@ -22077,21 +22015,11 @@ cleanup:
 	if (ver != NULL) {
 		dns_db_closeversion(db, &ver, false);
 	}
-	if (dns_rdataset_isassociated(&cdsset)) {
-		dns_rdataset_disassociate(&cdsset);
-	}
-	if (dns_rdataset_isassociated(&keyset)) {
-		dns_rdataset_disassociate(&keyset);
-	}
-	if (dns_rdataset_isassociated(&keysigs)) {
-		dns_rdataset_disassociate(&keysigs);
-	}
-	if (dns_rdataset_isassociated(&soasigs)) {
-		dns_rdataset_disassociate(&soasigs);
-	}
-	if (dns_rdataset_isassociated(&cdnskeyset)) {
-		dns_rdataset_disassociate(&cdnskeyset);
-	}
+	dns_rdataset_cleanup(&cdsset);
+	dns_rdataset_cleanup(&keyset);
+	dns_rdataset_cleanup(&keysigs);
+	dns_rdataset_cleanup(&soasigs);
+	dns_rdataset_cleanup(&cdnskeyset);
 	if (node != NULL) {
 		dns_db_detachnode(&node);
 	}
@@ -22400,15 +22328,9 @@ dns_zone_cdscheck(dns_zone_t *zone, dns_db_t *db, dns_dbversion_t *version) {
 	result = ISC_R_SUCCESS;
 
 cleanup:
-	if (dns_rdataset_isassociated(&cds)) {
-		dns_rdataset_disassociate(&cds);
-	}
-	if (dns_rdataset_isassociated(&dnskey)) {
-		dns_rdataset_disassociate(&dnskey);
-	}
-	if (dns_rdataset_isassociated(&cdnskey)) {
-		dns_rdataset_disassociate(&cdnskey);
-	}
+	dns_rdataset_cleanup(&cds);
+	dns_rdataset_cleanup(&dnskey);
+	dns_rdataset_cleanup(&cdnskey);
 	dns_db_detachnode(&node);
 	return result;
 }
@@ -22751,9 +22673,7 @@ keydone(void *arg) {
 	}
 
 cleanup:
-	if (dns_rdataset_isassociated(&rdataset)) {
-		dns_rdataset_disassociate(&rdataset);
-	}
+	dns_rdataset_cleanup(&rdataset);
 	if (db != NULL) {
 		if (node != NULL) {
 			dns_db_detachnode(&node);
@@ -23103,12 +23023,8 @@ rss_post(void *arg) {
 	}
 
 cleanup:
-	if (dns_rdataset_isassociated(&prdataset)) {
-		dns_rdataset_disassociate(&prdataset);
-	}
-	if (dns_rdataset_isassociated(&nrdataset)) {
-		dns_rdataset_disassociate(&nrdataset);
-	}
+	dns_rdataset_cleanup(&prdataset);
+	dns_rdataset_cleanup(&nrdataset);
 	if (node != NULL) {
 		dns_db_detachnode(&node);
 	}
@@ -23272,9 +23188,7 @@ setparam:
 	}
 
 cleanup:
-	if (dns_rdataset_isassociated(&rdataset)) {
-		dns_rdataset_disassociate(&rdataset);
-	}
+	dns_rdataset_cleanup(&rdataset);
 	if (node != NULL) {
 		dns_db_detachnode(&node);
 	}

@@ -550,9 +550,7 @@ ncache_summary(dns_rdataset_t *rdataset, bool omit_final_dot,
 		result = ISC_R_SUCCESS;
 	}
 cleanup:
-	if (dns_rdataset_isassociated(&rds)) {
-		dns_rdataset_disassociate(&rds);
-	}
+	dns_rdataset_cleanup(&rds);
 
 	return result;
 }

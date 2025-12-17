@@ -1,0 +1,17 @@
+@@
+expression R;
+@@
+
+- if (R != NULL && dns_rdataset_isassociated(R)) {
+- dns_rdataset_disassociate(R);
+- }
++ dns_rdataset_cleanup(R);
+
+@@
+expression R;
+@@
+
+- if (dns_rdataset_isassociated(R)) {
+- dns_rdataset_disassociate(R);
+- }
++ dns_rdataset_cleanup(R);

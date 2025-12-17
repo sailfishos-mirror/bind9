@@ -1679,15 +1679,9 @@ query_additionalauthfind(dns_db_t *db, dns_dbversion_t *version,
 				client->query.dboptions, client->inner.now,
 				&node, fname, &cm, &ci, rdataset, sigrdataset);
 	if (result != ISC_R_SUCCESS) {
-		if (dns_rdataset_isassociated(rdataset)) {
-			dns_rdataset_disassociate(rdataset);
-		}
+		dns_rdataset_cleanup(rdataset);
 
-		if (sigrdataset != NULL &&
-		    dns_rdataset_isassociated(sigrdataset))
-		{
-			dns_rdataset_disassociate(sigrdataset);
-		}
+		dns_rdataset_cleanup(sigrdataset);
 
 		if (node != NULL) {
 			dns_db_detachnode(&node);
@@ -1699,10 +1693,8 @@ query_additionalauthfind(dns_db_t *db, dns_dbversion_t *version,
 	/*
 	 * Do not return signatures if the zone is not fully signed.
 	 */
-	if (sigrdataset != NULL && !dns_db_issecure(db) &&
-	    dns_rdataset_isassociated(sigrdataset))
-	{
-		dns_rdataset_disassociate(sigrdataset);
+	if (!dns_db_issecure(db)) {
+		dns_rdataset_cleanup(sigrdataset);
 	}
 
 	*nodep = node;
@@ -1911,12 +1903,8 @@ query_additional_cb(void *arg, const dns_name_t *name, dns_rdatatype_t qtype,
 		goto found;
 	}
 
-	if (dns_rdataset_isassociated(rdataset)) {
-		dns_rdataset_disassociate(rdataset);
-	}
-	if (sigrdataset != NULL && dns_rdataset_isassociated(sigrdataset)) {
-		dns_rdataset_disassociate(sigrdataset);
-	}
+	dns_rdataset_cleanup(rdataset);
+	dns_rdataset_cleanup(sigrdataset);
 	if (node != NULL) {
 		dns_db_detachnode(&node);
 	}
@@ -2021,16 +2009,12 @@ found:
 		 * XXXRTH  This code could be more efficient.
 		 */
 		if (rdataset != NULL) {
-			if (dns_rdataset_isassociated(rdataset)) {
-				dns_rdataset_disassociate(rdataset);
-			}
+			dns_rdataset_cleanup(rdataset);
 		} else {
 			rdataset = ns_client_newrdataset(client);
 		}
 		if (sigrdataset != NULL) {
-			if (dns_rdataset_isassociated(sigrdataset)) {
-				dns_rdataset_disassociate(sigrdataset);
-			}
+			dns_rdataset_cleanup(sigrdataset);
 		} else if (WANTDNSSEC(client)) {
 			sigrdataset = ns_client_newrdataset(client);
 		}
@@ -2043,12 +2027,8 @@ found:
 		if (result == DNS_R_NCACHENXDOMAIN) {
 			goto addname;
 		} else if (result == DNS_R_NCACHENXRRSET) {
-			dns_rdataset_disassociate(rdataset);
-			if (sigrdataset != NULL &&
-			    dns_rdataset_isassociated(sigrdataset))
-			{
-				dns_rdataset_disassociate(sigrdataset);
-			}
+			dns_rdataset_cleanup(rdataset);
+			dns_rdataset_cleanup(sigrdataset);
 		} else if (result == ISC_R_SUCCESS) {
 			bool invalid = false;
 			mname = NULL;
@@ -2062,12 +2042,8 @@ found:
 						    sigrdataset);
 			}
 			if (invalid && DNS_TRUST_PENDING(rdataset->trust)) {
-				dns_rdataset_disassociate(rdataset);
-				if (sigrdataset != NULL &&
-				    dns_rdataset_isassociated(sigrdataset))
-				{
-					dns_rdataset_disassociate(sigrdataset);
-				}
+				dns_rdataset_cleanup(rdataset);
+				dns_rdataset_cleanup(sigrdataset);
 			} else if (!query_isduplicate(client, fname,
 						      dns_rdatatype_a, &mname))
 			{
@@ -2092,12 +2068,8 @@ found:
 				}
 				rdataset = ns_client_newrdataset(client);
 			} else {
-				dns_rdataset_disassociate(rdataset);
-				if (sigrdataset != NULL &&
-				    dns_rdataset_isassociated(sigrdataset))
-				{
-					dns_rdataset_disassociate(sigrdataset);
-				}
+				dns_rdataset_cleanup(rdataset);
+				dns_rdataset_cleanup(sigrdataset);
 			}
 		}
 	aaaa_lookup:
@@ -2111,12 +2083,8 @@ found:
 		if (result == DNS_R_NCACHENXDOMAIN) {
 			goto addname;
 		} else if (result == DNS_R_NCACHENXRRSET) {
-			dns_rdataset_disassociate(rdataset);
-			if (sigrdataset != NULL &&
-			    dns_rdataset_isassociated(sigrdataset))
-			{
-				dns_rdataset_disassociate(sigrdataset);
-			}
+			dns_rdataset_cleanup(rdataset);
+			dns_rdataset_cleanup(sigrdataset);
 		} else if (result == ISC_R_SUCCESS) {
 			bool invalid = false;
 			mname = NULL;
@@ -2132,12 +2100,8 @@ found:
 			}
 
 			if (invalid && DNS_TRUST_PENDING(rdataset->trust)) {
-				dns_rdataset_disassociate(rdataset);
-				if (sigrdataset != NULL &&
-				    dns_rdataset_isassociated(sigrdataset))
-				{
-					dns_rdataset_disassociate(sigrdataset);
-				}
+				dns_rdataset_cleanup(rdataset);
+				dns_rdataset_cleanup(sigrdataset);
 			} else if (!query_isduplicate(client, fname,
 						      dns_rdatatype_aaaa,
 						      &mname))
@@ -2583,9 +2547,7 @@ validate(ns_client_t *client, dns_db_t *db, dns_name_t *name,
 			}
 			dst_key_free(&key);
 		} while (1);
-		if (dns_rdataset_isassociated(&keyrdataset)) {
-			dns_rdataset_disassociate(&keyrdataset);
-		}
+		dns_rdataset_cleanup(&keyrdataset);
 	}
 	return false;
 }
@@ -2594,8 +2556,8 @@ static void
 fixrdataset(ns_client_t *client, dns_rdataset_t **rdataset) {
 	if (*rdataset == NULL) {
 		*rdataset = ns_client_newrdataset(client);
-	} else if (dns_rdataset_isassociated(*rdataset)) {
-		dns_rdataset_disassociate(*rdataset);
+	} else {
+		dns_rdataset_cleanup(*rdataset);
 	}
 }
 
@@ -2969,10 +2931,8 @@ rpz_clean(dns_zone_t **zonep, dns_db_t **dbp, dns_dbnode_t **nodep,
 	if (zonep != NULL && *zonep != NULL) {
 		dns_zone_detach(zonep);
 	}
-	if (rdatasetp != NULL && *rdatasetp != NULL &&
-	    dns_rdataset_isassociated(*rdatasetp))
-	{
-		dns_rdataset_disassociate(*rdatasetp);
+	if (rdatasetp != NULL) {
+		dns_rdataset_cleanup(*rdatasetp);
 	}
 }
 
@@ -2990,8 +2950,8 @@ rpz_ready(ns_client_t *client, dns_rdataset_t **rdatasetp) {
 
 	if (*rdatasetp == NULL) {
 		*rdatasetp = ns_client_newrdataset(client);
-	} else if (dns_rdataset_isassociated(*rdatasetp)) {
-		dns_rdataset_disassociate(*rdatasetp);
+	} else {
+		dns_rdataset_cleanup(*rdatasetp);
 	}
 	return ISC_R_SUCCESS;
 }
@@ -3394,9 +3354,7 @@ rpz_find_p(ns_client_t *client, dns_name_t *self_name, dns_rdatatype_t qtype,
 			 * Ask again to get the right DNS_R_DNAME/NXRRSET/...
 			 * result if there is neither a CNAME nor target type.
 			 */
-			if (dns_rdataset_isassociated(*rdatasetp)) {
-				dns_rdataset_disassociate(*rdatasetp);
-			}
+			dns_rdataset_cleanup(*rdatasetp);
 			dns_db_detachnode(nodep);
 
 			if (dns_rdatatype_issig(qtype)) {
@@ -3963,11 +3921,7 @@ rpz_rewrite_ns_skip(ns_client_t *client, dns_name_t *nsname,
 		rpz_log_fail_helper(client, level, nsname, DNS_RPZ_TYPE_NSIP,
 				    DNS_RPZ_TYPE_NSDNAME, str, result);
 	}
-	if (st->r.ns_rdataset != NULL &&
-	    dns_rdataset_isassociated(st->r.ns_rdataset))
-	{
-		dns_rdataset_disassociate(st->r.ns_rdataset);
-	}
+	dns_rdataset_cleanup(st->r.ns_rdataset);
 
 	st->r.label--;
 }
@@ -4630,10 +4584,8 @@ again:
 		if (found != NULL && optout &&
 		    dns_name_issubdomain(&name, dns_db_origin(db)))
 		{
-			dns_rdataset_disassociate(rdataset);
-			if (dns_rdataset_isassociated(sigrdataset)) {
-				dns_rdataset_disassociate(sigrdataset);
-			}
+			dns_rdataset_cleanup(rdataset);
+			dns_rdataset_cleanup(sigrdataset);
 			skip++;
 			dns_name_getlabelsequence(qname, skip, labels - skip,
 						  &name);
@@ -4689,9 +4641,7 @@ dns64_ttl(dns_db_t *db, dns_dbversion_t *version) {
 	ttl = ISC_MIN(rdataset.ttl, soa.minimum);
 
 cleanup:
-	if (dns_rdataset_isassociated(&rdataset)) {
-		dns_rdataset_disassociate(&rdataset);
-	}
+	dns_rdataset_cleanup(&rdataset);
 	if (node != NULL) {
 		dns_db_detachnode(&node);
 	}
@@ -4842,17 +4792,11 @@ redirect(ns_client_t *client, dns_name_t *name, dns_rdataset_t *rdataset,
 				qtype, DNS_DBFIND_NOZONECUT, client->inner.now,
 				&node, found, &cm, &ci, &trdataset, NULL);
 	if (result == DNS_R_NXRRSET || result == DNS_R_NCACHENXRRSET) {
-		if (dns_rdataset_isassociated(rdataset)) {
-			dns_rdataset_disassociate(rdataset);
-		}
-		if (dns_rdataset_isassociated(&trdataset)) {
-			dns_rdataset_disassociate(&trdataset);
-		}
+		dns_rdataset_cleanup(rdataset);
+		dns_rdataset_cleanup(&trdataset);
 		goto nxrrset;
 	} else if (result != ISC_R_SUCCESS) {
-		if (dns_rdataset_isassociated(&trdataset)) {
-			dns_rdataset_disassociate(&trdataset);
-		}
+		dns_rdataset_cleanup(&trdataset);
 		if (node != NULL) {
 			dns_db_detachnode(&node);
 		}
@@ -4862,9 +4806,7 @@ redirect(ns_client_t *client, dns_name_t *name, dns_rdataset_t *rdataset,
 
 	CTRACE(ISC_LOG_DEBUG(3), "redirect: found data: done");
 	dns_name_copy(found, name);
-	if (dns_rdataset_isassociated(rdataset)) {
-		dns_rdataset_disassociate(rdataset);
-	}
+	dns_rdataset_cleanup(rdataset);
 	if (dns_rdataset_isassociated(&trdataset)) {
 		dns_rdataset_clone(&trdataset, rdataset);
 		dns_rdataset_disassociate(&trdataset);
@@ -4984,20 +4926,14 @@ redirect2(ns_client_t *client, dns_name_t *name, dns_rdataset_t *rdataset,
 				client->inner.now, &node, found, &cm, &ci,
 				&trdataset, NULL);
 	if (result == DNS_R_NXRRSET || result == DNS_R_NCACHENXRRSET) {
-		if (dns_rdataset_isassociated(rdataset)) {
-			dns_rdataset_disassociate(rdataset);
-		}
-		if (dns_rdataset_isassociated(&trdataset)) {
-			dns_rdataset_disassociate(&trdataset);
-		}
+		dns_rdataset_cleanup(rdataset);
+		dns_rdataset_cleanup(&trdataset);
 		goto nxrrset;
 	} else if (result == ISC_R_NOTFOUND || result == DNS_R_DELEGATION) {
 		/*
 		 * Cleanup.
 		 */
-		if (dns_rdataset_isassociated(&trdataset)) {
-			dns_rdataset_disassociate(&trdataset);
-		}
+		dns_rdataset_cleanup(&trdataset);
 		if (node != NULL) {
 			dns_db_detachnode(&node);
 		}
@@ -5018,9 +4954,7 @@ redirect2(ns_client_t *client, dns_name_t *name, dns_rdataset_t *rdataset,
 		}
 		return ISC_R_NOTFOUND;
 	} else if (result != ISC_R_SUCCESS) {
-		if (dns_rdataset_isassociated(&trdataset)) {
-			dns_rdataset_disassociate(&trdataset);
-		}
+		dns_rdataset_cleanup(&trdataset);
 		if (node != NULL) {
 			dns_db_detachnode(&node);
 		}
@@ -5042,9 +4976,7 @@ redirect2(ns_client_t *client, dns_name_t *name, dns_rdataset_t *rdataset,
 	RUNTIME_CHECK(result == ISC_R_SUCCESS);
 
 	dns_name_copy(found, name);
-	if (dns_rdataset_isassociated(rdataset)) {
-		dns_rdataset_disassociate(rdataset);
-	}
+	dns_rdataset_cleanup(rdataset);
 	if (dns_rdataset_isassociated(&trdataset)) {
 		dns_rdataset_clone(&trdataset, rdataset);
 		dns_rdataset_disassociate(&trdataset);
@@ -5113,15 +5045,8 @@ qctx_init(ns_client_t *client, dns_fetchresponse_t **frespp,
  */
 static void
 qctx_clean(query_ctx_t *qctx) {
-	if (qctx->rdataset != NULL && dns_rdataset_isassociated(qctx->rdataset))
-	{
-		dns_rdataset_disassociate(qctx->rdataset);
-	}
-	if (qctx->sigrdataset != NULL &&
-	    dns_rdataset_isassociated(qctx->sigrdataset))
-	{
-		dns_rdataset_disassociate(qctx->sigrdataset);
-	}
+	dns_rdataset_cleanup(qctx->rdataset);
+	dns_rdataset_cleanup(qctx->sigrdataset);
 	if (qctx->db != NULL && qctx->node != NULL) {
 		dns_db_detachnode(&qctx->node);
 	}
@@ -5929,11 +5854,7 @@ query_lookup(query_ctx_t *qctx) {
 	 */
 	if (qctx->dns64 && qctx->rpz) {
 		dns_name_copy(qctx->client->query.qname, qctx->fname);
-		if (qctx->sigrdataset != NULL &&
-		    dns_rdataset_isassociated(qctx->sigrdataset))
-		{
-			dns_rdataset_disassociate(qctx->sigrdataset);
-		}
+		dns_rdataset_cleanup(qctx->sigrdataset);
 	}
 
 	if (!qctx->is_zone) {
@@ -7179,10 +7100,7 @@ query_checkrpz(query_ctx_t *qctx, isc_result_t result) {
 				 * the node by iterating later,
 				 * and set the TTL then.
 				 */
-				if (dns_rdataset_isassociated(qctx->rdataset)) {
-					dns_rdataset_disassociate(
-						qctx->rdataset);
-				}
+				dns_rdataset_cleanup(qctx->rdataset);
 			} else {
 				/*
 				 * We will add this rdataset.
@@ -7636,14 +7554,14 @@ query_addnoqnameproof(query_ctx_t *qctx) {
 
 	if (neg == NULL) {
 		neg = ns_client_newrdataset(client);
-	} else if (dns_rdataset_isassociated(neg)) {
-		dns_rdataset_disassociate(neg);
+	} else {
+		dns_rdataset_cleanup(neg);
 	}
 
 	if (negsig == NULL) {
 		negsig = ns_client_newrdataset(client);
-	} else if (dns_rdataset_isassociated(negsig)) {
-		dns_rdataset_disassociate(negsig);
+	} else {
+		dns_rdataset_cleanup(negsig);
 	}
 
 	result = dns_rdataset_getclosest(qctx->noqname, fname, neg, negsig);
@@ -8858,12 +8776,8 @@ addnsec3:
 	dbuf = ns_client_getnamebuf(client);
 	fname = ns_client_newname(client, dbuf, &b);
 	dns_fixedname_init(&fixed);
-	if (dns_rdataset_isassociated(rdataset)) {
-		dns_rdataset_disassociate(rdataset);
-	}
-	if (dns_rdataset_isassociated(sigrdataset)) {
-		dns_rdataset_disassociate(sigrdataset);
-	}
+	dns_rdataset_cleanup(rdataset);
+	dns_rdataset_cleanup(sigrdataset);
 	name = dns_fixedname_name(&qctx->dsname);
 	query_findclosestnsec3(name, qctx->db, qctx->version, client, rdataset,
 			       sigrdataset, fname, true,
@@ -9970,12 +9884,8 @@ query_coveringnsec(query_ctx_t *qctx) {
 	done = true;
 
 cleanup:
-	if (dns_rdataset_isassociated(&rdataset)) {
-		dns_rdataset_disassociate(&rdataset);
-	}
-	if (dns_rdataset_isassociated(&sigrdataset)) {
-		dns_rdataset_disassociate(&sigrdataset);
-	}
+	dns_rdataset_cleanup(&rdataset);
+	dns_rdataset_cleanup(&sigrdataset);
 	if (soardataset != NULL) {
 		ns_client_putrdataset(qctx->client, &soardataset);
 	}
@@ -10396,9 +10306,7 @@ query_addcname(query_ctx_t *qctx, dns_trust_t trust, dns_ttl_t ttl) {
 
 	query_addrrset(qctx, &aname, &rdataset, NULL, NULL, DNS_SECTION_ANSWER);
 	if (rdataset != NULL) {
-		if (dns_rdataset_isassociated(rdataset)) {
-			dns_rdataset_disassociate(rdataset);
-		}
+		dns_rdataset_cleanup(rdataset);
 		dns_message_puttemprdataset(client->message, &rdataset);
 	}
 	if (aname != NULL) {
@@ -11039,14 +10947,14 @@ again:
 
 		if (rdataset == NULL) {
 			rdataset = ns_client_newrdataset(client);
-		} else if (dns_rdataset_isassociated(rdataset)) {
-			dns_rdataset_disassociate(rdataset);
+		} else {
+			dns_rdataset_cleanup(rdataset);
 		}
 
 		if (sigrdataset == NULL) {
 			sigrdataset = ns_client_newrdataset(client);
-		} else if (dns_rdataset_isassociated(sigrdataset)) {
-			dns_rdataset_disassociate(sigrdataset);
+		} else {
+			dns_rdataset_cleanup(sigrdataset);
 		}
 
 		/*
@@ -11090,14 +10998,14 @@ again:
 
 		if (rdataset == NULL) {
 			rdataset = ns_client_newrdataset(client);
-		} else if (dns_rdataset_isassociated(rdataset)) {
-			dns_rdataset_disassociate(rdataset);
+		} else {
+			dns_rdataset_cleanup(rdataset);
 		}
 
 		if (sigrdataset == NULL) {
 			sigrdataset = ns_client_newrdataset(client);
-		} else if (dns_rdataset_isassociated(sigrdataset)) {
-			dns_rdataset_disassociate(sigrdataset);
+		} else {
+			dns_rdataset_cleanup(sigrdataset);
 		}
 
 		/*

@@ -272,15 +272,9 @@ dns_private_chains(dns_db_t *db, dns_dbversion_t *ver,
 success:
 	result = ISC_R_SUCCESS;
 cleanup:
-	if (dns_rdataset_isassociated(&nsecset)) {
-		dns_rdataset_disassociate(&nsecset);
-	}
-	if (dns_rdataset_isassociated(&nsec3paramset)) {
-		dns_rdataset_disassociate(&nsec3paramset);
-	}
-	if (dns_rdataset_isassociated(&privateset)) {
-		dns_rdataset_disassociate(&privateset);
-	}
+	dns_rdataset_cleanup(&nsecset);
+	dns_rdataset_cleanup(&nsec3paramset);
+	dns_rdataset_cleanup(&privateset);
 	if (node != NULL) {
 		dns_db_detachnode(&node);
 	}

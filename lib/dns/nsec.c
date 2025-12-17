@@ -183,9 +183,7 @@ dns_nsec_build(dns_db_t *db, dns_dbversion_t *version, dns_dbnode_t *node,
 	}
 
 cleanup:
-	if (dns_rdataset_isassociated(&rdataset)) {
-		dns_rdataset_disassociate(&rdataset);
-	}
+	dns_rdataset_cleanup(&rdataset);
 	return result;
 }
 

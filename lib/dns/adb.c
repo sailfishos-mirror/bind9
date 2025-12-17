@@ -1103,9 +1103,7 @@ free_adbfetch(dns_adb_t *adb, dns_adbfetch_t **fetchp) {
 
 	fetch->magic = 0;
 
-	if (dns_rdataset_isassociated(&fetch->rdataset)) {
-		dns_rdataset_disassociate(&fetch->rdataset);
-	}
+	dns_rdataset_cleanup(&fetch->rdataset);
 
 	isc_mem_put(adb->hmctx, fetch, sizeof(*fetch));
 }
@@ -2540,9 +2538,7 @@ dbfind_name(dns_adbname_t *adbname, isc_stdtime_t now, dns_rdatatype_t rdtype) {
 		break;
 	}
 
-	if (dns_rdataset_isassociated(&rdataset)) {
-		dns_rdataset_disassociate(&rdataset);
-	}
+	dns_rdataset_cleanup(&rdataset);
 
 	return result;
 }
@@ -2792,9 +2788,7 @@ cleanup:
 	if (fetch != NULL) {
 		free_adbfetch(adb, &fetch);
 	}
-	if (dns_rdataset_isassociated(&rdataset)) {
-		dns_rdataset_disassociate(&rdataset);
-	}
+	dns_rdataset_cleanup(&rdataset);
 
 	return result;
 }

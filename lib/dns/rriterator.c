@@ -57,9 +57,7 @@ isc_result_t
 dns_rriterator_first(dns_rriterator_t *it) {
 	REQUIRE(VALID_RRITERATOR(it));
 	/* Reset state */
-	if (dns_rdataset_isassociated(&it->rdataset)) {
-		dns_rdataset_disassociate(&it->rdataset);
-	}
+	dns_rdataset_cleanup(&it->rdataset);
 	if (it->rdatasetit != NULL) {
 		dns_rdatasetiter_destroy(&it->rdatasetit);
 	}
@@ -108,9 +106,7 @@ dns_rriterator_first(dns_rriterator_t *it) {
 isc_result_t
 dns_rriterator_nextrrset(dns_rriterator_t *it) {
 	REQUIRE(VALID_RRITERATOR(it));
-	if (dns_rdataset_isassociated(&it->rdataset)) {
-		dns_rdataset_disassociate(&it->rdataset);
-	}
+	dns_rdataset_cleanup(&it->rdataset);
 	it->result = dns_rdatasetiter_next(it->rdatasetit);
 	/*
 	 * The while loop body is executed more than once
@@ -177,9 +173,7 @@ dns_rriterator_pause(dns_rriterator_t *it) {
 void
 dns_rriterator_destroy(dns_rriterator_t *it) {
 	REQUIRE(VALID_RRITERATOR(it));
-	if (dns_rdataset_isassociated(&it->rdataset)) {
-		dns_rdataset_disassociate(&it->rdataset);
-	}
+	dns_rdataset_cleanup(&it->rdataset);
 	if (it->rdatasetit != NULL) {
 		dns_rdatasetiter_destroy(&it->rdatasetit);
 	}

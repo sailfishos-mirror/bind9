@@ -142,9 +142,7 @@ free_namelist(dns_message_t *msg, dns_namelist_t *namelist) {
 		ISC_LIST_UNLINK(*namelist, name, link);
 		ISC_LIST_FOREACH(name->list, set, link) {
 			ISC_LIST_UNLINK(name->list, set, link);
-			if (dns_rdataset_isassociated(set)) {
-				dns_rdataset_disassociate(set);
-			}
+			dns_rdataset_cleanup(set);
 			dns_message_puttemprdataset(msg, &set);
 		}
 		dns_message_puttempname(msg, &name);

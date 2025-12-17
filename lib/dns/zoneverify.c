@@ -159,9 +159,7 @@ has_dname(const vctx_t *vctx, dns_dbnode_t *node) {
 	result = dns_db_findrdataset(vctx->db, node, vctx->ver,
 				     dns_rdatatype_dname, 0, 0, &dnameset,
 				     NULL);
-	if (dns_rdataset_isassociated(&dnameset)) {
-		dns_rdataset_disassociate(&dnameset);
-	}
+	dns_rdataset_cleanup(&dnameset);
 
 	return result == ISC_R_SUCCESS;
 }
@@ -291,9 +289,7 @@ verifynsec(const vctx_t *vctx, const dns_name_t *name, dns_dbnode_t *node,
 	result = ISC_R_SUCCESS;
 
 done:
-	if (dns_rdataset_isassociated(&rdataset)) {
-		dns_rdataset_disassociate(&rdataset);
-	}
+	dns_rdataset_cleanup(&rdataset);
 
 	return result;
 }
@@ -303,11 +299,9 @@ check_no_rrsig(const vctx_t *vctx, const dns_rdataset_t *rdataset,
 	       const dns_name_t *name, dns_dbnode_t *node) {
 	char namebuf[DNS_NAME_FORMATSIZE];
 	char typebuf[DNS_RDATATYPE_FORMATSIZE];
-	dns_rdataset_t sigrdataset = DNS_RDATASET_INIT;
 	dns_rdatasetiter_t *rdsiter = NULL;
 	isc_result_t result;
 
-	dns_rdataset_init(&sigrdataset);
 	result = dns_db_allrdatasets(vctx->db, node, vctx->ver, 0, 0, &rdsiter);
 	if (result != ISC_R_SUCCESS) {
 		zoneverify_log_error(vctx, "dns_db_allrdatasets(): %s",
@@ -315,10 +309,12 @@ check_no_rrsig(const vctx_t *vctx, const dns_rdataset_t *rdataset,
 		return result;
 	}
 	DNS_RDATASETITER_FOREACH(rdsiter) {
+		dns_rdataset_t sigrdataset = DNS_RDATASET_INIT;
 		dns_rdatasetiter_current(rdsiter, &sigrdataset);
 		if (sigrdataset.type == dns_rdatatype_rrsig &&
 		    sigrdataset.covers == rdataset->type)
 		{
+			dns_rdataset_disassociate(&sigrdataset);
 			dns_name_format(name, namebuf, sizeof(namebuf));
 			dns_rdatatype_format(rdataset->type, typebuf,
 					     sizeof(typebuf));
@@ -329,9 +325,6 @@ check_no_rrsig(const vctx_t *vctx, const dns_rdataset_t *rdataset,
 				namebuf, typebuf);
 			break;
 		}
-		dns_rdataset_disassociate(&sigrdataset);
-	}
-	if (dns_rdataset_isassociated(&sigrdataset)) {
 		dns_rdataset_disassociate(&sigrdataset);
 	}
 	dns_rdatasetiter_destroy(&rdsiter);
@@ -659,9 +652,7 @@ isoptout(const vctx_t *vctx, const dns_rdata_nsec3param_t *nsec3param,
 	*optout = ((nsec3.flags & DNS_NSEC3FLAG_OPTOUT) != 0);
 
 done:
-	if (dns_rdataset_isassociated(&rdataset)) {
-		dns_rdataset_disassociate(&rdataset);
-	}
+	dns_rdataset_cleanup(&rdataset);
 	if (node != NULL) {
 		dns_db_detachnode(&node);
 	}
@@ -754,9 +745,7 @@ verifynsec3(const vctx_t *vctx, const dns_name_t *name,
 	result = ISC_R_SUCCESS;
 
 done:
-	if (dns_rdataset_isassociated(&rdataset)) {
-		dns_rdataset_disassociate(&rdataset);
-	}
+	dns_rdataset_cleanup(&rdataset);
 	if (node != NULL) {
 		dns_db_detachnode(&node);
 	}
@@ -879,9 +868,7 @@ verifyset(vctx_t *vctx, dns_rdataset_t *rdataset, const dns_name_t *name,
 	}
 
 done:
-	if (dns_rdataset_isassociated(&sigrdataset)) {
-		dns_rdataset_disassociate(&sigrdataset);
-	}
+	dns_rdataset_cleanup(&sigrdataset);
 	dns_rdatasetiter_destroy(&rdsiter);
 
 	return result;
@@ -1011,9 +998,7 @@ check_no_nsec(const vctx_t *vctx, const dns_name_t *name, dns_dbnode_t *node) {
 		nsec_exists = true;
 	}
 
-	if (dns_rdataset_isassociated(&rdataset)) {
-		dns_rdataset_disassociate(&rdataset);
-	}
+	dns_rdataset_cleanup(&rdataset);
 
 	return nsec_exists ? ISC_R_FAILURE : ISC_R_SUCCESS;
 }
@@ -1270,30 +1255,14 @@ vctx_init(vctx_t *vctx, isc_mem_t *mctx, dns_zone_t *zone, dns_db_t *db,
 
 static void
 vctx_destroy(vctx_t *vctx) {
-	if (dns_rdataset_isassociated(&vctx->keyset)) {
-		dns_rdataset_disassociate(&vctx->keyset);
-	}
-	if (dns_rdataset_isassociated(&vctx->keysigs)) {
-		dns_rdataset_disassociate(&vctx->keysigs);
-	}
-	if (dns_rdataset_isassociated(&vctx->soaset)) {
-		dns_rdataset_disassociate(&vctx->soaset);
-	}
-	if (dns_rdataset_isassociated(&vctx->soasigs)) {
-		dns_rdataset_disassociate(&vctx->soasigs);
-	}
-	if (dns_rdataset_isassociated(&vctx->nsecset)) {
-		dns_rdataset_disassociate(&vctx->nsecset);
-	}
-	if (dns_rdataset_isassociated(&vctx->nsecsigs)) {
-		dns_rdataset_disassociate(&vctx->nsecsigs);
-	}
-	if (dns_rdataset_isassociated(&vctx->nsec3paramset)) {
-		dns_rdataset_disassociate(&vctx->nsec3paramset);
-	}
-	if (dns_rdataset_isassociated(&vctx->nsec3paramsigs)) {
-		dns_rdataset_disassociate(&vctx->nsec3paramsigs);
-	}
+	dns_rdataset_cleanup(&vctx->keyset);
+	dns_rdataset_cleanup(&vctx->keysigs);
+	dns_rdataset_cleanup(&vctx->soaset);
+	dns_rdataset_cleanup(&vctx->soasigs);
+	dns_rdataset_cleanup(&vctx->nsecset);
+	dns_rdataset_cleanup(&vctx->nsecsigs);
+	dns_rdataset_cleanup(&vctx->nsec3paramset);
+	dns_rdataset_cleanup(&vctx->nsec3paramsigs);
 	isc_heap_foreach(vctx->expected_chains, free_element_heap, vctx->mctx);
 	isc_heap_destroy(&vctx->expected_chains);
 	isc_heap_foreach(vctx->found_chains, free_element_heap, vctx->mctx);

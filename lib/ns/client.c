@@ -2985,9 +2985,7 @@ ns_client_putrdataset(ns_client_t *client, dns_rdataset_t **rdatasetp) {
 	rdataset = *rdatasetp;
 
 	if (rdataset != NULL) {
-		if (dns_rdataset_isassociated(rdataset)) {
-			dns_rdataset_disassociate(rdataset);
-		}
+		dns_rdataset_cleanup(rdataset);
 		dns_message_puttemprdataset(client->message, rdatasetp);
 	}
 }

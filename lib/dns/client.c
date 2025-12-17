@@ -405,9 +405,7 @@ putrdataset(isc_mem_t *mctx, dns_rdataset_t **rdatasetp) {
 	*rdatasetp = NULL;
 	REQUIRE(rdataset != NULL);
 
-	if (dns_rdataset_isassociated(rdataset)) {
-		dns_rdataset_disassociate(rdataset);
-	}
+	dns_rdataset_cleanup(rdataset);
 
 	isc_mem_put(mctx, rdataset, sizeof(*rdataset));
 }

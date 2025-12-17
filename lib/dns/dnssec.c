@@ -1459,9 +1459,7 @@ mark_active_keys(dns_dnsseckeylist_t *keylist, dns_rdataset_t *rrsigs) {
 		}
 	}
 
-	if (dns_rdataset_isassociated(&sigs)) {
-		dns_rdataset_disassociate(&sigs);
-	}
+	dns_rdataset_cleanup(&sigs);
 	return result;
 }
 
@@ -1673,9 +1671,7 @@ dns_dnssec_keylistfromrdataset(const dns_name_t *origin, dns_kasp_t *kasp,
 	result = ISC_R_SUCCESS;
 
 cleanup:
-	if (dns_rdataset_isassociated(&keys)) {
-		dns_rdataset_disassociate(&keys);
-	}
+	dns_rdataset_cleanup(&keys);
 	if (dnskey != NULL) {
 		dst_key_free(&dnskey);
 	}

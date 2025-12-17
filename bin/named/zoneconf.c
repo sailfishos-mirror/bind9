@@ -642,9 +642,7 @@ configure_staticstub(const cfg_obj_t *zconfig, const cfg_obj_t *tconfig,
 	result = ISC_R_SUCCESS;
 
 cleanup:
-	if (dns_rdataset_isassociated(&rdataset)) {
-		dns_rdataset_disassociate(&rdataset);
-	}
+	dns_rdataset_cleanup(&rdataset);
 	if (apexnode != NULL) {
 		dns_db_detachnode(&apexnode);
 	}

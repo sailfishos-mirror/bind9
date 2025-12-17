@@ -271,9 +271,7 @@ cleanup:
 	if (node != NULL) {
 		dns_db_detachnode(&node);
 	}
-	if (dns_rdataset_isassociated(&ardataset)) {
-		dns_rdataset_disassociate(&ardataset);
-	}
+	dns_rdataset_cleanup(&ardataset);
 	return result;
 }
 

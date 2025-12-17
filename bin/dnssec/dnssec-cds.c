@@ -195,9 +195,7 @@ findset(dns_db_t *db, dns_dbnode_t *node, dns_rdatatype_t type,
 
 static void
 freeset(dns_rdataset_t *rdataset) {
-	if (dns_rdataset_isassociated(rdataset)) {
-		dns_rdataset_disassociate(rdataset);
-	}
+	dns_rdataset_cleanup(rdataset);
 }
 
 static void

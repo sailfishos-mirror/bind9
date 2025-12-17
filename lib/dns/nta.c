@@ -90,12 +90,8 @@ dns__nta_destroy(dns__nta_t *nta) {
 	REQUIRE(nta->timer == NULL);
 
 	nta->magic = 0;
-	if (dns_rdataset_isassociated(&nta->rdataset)) {
-		dns_rdataset_disassociate(&nta->rdataset);
-	}
-	if (dns_rdataset_isassociated(&nta->sigrdataset)) {
-		dns_rdataset_disassociate(&nta->sigrdataset);
-	}
+	dns_rdataset_cleanup(&nta->rdataset);
+	dns_rdataset_cleanup(&nta->sigrdataset);
 	if (nta->fetch != NULL) {
 		dns_resolver_cancelfetch(nta->fetch);
 		dns_resolver_destroyfetch(&nta->fetch);
@@ -157,12 +153,8 @@ fetch_done(void *arg) {
 	dns_view_t *view = ntatable->view;
 	isc_stdtime_t now = isc_stdtime_now();
 
-	if (dns_rdataset_isassociated(&nta->rdataset)) {
-		dns_rdataset_disassociate(&nta->rdataset);
-	}
-	if (dns_rdataset_isassociated(&nta->sigrdataset)) {
-		dns_rdataset_disassociate(&nta->sigrdataset);
-	}
+	dns_rdataset_cleanup(&nta->rdataset);
+	dns_rdataset_cleanup(&nta->sigrdataset);
 	if (nta->fetch == resp->fetch) {
 		nta->fetch = NULL;
 	}
@@ -217,12 +209,8 @@ checkbogus(void *arg) {
 		dns_resolver_cancelfetch(nta->fetch);
 		nta->fetch = NULL;
 	}
-	if (dns_rdataset_isassociated(&nta->rdataset)) {
-		dns_rdataset_disassociate(&nta->rdataset);
-	}
-	if (dns_rdataset_isassociated(&nta->sigrdataset)) {
-		dns_rdataset_disassociate(&nta->sigrdataset);
-	}
+	dns_rdataset_cleanup(&nta->rdataset);
+	dns_rdataset_cleanup(&nta->sigrdataset);
 
 	if (atomic_load(&ntatable->shuttingdown)) {
 		isc_timer_stop(nta->timer);
