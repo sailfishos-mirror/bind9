@@ -170,9 +170,7 @@ check_hints(dns_db_t *db) {
 	}
 
 cleanup:
-	if (dns_rdataset_isassociated(&rootns)) {
-		dns_rdataset_disassociate(&rootns);
-	}
+	dns_rdataset_cleanup(&rootns);
 	if (rdsiter != NULL) {
 		dns_rdatasetiter_destroy(&rdsiter);
 	}
@@ -368,12 +366,8 @@ check_address_records(dns_view_t *view, dns_db_t *hints, dns_db_t *db,
 			report(view, name, true, &rdata);
 		}
 	}
-	if (dns_rdataset_isassociated(&rootrrset)) {
-		dns_rdataset_disassociate(&rootrrset);
-	}
-	if (dns_rdataset_isassociated(&hintrrset)) {
-		dns_rdataset_disassociate(&hintrrset);
-	}
+	dns_rdataset_cleanup(&rootrrset);
+	dns_rdataset_cleanup(&hintrrset);
 
 	/*
 	 * Check AAAA records.
@@ -414,12 +408,8 @@ check_address_records(dns_view_t *view, dns_db_t *hints, dns_db_t *db,
 			report(view, name, true, &rdata);
 		}
 	}
-	if (dns_rdataset_isassociated(&rootrrset)) {
-		dns_rdataset_disassociate(&rootrrset);
-	}
-	if (dns_rdataset_isassociated(&hintrrset)) {
-		dns_rdataset_disassociate(&hintrrset);
-	}
+	dns_rdataset_cleanup(&rootrrset);
+	dns_rdataset_cleanup(&hintrrset);
 }
 
 void
@@ -513,10 +503,6 @@ dns_root_checkhints(dns_view_t *view, dns_db_t *hints, dns_db_t *db) {
 	}
 
 cleanup:
-	if (dns_rdataset_isassociated(&rootns)) {
-		dns_rdataset_disassociate(&rootns);
-	}
-	if (dns_rdataset_isassociated(&hintns)) {
-		dns_rdataset_disassociate(&hintns);
-	}
+	dns_rdataset_cleanup(&rootns);
+	dns_rdataset_cleanup(&hintns);
 }

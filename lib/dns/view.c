@@ -820,14 +820,8 @@ db_find:
 			     foundname, rdataset, sigrdataset);
 
 	if (result == DNS_R_DELEGATION || result == ISC_R_NOTFOUND) {
-		if (dns_rdataset_isassociated(rdataset)) {
-			dns_rdataset_disassociate(rdataset);
-		}
-		if (sigrdataset != NULL &&
-		    dns_rdataset_isassociated(sigrdataset))
-		{
-			dns_rdataset_disassociate(sigrdataset);
-		}
+		dns_rdataset_cleanup(rdataset);
+		dns_rdataset_cleanup(sigrdataset);
 		if (node != NULL) {
 			dns_db_detachnode(&node);
 		}
@@ -881,14 +875,8 @@ db_find:
 	if (result == ISC_R_NOTFOUND && !is_staticstub_zone && use_hints &&
 	    view->hints != NULL)
 	{
-		if (dns_rdataset_isassociated(rdataset)) {
-			dns_rdataset_disassociate(rdataset);
-		}
-		if (sigrdataset != NULL &&
-		    dns_rdataset_isassociated(sigrdataset))
-		{
-			dns_rdataset_disassociate(sigrdataset);
-		}
+		dns_rdataset_cleanup(rdataset);
+		dns_rdataset_cleanup(sigrdataset);
 		if (db != NULL) {
 			if (node != NULL) {
 				dns_db_detachnode(&node);
@@ -929,9 +917,7 @@ db_find:
 cleanup:
 	if (dns_rdataset_isassociated(&zrdataset)) {
 		dns_rdataset_disassociate(&zrdataset);
-		if (dns_rdataset_isassociated(&zsigrdataset)) {
-			dns_rdataset_disassociate(&zsigrdataset);
-		}
+		dns_rdataset_cleanup(&zsigrdataset);
 	}
 
 	if (zdb != NULL) {
@@ -984,27 +970,15 @@ dns_view_simplefind(dns_view_t *view, const dns_name_t *name,
 		 * foundname is not returned by this simplified API.  We
 		 * disassociate them here to prevent any misuse by the caller.
 		 */
-		if (dns_rdataset_isassociated(rdataset)) {
-			dns_rdataset_disassociate(rdataset);
-		}
-		if (sigrdataset != NULL &&
-		    dns_rdataset_isassociated(sigrdataset))
-		{
-			dns_rdataset_disassociate(sigrdataset);
-		}
+		dns_rdataset_cleanup(rdataset);
+		dns_rdataset_cleanup(sigrdataset);
 	} else if (result != ISC_R_SUCCESS && result != DNS_R_GLUE &&
 		   result != DNS_R_HINT && result != DNS_R_NCACHENXDOMAIN &&
 		   result != DNS_R_NCACHENXRRSET && result != DNS_R_NXRRSET &&
 		   result != DNS_R_HINTNXRRSET && result != ISC_R_NOTFOUND)
 	{
-		if (dns_rdataset_isassociated(rdataset)) {
-			dns_rdataset_disassociate(rdataset);
-		}
-		if (sigrdataset != NULL &&
-		    dns_rdataset_isassociated(sigrdataset))
-		{
-			dns_rdataset_disassociate(sigrdataset);
-		}
+		dns_rdataset_cleanup(rdataset);
+		dns_rdataset_cleanup(sigrdataset);
 		result = ISC_R_NOTFOUND;
 	}
 
@@ -1165,11 +1139,7 @@ finish:
 	if (use_zone) {
 		if (dns_rdataset_isassociated(rdataset)) {
 			dns_rdataset_disassociate(rdataset);
-			if (sigrdataset != NULL &&
-			    dns_rdataset_isassociated(sigrdataset))
-			{
-				dns_rdataset_disassociate(sigrdataset);
-			}
+			dns_rdataset_cleanup(sigrdataset);
 		}
 		dns_name_copy(zfname, fname);
 		if (dcname != NULL) {
@@ -1193,9 +1163,7 @@ finish:
 			 * We can't even find the hints for the root
 			 * nameservers!
 			 */
-			if (dns_rdataset_isassociated(rdataset)) {
-				dns_rdataset_disassociate(rdataset);
-			}
+			dns_rdataset_cleanup(rdataset);
 			result = ISC_R_NOTFOUND;
 		} else if (dcname != NULL) {
 			dns_name_copy(fname, dcname);
@@ -1205,9 +1173,7 @@ finish:
 cleanup:
 	if (dns_rdataset_isassociated(&zrdataset)) {
 		dns_rdataset_disassociate(&zrdataset);
-		if (dns_rdataset_isassociated(&zsigrdataset)) {
-			dns_rdataset_disassociate(&zsigrdataset);
-		}
+		dns_rdataset_cleanup(&zsigrdataset);
 	}
 	if (db != NULL) {
 		dns_db_detach(&db);
@@ -1644,9 +1610,7 @@ dns_view_istrusted(dns_view_t *view, const dns_name_t *keyname,
 	}
 
 finish:
-	if (dns_rdataset_isassociated(&dsset)) {
-		dns_rdataset_disassociate(&dsset);
-	}
+	dns_rdataset_cleanup(&dsset);
 	if (knode != NULL) {
 		dns_keynode_detach(&knode);
 	}

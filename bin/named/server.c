@@ -6487,12 +6487,8 @@ tat_done(void *arg) {
 
 	dns_resolver_freefresp(&resp);
 	dns_resolver_destroyfetch(&tat->fetch);
-	if (dns_rdataset_isassociated(&tat->rdataset)) {
-		dns_rdataset_disassociate(&tat->rdataset);
-	}
-	if (dns_rdataset_isassociated(&tat->sigrdataset)) {
-		dns_rdataset_disassociate(&tat->sigrdataset);
-	}
+	dns_rdataset_cleanup(&tat->rdataset);
+	dns_rdataset_cleanup(&tat->sigrdataset);
 	dns_view_detach(&tat->view);
 	isc_mem_putanddetach(&tat->mctx, tat, sizeof(*tat));
 }
@@ -6636,9 +6632,7 @@ tat_send(void *arg) {
 	 * it succeeds.  Thus, we need to check whether 'nameservers' is
 	 * associated and release it if it is.
 	 */
-	if (dns_rdataset_isassociated(&nameservers)) {
-		dns_rdataset_disassociate(&nameservers);
-	}
+	dns_rdataset_cleanup(&nameservers);
 
 	if (result != ISC_R_SUCCESS) {
 		dns_view_detach(&tat->view);
@@ -13904,9 +13898,7 @@ named_server_signing(named_server_t *server, isc_lex_t *lex,
 	}
 
 cleanup:
-	if (dns_rdataset_isassociated(&privset)) {
-		dns_rdataset_disassociate(&privset);
-	}
+	dns_rdataset_cleanup(&privset);
 	if (node != NULL) {
 		dns_db_detachnode(&node);
 	}

@@ -191,15 +191,9 @@ validator_addede(dns_validator_t *val, uint16_t code, const char *extra);
  */
 static void
 disassociate_rdatasets(dns_validator_t *val) {
-	if (dns_rdataset_isassociated(&val->fdsset)) {
-		dns_rdataset_disassociate(&val->fdsset);
-	}
-	if (dns_rdataset_isassociated(&val->frdataset)) {
-		dns_rdataset_disassociate(&val->frdataset);
-	}
-	if (dns_rdataset_isassociated(&val->fsigrdataset)) {
-		dns_rdataset_disassociate(&val->fsigrdataset);
-	}
+	dns_rdataset_cleanup(&val->fdsset);
+	dns_rdataset_cleanup(&val->frdataset);
+	dns_rdataset_cleanup(&val->fsigrdataset);
 }
 
 /*%
@@ -436,9 +430,7 @@ fetch_callback_dnskey(void *arg) {
 	if (resp->db != NULL) {
 		dns_db_detach(&resp->db);
 	}
-	if (dns_rdataset_isassociated(&val->fsigrdataset)) {
-		dns_rdataset_disassociate(&val->fsigrdataset);
-	}
+	dns_rdataset_cleanup(&val->fsigrdataset);
 
 	validator_log(val, ISC_LOG_DEBUG(3), "in fetch_callback_dnskey");
 
@@ -531,9 +523,7 @@ fetch_callback_ds(void *arg) {
 	if (resp->db != NULL) {
 		dns_db_detach(&resp->db);
 	}
-	if (dns_rdataset_isassociated(&val->fsigrdataset)) {
-		dns_rdataset_disassociate(&val->fsigrdataset);
-	}
+	dns_rdataset_cleanup(&val->fsigrdataset);
 
 	validator_log(val, ISC_LOG_DEBUG(3), "in fetch_callback_ds");
 
@@ -1208,9 +1198,7 @@ seek_dnskey(dns_validator_t *val) {
 			{
 				dns_rdataset_disassociate(&val->frdataset);
 			}
-			if (dns_rdataset_isassociated(&val->fsigrdataset)) {
-				dns_rdataset_disassociate(&val->fsigrdataset);
-			}
+			dns_rdataset_cleanup(&val->fsigrdataset);
 
 			return validate_helper_run(val, resume_answer_with_key);
 		}
@@ -1247,9 +1235,7 @@ seek_dnskey(dns_validator_t *val) {
 	{
 		dns_rdataset_disassociate(&val->frdataset);
 	}
-	if (dns_rdataset_isassociated(&val->fsigrdataset)) {
-		dns_rdataset_disassociate(&val->fsigrdataset);
-	}
+	dns_rdataset_cleanup(&val->fsigrdataset);
 
 	return result;
 }
@@ -2486,9 +2472,7 @@ checkwildcard(dns_validator_t *val, dns_rdatatype_t type,
 			if (!exists && NEEDNOQNAME(val)) {
 				proofs[DNS_VALIDATOR_NOWILDCARDPROOF] = name;
 			}
-			if (dns_rdataset_isassociated(&trdataset)) {
-				dns_rdataset_disassociate(&trdataset);
-			}
+			dns_rdataset_cleanup(&trdataset);
 			return ISC_R_SUCCESS;
 		}
 
@@ -2513,18 +2497,14 @@ checkwildcard(dns_validator_t *val, dns_rdatatype_t type,
 			if (!exists && NEEDNOQNAME(val)) {
 				proofs[DNS_VALIDATOR_NOWILDCARDPROOF] = name;
 			}
-			if (dns_rdataset_isassociated(&trdataset)) {
-				dns_rdataset_disassociate(&trdataset);
-			}
+			dns_rdataset_cleanup(&trdataset);
 			return ISC_R_SUCCESS;
 		}
 	}
 	if (result == ISC_R_NOMORE) {
 		result = ISC_R_SUCCESS;
 	}
-	if (dns_rdataset_isassociated(&trdataset)) {
-		dns_rdataset_disassociate(&trdataset);
-	}
+	dns_rdataset_cleanup(&trdataset);
 	return result;
 }
 
@@ -2573,9 +2553,7 @@ findnsec3proofs(dns_validator_t *val) {
 						 NULL, NULL, NULL, NULL, NULL,
 						 NULL, validator_log, val);
 		if (result != ISC_R_IGNORE && result != ISC_R_SUCCESS) {
-			if (dns_rdataset_isassociated(&trdataset)) {
-				dns_rdataset_disassociate(&trdataset);
-			}
+			dns_rdataset_cleanup(&trdataset);
 			return result;
 		}
 	}
@@ -2585,9 +2563,7 @@ findnsec3proofs(dns_validator_t *val) {
 	POST(result);
 
 	if (dns_name_countlabels(zonename) == 0) {
-		if (dns_rdataset_isassociated(&trdataset)) {
-			dns_rdataset_disassociate(&trdataset);
-		}
+		dns_rdataset_cleanup(&trdataset);
 		return ISC_R_SUCCESS;
 	}
 
@@ -2656,9 +2632,7 @@ findnsec3proofs(dns_validator_t *val) {
 			{
 				proofs[DNS_VALIDATOR_NOWILDCARDPROOF] = name;
 			}
-			if (dns_rdataset_isassociated(&trdataset)) {
-				dns_rdataset_disassociate(&trdataset);
-			}
+			dns_rdataset_cleanup(&trdataset);
 			return result;
 		}
 		if (result != ISC_R_SUCCESS) {
@@ -2711,15 +2685,11 @@ findnsec3proofs(dns_validator_t *val) {
 	{
 		result = checkwildcard(val, dns_rdatatype_nsec3, zonename);
 		if (result != ISC_R_SUCCESS) {
-			if (dns_rdataset_isassociated(&trdataset)) {
-				dns_rdataset_disassociate(&trdataset);
-			}
+			dns_rdataset_cleanup(&trdataset);
 			return result;
 		}
 	}
-	if (dns_rdataset_isassociated(&trdataset)) {
-		dns_rdataset_disassociate(&trdataset);
-	}
+	dns_rdataset_cleanup(&trdataset);
 	return result;
 }
 
@@ -3165,11 +3135,7 @@ seek_ds(dns_validator_t *val, isc_result_t *resp) {
 				       *keysetp = NULL;
 
 			if (check_ds_private(&val->frdataset)) {
-				if (dns_rdataset_isassociated(&val->dsrdataset))
-				{
-					dns_rdataset_disassociate(
-						&val->dsrdataset);
-				}
+				dns_rdataset_cleanup(&val->dsrdataset);
 				dns_rdataset_clone(&val->frdataset,
 						   &val->dsrdataset);
 				dssetp = &val->dsrdataset;
@@ -3454,11 +3420,7 @@ proveunsecure(dns_validator_t *val, bool have_ds, bool have_dnskey,
 			}
 
 			if (!have_dnskey && check_ds_private(&val->frdataset)) {
-				if (dns_rdataset_isassociated(&val->dsrdataset))
-				{
-					dns_rdataset_disassociate(
-						&val->dsrdataset);
-				}
+				dns_rdataset_cleanup(&val->dsrdataset);
 				dns_rdataset_clone(&val->frdataset,
 						   &val->dsrdataset);
 				dssetp = &val->dsrdataset;
@@ -3780,9 +3742,7 @@ destroy_validator(dns_validator_t *val) {
 		dns_keytable_detach(&val->keytable);
 	}
 	disassociate_rdatasets(val);
-	if (dns_rdataset_isassociated(&val->dsrdataset)) {
-		dns_rdataset_disassociate(&val->dsrdataset);
-	}
+	dns_rdataset_cleanup(&val->dsrdataset);
 	mctx = val->view->mctx;
 	if (val->siginfo != NULL) {
 		isc_mem_put(mctx, val->siginfo, sizeof(*val->siginfo));

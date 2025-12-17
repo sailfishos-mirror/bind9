@@ -871,9 +871,7 @@ cleanup:
 	if (dbit != NULL) {
 		dns_dbiterator_destroy(&dbit);
 	}
-	if (dns_rdataset_isassociated(&rdataset)) {
-		dns_rdataset_disassociate(&rdataset);
-	}
+	dns_rdataset_cleanup(&rdataset);
 	if (node != NULL) {
 		dns_db_detachnode(&node);
 	}
@@ -934,9 +932,7 @@ dns_nsec3_addnsec3s(dns_db_t *db, dns_dbversion_t *version,
 	}
 
 cleanup:
-	if (dns_rdataset_isassociated(&rdataset)) {
-		dns_rdataset_disassociate(&rdataset);
-	}
+	dns_rdataset_cleanup(&rdataset);
 	if (node != NULL) {
 		dns_db_detachnode(&node);
 	}
@@ -1165,9 +1161,7 @@ try_private:
 	result = ISC_R_SUCCESS;
 
 cleanup:
-	if (dns_rdataset_isassociated(&rdataset)) {
-		dns_rdataset_disassociate(&rdataset);
-	}
+	dns_rdataset_cleanup(&rdataset);
 	dns_db_detachnode(&node);
 	return result;
 }
@@ -1265,12 +1259,8 @@ try_private:
 	result = ISC_R_SUCCESS;
 
 cleanup:
-	if (dns_rdataset_isassociated(&rdataset)) {
-		dns_rdataset_disassociate(&rdataset);
-	}
-	if (dns_rdataset_isassociated(&prdataset)) {
-		dns_rdataset_disassociate(&prdataset);
-	}
+	dns_rdataset_cleanup(&rdataset);
+	dns_rdataset_cleanup(&prdataset);
 	if (node != NULL) {
 		dns_db_detachnode(&node);
 	}
@@ -1564,9 +1554,7 @@ cleanup:
 	if (dbit != NULL) {
 		dns_dbiterator_destroy(&dbit);
 	}
-	if (dns_rdataset_isassociated(&rdataset)) {
-		dns_rdataset_disassociate(&rdataset);
-	}
+	dns_rdataset_cleanup(&rdataset);
 	if (node != NULL) {
 		dns_db_detachnode(&node);
 	}
@@ -1667,9 +1655,7 @@ try_private:
 	result = ISC_R_SUCCESS;
 
 cleanup:
-	if (dns_rdataset_isassociated(&rdataset)) {
-		dns_rdataset_disassociate(&rdataset);
-	}
+	dns_rdataset_cleanup(&rdataset);
 	if (node != NULL) {
 		dns_db_detachnode(&node);
 	}

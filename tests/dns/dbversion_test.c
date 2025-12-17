@@ -181,9 +181,7 @@ ISC_RUN_TEST_IMPL(find) {
 	 */
 	assert_true(res == DNS_R_NXRRSET || res == DNS_R_NXDOMAIN);
 
-	if (dns_rdataset_isassociated(&rdataset)) {
-		dns_rdataset_disassociate(&rdataset);
-	}
+	dns_rdataset_cleanup(&rdataset);
 
 	dns_rdataset_init(&rdataset);
 	check_assertion((void)dns_db_find(db1, dns_rootname, v2,
@@ -236,9 +234,7 @@ ISC_RUN_TEST_IMPL(findrdataset) {
 				  &rdataset, NULL);
 	assert_int_equal(res, ISC_R_NOTFOUND);
 
-	if (dns_rdataset_isassociated(&rdataset)) {
-		dns_rdataset_disassociate(&rdataset);
-	}
+	dns_rdataset_cleanup(&rdataset);
 
 	dns_rdataset_init(&rdataset);
 	check_assertion(dns_db_findrdataset(db1, node, v2, dns_rdatatype_soa, 0,
@@ -305,9 +301,7 @@ ISC_RUN_TEST_IMPL(subtract) {
 	res = dns_db_subtractrdataset(db1, node, v1, &rdataset, 0, NULL);
 	assert_int_equal(res, DNS_R_UNCHANGED);
 
-	if (dns_rdataset_isassociated(&rdataset)) {
-		dns_rdataset_disassociate(&rdataset);
-	}
+	dns_rdataset_cleanup(&rdataset);
 
 	dns_rdataset_init(&rdataset);
 	dns_rdatalist_tordataset(&rdatalist, &rdataset);

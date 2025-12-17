@@ -845,11 +845,7 @@ find(dns_db_t *db, const dns_name_t *name, dns_dbversion_t *version,
 			{
 				result = DNS_R_ZONECUT;
 				dns_rdataset_disassociate(rdataset);
-				if (sigrdataset != NULL &&
-				    dns_rdataset_isassociated(sigrdataset))
-				{
-					dns_rdataset_disassociate(sigrdataset);
-				}
+				dns_rdataset_cleanup(sigrdataset);
 				break;
 			} else if (result == ISC_R_SUCCESS) {
 				result = DNS_R_DELEGATION;

@@ -541,9 +541,7 @@ main(int argc, char **argv) {
 		emits(showall, cds, &rdata);
 	}
 
-	if (dns_rdataset_isassociated(&rdataset)) {
-		dns_rdataset_disassociate(&rdataset);
-	}
+	dns_rdataset_cleanup(&rdataset);
 	if (verbose > 10) {
 		isc_mem_stats(isc_g_mctx, stdout);
 	}

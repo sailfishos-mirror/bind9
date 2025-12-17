@@ -4491,9 +4491,7 @@ resume_qmin(void *arg) {
 		break;
 	}
 
-	if (dns_rdataset_isassociated(&fctx->nameservers)) {
-		dns_rdataset_disassociate(&fctx->nameservers);
-	}
+	dns_rdataset_cleanup(&fctx->nameservers);
 
 	if (dns_rdatatype_atparent(fctx->type)) {
 		findoptions |= DNS_DBFIND_NOEXACT;
@@ -4552,12 +4550,8 @@ cleanup:
 	if (db != NULL) {
 		dns_db_detach(&db);
 	}
-	if (dns_rdataset_isassociated(&rdataset)) {
-		dns_rdataset_disassociate(&rdataset);
-	}
-	if (dns_rdataset_isassociated(&sigrdataset)) {
-		dns_rdataset_disassociate(&sigrdataset);
-	}
+	dns_rdataset_cleanup(&rdataset);
+	dns_rdataset_cleanup(&sigrdataset);
 	if (result != ISC_R_SUCCESS) {
 		/* An error occurred, tear down whole fctx */
 		fctx_failure_unref(fctx, result);
@@ -4634,9 +4628,7 @@ fctx__destroy(fetchctx_t *fctx, const char *func, const char *file,
 	}
 	fcount_decr(fctx);
 	dns_message_detach(&fctx->qmessage);
-	if (dns_rdataset_isassociated(&fctx->nameservers)) {
-		dns_rdataset_disassociate(&fctx->nameservers);
-	}
+	dns_rdataset_cleanup(&fctx->nameservers);
 	dns_db_detach(&fctx->cache);
 	dns_adb_detach(&fctx->adb);
 	dns_dispatchmgr_detach(&fctx->dispatchmgr);
@@ -5097,9 +5089,7 @@ cleanup_fcount:
 	fcount_decr(fctx);
 
 cleanup_nameservers:
-	if (dns_rdataset_isassociated(&fctx->nameservers)) {
-		dns_rdataset_disassociate(&fctx->nameservers);
-	}
+	dns_rdataset_cleanup(&fctx->nameservers);
 	isc_mem_free(fctx->mctx, fctx->info);
 	if (fctx->nfails != NULL) {
 		isc_counter_detach(&fctx->nfails);
@@ -6939,17 +6929,13 @@ resume_dslookup(void *arg) {
 	case ISC_R_SUCCESS:
 		FCTXTRACE("resuming DS lookup");
 
-		if (dns_rdataset_isassociated(&fctx->nameservers)) {
-			dns_rdataset_disassociate(&fctx->nameservers);
-		}
+		dns_rdataset_cleanup(&fctx->nameservers);
 		dns_rdataset_clone(frdataset, &fctx->nameservers);
 
 		/*
 		 * Disassociate now the NS's are saved.
 		 */
-		if (dns_rdataset_isassociated(frdataset)) {
-			dns_rdataset_disassociate(frdataset);
-		}
+		dns_rdataset_cleanup(frdataset);
 
 		fctx->ns_ttl = fctx->nameservers.ttl;
 		fctx->ns_ttl_ok = true;
@@ -6967,18 +6953,14 @@ resume_dslookup(void *arg) {
 	case ISC_R_CANCELED:
 		/* Don't try anymore. */
 		/* Can't be done in cleanup. */
-		if (dns_rdataset_isassociated(frdataset)) {
-			dns_rdataset_disassociate(frdataset);
-		}
+		dns_rdataset_cleanup(frdataset);
 		goto cleanup;
 
 	default:
 		/*
 		 * Disassociate for the next dns_resolver_createfetch call.
 		 */
-		if (dns_rdataset_isassociated(frdataset)) {
-			dns_rdataset_disassociate(frdataset);
-		}
+		dns_rdataset_cleanup(frdataset);
 
 		/*
 		 * If the chain of resume_dslookup() invocations managed to
@@ -7020,9 +7002,7 @@ resume_dslookup(void *arg) {
 			}
 		}
 
-		if (dns_rdataset_isassociated(&nameservers)) {
-			dns_rdataset_disassociate(&nameservers);
-		}
+		dns_rdataset_cleanup(&nameservers);
 	}
 
 cleanup:
@@ -9132,9 +9112,7 @@ rctx_referral(respctx_t *rctx) {
 	INSIST(dns_name_countlabels(fctx->domain) > 0);
 	fcount_decr(fctx);
 
-	if (dns_rdataset_isassociated(&fctx->nameservers)) {
-		dns_rdataset_disassociate(&fctx->nameservers);
-	}
+	dns_rdataset_cleanup(&fctx->nameservers);
 
 	dns_name_copy(rctx->ns_name, fctx->domain);
 
@@ -9902,9 +9880,7 @@ prime_done(void *arg) {
 	if (resp->db != NULL) {
 		dns_db_detach(&resp->db);
 	}
-	if (dns_rdataset_isassociated(resp->rdataset)) {
-		dns_rdataset_disassociate(resp->rdataset);
-	}
+	dns_rdataset_cleanup(resp->rdataset);
 	INSIST(resp->sigrdataset == NULL);
 
 	isc_mem_put(res->mctx, resp->rdataset, sizeof(*resp->rdataset));
@@ -10090,9 +10066,7 @@ fctx_minimize_qname(fetchctx_t *fctx) {
 			result = dns_db_find(fctx->cache, &name, NULL,
 					     dns_rdatatype_ns, 0, 0, NULL,
 					     fname, &rdataset, NULL);
-			if (dns_rdataset_isassociated(&rdataset)) {
-				dns_rdataset_disassociate(&rdataset);
-			}
+			dns_rdataset_cleanup(&rdataset);
 			switch (result) {
 			case ISC_R_SUCCESS:
 			case DNS_R_CNAME:

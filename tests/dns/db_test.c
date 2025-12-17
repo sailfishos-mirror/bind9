@@ -376,9 +376,7 @@ ISC_LOOP_TEST_IMPL(version) {
 			     foundname, &rdataset, NULL);
 	assert_int_equal(result, DNS_R_NXDOMAIN);
 
-	if (dns_rdataset_isassociated(&rdataset)) {
-		dns_rdataset_disassociate(&rdataset);
-	}
+	dns_rdataset_cleanup(&rdataset);
 	if (node != NULL) {
 		dns_db_detachnode(&node);
 	}

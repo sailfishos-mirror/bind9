@@ -699,9 +699,7 @@ filter_respond_begin(void *arg, void *cbdata, isc_result_t *resp) {
 		result = dns_db_findrdataset(
 			qctx->db, qctx->node, qctx->version, dns_rdatatype_a, 0,
 			qctx->client->inner.now, trdataset, NULL);
-		if (dns_rdataset_isassociated(trdataset)) {
-			dns_rdataset_disassociate(trdataset);
-		}
+		dns_rdataset_cleanup(trdataset);
 		ns_client_putrdataset(qctx->client, &trdataset);
 
 		/*

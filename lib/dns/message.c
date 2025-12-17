@@ -1019,9 +1019,7 @@ getquestions(isc_buffer_t *source, dns_message_t *msg, dns_decompress_t dctx,
 
 cleanup:
 	if (rdataset != NULL) {
-		if (dns_rdataset_isassociated(rdataset)) {
-			dns_rdataset_disassociate(rdataset);
-		}
+		dns_rdataset_cleanup(rdataset);
 		dns_message_puttemprdataset(msg, &rdataset);
 	}
 
@@ -3177,9 +3175,7 @@ dns_message_checksig(dns_message_t *msg, dns_view_t *view) {
 		}
 
 	freesig:
-		if (dns_rdataset_isassociated(&keyset)) {
-			dns_rdataset_disassociate(&keyset);
-		}
+		dns_rdataset_cleanup(&keyset);
 		dns_rdata_freestruct(&sig);
 		return result;
 	}

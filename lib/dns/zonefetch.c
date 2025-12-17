@@ -160,12 +160,8 @@ dns_zonefetch_done(void *arg) {
 cleanup:
 	isc_refcount_decrement(dns__zone_irefs(zone));
 
-	if (dns_rdataset_isassociated(rrset)) {
-		dns_rdataset_disassociate(rrset);
-	}
-	if (dns_rdataset_isassociated(sigset)) {
-		dns_rdataset_disassociate(sigset);
-	}
+	dns_rdataset_cleanup(rrset);
+	dns_rdataset_cleanup(sigset);
 
 	fetch->fetchmethods.cleanup_fetch(fetch);
 

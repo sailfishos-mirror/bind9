@@ -443,19 +443,11 @@ free_glue(isc_mem_t *mctx, dns_glue_t *glue) {
 	while (glue != NULL) {
 		dns_glue_t *next = glue->next;
 
-		if (dns_rdataset_isassociated(&glue->rdataset_a)) {
-			dns_rdataset_disassociate(&glue->rdataset_a);
-		}
-		if (dns_rdataset_isassociated(&glue->sigrdataset_a)) {
-			dns_rdataset_disassociate(&glue->sigrdataset_a);
-		}
+		dns_rdataset_cleanup(&glue->rdataset_a);
+		dns_rdataset_cleanup(&glue->sigrdataset_a);
 
-		if (dns_rdataset_isassociated(&glue->rdataset_aaaa)) {
-			dns_rdataset_disassociate(&glue->rdataset_aaaa);
-		}
-		if (dns_rdataset_isassociated(&glue->sigrdataset_aaaa)) {
-			dns_rdataset_disassociate(&glue->sigrdataset_aaaa);
-		}
+		dns_rdataset_cleanup(&glue->rdataset_aaaa);
+		dns_rdataset_cleanup(&glue->sigrdataset_aaaa);
 
 		dns_rdataset_invalidate(&glue->rdataset_a);
 		dns_rdataset_invalidate(&glue->sigrdataset_a);
@@ -5210,19 +5202,11 @@ glue_nsdname_cb(void *arg, const dns_name_t *name, dns_rdatatype_t qtype,
 
 	result = ISC_R_SUCCESS;
 
-	if (dns_rdataset_isassociated(&rdataset_a)) {
-		dns_rdataset_disassociate(&rdataset_a);
-	}
-	if (dns_rdataset_isassociated(&sigrdataset_a)) {
-		dns_rdataset_disassociate(&sigrdataset_a);
-	}
+	dns_rdataset_cleanup(&rdataset_a);
+	dns_rdataset_cleanup(&sigrdataset_a);
 
-	if (dns_rdataset_isassociated(&rdataset_aaaa)) {
-		dns_rdataset_disassociate(&rdataset_aaaa);
-	}
-	if (dns_rdataset_isassociated(&sigrdataset_aaaa)) {
-		dns_rdataset_disassociate(&sigrdataset_aaaa);
-	}
+	dns_rdataset_cleanup(&rdataset_aaaa);
+	dns_rdataset_cleanup(&sigrdataset_aaaa);
 
 	if (node_a != NULL) {
 		dns__db_detachnode((dns_dbnode_t **)&node_a DNS__DB_FLARG_PASS);
@@ -5482,9 +5466,7 @@ failure:
 	if (node != NULL) {
 		dns_db_detachnode(&node);
 	}
-	if (dns_rdataset_isassociated(&ardataset)) {
-		dns_rdataset_disassociate(&ardataset);
-	}
+	dns_rdataset_cleanup(&ardataset);
 	return result;
 }
 
