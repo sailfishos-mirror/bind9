@@ -285,6 +285,10 @@ dns_rdataset_invalidate(dns_rdataset_t *rdataset);
  *	without initializing it will cause an assertion failure.
  */
 
+#define dns_rdataset_cleanup(rdataset)                                 \
+	if (rdataset != NULL && dns_rdataset_isassociated(rdataset)) { \
+		dns__rdataset_disassociate(rdataset DNS__DB_FILELINE); \
+	}
 #define dns_rdataset_disassociate(rdataset) \
 	dns__rdataset_disassociate(rdataset DNS__DB_FILELINE)
 void
