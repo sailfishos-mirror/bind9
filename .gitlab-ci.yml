@@ -605,6 +605,10 @@ stages:
   script:
     - cd bin/tests/system
     - RET=0
+    # With pytest 9.0, there's the following error in pytest_ignore_collect():
+    #   The (path: py.path.local) argument is deprecated, please use (collection_path: pathlib.Path).
+    # This should be fixed before pytest 9.1, when it becomes ineffective.
+    - if pytest --version | grep -F "pytest 9.0" >/dev/null; then echo "filterwarnings = ignore::pytest.PytestRemovedIn9Warning" >> pytest.ini; fi
     - make -j${TEST_PARALLEL_JOBS:-1} check || RET=$?
     - cd "$CI_PROJECT_DIR"
     - *find_python
