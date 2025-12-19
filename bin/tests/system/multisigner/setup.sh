@@ -16,6 +16,7 @@
 
 set -e
 
+# multi-signers
 (
   cd ns3
   $SHELL setup.sh
@@ -26,5 +27,15 @@ set -e
 )
 (
   cd ns5
+  $SHELL setup.sh
+)
+# tld
+(
+  cd ns2
+  $SHELL setup.sh
+)
+# root
+(
+  cd ns1
   $SHELL setup.sh
 )
