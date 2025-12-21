@@ -20,6 +20,7 @@ from typing import (
     Dict,
     List,
     Optional,
+    Set,
     Tuple,
     Union,
     cast,
@@ -198,7 +199,10 @@ class AsyncServer:
     ) -> None:
         assert self._work_done
         exception = context.get("exception", RuntimeError(context["message"]))
-        self._work_done.set_exception(exception)
+        try:
+            self._work_done.set_exception(exception)
+        except asyncio.InvalidStateError:
+            pass
 
     def _setup_signals(self) -> None:
         loop = self._get_asyncio_loop()
@@ -207,7 +211,10 @@ class AsyncServer:
 
     def _signal_done(self) -> None:
         assert self._work_done
-        self._work_done.set_result(True)
+        try:
+            self._work_done.set_result(True)
+        except asyncio.InvalidStateError:
+            pass
 
     async def _listen_udp(self) -> None:
         if not self._udp_handler:
@@ -498,10 +505,26 @@ class IgnoreAllConnections(ConnectionHandler):
     client socket, effectively ignoring all incoming connections.
     """
 
+    _connections: Set[asyncio.StreamWriter] = field(default_factory=set)
+
     async def handle(
         self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter, peer: Peer
     ) -> None:
         block_reading(peer, writer)
+        # Due to the way various asyncio-related objects (tasks, streams,
+        # transports, selectors) are referencing each other, pausing reads for
+        # a TCP transport (which in practice means removing the client socket
+        # from the set of descriptors monitored by a selector) can cause the
+        # client task (AsyncDnsServer._handle_tcp()) to be prematurely
+        # garbage-collected, causing asyncio code to raise a "Task was
+        # destroyed but it is pending!" exception.  Prevent that from happening
+        # by keeping a reference to each incoming TCP connection to protect its
+        # related asyncio objects from getting garbage-collected.  This
+        # prevents AsyncDnsServer from closing any of the ignored TCP
+        # connections indefinitely, which is obviously a pretty brain-dead idea
+        # for a production-grade DNS server, but AsyncDnsServer was never meant
+        # to be one and this hack reliably solves the problem at hand.
+        self._connections.add(writer)
 
 
 @dataclass
