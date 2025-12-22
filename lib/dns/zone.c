@@ -21120,12 +21120,14 @@ zone_checkds(dns_zone_t *zone) {
 #endif /* ifdef ENABLE_AFL */
 }
 
+static unsigned char _dsync_data[] = "\x06_dsync";
+static dns_name_t _dsync = DNS_NAME_INITNONABSOLUTE(_dsync_data);
+
 static isc_result_t
 dsyncfetch_start(dns_zonefetch_t *fetch) {
 	dns_dsyncfetch_t *dsyncfetch;
 	dns_zone_t *zone;
-	dns_fixedname_t fndl, fnp;
-	dns_name_t *name, *dsyncname, *dsynclabel, *prefix;
+	dns_name_t *dsyncname, prefix;
 	unsigned int nlabels;
 	isc_result_t result;
 
@@ -21140,24 +21142,14 @@ dsyncfetch_start(dns_zonefetch_t *fetch) {
 	 * The prefix is the relative domain name of the child consisting of
 	 * the labels under the zonecut.
 	 */
-	dsyncname = dns_fixedname_initname(&dsyncfetch->fname);
-	dsynclabel = dns_fixedname_initname(&fndl);
-	dns_name_fromstring(dsynclabel, "_dsync", NULL, 0, fetch->mctx);
-	result = dns_name_concatenate(dsynclabel, &dsyncfetch->pname,
-				      dsyncname);
-	if (result != ISC_R_SUCCESS) {
-		dnssec_log(zone, ISC_LOG_ERROR,
-			   "dsyncfetch: failed to create parent DSYNC fetch "
-			   "(parent part): %s",
-			   isc_result_totext(result));
-		return result;
-	}
+	dsyncname = dns_fixedname_initname(&dsyncfetch->dsyncname);
 
-	name = dns_fixedname_name(&fetch->name);
 	nlabels = dns_name_countlabels(&dsyncfetch->pname);
-	prefix = dns_fixedname_initname(&fnp);
-	dns_name_split(name, nlabels, prefix, NULL);
-	result = dns_name_concatenate(prefix, dsyncname, dsyncname);
+	dns_name_init(&prefix);
+	dns_name_split(dns_fixedname_name(&fetch->name), nlabels, &prefix,
+		       NULL);
+
+	result = dns_name_concatenate(&prefix, &_dsync, dsyncname);
 	if (result != ISC_R_SUCCESS) {
 		dnssec_log(zone, ISC_LOG_ERROR,
 			   "dsyncfetch: failed to create parent DSYNC fetch "
@@ -21166,11 +21158,17 @@ dsyncfetch_start(dns_zonefetch_t *fetch) {
 		return result;
 	}
 
-	dns_name_init(&dsyncfetch->dsyncname);
-	dns_name_clone(dsyncname, &dsyncfetch->dsyncname);
+	result = dns_name_concatenate(dsyncname, &dsyncfetch->pname, dsyncname);
+	if (result != ISC_R_SUCCESS) {
+		dnssec_log(zone, ISC_LOG_ERROR,
+			   "dsyncfetch: failed to create parent DSYNC fetch "
+			   "(parent part): %s",
+			   isc_result_totext(result));
+		return result;
+	}
 
 	fetch->qtype = dns_rdatatype_dsync;
-	fetch->qname = &dsyncfetch->dsyncname;
+	fetch->qname = dsyncname;
 
 	return ISC_R_SUCCESS;
 }
@@ -21246,7 +21244,7 @@ dsyncfetch_done(dns_zonefetch_t *fetch, isc_result_t eresult) {
 	dsyncfetch = &fetch->fetchdata.dsyncfetch;
 	zone = fetch->zone;
 	rrset = &fetch->rrset;
-	dsyncname = &dsyncfetch->dsyncname;
+	dsyncname = dns_fixedname_name(&dsyncfetch->dsyncname);
 
 	zone->fetchcount[ZONEFETCHTYPE_DSYNC]--;
 

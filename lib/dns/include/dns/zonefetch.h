@@ -58,9 +58,8 @@ typedef struct dns_zonefetch_methods {
  * Fetch contexts.
  */
 struct dns_dsyncfetch {
-	dns_fixedname_t fname;
+	dns_fixedname_t dsyncname;
 	dns_name_t	pname;
-	dns_name_t	dsyncname;
 };
 
 struct dns_keyfetch {
