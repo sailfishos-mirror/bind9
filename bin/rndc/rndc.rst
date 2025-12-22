@@ -277,9 +277,7 @@ Currently supported commands are:
    immediately re-signed by the new keys, but is allowed to
    incrementally re-sign over time.
 
-   This command requires that the zone be configured with a ``dnssec-policy``, and
-   also requires the zone to be configured to allow dynamic DNS. (See "Dynamic
-   Update Policies" in the Administrator Reference Manual for more details.)
+   This command requires that the zone be configured with a ``dnssec-policy``.
 
 .. option:: managed-keys (status | refresh | sync | destroy) [class [view]]
 
@@ -549,11 +547,11 @@ Currently supported commands are:
    the ``key-directory`` option in the BIND 9 Administrator Reference
    Manual). If they are within their publication period, they are merged into
    the zone's DNSKEY RRset. If the DNSKEY RRset is changed, then the
-   zone is automatically re-signed with the new key set.
+   zone is automatically re-signed with the new key set. This will replace signatures
+   of inactive keys with signatures from active keys, and update signatures that
+   expire within the refresh interval.
 
-   This command requires that the zone be configured with a ``dnssec-policy``, and
-   also requires the zone to be configured to allow dynamic DNS. (See "Dynamic
-   Update Policies" in the Administrator Reference Manual for more details.)
+   This command requires that the zone be configured with a ``dnssec-policy``.
 
    See also :option:`rndc loadkeys`.
 
