@@ -642,6 +642,37 @@ class QnameHandler(ResponseHandler):
         return qctx.qname in self._qnames
 
 
+class QnameQtypeHandler(QnameHandler):
+    """
+    Handle queries for which both of the following conditions are true:
+
+    - the query's QNAME is present in `self.qnames`,
+    - the query's QTYPE is present in `self.qtypes`.
+    """
+
+    @property
+    @abc.abstractmethod
+    def qtypes(self) -> List[dns.rdatatype.RdataType]:
+        """
+        A list of QTYPEs handled by this class.
+        """
+        raise NotImplementedError
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._qtypes: List[dns.rdatatype.RdataType] = self.qtypes
+
+    def __str__(self) -> str:
+        return f"{self.__class__.__name__}(QNAMEs: {', '.join(self.qnames)}; QTYPEs: {', '.join(map(str, self.qtypes))})"
+
+    def match(self, qctx: QueryContext) -> bool:
+        """
+        Handle queries whose QNAME and QTYPE match any of the QNAMEs and
+        QTYPEs handled by this class.
+        """
+        return qctx.qtype in self._qtypes and super().match(qctx)
+
+
 class DomainHandler(ResponseHandler):
     """
     Base class used for deriving custom domain handlers.
