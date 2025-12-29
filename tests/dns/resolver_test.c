@@ -161,7 +161,7 @@ ISC_LOOP_TEST_IMPL(settimeout_belowmin) {
 	dns_resolver_settimeout(resolver, 300);
 
 	timeout = dns_resolver_gettimeout(resolver);
-	assert_in_range(timeout, default_timeout, 3999999);
+	assert_uint_in_range(timeout, default_timeout, 3999999);
 
 	destroy_resolver(&resolver);
 	isc_loopmgr_shutdown(loopmgr);
@@ -178,7 +178,7 @@ ISC_LOOP_TEST_IMPL(settimeout_overmax) {
 	dns_resolver_settimeout(resolver, 4000000);
 
 	timeout = dns_resolver_gettimeout(resolver);
-	assert_in_range(timeout, default_timeout, 3999999);
+	assert_uint_in_range(timeout, default_timeout, 3999999);
 
 	destroy_resolver(&resolver);
 	isc_loopmgr_shutdown(loopmgr);
