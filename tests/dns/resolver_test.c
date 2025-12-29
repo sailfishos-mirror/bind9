@@ -180,7 +180,7 @@ ISC_RUN_TEST_IMPL(dns_resolver_settimeout_overmax) {
 
 	dns_resolver_settimeout(resolver, 4000000);
 	timeout = dns_resolver_gettimeout(resolver);
-	assert_in_range(timeout, 0, 3999999);
+	assert_uint_in_range(timeout, 0, 3999999);
 	destroy_resolver(&resolver);
 }
 
