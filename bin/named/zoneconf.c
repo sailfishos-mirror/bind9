@@ -1297,7 +1297,6 @@ named_zone_configure(const cfg_obj_t *config, const cfg_obj_t *vconfig,
 			} else {
 				notifytype = dns_notifytype_no;
 			}
-			notifytype = cfg_obj_asboolean(obj);
 		} else {
 			const char *str = cfg_obj_asstring(obj);
 			if (strcasecmp(str, "explicit") == 0) {
