@@ -303,7 +303,7 @@ cleanup:
 	return result;
 }
 
-static isc_result_t
+isc_result_t
 update_callback(void *arg, const dns_name_t *name, dns_rdataset_t *rds,
 		dns_diffop_t op DNS__DB_FLARG) {
 	dns_updatectx_t *ctx = arg;

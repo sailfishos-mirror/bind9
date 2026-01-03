@@ -44,6 +44,7 @@
 #include <dns/callbacks.h>
 #include <dns/db.h>
 #include <dns/dbiterator.h>
+#include <dns/diff.h>
 #include <dns/fixedname.h>
 #include <dns/log.h>
 #include <dns/masterdump.h>
@@ -2248,10 +2249,52 @@ addglue(dns_db_t *db, dns_dbversion_t *dbversion, dns_rdataset_t *rdataset,
 	return ISC_R_SUCCESS;
 }
 
+static isc_result_t
+rbt_beginupdate(dns_db_t *db, dns_dbversion_t *ver,
+		dns_rdatacallbacks_t *callbacks) {
+	dns_rbtdb_t *rbtdb = (dns_rbtdb_t *)db;
+
+	REQUIRE(VALID_RBTDB(rbtdb));
+	REQUIRE(ver != NULL);
+	REQUIRE(DNS_CALLBACK_VALID(callbacks));
+
+	dns_updatectx_t *ctx = isc_mem_get(rbtdb->common.mctx, sizeof(*ctx));
+	*ctx = (dns_updatectx_t){
+		.db = db,
+		.ver = ver,
+		.warn = true,
+	};
+
+	callbacks->update = update_callback;
+	callbacks->add_private = ctx;
+
+	return ISC_R_SUCCESS;
+}
+
+static isc_result_t
+rbt_endupdate(dns_db_t *db, dns_rdatacallbacks_t *callbacks) {
+	dns_rbtdb_t *rbtdb = (dns_rbtdb_t *)db;
+	dns_updatectx_t *ctx;
+
+	REQUIRE(VALID_RBTDB(rbtdb));
+	REQUIRE(DNS_CALLBACK_VALID(callbacks));
+
+	ctx = (dns_updatectx_t *)callbacks->add_private;
+	if (ctx != NULL) {
+		isc_mem_put(rbtdb->common.mctx, ctx, sizeof(*ctx));
+		callbacks->add_private = NULL;
+	}
+
+	return ISC_R_SUCCESS;
+}
+
 dns_dbmethods_t dns__rbtdb_zonemethods = {
 	.destroy = dns__rbtdb_destroy,
 	.beginload = beginload,
 	.endload = endload,
+	.beginupdate = rbt_beginupdate,
+	.commitupdate = rbt_endupdate,
+	.abortupdate = rbt_endupdate,
 	.currentversion = dns__rbtdb_currentversion,
 	.newversion = dns__rbtdb_newversion,
 	.attachversion = dns__rbtdb_attachversion,

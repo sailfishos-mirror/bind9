@@ -278,6 +278,18 @@ dns_diff_apply_with_callbacks(const dns_diff_t *diff, dns_rdatacallbacks_t *call
  */
 
 isc_result_t
+update_callback(void *arg, const dns_name_t *name, dns_rdataset_t *rds,
+		dns_diffop_t op DNS__DB_FLARG);
+/*%<
+ * Standard update callback for dns_rdatacallbacks_t.
+ * Updates a database version by applying DNS record operations.
+ * Used with dns_updatectx_t context.
+ *
+ * Requires:
+ *\li	'arg' is a valid dns_updatectx_t pointer
+ */
+
+isc_result_t
 dns_diff_load(const dns_diff_t *diff, dns_rdatacallbacks_t *callbacks);
 /*%<
  * Like dns_diff_apply, but for use when loading a new database
