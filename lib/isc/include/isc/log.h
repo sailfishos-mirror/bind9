@@ -20,6 +20,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <syslog.h> /* XXXDCL NT */
+#include <unistd.h>
 
 #include <isc/formatcheck.h>
 #include <isc/types.h>
