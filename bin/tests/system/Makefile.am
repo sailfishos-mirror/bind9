@@ -117,6 +117,7 @@ TESTS =				\
 	dlzexternal		\
 	dns64			\
 	dnssec			\
+	dnssec-malformed-dnskey	\
 	dnstap			\
 	doth			\
 	dsdigest		\
