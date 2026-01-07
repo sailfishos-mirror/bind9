@@ -591,10 +591,10 @@ stages:
     - cd "$CI_PROJECT_DIR"
     - *find_python
     - >
-      "$PYTHON" bin/tests/convert-trs-to-junit.py . > "$CI_PROJECT_DIR"/junit.xml
+      "$PYTHON" bin/tests/convert-trs-to-junit.py . > "$CI_PROJECT_DIR"/junit_system.xml
     - *git_clone_bind9-qa
     - >
-      "$PYTHON" bind9-qa/ci/postprocess_junit_files.py "$CI_PROJECT_DIR"/junit.xml --output "$CI_PROJECT_DIR"/junit.xml
+      "$PYTHON" bind9-qa/ci/postprocess_junit_files.py "$CI_PROJECT_DIR"/junit_system.xml --output "$CI_PROJECT_DIR"/junit.xml
     - (exit $RET)
   after_script:
     - cat bin/tests/system/test-suite.log || true
@@ -623,9 +623,9 @@ stages:
     - *find_python
     - *git_clone_bind9-qa
     - >
-      "$PYTHON" "$CI_PROJECT_DIR"/bin/tests/convert-trs-to-junit.py . > "$CI_PROJECT_DIR"/junit.xml
+      "$PYTHON" "$CI_PROJECT_DIR"/bin/tests/convert-trs-to-junit.py . > "$CI_PROJECT_DIR"/junit_unit.xml
     - >
-      "$PYTHON" bind9-qa/ci/postprocess_junit_files.py "$CI_PROJECT_DIR"/junit.xml --output "$CI_PROJECT_DIR"/junit.xml
+      "$PYTHON" bind9-qa/ci/postprocess_junit_files.py "$CI_PROJECT_DIR"/junit_unit.xml --output "$CI_PROJECT_DIR"/junit.xml
     - (exit $RET)
     - test "$CLEAN_BUILD_ARTIFACTS_ON_SUCCESS" -eq 0 || make clean >/dev/null 2>&1
   artifacts:
