@@ -76,7 +76,7 @@ $PYTHON -c "import yaml" 2>/dev/null && HAS_PYYAML=1
 n=$((n + 1))
 echo_i "check nslookup handles UPDATE response ($n)"
 ret=0
-"$NSLOOKUP" -q=CNAME -timeout=1 "-port=$PORT" foo.bar 10.53.0.7 >nslookup.out.test$n 2>&1 && ret=1
+"$NSLOOKUP" -q=CNAME -timeout=1 "-port=$PORT" foo.bar 10.53.0.6 >nslookup.out.test$n 2>&1 && ret=1
 grep "Opcode mismatch" nslookup.out.test$n >/dev/null || ret=1
 if [ $ret -ne 0 ]; then echo_i "failed"; fi
 status=$((status + ret))
@@ -84,7 +84,7 @@ status=$((status + ret))
 n=$((n + 1))
 echo_i "check host handles UPDATE response ($n)"
 ret=0
-"$HOST" -W 1 -t CNAME -p $PORT foo.bar 10.53.0.7 >host.out.test$n 2>&1 && ret=1
+"$HOST" -W 1 -t CNAME -p $PORT foo.bar 10.53.0.6 >host.out.test$n 2>&1 && ret=1
 grep "Opcode mismatch" host.out.test$n >/dev/null || ret=1
 if [ $ret -ne 0 ]; then echo_i "failed"; fi
 status=$((status + ret))
@@ -94,7 +94,7 @@ echo_i "check nsupdate handles UPDATE response to QUERY ($n)"
 ret=0
 res=0
 $NSUPDATE <<EOF >nsupdate.out.test$n 2>&1 || res=$?
-server 10.53.0.7 ${PORT}
+server 10.53.0.6 ${PORT}
 add x.example.com 300 in a 1.2.3.4
 send
 EOF
@@ -107,7 +107,7 @@ if [ -x "$DIG" ]; then
   n=$((n + 1))
   echo_i "check dig handles UPDATE response ($n)"
   ret=0
-  dig_with_opts @10.53.0.7 +tries=1 +timeout=1 cname foo.bar >dig.out.test$n 2>&1 && ret=1
+  dig_with_opts @10.53.0.6 +tries=1 +timeout=1 cname foo.bar >dig.out.test$n 2>&1 && ret=1
   grep "Opcode mismatch" dig.out.test$n >/dev/null || ret=1
   if [ $ret -ne 0 ]; then echo_i "failed"; fi
   status=$((status + ret))
@@ -1276,7 +1276,7 @@ if [ -x "$DIG" ]; then
   n=$((n + 1))
   echo_i "check that dig handles UDP timeout followed by a SERVFAIL correctly ($n)"
   ret=0
-  dig_with_opts +timeout=1 +nofail @10.53.0.8 silent-then-servfail.example >dig.out.test$n 2>&1 || ret=1
+  dig_with_opts +timeout=1 +nofail @10.53.0.7 silent-then-servfail.example >dig.out.test$n 2>&1 || ret=1
   grep -F "status: SERVFAIL" dig.out.test$n >/dev/null || ret=1
   if [ $ret -ne 0 ]; then echo_i "failed"; fi
   status=$((status + ret))
@@ -1284,7 +1284,7 @@ if [ -x "$DIG" ]; then
   n=$((n + 1))
   echo_i "check that dig handles TCP timeout followed by a SERVFAIL correctly ($n)"
   ret=0
-  dig_with_opts +timeout=1 +nofail +tcp @10.53.0.8 silent-then-servfail.example >dig.out.test$n 2>&1 || ret=1
+  dig_with_opts +timeout=1 +nofail +tcp @10.53.0.7 silent-then-servfail.example >dig.out.test$n 2>&1 || ret=1
   grep -F "status: SERVFAIL" dig.out.test$n >/dev/null || ret=1
   if [ $ret -ne 0 ]; then echo_i "failed"; fi
   status=$((status + ret))
@@ -1318,7 +1318,7 @@ if [ -x "$DIG" ]; then
   n=$((n + 1))
   echo_i "check that dig tries the next server after a TCP socket read error ($n)"
   ret=0
-  dig_with_opts +tcp @10.53.0.8 @10.53.0.3 close.example >dig.out.test$n 2>&1 || ret=1
+  dig_with_opts +tcp @10.53.0.7 @10.53.0.3 close.example >dig.out.test$n 2>&1 || ret=1
   grep -F "status: NOERROR" dig.out.test$n >/dev/null || ret=1
   if [ $ret -ne 0 ]; then echo_i "failed"; fi
   status=$((status + ret))
@@ -1341,7 +1341,7 @@ if [ -x "$DIG" ]; then
   n=$((n + 1))
   echo_i "check that dig tries the next server after UDP socket read timeouts ($n)"
   ret=0
-  dig_with_opts +timeout=1 @10.53.0.8 @10.53.0.3 silent.example >dig.out.test$n 2>&1 || ret=1
+  dig_with_opts +timeout=1 @10.53.0.7 @10.53.0.3 silent.example >dig.out.test$n 2>&1 || ret=1
   grep -F "status: NOERROR" dig.out.test$n >/dev/null || ret=1
   if [ $ret -ne 0 ]; then echo_i "failed"; fi
   status=$((status + ret))
@@ -1349,7 +1349,7 @@ if [ -x "$DIG" ]; then
   n=$((n + 1))
   echo_i "check that dig tries the next server after TCP socket read timeouts ($n)"
   ret=0
-  dig_with_opts +timeout=1 +tcp @10.53.0.8 @10.53.0.3 silent.example >dig.out.test$n 2>&1 || ret=1
+  dig_with_opts +timeout=1 +tcp @10.53.0.7 @10.53.0.3 silent.example >dig.out.test$n 2>&1 || ret=1
   grep -F "status: NOERROR" dig.out.test$n >/dev/null || ret=1
   if [ $ret -ne 0 ]; then echo_i "failed"; fi
   status=$((status + ret))
@@ -1358,7 +1358,7 @@ if [ -x "$DIG" ]; then
   n=$((n + 1))
   echo_i "check that dig correctly refuses to use a server with a IPv4 mapped IPv6 address after failing with a regular IP address ($n)"
   ret=0
-  dig_with_opts @10.53.0.8 @::ffff:10.53.0.8 silent.example >dig.out.test$n 2>&1 || ret=1
+  dig_with_opts @10.53.0.7 @::ffff:10.53.0.7 silent.example >dig.out.test$n 2>&1 || ret=1
   grep -F ";; Skipping mapped address" dig.out.test$n >/dev/null || ret=1
   grep -F ";; No acceptable nameservers" dig.out.test$n >/dev/null || ret=1
   if [ $ret -ne 0 ]; then echo_i "failed"; fi

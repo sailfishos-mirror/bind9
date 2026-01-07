@@ -11,28 +11,64 @@
 
 from typing import AsyncGenerator
 
-import dns.opcode
+import dns
 import dns.rcode
 
 from isctest.asyncserver import (
     AsyncDnsServer,
+    CloseConnection,
     DnsResponseSend,
-    ResponseHandler,
+    DomainHandler,
+    IgnoreAllQueries,
     QueryContext,
+    ResponseAction,
+    ResponseDrop,
 )
 
 
-class ReplyUpdateHandler(ResponseHandler):
+class SilentHandler(DomainHandler, IgnoreAllQueries):
+    """Handler that doesn't respond."""
+
+    domains = ["silent.example"]
+
+
+class CloseHandler(DomainHandler):
+    """Handler that doesn't respond and closes TCP connection."""
+
+    domains = ["close.example"]
+
     async def get_responses(
         self, qctx: QueryContext
-    ) -> AsyncGenerator[DnsResponseSend, None]:
-        qctx.response.set_opcode(dns.opcode.UPDATE)
-        yield DnsResponseSend(qctx.response)
+    ) -> AsyncGenerator[ResponseAction, None]:
+        yield CloseConnection()
+
+
+class SilentThenServfailHandler(DomainHandler):
+    """Handler that drops one query and response to the next one with SERVFAIL."""
+
+    domains = ["silent-then-servfail.example"]
+    counter = 0
+
+    async def get_responses(
+        self, qctx: QueryContext
+    ) -> AsyncGenerator[ResponseAction, None]:
+        if self.counter % 2 == 0:
+            yield ResponseDrop()
+        else:
+            qctx.response.set_rcode(dns.rcode.SERVFAIL)
+            yield DnsResponseSend(qctx.response, authoritative=False)
+        self.counter += 1
 
 
 def main() -> None:
-    server = AsyncDnsServer(default_aa=True, default_rcode=dns.rcode.NOERROR)
-    server.install_response_handler(ReplyUpdateHandler())
+    server = AsyncDnsServer()
+    server.install_response_handlers(
+        [
+            CloseHandler(),
+            SilentHandler(),
+            SilentThenServfailHandler(),
+        ]
+    )
     server.run()
 
 
