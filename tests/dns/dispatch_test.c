@@ -558,7 +558,7 @@ ISC_RUN_TEST_IMPL(dispatch_tcp_response) {
 
 	uv_sem_wait(&sem);
 
-	assert_in_range(atomic_load_acquire(&testdata.responses), 1, 2);
+	assert_uint_in_range(atomic_load_acquire(&testdata.responses), 1, 2);
 	assert_int_equal(atomic_load_acquire(&testdata.result), ISC_R_SUCCESS);
 
 	/* Cleanup */

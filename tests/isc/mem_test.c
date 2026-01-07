@@ -326,7 +326,7 @@ ISC_RUN_TEST_IMPL(isc_mem_noflags) {
 
 	p = strchr(buf, '\n');
 	assert_non_null(p);
-	assert_in_range(p, 0, buf + sizeof(buf) - 3);
+	assert_uint_in_range(p, 0, buf + sizeof(buf) - 3);
 	p += 2;
 	q = strchr(p, '\n');
 	assert_non_null(q);
@@ -369,7 +369,7 @@ ISC_RUN_TEST_IMPL(isc_mem_recordflag) {
 
 	p = strchr(buf, '\n');
 	assert_non_null(p);
-	assert_in_range(p, 0, buf + sizeof(buf) - 3);
+	assert_uint_in_range(p, 0, buf + sizeof(buf) - 3);
 	assert_memory_equal(p + 2, "ptr ", 4);
 	p = strchr(p + 1, '\n');
 	assert_non_null(p);
@@ -417,7 +417,7 @@ ISC_RUN_TEST_IMPL(isc_mem_traceflag) {
 	assert_non_null(p);
 	p = strchr(p + 1, '\n');
 	assert_non_null(p);
-	assert_in_range(p, 0, buf + sizeof(buf) - 3);
+	assert_uint_in_range(p, 0, buf + sizeof(buf) - 3);
 	assert_memory_equal(p + 2, "ptr ", 4);
 	p = strchr(p + 1, '\n');
 	assert_non_null(p);
