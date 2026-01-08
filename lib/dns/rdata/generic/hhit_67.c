@@ -84,7 +84,7 @@ fromwire_hhit(ARGS_FROMWIRE) {
 static isc_result_t
 towire_hhit(ARGS_TOWIRE) {
 	REQUIRE(rdata->type == dns_rdatatype_hhit);
-	REQUIRE(rdata->length >= 3);
+	REQUIRE(rdata->length > 0);
 
 	UNUSED(cctx);
 
