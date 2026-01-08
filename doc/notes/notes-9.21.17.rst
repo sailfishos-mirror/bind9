@@ -112,12 +112,6 @@ Bug Fixes
   NSEC3 optout compared to version 9.18. This has been restored.
   :gl:`#5672`
 
-- Missing unlock.
-
-  'kasp->lock' was not released before returning.  This could result in
-  named locking up if 'dns_keymgr_status' fails when 'rndc dnssec
-  -status' is called. :gl:`#5675`
-
 - Reconfigure NSEC3 opt-out zone to NSEC causes zone to be invalid.
 
   A zone that is signed with NSEC3, opt-out enabled, and then
