@@ -34,6 +34,13 @@ New Features
   the authoritative server of the zone, while the DS record is present
   in the parent zone. :gl:`#2715`
 
+- Add Extended DNS Error 13 (Cached Error) support.
+
+  Extended DNS Error 13 (Cached Error) is now returned when the server
+  answers a message from a cached SERVFAIL.
+
+  See RFC 8914 section 4.14. :gl:`#1836`
+
 - Add support for Generalized DNS Notifications.
 
   A new configuration option, ``notify-cfg CDS``, is added to enable
@@ -42,13 +49,6 @@ New Features
 
 Feature Changes
 ~~~~~~~~~~~~~~~
-
-- Add Extended DNS Error 13 (Cached Error) support.
-
-  Extended DNS Error 13 (Cached Error) is now returned when the server
-  answers a message from a cached SERVFAIL.
-
-  See RFC 8914 section 4.14. :gl:`#1836`
 
 - Add more information to the rndc recursing output about fetches.
 
