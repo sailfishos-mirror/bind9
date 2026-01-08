@@ -15,11 +15,11 @@ Notes for BIND 9.18.44
 Security Fixes
 ~~~~~~~~~~~~~~
 
-- [CVE-2025-13878] Fix incorrect length checks for BRID and HHIT
-  records.
+- Fix incorrect length checks for BRID and HHIT records.
+  :cve:`2025-13878`
 
-  Malformed BRID and HHIT records could trigger an assertion failure.
-  This has been fixed.
+  Malformed BRID and HHIT records could trigger an assertion
+  failure. This has been fixed.
 
   ISC would like to thank Vlatko Kosturjak from Marlink Cyber for
   bringing this vulnerability to our attention. :gl:`#5616`
@@ -31,12 +31,13 @@ Bug Fixes
 
   When a query for type ANY triggered a delegation response, all
   additional data was omitted from the response, including mandatory
-  glue. This has been corrected. :gl:`#5659`
+  glue. This has been fixed. :gl:`#5659`
 
-- Reconfigure NSEC3 opt-out zone to NSEC causes zone to be invalid.
+- Reconfiguring an NSEC3 opt-out zone to NSEC caused the zone to be
+  invalid.
 
-  A zone that is signed with NSEC3, opt-out enabled, and then
-  reconfigured to use NSEC, causes the zone to be published with missing
-  NSEC records. This has been fixed. :gl:`#5679`
+  A zone that was signed with NSEC3, had opt-out enabled, and was then
+  reconfigured to use NSEC, was published with missing NSEC records.
+  This has been fixed. :gl:`#5679`
 
 
