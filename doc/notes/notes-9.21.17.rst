@@ -99,13 +99,6 @@ Bug Fixes
   the catalog zone's default primary servers list contained a large
   number of items. This has been fixed. :gl:`#5658`
 
-- Adding NSEC3 opt-out records could leave invalid records in chain.
-
-  When creating an NSEC3 opt-out chain, a node in the chain could be
-  removed too soon, causing the previous NSEC3 being unable to be found,
-  resulting in invalid NSEC3 records to be left in the zone. This has
-  been fixed. :gl:`#5671`
-
 - Fix slow speed of NSEC3 optout large delegation zone signing.
 
   BIND 9.20 takes much more time signing a large delegation zone with
