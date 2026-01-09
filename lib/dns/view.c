@@ -986,7 +986,7 @@ dns_view_simplefind(dns_view_t *view, const dns_name_t *name,
 static isc_result_t
 findzonecut_zone(dns_view_t *view, const dns_name_t *name, dns_name_t *fname,
 		 dns_name_t *dcname, isc_stdtime_t now, unsigned int options,
-		 dns_rdataset_t *rdataset, dns_rdataset_t *sigrdataset) {
+		 dns_rdataset_t *rdataset) {
 	dns_db_t *db = NULL;
 	dns_zone_t *zone = NULL;
 	unsigned int ztoptions = DNS_ZTFIND_MIRROR;
@@ -1016,7 +1016,7 @@ findzonecut_zone(dns_view_t *view, const dns_name_t *name, dns_name_t *fname,
 	}
 
 	result = dns_db_find(db, name, NULL, dns_rdatatype_ns, options, now,
-			     NULL, fname, rdataset, sigrdataset);
+			     NULL, fname, rdataset, NULL);
 	if (result != DNS_R_DELEGATION && result != ISC_R_SUCCESS) {
 		/*
 		 * The zone exists, but there is no delegation. Here again
@@ -1043,7 +1043,6 @@ findzonecut_zone(dns_view_t *view, const dns_name_t *name, dns_name_t *fname,
 cleanup:
 	if (result != ISC_R_SUCCESS) {
 		dns_rdataset_cleanup(rdataset);
-		dns_rdataset_cleanup(sigrdataset);
 	}
 
 	if (db != NULL) {
@@ -1060,13 +1059,13 @@ cleanup:
 static isc_result_t
 findzonecut_cache(dns_view_t *view, const dns_name_t *name, dns_name_t *fname,
 		  dns_name_t *dcname, isc_stdtime_t now, unsigned int options,
-		  dns_rdataset_t *rdataset, dns_rdataset_t *sigrdataset) {
+		  dns_rdataset_t *rdataset) {
 	isc_result_t result = DNS_R_NXDOMAIN;
 
 	if (view->cachedb != NULL) {
 		result = dns_db_findzonecut(view->cachedb, name, options, now,
 					    NULL, fname, dcname, rdataset,
-					    sigrdataset);
+					    NULL);
 	}
 
 	/*
@@ -1076,7 +1075,6 @@ findzonecut_cache(dns_view_t *view, const dns_name_t *name, dns_name_t *fname,
 	 */
 	if (result != ISC_R_SUCCESS) {
 		dns_rdataset_cleanup(rdataset);
-		dns_rdataset_cleanup(sigrdataset);
 		result = DNS_R_NXDOMAIN;
 	}
 
@@ -1087,16 +1085,15 @@ static void
 findzonecut_zoneorcache(dns_view_t *view, const dns_name_t *name,
 			dns_name_t *fname, dns_name_t *dcname,
 			isc_stdtime_t now, unsigned int options,
-			dns_rdataset_t *rdataset, dns_rdataset_t *sigrdataset) {
+			dns_rdataset_t *rdataset) {
 	isc_result_t result;
 	dns_rdataset_t crdataset = DNS_RDATASET_INIT;
-	dns_rdataset_t csigrdataset = DNS_RDATASET_INIT;
 	dns_fixedname_t f, dc;
 	dns_name_t *cfname = dns_fixedname_initname(&f);
 	dns_name_t *cdcname = dns_fixedname_initname(&dc);
 
 	CHECK(findzonecut_cache(view, name, cfname, cdcname, now, options,
-				&crdataset, &csigrdataset));
+				&crdataset));
 
 	bool cacheclosest = dns_name_issubdomain(cfname, fname);
 	bool staticstub = rdataset->attributes.staticstub &&
@@ -1104,12 +1101,7 @@ findzonecut_zoneorcache(dns_view_t *view, const dns_name_t *name,
 
 	if (cacheclosest && !staticstub) {
 		dns_rdataset_cleanup(rdataset);
-		dns_rdataset_cleanup(sigrdataset);
-
 		dns_rdataset_clone(&crdataset, rdataset);
-		if (sigrdataset != NULL) {
-			dns_rdataset_clone(&csigrdataset, sigrdataset);
-		}
 
 		dns_name_copy(cfname, fname);
 		if (dcname != NULL) {
@@ -1119,7 +1111,6 @@ findzonecut_zoneorcache(dns_view_t *view, const dns_name_t *name,
 
 cleanup:
 	dns_rdataset_cleanup(&crdataset);
-	dns_rdataset_cleanup(&csigrdataset);
 }
 
 static isc_result_t
@@ -1146,14 +1137,14 @@ isc_result_t
 dns_view_findzonecut(dns_view_t *view, const dns_name_t *name,
 		     dns_name_t *fname, dns_name_t *dcname, isc_stdtime_t now,
 		     unsigned int options, bool usehints, bool usecache,
-		     dns_rdataset_t *rdataset, dns_rdataset_t *sigrdataset) {
+		     dns_rdataset_t *rdataset) {
 	isc_result_t result;
 
 	REQUIRE(DNS_VIEW_VALID(view));
 	REQUIRE(view->frozen);
 
 	result = findzonecut_zone(view, name, fname, dcname, now, options,
-				  rdataset, sigrdataset);
+				  rdataset);
 
 	if (result == DNS_R_NXDOMAIN && usecache) {
 		/*
@@ -1161,14 +1152,14 @@ dns_view_findzonecut(dns_view_t *view, const dns_name_t *name,
 		 * delegation.
 		 */
 		result = findzonecut_cache(view, name, fname, dcname, now,
-					   options, rdataset, sigrdataset);
+					   options, rdataset);
 	} else if (result == ISC_R_SUCCESS && usecache) {
 		/*
 		 * A zone with a (possibly partial) delegation match but the
 		 * cache can have a more precise delegation.
 		 */
 		findzonecut_zoneorcache(view, name, fname, dcname, now, options,
-					rdataset, sigrdataset);
+					rdataset);
 	}
 
 	/*
@@ -1181,7 +1172,6 @@ dns_view_findzonecut(dns_view_t *view, const dns_name_t *name,
 	if (result != ISC_R_SUCCESS) {
 		result = DNS_R_NXDOMAIN;
 		dns_rdataset_cleanup(rdataset);
-		dns_rdataset_cleanup(sigrdataset);
 	}
 
 	return result;
