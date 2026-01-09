@@ -952,6 +952,8 @@ def _check_signatures(
         zrrsig = False
     krrsig = not zrrsig
 
+    signer = fqdn.lower()
+
     for key in keys:
         if key.external:
             continue
@@ -963,7 +965,7 @@ def _check_signatures(
         alg = key.get_dnsalg()
         rtype = dns.rdatatype.to_text(covers)
 
-        expect = rf"IN RRSIG {rtype} {alg} (\d) (\d+) (\d+) (\d+) {key.tag} {fqdn}"
+        expect = rf"IN RRSIG {rtype} {alg} (\d) (\d+) (\d+) (\d+) {key.tag} {signer}"
 
         if zrrsig and zsigning:
             has_rrsig = False
@@ -1572,17 +1574,18 @@ def keydir_to_keylist(
     """
     if zone is None:
         zone = ""
+    zname = zone.lower()
 
     all_keys = []
     if keydir is None:
-        regex = rf"(K{zone}\.\+.*\+.*)\.key"
-        for filename in glob.glob(f"K{zone}.+*+*.key"):
+        regex = rf"(K{zname}\.\+.*\+.*)\.key"
+        for filename in glob.glob(f"K{zname}.+*+*.key"):
             match = re.match(regex, filename)
             if match is not None:
                 all_keys.append(Key(match.group(1)))
     else:
-        regex = rf"{keydir}/(K{zone}\.\+.*\+.*)\.key"
-        for filename in glob.glob(f"{keydir}/K{zone}.+*+*.key"):
+        regex = rf"{keydir}/(K{zname}\.\+.*\+.*)\.key"
+        for filename in glob.glob(f"{keydir}/K{zname}.+*+*.key"):
             match = re.match(regex, filename)
             if match is not None:
                 all_keys.append(Key(match.group(1), keydir))

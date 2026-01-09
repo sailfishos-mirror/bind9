@@ -20,6 +20,13 @@ zone "default.kasp" {
 	dnssec-policy "default";
 };
 
+/* The UPPER case: a zone with uppercase characters. */
+zone "UPPER.KASP" {
+	type primary;
+	file "upper.kasp.db";
+	dnssec-policy "default";
+};
+
 /* A zone with special characters. */
 zone {% raw %}"i-am.\":\;?&[]\@!\$*+,|=\.\(\)special.kasp."{% endraw %} {
         type primary;
