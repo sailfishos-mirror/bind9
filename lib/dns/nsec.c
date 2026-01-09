@@ -100,11 +100,18 @@ dns_nsec_buildrdata(dns_db_t *db, dns_dbversion_t *version, dns_dbnode_t *node,
 	unsigned char *nsec_bits, *bm;
 	unsigned int max_type;
 	dns_rdatasetiter_t *rdsiter;
+	dns_fixedname_t fnextname;
+	dns_name_t *nextname;
 
 	REQUIRE(target != NULL);
 
+	/*
+	 * Downcase next owner name.
+	 */
+	nextname = dns_fixedname_initname(&fnextname);
+	RUNTIME_CHECK(dns_name_downcase(target, nextname) == ISC_R_SUCCESS);
 	memset(buffer, 0, DNS_NSEC_BUFFERSIZE);
-	dns_name_toregion(target, &r);
+	dns_name_toregion(nextname, &r);
 	memmove(buffer, r.base, r.length);
 	r.base = buffer;
 	/*
