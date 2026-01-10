@@ -118,7 +118,6 @@ struct keygen_ctx {
 	bool genonly;
 	bool showprogress;
 	bool quiet;
-	bool oldstyle;
 	/* state */
 	time_t lifetime;
 	bool ksk;
@@ -192,8 +191,6 @@ usage(int ret) {
 			"deletion date\n");
 
 	fprintf(stderr, "    -G: generate key only; do not set -P or -A\n");
-	fprintf(stderr, "    -C: generate a backward-compatible key, omitting "
-			"all dates\n");
 	fprintf(stderr, "    -S <key>: generate a successor to an existing "
 			"key\n");
 	fprintf(stderr, "    -i <interval>: prepublication interval for "
@@ -334,7 +331,7 @@ keygen(keygen_ctx_t *ctx, int argc, char **argv) {
 			}
 		}
 
-		if (!ctx->oldstyle && ctx->prepub > 0) {
+		if (ctx->prepub > 0) {
 			if (ctx->setpub && ctx->setact &&
 			    (ctx->activate - ctx->prepub) < ctx->publish)
 			{
@@ -383,9 +380,6 @@ keygen(keygen_ctx_t *ctx, int argc, char **argv) {
 		}
 		if (ctx->use_nsec3) {
 			fatal("-S and -3 cannot be used together");
-		}
-		if (ctx->oldstyle) {
-			fatal("-S and -C cannot be used together");
 		}
 		if (ctx->genonly) {
 			fatal("-S and -G cannot be used together");
@@ -586,7 +580,7 @@ keygen(keygen_ctx_t *ctx, int argc, char **argv) {
 		}
 
 		/*
-		 * Set key timing metadata (unless using -C)
+		 * Set key timing metadata.
 		 *
 		 * Creation date is always set to "now".
 		 *
@@ -601,90 +595,60 @@ keygen(keygen_ctx_t *ctx, int argc, char **argv) {
 		 * an error; the inactivation date of the predecessor key
 		 * must be updated before a successor key can be created.
 		 */
-		if (!ctx->oldstyle) {
-			dst_key_settime(key, DST_TIME_CREATED, ctx->now);
+		dst_key_settime(key, DST_TIME_CREATED, ctx->now);
 
-			if (ctx->genonly && (ctx->setpub || ctx->setact)) {
-				fatal("cannot use -G together with "
-				      "-P or -A options");
-			}
+		if (ctx->genonly && (ctx->setpub || ctx->setact)) {
+			fatal("cannot use -G together with -P or -A options");
+		}
 
-			if (ctx->setpub) {
-				dst_key_settime(key, DST_TIME_PUBLISH,
-						ctx->publish);
-			} else if (ctx->setact && !ctx->unsetpub) {
-				dst_key_settime(key, DST_TIME_PUBLISH,
-						ctx->activate - ctx->prepub);
-			} else if (!ctx->genonly && !ctx->unsetpub) {
-				dst_key_settime(key, DST_TIME_PUBLISH,
-						ctx->now);
-			}
+		if (ctx->setpub) {
+			dst_key_settime(key, DST_TIME_PUBLISH, ctx->publish);
+		} else if (ctx->setact && !ctx->unsetpub) {
+			dst_key_settime(key, DST_TIME_PUBLISH,
+					ctx->activate - ctx->prepub);
+		} else if (!ctx->genonly && !ctx->unsetpub) {
+			dst_key_settime(key, DST_TIME_PUBLISH, ctx->now);
+		}
 
-			if (ctx->setact) {
-				dst_key_settime(key, DST_TIME_ACTIVATE,
-						ctx->activate);
-			} else if (!ctx->genonly && !ctx->unsetact) {
-				dst_key_settime(key, DST_TIME_ACTIVATE,
-						ctx->now);
-			}
+		if (ctx->setact) {
+			dst_key_settime(key, DST_TIME_ACTIVATE, ctx->activate);
+		} else if (!ctx->genonly && !ctx->unsetact) {
+			dst_key_settime(key, DST_TIME_ACTIVATE, ctx->now);
+		}
 
-			if (ctx->setrev) {
-				if (!ctx->wantksk) {
-					fprintf(stderr,
-						"%s: warning: Key is "
-						"not flagged as a KSK, but -R "
-						"was used. Revoking a ZSK is "
-						"legal, but undefined.\n",
-						isc_commandline_progname);
-				}
-				dst_key_settime(key, DST_TIME_REVOKE,
-						ctx->revokekey);
+		if (ctx->setrev) {
+			if (!ctx->wantksk) {
+				fprintf(stderr,
+					"%s: warning: Key is not flagged "
+					"as a KSK, but -R was used.  Revoking "
+					"a ZSK is legal, but undefined.\n",
+					isc_commandline_progname);
 			}
+			dst_key_settime(key, DST_TIME_REVOKE, ctx->revokekey);
+		}
 
-			if (ctx->setinact) {
-				dst_key_settime(key, DST_TIME_INACTIVE,
-						ctx->inactive);
-			}
+		if (ctx->setinact) {
+			dst_key_settime(key, DST_TIME_INACTIVE, ctx->inactive);
+		}
 
-			if (ctx->setdel) {
-				if (ctx->setinact &&
-				    ctx->deltime < ctx->inactive)
-				{
-					fprintf(stderr,
-						"%s: warning: Key is "
-						"scheduled to be deleted "
-						"before it is scheduled to be "
-						"made inactive.\n",
-						isc_commandline_progname);
-				}
-				dst_key_settime(key, DST_TIME_DELETE,
-						ctx->deltime);
+		if (ctx->setdel) {
+			if (ctx->setinact && ctx->deltime < ctx->inactive) {
+				fprintf(stderr,
+					"%s: warning: Key is scheduled to be "
+					"deleted before it is scheduled to be "
+					"made inactive.\n",
+					isc_commandline_progname);
 			}
+			dst_key_settime(key, DST_TIME_DELETE, ctx->deltime);
+		}
 
-			if (ctx->setsyncadd) {
-				dst_key_settime(key, DST_TIME_SYNCPUBLISH,
-						ctx->syncadd);
-			}
+		if (ctx->setsyncadd) {
+			dst_key_settime(key, DST_TIME_SYNCPUBLISH,
+					ctx->syncadd);
+		}
 
-			if (ctx->setsyncdel) {
-				dst_key_settime(key, DST_TIME_SYNCDELETE,
-						ctx->syncdel);
-			}
-		} else {
-			if (ctx->setpub || ctx->setact || ctx->setrev ||
-			    ctx->setinact || ctx->setdel || ctx->unsetpub ||
-			    ctx->unsetact || ctx->unsetrev || ctx->unsetinact ||
-			    ctx->unsetdel || ctx->genonly || ctx->setsyncadd ||
-			    ctx->setsyncdel)
-			{
-				fatal("cannot use -C together with "
-				      "-P, -A, -R, -I, -D, or -G options");
-			}
-			/*
-			 * Compatibility mode: Private-key-format
-			 * should be set to 1.2.
-			 */
-			dst_key_setprivateformat(key, 1, 2);
+		if (ctx->setsyncdel) {
+			dst_key_settime(key, DST_TIME_SYNCDELETE, ctx->syncdel);
 		}
 
 		/* Set the default key TTL */
@@ -852,7 +816,7 @@ main(int argc, char **argv) {
 			}
 			break;
 		case 'C':
-			ctx.oldstyle = true;
+			fatal("The -C option has been deprecated.");
 			break;
 		case 'c':
 			classname = isc_commandline_argument;
@@ -1108,9 +1072,6 @@ main(int argc, char **argv) {
 	if (ctx.policy != NULL) {
 		if (ctx.predecessor != NULL) {
 			fatal("-k and -S cannot be used together");
-		}
-		if (ctx.oldstyle) {
-			fatal("-k and -C cannot be used together");
 		}
 		if (ctx.setttl) {
 			fatal("-k and -L cannot be used together");

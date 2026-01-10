@@ -13,5 +13,5 @@
 
 . ../conf.sh
 
-key=$($KEYGEN -Cq -K ns1 -a $DEFAULT_ALGORITHM -b $DEFAULT_BITS -T KEY key.example.nil.)
+key=$($KEYGEN -q -K ns1 -a $DEFAULT_ALGORITHM -b $DEFAULT_BITS -T KEY key.example.nil.)
 cat ns1/example.nil.db.in ns1/${key}.key >ns1/example.nil.db

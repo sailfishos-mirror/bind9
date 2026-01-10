@@ -98,9 +98,6 @@ try_dir(const char *dirname);
 void
 check_keyversion(dst_key_t *key, char *keystr);
 
-void
-set_keyversion(dst_key_t *key);
-
 bool
 key_collision(dst_key_t *dstkey, dns_name_t *name, const char *dir,
 	      isc_mem_t *mctx, uint16_t min, uint16_t max, bool *exact);

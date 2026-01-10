@@ -50,8 +50,6 @@ usage(int ret) {
 		isc_commandline_progname);
 	fprintf(stderr, "Version: %s\n", PACKAGE_VERSION);
 	fprintf(stderr, "General options:\n");
-	fprintf(stderr, "    -f:                 force update of old-style "
-			"keys\n");
 	fprintf(stderr, "    -K directory:       set key file location\n");
 	fprintf(stderr, "    -L ttl:             set default key TTL\n");
 	fprintf(stderr, "    -v level:           set level of verbosity\n");
@@ -221,7 +219,6 @@ main(int argc, char **argv) {
 	bool printcreate = false, printpub = false;
 	bool printact = false, printrev = false;
 	bool printinact = false, printdel = false;
-	bool force = false;
 	bool epoch = false;
 	bool changed = false;
 	bool write_state = false;
@@ -313,7 +310,7 @@ main(int argc, char **argv) {
 			fatal("%s", isc_result_totext(DST_R_NOENGINE));
 			break;
 		case 'f':
-			force = true;
+			fatal("The -f option has been deprecated");
 			break;
 		case 'g':
 			if (setgoal) {
@@ -724,11 +721,7 @@ main(int argc, char **argv) {
 			isc_commandline_progname);
 	}
 
-	if (force) {
-		set_keyversion(key);
-	} else {
-		check_keyversion(key, keystr);
-	}
+	check_keyversion(key, keystr);
 
 	if (verbose > 2) {
 		fprintf(stderr, "%s: %s\n", isc_commandline_progname, keystr);
@@ -819,16 +812,6 @@ main(int argc, char **argv) {
 	if (predecessor != NULL && prevkey != NULL) {
 		dst_key_setnum(prevkey, DST_NUM_SUCCESSOR, dst_key_id(key));
 		dst_key_setnum(key, DST_NUM_PREDECESSOR, dst_key_id(prevkey));
-	}
-
-	/*
-	 * No metadata changes were made but we're forcing an upgrade
-	 * to the new format anyway: use "-P now -A now" as the default
-	 */
-	if (force && !changed) {
-		dst_key_settime(key, DST_TIME_PUBLISH, now);
-		dst_key_settime(key, DST_TIME_ACTIVATE, now);
-		changed = true;
 	}
 
 	/*

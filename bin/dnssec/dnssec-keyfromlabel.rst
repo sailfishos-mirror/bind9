@@ -74,15 +74,6 @@ Options
    When BIND 9 is built with OpenSSL-based PKCS#11 support, the label is
    an arbitrary string that identifies a particular key.
 
-.. option:: -C
-
-   This option enables compatibility mode, which generates an old-style key, without any metadata.
-   By default, :program:`dnssec-keyfromlabel` includes the key's creation
-   date in the metadata stored with the private key; other dates may
-   be set there as well, including publication date, activation date, etc. Keys
-   that include this data may be incompatible with older versions of
-   BIND; the :option:`-C` option suppresses them.
-
 .. option:: -c class
 
    This option indicates that the DNS record containing the key should have the

@@ -54,6 +54,3 @@ echo $pzsk >parent.zsk.key
 
 pksk=$($KEYGEN -q -a ${DEFAULT_ALGORITHM} -fk $pzone)
 echo $pksk >parent.ksk.key
-
-oldstyle=$($KEYGEN -Cq -a ${DEFAULT_ALGORITHM} $pzone)
-echo $oldstyle >oldstyle.key

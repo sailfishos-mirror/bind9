@@ -114,7 +114,6 @@ main(int argc, char **argv) {
 	dns_name_t *name;
 	uint16_t flags = 0, kskflag = 0, revflag = 0;
 	dst_algorithm_t alg;
-	bool oldstyle = false;
 	int ch;
 	isc_result_t result;
 	isc_textregion_t r;
@@ -151,7 +150,7 @@ main(int argc, char **argv) {
 
 	isc_commandline_errprint = false;
 
-#define CMDLINE_FLAGS "3A:a:Cc:D:E:Ff:GhI:i:kK:L:l:M:n:P:p:R:S:t:v:Vy"
+#define CMDLINE_FLAGS "3A:a:c:D:E:Ff:GhI:i:kK:L:l:M:n:P:p:R:S:t:v:Vy"
 	while ((ch = isc_commandline_parse(argc, argv, CMDLINE_FLAGS)) != -1) {
 		switch (ch) {
 		case '3':
@@ -159,9 +158,6 @@ main(int argc, char **argv) {
 			break;
 		case 'a':
 			algname = isc_commandline_argument;
-			break;
-		case 'C':
-			oldstyle = true;
 			break;
 		case 'c':
 			classname = isc_commandline_argument;
@@ -407,7 +403,7 @@ main(int argc, char **argv) {
 			}
 		}
 
-		if (!oldstyle && prepub > 0) {
+		if (prepub > 0) {
 			if (setpub && setact && (activate - prepub) < publish) {
 				fatal("Activation and publication dates "
 				      "are closer together than the\n\t"
@@ -451,9 +447,6 @@ main(int argc, char **argv) {
 		}
 		if (use_nsec3) {
 			fatal("-S and -3 cannot be used together");
-		}
-		if (oldstyle) {
-			fatal("-S and -C cannot be used together");
 		}
 		if (genonly) {
 			fatal("-S and -G cannot be used together");
@@ -572,70 +565,55 @@ main(int argc, char **argv) {
 	}
 
 	/*
-	 * Set key timing metadata (unless using -C)
+	 * Set key timing metadata.
 	 *
 	 * Publish and activation dates are set to "now" by default, but
 	 * can be overridden.  Creation date is always set to "now".
 	 */
-	if (!oldstyle) {
-		dst_key_settime(key, DST_TIME_CREATED, now);
+	dst_key_settime(key, DST_TIME_CREATED, now);
 
-		if (genonly && (setpub || setact)) {
-			fatal("cannot use -G together with -P or -A options");
-		}
+	if (genonly && (setpub || setact)) {
+		fatal("cannot use -G together with -P or -A options");
+	}
 
-		if (setpub) {
-			dst_key_settime(key, DST_TIME_PUBLISH, publish);
-		} else if (setact) {
-			dst_key_settime(key, DST_TIME_PUBLISH, activate);
-		} else if (!genonly && !unsetpub) {
-			dst_key_settime(key, DST_TIME_PUBLISH, now);
-		}
+	if (setpub) {
+		dst_key_settime(key, DST_TIME_PUBLISH, publish);
+	} else if (setact) {
+		dst_key_settime(key, DST_TIME_PUBLISH, activate);
+	} else if (!genonly && !unsetpub) {
+		dst_key_settime(key, DST_TIME_PUBLISH, now);
+	}
 
-		if (setact) {
-			dst_key_settime(key, DST_TIME_ACTIVATE, activate);
-		} else if (!genonly && !unsetact) {
-			dst_key_settime(key, DST_TIME_ACTIVATE, now);
-		}
+	if (setact) {
+		dst_key_settime(key, DST_TIME_ACTIVATE, activate);
+	} else if (!genonly && !unsetact) {
+		dst_key_settime(key, DST_TIME_ACTIVATE, now);
+	}
 
-		if (setrev) {
-			if (kskflag == 0) {
-				fprintf(stderr,
-					"%s: warning: Key is "
-					"not flagged as a KSK, but -R "
-					"was used. Revoking a ZSK is "
-					"legal, but undefined.\n",
-					isc_commandline_progname);
-			}
-			dst_key_settime(key, DST_TIME_REVOKE, revoke);
+	if (setrev) {
+		if (kskflag == 0) {
+			fprintf(stderr,
+				"%s: warning: Key is "
+				"not flagged as a KSK, but -R "
+				"was used. Revoking a ZSK is "
+				"legal, but undefined.\n",
+				isc_commandline_progname);
 		}
+		dst_key_settime(key, DST_TIME_REVOKE, revoke);
+	}
 
-		if (setinact) {
-			dst_key_settime(key, DST_TIME_INACTIVE, inactive);
-		}
+	if (setinact) {
+		dst_key_settime(key, DST_TIME_INACTIVE, inactive);
+	}
 
-		if (setdel) {
-			dst_key_settime(key, DST_TIME_DELETE, deltime);
-		}
-		if (setsyncadd) {
-			dst_key_settime(key, DST_TIME_SYNCPUBLISH, syncadd);
-		}
-		if (setsyncdel) {
-			dst_key_settime(key, DST_TIME_SYNCDELETE, syncdel);
-		}
-	} else {
-		if (setpub || setact || setrev || setinact || setdel ||
-		    unsetpub || unsetact || unsetrev || unsetinact ||
-		    unsetdel || genonly || setsyncadd || setsyncdel)
-		{
-			fatal("cannot use -C together with "
-			      "-P, -A, -R, -I, -D, or -G options");
-		}
-		/*
-		 * Compatibility mode: Private-key-format
-		 * should be set to 1.2.
-		 */
-		dst_key_setprivateformat(key, 1, 2);
+	if (setdel) {
+		dst_key_settime(key, DST_TIME_DELETE, deltime);
+	}
+	if (setsyncadd) {
+		dst_key_settime(key, DST_TIME_SYNCPUBLISH, syncadd);
+	}
+	if (setsyncdel) {
+		dst_key_settime(key, DST_TIME_SYNCDELETE, syncdel);
 	}
 
 	/* Set default key TTL */
