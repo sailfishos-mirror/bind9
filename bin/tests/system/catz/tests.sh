@@ -372,7 +372,7 @@ status=$((status + ret))
 n=$((n + 1))
 echo_i "waiting for secondary to sync up ($n)"
 ret=0
-wait_for_message ns2/named.run "catz: updating catalog zone 'catalog2.example' with serial 2670950425" \
+wait_for_message ns2/named.run "catz: updating catalog zone 'Catalog2.Example' with serial 2670950425" \
   && wait_for_message ns2/named.run "catz: adding zone 'dom2.example' from catalog 'catalog1.example'" \
   && wait_for_message ns2/named.run "catz: adding zone 'dom3.example' from catalog 'catalog1.example'" \
   && wait_for_message ns2/named.run "catz: adding zone 'dom4.example' from catalog 'catalog2.example'" \
@@ -445,7 +445,7 @@ n=$((n + 1))
 echo_i "waiting for secondary to sync up, and checking that the reused label has been caught ($n)"
 ret=0
 wait_for_message ns2/named.run "de26b88d855397a03f77ff1162fd055d8b419584.zones.catalog2.example IN PTR (failure)" \
-  && wait_for_message ns2/named.run "catz: new catalog zone 'catalog2.example' is broken and will not be processed" || ret=1
+  && wait_for_message ns2/named.run "catz: new catalog zone 'Catalog2.Example' is broken and will not be processed" || ret=1
 if [ $ret -ne 0 ]; then echo_i "failed"; fi
 status=$((status + ret))
 
@@ -483,6 +483,29 @@ ret=0
 wait_for_message ns2/named.run "catz: zone 'dom4.example' unique label has changed, reset state" \
   && wait_for_message ns2/named.run "catz: deleting zone 'dom4.example' from catalog 'catalog2.example' - success" \
   && wait_for_message ns2/named.run "catz: adding zone 'dom4.example' from catalog 'catalog2.example' - success" || ret=1
+if [ $ret -ne 0 ]; then echo_i "failed"; fi
+status=$((status + ret))
+
+nextpart ns2/named.run >/dev/null
+
+# Test that different case isn't interpreted as a new label.
+n=$((n + 1))
+echo_i "changing the case of the label of domain dom4.example. in catalog2 zone ($n)"
+ret=0
+$NSUPDATE -d <<END >>nsupdate.out.test$n 2>&1 || ret=1
+    server 10.53.0.3 ${PORT}
+    update delete dom4-renamed-label.zones.catalog2.example. 3600 IN PTR dom4.example.
+    update add DOM4-RENAMED-LABEL.zones.catalog2.example. 3600 IN PTR dom4.example.
+    send
+END
+if [ $ret -ne 0 ]; then echo_i "failed"; fi
+status=$((status + ret))
+
+n=$((n + 1))
+echo_i "waiting for secondary to sync up, and checking that the zone has not been reset ($n)"
+ret=0
+wait_for_message ns2/named.run "catz: catalog2.example: reload done: success" || ret=1
+_wait_for_message ns2/named.run "catz: zone 'dom4.example' unique label has changed, reset state" && ret=1
 if [ $ret -ne 0 ]; then echo_i "failed"; fi
 status=$((status + ret))
 
