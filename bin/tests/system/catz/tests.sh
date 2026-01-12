@@ -33,6 +33,15 @@ wait_for_message() (
   retry_quiet 20 _wait_for_message "$@"
 )
 
+_wait_for_message_ignorecase() (
+  nextpartpeek "$1" >wait_for_message.$n
+  grep -Fi "$2" wait_for_message.$n >/dev/null
+)
+
+wait_for_message_ignorecase() (
+  retry_quiet 20 _wait_for_message_ignorecase "$@"
+)
+
 _wait_for_rcode() (
   rcode="$1"
   qtype="$2"
@@ -453,7 +462,7 @@ status=$((status + ret))
 n=$((n + 1))
 echo_i "waiting for secondary to sync up, and checking that the reused label has been caught ($n)"
 ret=0
-wait_for_message ns2/named.run "de26b88d855397a03f77ff1162fd055d8b419584.zones.catalog2.example IN PTR (failure)" \
+wait_for_message_ignorecase ns2/named.run "de26b88d855397a03f77ff1162fd055d8b419584.zones.catalog2.example IN PTR (failure)" \
   && wait_for_message ns2/named.run "catz: new catalog zone 'Catalog2.Example' is broken and will not be processed" || ret=1
 if [ $ret -ne 0 ]; then echo_i "failed"; fi
 status=$((status + ret))
@@ -2500,7 +2509,7 @@ status=$((status + ret))
 n=$((n + 1))
 echo_i "waiting for secondary to sync up ($n)"
 ret=0
-wait_for_message ns2/named.run "catz: invalid record in catalog zone - primaries.ext.dom18.zones.catalog2.example IN A (failure) - ignoring" \
+wait_for_message_ignorecase ns2/named.run "catz: invalid record in catalog zone - primaries.ext.dom18.zones.catalog2.example IN A (failure) - ignoring" \
   && wait_for_message ns2/named.run "catz: adding zone 'dom17.example' from catalog 'catalog2.example'" \
   && wait_for_message ns2/named.run "catz: adding zone 'dom18.example' from catalog 'catalog2.example'" \
   && wait_for_message ns2/named.run "transfer of 'dom17.example/IN/default' from 10.53.0.3#${PORT}: Transfer status: success" \
