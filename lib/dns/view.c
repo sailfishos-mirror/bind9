@@ -1134,7 +1134,7 @@ findzonecut_hints(dns_view_t *view, dns_name_t *fname, dns_name_t *dcname,
 }
 
 isc_result_t
-dns_view_findzonecut(dns_view_t *view, const dns_name_t *name,
+dns_view_bestzonecut(dns_view_t *view, const dns_name_t *name,
 		     dns_name_t *fname, dns_name_t *dcname, isc_stdtime_t now,
 		     unsigned int options, bool usehints, bool usecache,
 		     dns_rdataset_t *rdataset) {
