@@ -12,6 +12,7 @@
  */
 
 #include <stdbool.h>
+#include <string.h>
 
 #include <openssl/bn.h>
 #include <openssl/core_names.h>
@@ -183,13 +184,17 @@ static isc_result_t
 generate_pkcs11_ec_key(char *uri, EVP_PKEY **pkeyp, int nid) {
 	isc_result_t result;
 	EVP_PKEY_CTX *pctx;
-	OSSL_PARAM params[3];
+	size_t len;
 
-	params[0] = OSSL_PARAM_construct_utf8_string("pkcs11_uri", uri, 0);
-	params[1] = OSSL_PARAM_construct_utf8_string(
-		"pkcs11_key_usage", pkcs11_key_usage,
-		sizeof(pkcs11_key_usage) - 1);
-	params[2] = OSSL_PARAM_construct_end();
+	INSIST(uri != NULL);
+	len = strlen(uri);
+
+	const OSSL_PARAM params[] = {
+		OSSL_PARAM_utf8_string("pkcs11_uri", uri, len),
+		OSSL_PARAM_utf8_string("pkcs11_key_usage", pkcs11_key_usage,
+				       sizeof(pkcs11_key_usage) - 1),
+		OSSL_PARAM_END,
+	};
 
 	pctx = EVP_PKEY_CTX_new_from_name(NULL, "EC", "provider=pkcs11");
 	if (pctx == NULL) {
