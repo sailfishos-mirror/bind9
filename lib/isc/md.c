@@ -18,9 +18,9 @@
 #include <openssl/opensslv.h>
 
 #include <isc/md.h>
+#include <isc/ossl_wrap.h>
 #include <isc/util.h>
 
-#include "crypto/crypto_p.h"
 #include "openssl_shim.h"
 
 isc_md_t *

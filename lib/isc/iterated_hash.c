@@ -19,10 +19,9 @@
 
 #include <isc/iterated_hash.h>
 #include <isc/md.h>
+#include <isc/ossl_wrap.h>
 #include <isc/thread.h>
 #include <isc/util.h>
-
-#include "crypto/crypto_p.h"
 
 #if OPENSSL_VERSION_NUMBER < 0x30000000L
 

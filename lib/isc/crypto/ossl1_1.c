@@ -30,8 +30,6 @@
 #include <isc/safe.h>
 #include <isc/util.h>
 
-#include "crypto_p.h"
-
 #define HMAC_KEY_MAGIC ISC_MAGIC('H', 'M', 'A', 'C')
 
 struct isc_hmac_key {

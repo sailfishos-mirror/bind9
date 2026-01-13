@@ -42,6 +42,7 @@
 #include <isc/mem.h>
 #include <isc/mutex.h>
 #include <isc/once.h>
+#include <isc/ossl_wrap.h>
 #include <isc/random.h>
 #include <isc/refcount.h>
 #include <isc/rwlock.h>
@@ -51,9 +52,6 @@
 #include <isc/util.h>
 
 #include "openssl_shim.h"
-
-/* TODO(aydin): remove this crap */
-extern EVP_MD *isc__crypto_md[];
 
 #define COMMON_SSL_OPTIONS \
 	(SSL_OP_NO_COMPRESSION | SSL_OP_NO_SESSION_RESUMPTION_ON_RENEGOTIATION)

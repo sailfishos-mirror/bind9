@@ -35,9 +35,6 @@
 
 #define OPENSSLRSA_MAX_MODULUS_BITS 4096
 
-/* TODO(aydin): remove this crap */
-extern EVP_MD *isc__crypto_md[];
-
 /* length byte + 1.2.840.113549.1.1.11 BER encoded RFC 4055 */
 static unsigned char oid_rsasha256[] = { 0x0b, 0x06, 0x09, 0x2a, 0x86, 0x48,
 					 0x86, 0xf7, 0x0d, 0x01, 0x01, 0x0b };

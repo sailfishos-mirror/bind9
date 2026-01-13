@@ -34,8 +34,6 @@
 #include <isc/safe.h>
 #include <isc/util.h>
 
-#include "crypto_p.h"
-
 struct isc_hmac_key {
 	uint32_t magic;
 	uint32_t len;

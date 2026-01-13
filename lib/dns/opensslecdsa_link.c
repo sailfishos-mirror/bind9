@@ -23,6 +23,7 @@
 #include <isc/crypto.h>
 #include <isc/md.h>
 #include <isc/mem.h>
+#include <isc/ossl_wrap.h>
 #include <isc/result.h>
 #include <isc/safe.h>
 #include <isc/string.h>
@@ -34,9 +35,6 @@
 #include "dst_openssl.h"
 #include "dst_parse.h"
 #include "openssl_shim.h"
-
-/* TODO(aydin): remove this crap */
-extern EVP_MD *isc__crypto_md[];
 
 #ifndef NID_X9_62_prime256v1
 #error "P-256 group is not known (NID_X9_62_prime256v1)"

@@ -278,3 +278,10 @@ isc__ossl_wrap_logged_toresult(isc_logcategory_t category,
 			       isc_logmodule_t module, const char *funcname,
 			       isc_result_t fallback, const char *file,
 			       int line);
+
+/*
+ * This is a bit of a namespace convention violation but it fits the spirit of
+ * this header since it is exposing OpenSSL-isms to others.
+ */
+
+extern EVP_MD *isc__crypto_md[];
