@@ -122,6 +122,9 @@ generate_ec_key(EVP_PKEY **pkeyp, const int nid) {
 		CLEANUP(OSSL_WRAP_ERROR("EC_KEY_generate_key"));
 	}
 
+	EC_KEY_set_asn1_flag(eckey, OPENSSL_EC_NAMED_CURVE);
+	EC_KEY_set_conv_form(eckey, POINT_CONVERSION_UNCOMPRESSED);
+
 	pkey = EVP_PKEY_new();
 	if (pkey == NULL) {
 		CLEANUP(OSSL_WRAP_ERROR("EVP_PKEY_new"));
