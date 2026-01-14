@@ -181,12 +181,6 @@ isc_tlsctx_createserver(const char *keyfile, const char *certfile,
 	X509 *cert = NULL;
 	EVP_PKEY *pkey = NULL;
 	SSL_CTX *ctx = NULL;
-#if OPENSSL_VERSION_NUMBER < 0x30000000L
-	EC_KEY *eckey = NULL;
-#else
-	EVP_PKEY_CTX *pkey_ctx = NULL;
-	EVP_PKEY *params_pkey = NULL;
-#endif /* OPENSSL_VERSION_NUMBER < 0x30000000L */
 	char errbuf[256];
 	const SSL_METHOD *method = NULL;
 
@@ -208,78 +202,9 @@ isc_tlsctx_createserver(const char *keyfile, const char *certfile,
 	SSL_CTX_set_min_proto_version(ctx, TLS1_2_VERSION);
 
 	if (ephemeral) {
-		const int group_nid = NID_X9_62_prime256v1;
-
-#if OPENSSL_VERSION_NUMBER < 0x30000000L
-		eckey = EC_KEY_new_by_curve_name(group_nid);
-		if (eckey == NULL) {
+		if (isc_ossl_wrap_generate_p256_key(&pkey) != ISC_R_SUCCESS) {
 			goto ssl_error;
 		}
-
-		/* Generate the key. */
-		rv = EC_KEY_generate_key(eckey);
-		if (rv != 1) {
-			goto ssl_error;
-		}
-		pkey = EVP_PKEY_new();
-		if (pkey == NULL) {
-			goto ssl_error;
-		}
-		rv = EVP_PKEY_set1_EC_KEY(pkey, eckey);
-		if (rv != 1) {
-			goto ssl_error;
-		}
-
-		/* Use a named curve and uncompressed point conversion form. */
-		EC_KEY_set_asn1_flag(EVP_PKEY_get0_EC_KEY(pkey),
-				     OPENSSL_EC_NAMED_CURVE);
-		EC_KEY_set_conv_form(EVP_PKEY_get0_EC_KEY(pkey),
-				     POINT_CONVERSION_UNCOMPRESSED);
-
-		/* Cleanup */
-		EC_KEY_free(eckey);
-		eckey = NULL;
-#else
-		/* Generate the key's parameters. */
-		pkey_ctx = EVP_PKEY_CTX_new_from_name(NULL, "EC", NULL);
-		if (pkey_ctx == NULL) {
-			goto ssl_error;
-		}
-		rv = EVP_PKEY_paramgen_init(pkey_ctx);
-		if (rv != 1) {
-			goto ssl_error;
-		}
-		rv = EVP_PKEY_CTX_set_ec_paramgen_curve_nid(pkey_ctx,
-							    group_nid);
-		if (rv != 1) {
-			goto ssl_error;
-		}
-		rv = EVP_PKEY_paramgen(pkey_ctx, &params_pkey);
-		if (rv != 1 || params_pkey == NULL) {
-			goto ssl_error;
-		}
-		EVP_PKEY_CTX_free(pkey_ctx);
-
-		/* Generate the key. */
-		pkey_ctx = EVP_PKEY_CTX_new(params_pkey, NULL);
-		if (pkey_ctx == NULL) {
-			goto ssl_error;
-		}
-		rv = EVP_PKEY_keygen_init(pkey_ctx);
-		if (rv != 1) {
-			goto ssl_error;
-		}
-		rv = EVP_PKEY_keygen(pkey_ctx, &pkey);
-		if (rv != 1 || pkey == NULL) {
-			goto ssl_error;
-		}
-
-		/* Cleanup */
-		EVP_PKEY_free(params_pkey);
-		params_pkey = NULL;
-		EVP_PKEY_CTX_free(pkey_ctx);
-		pkey_ctx = NULL;
-#endif /* OPENSSL_VERSION_NUMBER < 0x30000000L */
 
 		cert = X509_new();
 		if (cert == NULL) {
@@ -358,18 +283,6 @@ ssl_error:
 	if (pkey != NULL) {
 		EVP_PKEY_free(pkey);
 	}
-#if OPENSSL_VERSION_NUMBER < 0x30000000L
-	if (eckey != NULL) {
-		EC_KEY_free(eckey);
-	}
-#else
-	if (params_pkey != NULL) {
-		EVP_PKEY_free(params_pkey);
-	}
-	if (pkey_ctx != NULL) {
-		EVP_PKEY_CTX_free(pkey_ctx);
-	}
-#endif /* OPENSSL_VERSION_NUMBER < 0x30000000L */
 
 	return ISC_R_TLSERROR;
 }
