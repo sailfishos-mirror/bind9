@@ -199,18 +199,10 @@ hmac_adddata(const dst_context_t *dctx, const isc_region_t *data) {
 static isc_result_t
 hmac_sign(const dst_context_t *dctx, isc_buffer_t *sig) {
 	isc_hmac_t *ctx = dctx->ctxdata.hmac_ctx;
-	isc_result_t r;
 
 	REQUIRE(ctx != NULL);
 
-	r = isc_hmac_final(ctx, sig);
-
-	/* Turn CRYPTOFAILURE into OPENSSLFAILURE */
-	if (r == ISC_R_CRYPTOFAILURE) {
-		r = DST_R_OPENSSLFAILURE;
-	}
-
-	return r;
+	return isc_hmac_final(ctx, sig);
 }
 
 static isc_result_t
