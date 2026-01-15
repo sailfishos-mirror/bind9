@@ -2703,7 +2703,8 @@ stale_refresh_aftermath(ns_client_t *client, isc_result_t result) {
 		 * database, starting the stale-refresh-time window for it.
 		 * This is a condensed form of query_lookup().
 		 */
-		client->inner.now = isc_stdtime_now();
+		client->inner.tnow = isc_time_now();
+		client->inner.now = isc_time_seconds(&client->inner.tnow);
 		client->query.attributes &= ~NS_QUERYATTR_RECURSIONOK;
 		qctx_init(client, NULL, 0, &qctx);
 
@@ -6076,7 +6077,8 @@ fetch_callback(void *arg) {
 		/*
 		 * Update client->now.
 		 */
-		client->inner.now = isc_stdtime_now();
+		client->inner.tnow = isc_time_now();
+		client->inner.now = isc_time_seconds(&client->inner.tnow);
 	} else {
 		/*
 		 * This is a fetch completion event for a canceled fetch.
@@ -6538,7 +6540,8 @@ query_hookresume(void *arg) {
 		INSIST(rev->ctx == client->query.hookasyncctx);
 		client->query.hookasyncctx = NULL;
 		canceled = false;
-		client->inner.now = isc_stdtime_now();
+		client->inner.tnow = isc_time_now();
+		client->inner.now = isc_time_seconds(&client->inner.tnow);
 	} else {
 		canceled = true;
 	}
