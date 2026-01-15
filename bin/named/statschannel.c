@@ -164,6 +164,8 @@ static const char *tcpinsizestats_xmldesc[dns_sizecounter_in_max];
 static const char *tcpoutsizestats_xmldesc[dns_sizecounter_out_max];
 static const char *dnstapstats_xmldesc[dns_dnstapcounter_max];
 static const char *gluecachestats_xmldesc[dns_gluecachestatscounter_max];
+static const char *queryrttinstats_xmldesc[dns_queryrttcounter_in_max];
+static const char *queryrttoutstats_xmldesc[dns_queryrttcounter_in_max];
 #else /* if defined(EXTENDED_STATS) */
 #define nsstats_xmldesc		NULL
 #define resstats_xmldesc	NULL
@@ -203,6 +205,8 @@ static int tcpinsizestats_index[dns_sizecounter_in_max];
 static int tcpoutsizestats_index[dns_sizecounter_out_max];
 static int dnstapstats_index[dns_dnstapcounter_max];
 static int gluecachestats_index[dns_gluecachestatscounter_max];
+static int queryrttinstats_index[dns_queryrttcounter_in_max];
+static int queryrttoutstats_index[dns_queryrttcounter_out_max];
 
 static void
 set_desc(int counter, int maxcounter, const char *fdesc, const char **fdescs,
@@ -223,7 +227,7 @@ set_desc(int counter, int maxcounter, const char *fdesc, const char **fdescs,
 }
 
 static const char *
-get_histo_desc(const char *prefix, int i, int inf, bool ext) {
+get_sizehisto_desc(const char *prefix, int i, int inf, bool ext) {
 	static char buf[(DNS_SIZEHISTO_MAXIN + DNS_SIZEHISTO_MAXOUT) * 80];
 	static size_t used = 0;
 	char *desc = buf + used;
@@ -245,6 +249,51 @@ get_histo_desc(const char *prefix, int i, int inf, bool ext) {
 	used += len + 1;
 	return desc;
 }
+
+#if defined(EXTENDED_STATS)
+static const char *
+get_rtthisto_desc(const char *prefix, unsigned int i, unsigned int inf,
+		  uint64_t min, uint64_t max, bool ext) {
+	static char buf[DNS_RTTHISTO_MAX * 80];
+	static size_t used = 0;
+	char *desc = buf + used;
+	size_t space = sizeof(buf) - used;
+	int len = 0;
+
+	if (!ext && i < inf) {
+		if (min == max) {
+			if (min == 0) {
+				len = snprintf(desc, space, "%s ~0 ms", prefix);
+			} else {
+				len = snprintf(desc, space, "%s %" PRIu64 " ms",
+					       prefix, min);
+			}
+		} else {
+			len = snprintf(desc, space,
+				       "%s %" PRIu64 "-%" PRIu64 " ms", prefix,
+				       min, max);
+		}
+	} else if (!ext && i >= inf) {
+		len = snprintf(desc, space, "%s %" PRIu64 "+ ms", prefix, min);
+	} else if (ext && i < inf) {
+		if (min == max) {
+			if (min == 0) {
+				len = snprintf(desc, space, "~0");
+			} else {
+				len = snprintf(desc, space, "%" PRIu64, min);
+			}
+		} else {
+			len = snprintf(desc, space, "%" PRIu64 "-%" PRIu64, min,
+				       max);
+		}
+	} else if (ext && i >= inf) {
+		len = snprintf(desc, space, "%" PRIu64 "+", min);
+	}
+	INSIST(0 < len && (size_t)len < space);
+	used += len + 1;
+	return desc;
+}
+#endif /* if defined(EXTENDED_STATS) */
 
 static void
 init_desc(void) {
@@ -742,11 +791,11 @@ init_desc(void) {
 	for (i = 0; i < DNS_SIZEHISTO_MAXOUT; i++) {
 		udpoutsizestats_index[i] = i;
 		tcpoutsizestats_index[i] = i;
-		udpoutsizestats_desc[i] = get_histo_desc(
+		udpoutsizestats_desc[i] = get_sizehisto_desc(
 			"responses sent", i, DNS_SIZEHISTO_MAXOUT, false);
 		tcpoutsizestats_desc[i] = udpoutsizestats_desc[i];
 #if defined(EXTENDED_STATS)
-		udpoutsizestats_xmldesc[i] = get_histo_desc(
+		udpoutsizestats_xmldesc[i] = get_sizehisto_desc(
 			"responses sent", i, DNS_SIZEHISTO_MAXOUT, true);
 		tcpoutsizestats_xmldesc[i] = udpoutsizestats_xmldesc[i];
 #endif /* if defined(EXTENDED_STATS) */
@@ -755,7 +804,7 @@ init_desc(void) {
 	for (i = 0; i <= DNS_SIZEHISTO_MAXIN; i++) {
 		udpinsizestats_index[i] = i;
 		tcpinsizestats_index[i] = i;
-		udpinsizestats_desc[i] = get_histo_desc(
+		udpinsizestats_desc[i] = get_sizehisto_desc(
 			"requests received", i, DNS_SIZEHISTO_MAXIN, false);
 		tcpinsizestats_desc[i] = udpinsizestats_desc[i];
 #if defined(EXTENDED_STATS)
@@ -764,10 +813,25 @@ init_desc(void) {
 			tcpinsizestats_xmldesc[i] = tcpoutsizestats_xmldesc[i];
 		} else {
 			udpinsizestats_xmldesc[i] =
-				get_histo_desc("requests received", i,
-					       DNS_SIZEHISTO_MAXIN, true);
+				get_sizehisto_desc("requests received", i,
+						   DNS_SIZEHISTO_MAXIN, true);
 			tcpinsizestats_xmldesc[i] = udpinsizestats_xmldesc[i];
 		}
+#endif /* if defined(EXTENDED_STATS) */
+	}
+
+	for (i = 0; i <= DNS_RTTHISTO_MAX; i++) {
+		queryrttinstats_index[i] = i;
+		queryrttoutstats_index[i] = i;
+
+#if defined(EXTENDED_STATS)
+		/*
+		 * The descriptions are filled in during dumping (only once),
+		 * because we don't have the isc_histomulti_t objects here
+		 * to determine their non-linear minimum and maximum values.
+		 */
+		queryrttinstats_xmldesc[i] = NULL;
+		queryrttoutstats_xmldesc[i] = NULL;
 #endif /* if defined(EXTENDED_STATS) */
 	}
 }
@@ -810,13 +874,26 @@ dump_stats(isc_stats_t *stats, isc_statsformat_t type, void *arg,
 #if defined(EXTENDED_STATS)
 static isc_result_t
 dump_histo(isc_histomulti_t *hm, isc_statsformat_t type, void *arg,
-	   const char *category, const char **desc, int ncounters, int *indices,
-	   uint64_t *values, int options) {
+	   const char *category, const char **desc, const char *desc_prefix,
+	   int ncounters, int *indices, uint64_t *values, int options) {
 	isc_histo_t *hg = NULL;
+	uint64_t min, max;
 
 	isc_histomulti_merge(&hg, hm);
 	for (int i = 0; i < ncounters; i++) {
-		isc_histo_get(hg, i, NULL, NULL, &values[i]);
+		isc_histo_get(hg, i, &min, &max, &values[i]);
+
+		/*
+		 * RTT descriptions are generated during the first call of
+		 * this function for the corresponding histogram, the other
+		 * descriptions are pregenerated and the caller shouldn't
+		 * provide a prefix.
+		 */
+		if (desc[i] == NULL && desc_prefix != NULL) {
+			desc[i] = get_rtthisto_desc(desc_prefix, i,
+						    DNS_RTTHISTO_MAX, min, max,
+						    true);
+		}
 	}
 	isc_histo_destroy(&hg);
 
@@ -1743,6 +1820,8 @@ generatexml(named_server_t *server, uint32_t flags, int *buflen,
 	uint64_t udpoutsizestat_values[DNS_SIZEHISTO_MAXOUT + 1];
 	uint64_t tcpinsizestat_values[DNS_SIZEHISTO_MAXIN + 1];
 	uint64_t tcpoutsizestat_values[DNS_SIZEHISTO_MAXOUT + 1];
+	uint64_t queryrttinstat_values[DNS_RTTHISTO_MAX + 1];
+	uint64_t queryrttoutstat_values[DNS_RTTHISTO_MAX + 1];
 #ifdef HAVE_DNSTAP
 	uint64_t dnstapstat_values[dns_dnstapcounter_max];
 #endif /* ifdef HAVE_DNSTAP */
@@ -1899,7 +1978,7 @@ generatexml(named_server_t *server, uint32_t flags, int *buflen,
 						 ISC_XMLCHAR "request-size"));
 
 		CHECK(dump_histo(server->sctx->udpinstats4, isc_statsformat_xml,
-				 writer, NULL, udpinsizestats_xmldesc,
+				 writer, NULL, udpinsizestats_xmldesc, NULL,
 				 dns_sizecounter_in_max, udpinsizestats_index,
 				 udpinsizestat_values, 0));
 
@@ -1909,10 +1988,11 @@ generatexml(named_server_t *server, uint32_t flags, int *buflen,
 		TRY0(xmlTextWriterWriteAttribute(writer, ISC_XMLCHAR "type",
 						 ISC_XMLCHAR "response-size"));
 
-		CHECK(dump_histo(
-			server->sctx->udpoutstats4, isc_statsformat_xml, writer,
-			NULL, udpoutsizestats_xmldesc, dns_sizecounter_out_max,
-			udpoutsizestats_index, udpoutsizestat_values, 0));
+		CHECK(dump_histo(server->sctx->udpoutstats4,
+				 isc_statsformat_xml, writer, NULL,
+				 udpoutsizestats_xmldesc, NULL,
+				 dns_sizecounter_out_max, udpoutsizestats_index,
+				 udpoutsizestat_values, 0));
 
 		TRY0(xmlTextWriterEndElement(writer)); /* </counters> */
 		TRY0(xmlTextWriterEndElement(writer)); /* </udp> */
@@ -1923,7 +2003,7 @@ generatexml(named_server_t *server, uint32_t flags, int *buflen,
 						 ISC_XMLCHAR "request-size"));
 
 		CHECK(dump_histo(server->sctx->tcpinstats4, isc_statsformat_xml,
-				 writer, NULL, tcpinsizestats_xmldesc,
+				 writer, NULL, tcpinsizestats_xmldesc, NULL,
 				 dns_sizecounter_in_max, tcpinsizestats_index,
 				 tcpinsizestat_values, 0));
 
@@ -1932,10 +2012,11 @@ generatexml(named_server_t *server, uint32_t flags, int *buflen,
 		TRY0(xmlTextWriterWriteAttribute(writer, ISC_XMLCHAR "type",
 						 ISC_XMLCHAR "response-size"));
 
-		CHECK(dump_histo(
-			server->sctx->tcpoutstats4, isc_statsformat_xml, writer,
-			NULL, tcpoutsizestats_xmldesc, dns_sizecounter_out_max,
-			tcpoutsizestats_index, tcpoutsizestat_values, 0));
+		CHECK(dump_histo(server->sctx->tcpoutstats4,
+				 isc_statsformat_xml, writer, NULL,
+				 tcpoutsizestats_xmldesc, NULL,
+				 dns_sizecounter_out_max, tcpoutsizestats_index,
+				 tcpoutsizestat_values, 0));
 
 		TRY0(xmlTextWriterEndElement(writer)); /* </counters> */
 		TRY0(xmlTextWriterEndElement(writer)); /* </tcp> */
@@ -1948,7 +2029,7 @@ generatexml(named_server_t *server, uint32_t flags, int *buflen,
 						 ISC_XMLCHAR "request-size"));
 
 		CHECK(dump_histo(server->sctx->udpinstats6, isc_statsformat_xml,
-				 writer, NULL, udpinsizestats_xmldesc,
+				 writer, NULL, udpinsizestats_xmldesc, NULL,
 				 dns_sizecounter_in_max, udpinsizestats_index,
 				 udpinsizestat_values, 0));
 
@@ -1958,10 +2039,11 @@ generatexml(named_server_t *server, uint32_t flags, int *buflen,
 		TRY0(xmlTextWriterWriteAttribute(writer, ISC_XMLCHAR "type",
 						 ISC_XMLCHAR "response-size"));
 
-		CHECK(dump_histo(
-			server->sctx->udpoutstats6, isc_statsformat_xml, writer,
-			NULL, udpoutsizestats_xmldesc, dns_sizecounter_out_max,
-			udpoutsizestats_index, udpoutsizestat_values, 0));
+		CHECK(dump_histo(server->sctx->udpoutstats6,
+				 isc_statsformat_xml, writer, NULL,
+				 udpoutsizestats_xmldesc, NULL,
+				 dns_sizecounter_out_max, udpoutsizestats_index,
+				 udpoutsizestat_values, 0));
 
 		TRY0(xmlTextWriterEndElement(writer)); /* </counters> */
 		TRY0(xmlTextWriterEndElement(writer)); /* </udp> */
@@ -1972,7 +2054,7 @@ generatexml(named_server_t *server, uint32_t flags, int *buflen,
 						 ISC_XMLCHAR "request-size"));
 
 		CHECK(dump_histo(server->sctx->tcpinstats6, isc_statsformat_xml,
-				 writer, NULL, tcpinsizestats_xmldesc,
+				 writer, NULL, tcpinsizestats_xmldesc, NULL,
 				 dns_sizecounter_in_max, tcpinsizestats_index,
 				 tcpinsizestat_values, 0));
 
@@ -1982,10 +2064,11 @@ generatexml(named_server_t *server, uint32_t flags, int *buflen,
 		TRY0(xmlTextWriterWriteAttribute(writer, ISC_XMLCHAR "type",
 						 ISC_XMLCHAR "response-size"));
 
-		CHECK(dump_histo(
-			server->sctx->tcpoutstats6, isc_statsformat_xml, writer,
-			NULL, tcpoutsizestats_xmldesc, dns_sizecounter_out_max,
-			tcpoutsizestats_index, tcpoutsizestat_values, 0));
+		CHECK(dump_histo(server->sctx->tcpoutstats6,
+				 isc_statsformat_xml, writer, NULL,
+				 tcpoutsizestats_xmldesc, NULL,
+				 dns_sizecounter_out_max, tcpoutsizestats_index,
+				 tcpoutsizestat_values, 0));
 
 		TRY0(xmlTextWriterEndElement(writer)); /* </counters> */
 		TRY0(xmlTextWriterEndElement(writer)); /* </tcp> */
@@ -2005,6 +2088,7 @@ generatexml(named_server_t *server, uint32_t flags, int *buflen,
 		isc_stats_t *istats = NULL;
 		dns_stats_t *dstats = NULL;
 		dns_adb_t *adb = NULL;
+		isc_histomulti_t *hmpin = NULL, *hmpout = NULL;
 
 		TRY0(xmlTextWriterStartElement(writer, ISC_XMLCHAR "view"));
 		TRY0(xmlTextWriterWriteAttribute(writer, ISC_XMLCHAR "name",
@@ -2097,6 +2181,40 @@ generatexml(named_server_t *server, uint32_t flags, int *buflen,
 						 ISC_XMLCHAR "cachestats"));
 		TRY0(dns_cache_renderxml(view->cache, writer));
 		TRY0(xmlTextWriterEndElement(writer)); /* </cachestats> */
+
+		TRY0(xmlTextWriterStartElement(writer, ISC_XMLCHAR "rtt"));
+
+		dns_resolver_getqueryrttstats(view->resolver, &hmpin, &hmpout);
+
+		TRY0(xmlTextWriterStartElement(writer, ISC_XMLCHAR "counters"));
+		TRY0(xmlTextWriterWriteAttribute(writer, ISC_XMLCHAR "type",
+						 ISC_XMLCHAR "in-queries-rtt"));
+		if (hmpin != NULL) {
+			CHECK(dump_histo(hmpin, isc_statsformat_xml, writer,
+					 NULL, queryrttinstats_xmldesc,
+					 "RTT (in)", dns_queryrttcounter_in_max,
+					 queryrttinstats_index,
+					 queryrttinstat_values, 0));
+			isc_histomulti_detach(&hmpin);
+		}
+		TRY0(xmlTextWriterEndElement(writer)); /* </counters> */
+
+		TRY0(xmlTextWriterStartElement(writer, ISC_XMLCHAR "counters"));
+		TRY0(xmlTextWriterWriteAttribute(writer, ISC_XMLCHAR "type",
+						 ISC_XMLCHAR
+						 "out-queries-rtt"));
+		if (hmpout != NULL) {
+			CHECK(dump_histo(hmpout, isc_statsformat_xml, writer,
+					 NULL, queryrttoutstats_xmldesc,
+					 "RTT (out)",
+					 dns_queryrttcounter_out_max,
+					 queryrttoutstats_index,
+					 queryrttoutstat_values, 0));
+			isc_histomulti_detach(&hmpout);
+		}
+		TRY0(xmlTextWriterEndElement(writer)); /* </counters> */
+
+		TRY0(xmlTextWriterEndElement(writer)); /* </rtt> */
 
 		TRY0(xmlTextWriterEndElement(writer)); /* view */
 
@@ -2796,6 +2914,8 @@ generatejson(named_server_t *server, size_t *msglen, const char **msg,
 	uint64_t udpoutsizestat_values[dns_sizecounter_out_max];
 	uint64_t tcpinsizestat_values[dns_sizecounter_in_max];
 	uint64_t tcpoutsizestat_values[dns_sizecounter_out_max];
+	uint64_t queryrttinstat_values[DNS_RTTHISTO_MAX + 1];
+	uint64_t queryrttoutstat_values[DNS_RTTHISTO_MAX + 1];
 #ifdef HAVE_DNSTAP
 	uint64_t dnstapstat_values[dns_dnstapcounter_max];
 #endif /* ifdef HAVE_DNSTAP */
@@ -3005,6 +3125,7 @@ generatejson(named_server_t *server, size_t *msglen, const char **msg,
 		ISC_LIST_FOREACH(server->viewlist, view, link) {
 			json_object *za, *xa, *v = json_object_new_object();
 			dns_adb_t *adb = NULL;
+			isc_histomulti_t *hmpin = NULL, *hmpout = NULL;
 
 			CHECKMEM(v);
 			json_object_object_add(viewlist, view->name, v);
@@ -3148,6 +3269,45 @@ generatejson(named_server_t *server, size_t *msglen, const char **msg,
 					json_object_object_add(res, "adb",
 							       counters);
 				}
+
+				dns_resolver_getqueryrttstats(view->resolver,
+							      &hmpin, &hmpout);
+				if (hmpin != NULL) {
+					counters = json_object_new_object();
+					CHECKMEM(counters);
+
+					CHECK(dump_histo(
+						hmpin, isc_statsformat_json,
+						counters, NULL,
+						queryrttinstats_xmldesc,
+						"RTT (in)",
+						dns_queryrttcounter_in_max,
+						queryrttinstats_index,
+						queryrttinstat_values, 0));
+					isc_histomulti_detach(&hmpin);
+
+					json_object_object_add(res,
+							       "in-queries-rtt",
+							       counters);
+				}
+				if (hmpout != NULL) {
+					counters = json_object_new_object();
+					CHECKMEM(counters);
+
+					CHECK(dump_histo(
+						hmpout, isc_statsformat_json,
+						counters, NULL,
+						queryrttoutstats_xmldesc,
+						"RTT (out)",
+						dns_queryrttcounter_out_max,
+						queryrttoutstats_index,
+						queryrttoutstat_values, 0));
+					isc_histomulti_detach(&hmpout);
+
+					json_object_object_add(
+						res, "out-queries-rtt",
+						counters);
+				}
 			}
 		}
 	}
@@ -3219,49 +3379,49 @@ generatejson(named_server_t *server, size_t *msglen, const char **msg,
 
 		CHECK(dump_histo(server->sctx->udpinstats4,
 				 isc_statsformat_json, udpreq4, NULL,
-				 udpinsizestats_xmldesc, dns_sizecounter_in_max,
-				 udpinsizestats_index, udpinsizestat_values,
-				 0));
+				 udpinsizestats_xmldesc, NULL,
+				 dns_sizecounter_in_max, udpinsizestats_index,
+				 udpinsizestat_values, 0));
 
 		CHECK(dump_histo(server->sctx->udpoutstats4,
 				 isc_statsformat_json, udpresp4, NULL,
-				 udpoutsizestats_xmldesc,
+				 udpoutsizestats_xmldesc, NULL,
 				 dns_sizecounter_out_max, udpoutsizestats_index,
 				 udpoutsizestat_values, 0));
 
 		CHECK(dump_histo(server->sctx->tcpinstats4,
 				 isc_statsformat_json, tcpreq4, NULL,
-				 tcpinsizestats_xmldesc, dns_sizecounter_in_max,
-				 tcpinsizestats_index, tcpinsizestat_values,
-				 0));
+				 tcpinsizestats_xmldesc, NULL,
+				 dns_sizecounter_in_max, tcpinsizestats_index,
+				 tcpinsizestat_values, 0));
 
 		CHECK(dump_histo(server->sctx->tcpoutstats4,
 				 isc_statsformat_json, tcpresp4, NULL,
-				 tcpoutsizestats_xmldesc,
+				 tcpoutsizestats_xmldesc, NULL,
 				 dns_sizecounter_out_max, tcpoutsizestats_index,
 				 tcpoutsizestat_values, 0));
 
 		CHECK(dump_histo(server->sctx->udpinstats6,
 				 isc_statsformat_json, udpreq6, NULL,
-				 udpinsizestats_xmldesc, dns_sizecounter_in_max,
-				 udpinsizestats_index, udpinsizestat_values,
-				 0));
+				 udpinsizestats_xmldesc, NULL,
+				 dns_sizecounter_in_max, udpinsizestats_index,
+				 udpinsizestat_values, 0));
 
 		CHECK(dump_histo(server->sctx->udpoutstats6,
 				 isc_statsformat_json, udpresp6, NULL,
-				 udpoutsizestats_xmldesc,
+				 udpoutsizestats_xmldesc, NULL,
 				 dns_sizecounter_out_max, udpoutsizestats_index,
 				 udpoutsizestat_values, 0));
 
 		CHECK(dump_histo(server->sctx->tcpinstats6,
 				 isc_statsformat_json, tcpreq6, NULL,
-				 tcpinsizestats_xmldesc, dns_sizecounter_in_max,
-				 tcpinsizestats_index, tcpinsizestat_values,
-				 0));
+				 tcpinsizestats_xmldesc, NULL,
+				 dns_sizecounter_in_max, tcpinsizestats_index,
+				 tcpinsizestat_values, 0));
 
 		CHECK(dump_histo(server->sctx->tcpoutstats6,
 				 isc_statsformat_json, tcpresp6, NULL,
-				 tcpoutsizestats_xmldesc,
+				 tcpoutsizestats_xmldesc, NULL,
 				 dns_sizecounter_out_max, tcpoutsizestats_index,
 				 tcpoutsizestat_values, 0));
 

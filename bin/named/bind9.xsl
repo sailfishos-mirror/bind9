@@ -941,6 +941,52 @@
             </table>
           </xsl:for-each>
         </xsl:if>
+        <xsl:for-each select="views/view">
+          <xsl:if test="rtt/counters[@type=&quot;in-queries-rtt&quot;]/counter[. &gt; 0]">
+            <h3>Incoming Queries Response Time for View <xsl:value-of select="@name"/></h3>
+            <table class="counters">
+              <tr>
+                <th>Milliseconds</th>
+                <th>Count</th>
+              </tr>
+              <xsl:for-each select="rtt/counters[@type=&quot;in-queries-rtt&quot;]/counter">
+                <xsl:variable name="css-class8">
+                  <xsl:choose>
+                    <xsl:when test="position() mod 2 = 0">even</xsl:when>
+                    <xsl:otherwise>odd</xsl:otherwise>
+                  </xsl:choose>
+                </xsl:variable>
+                <tr class="{$css-class8}">
+                  <td><xsl:value-of select="@name"/></td>
+                  <td><xsl:value-of select="."/></td>
+                </tr>
+              </xsl:for-each>
+            </table>
+          </xsl:if>
+        </xsl:for-each>
+        <xsl:for-each select="views/view">
+          <xsl:if test="rtt/counters[@type=&quot;out-queries-rtt&quot;]/counter[. &gt; 0]">
+            <h3>Outgoing Queries Response Time for View <xsl:value-of select="@name"/></h3>
+            <table class="counters">
+              <tr>
+                <th>Milliseconds</th>
+                <th>Count</th>
+              </tr>
+              <xsl:for-each select="rtt/counters[@type=&quot;out-queries-rtt&quot;]/counter">
+                <xsl:variable name="css-class8">
+                  <xsl:choose>
+                    <xsl:when test="position() mod 2 = 0">even</xsl:when>
+                    <xsl:otherwise>odd</xsl:otherwise>
+                  </xsl:choose>
+                </xsl:variable>
+                <tr class="{$css-class8}">
+                  <td><xsl:value-of select="@name"/></td>
+                  <td><xsl:value-of select="."/></td>
+                </tr>
+              </xsl:for-each>
+            </table>
+          </xsl:if>
+        </xsl:for-each>
         <xsl:if test="memory/summary">
           <h2>Memory Usage Summary</h2>
           <table class="counters">
