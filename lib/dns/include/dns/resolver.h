@@ -49,6 +49,7 @@
 #include <netinet/in.h>
 #include <stdbool.h>
 
+#include <isc/histo.h>
 #include <isc/loop.h>
 #include <isc/refcount.h>
 #include <isc/stats.h>
@@ -142,21 +143,6 @@ enum {
 	DNS_FETCHOPT_EDNSVERSIONSHIFT = 24,
 	DNS_FETCHOPT_EDNSVERSIONMASK = 0xff000000,
 };
-
-/*
- * Upper bounds of class of query RTT (ms).  Corresponds to
- * dns_resstatscounter_queryrttX statistics counters.
- */
-#define DNS_RESOLVER_QRYRTTCLASS0    10
-#define DNS_RESOLVER_QRYRTTCLASS0STR "10"
-#define DNS_RESOLVER_QRYRTTCLASS1    100
-#define DNS_RESOLVER_QRYRTTCLASS1STR "100"
-#define DNS_RESOLVER_QRYRTTCLASS2    500
-#define DNS_RESOLVER_QRYRTTCLASS2STR "500"
-#define DNS_RESOLVER_QRYRTTCLASS3    800
-#define DNS_RESOLVER_QRYRTTCLASS3STR "800"
-#define DNS_RESOLVER_QRYRTTCLASS4    1600
-#define DNS_RESOLVER_QRYRTTCLASS4STR "1600"
 
 /*
  * XXXRTH  Should this API be made semi-private?  (I.e.
@@ -586,8 +572,7 @@ dns_resolver_setstats(dns_resolver_t *res, isc_stats_t *stats);
  *
  * Requires:
  * \li	'res' is valid.
- *
- *\li	stats is a valid statistics supporting resolver statistics counters
+ * \li	stats is a valid statistics supporting resolver statistics counters
  *	(see dns/stats.h).
  */
 
@@ -600,8 +585,7 @@ dns_resolver_getstats(dns_resolver_t *res, isc_stats_t **statsp);
  *
  * Requires:
  * \li	'res' is valid.
- *
- *\li	'statsp' != NULL && '*statsp' != NULL
+ * \li	'statsp' != NULL && '*statsp' != NULL
  */
 
 void
@@ -623,8 +607,7 @@ dns_resolver_setquerystats(dns_resolver_t *res, dns_stats_t *stats);
  *
  * Requires:
  * \li	'res' is valid.
- *
- *\li	stats is a valid statistics created by dns_rdatatypestats_create().
+ * \li	'stats' is a valid statistics created by dns_rdatatypestats_create().
  */
 
 void
@@ -636,8 +619,36 @@ dns_resolver_getquerystats(dns_resolver_t *res, dns_stats_t **statsp);
  *
  * Requires:
  * \li	'res' is valid.
+ * \li	'statsp' != NULL && '*statsp' != NULL
+ */
+
+void
+dns_resolver_setqueryrttstats(dns_resolver_t *res, isc_histomulti_t *hmin,
+			      isc_histomulti_t *hmout);
+/*%<
+ * Set a query RTT statistics histograms 'hmin' and 'hmout' for 'res'. Once the
+ * statistic histograms are installed, the resolver will start updating them
+ * with the incoming and outgoing queries' RTT values accordingly.
  *
- *\li	'statsp' != NULL && '*statsp' != NULL
+ * Requires:
+ * \li	'res' is valid.
+ * \li	'stats' is a valid statistics created by dns_rdatatypestats_create().
+ * \li	'hmin' is a valid isc_histomulti_t object.
+ * \li	'hmout' is a valid isc_histomulti_t object.
+ */
+
+void
+dns_resolver_getqueryrttstats(dns_resolver_t *res, isc_histomulti_t **hmpin,
+			      isc_histomulti_t **hmpout);
+/*%<
+ * Get the query RTT statistics histograms for 'res'. If the histograms are set
+ * then the corresponding '*hmp{in,out}' are attached to them; otherwise,
+ * '*hmp{in,out}' are untouched.
+ *
+ * Requires:
+ * \li	'res' is valid.
+ * \li	'hmpin' == NULL || '*hmpin' == NULL
+ * \li	'hmpout' == NULL || '*hmpout' == NULL
  */
 
 void

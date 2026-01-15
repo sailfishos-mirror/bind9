@@ -19,6 +19,7 @@
 
 #include <isc/histo.h>
 
+#include <dns/resolver.h>
 #include <dns/types.h>
 
 /*%
@@ -52,30 +53,24 @@ enum {
 	dns_resstatscounter_dispabort = 21,
 	dns_resstatscounter_dispsockfail = 22,
 	dns_resstatscounter_querytimeout = 23,
-	dns_resstatscounter_queryrtt0 = 24,
-	dns_resstatscounter_queryrtt1 = 25,
-	dns_resstatscounter_queryrtt2 = 26,
-	dns_resstatscounter_queryrtt3 = 27,
-	dns_resstatscounter_queryrtt4 = 28,
-	dns_resstatscounter_queryrtt5 = 29,
-	dns_resstatscounter_nfetch = 30,
-	dns_resstatscounter_disprequdp = 31,
-	dns_resstatscounter_dispreqtcp = 32,
-	dns_resstatscounter_buckets = 33,
-	dns_resstatscounter_refused = 34,
-	dns_resstatscounter_cookienew = 35,
-	dns_resstatscounter_cookieout = 36,
-	dns_resstatscounter_cookiein = 37,
-	dns_resstatscounter_cookieok = 38,
-	dns_resstatscounter_badvers = 39,
-	dns_resstatscounter_badcookie = 40,
-	dns_resstatscounter_zonequota = 41,
-	dns_resstatscounter_serverquota = 42,
-	dns_resstatscounter_clientquota = 43,
-	dns_resstatscounter_nextitem = 44,
-	dns_resstatscounter_priming = 45,
-	dns_resstatscounter_forwardonlyfail = 46,
-	dns_resstatscounter_max = 47,
+	dns_resstatscounter_nfetch = 24,
+	dns_resstatscounter_disprequdp = 25,
+	dns_resstatscounter_dispreqtcp = 26,
+	dns_resstatscounter_buckets = 27,
+	dns_resstatscounter_refused = 28,
+	dns_resstatscounter_cookienew = 29,
+	dns_resstatscounter_cookieout = 30,
+	dns_resstatscounter_cookiein = 31,
+	dns_resstatscounter_cookieok = 32,
+	dns_resstatscounter_badvers = 33,
+	dns_resstatscounter_badcookie = 34,
+	dns_resstatscounter_zonequota = 35,
+	dns_resstatscounter_serverquota = 36,
+	dns_resstatscounter_clientquota = 37,
+	dns_resstatscounter_nextitem = 38,
+	dns_resstatscounter_priming = 39,
+	dns_resstatscounter_forwardonlyfail = 40,
+	dns_resstatscounter_max = 41,
 
 	/*
 	 * DNSSEC stats.
@@ -201,6 +196,24 @@ STATIC_ASSERT(DNS_SIZEHISTO_MAXOUT <=
 enum {
 	dns_sizecounter_in_max = DNS_SIZEHISTO_MAXIN + 1,
 	dns_sizecounter_out_max = DNS_SIZEHISTO_MAXOUT + 1,
+};
+
+/*
+ * This gives enough amount of buckets in the lower end of the values (which
+ * are the values up to about 30000 milliseconds (MAXIMUM_QUERY_TIMEOUT) to make
+ * sense for the resolver) to be useful and not to be too many. E.g. bucket
+ * number 30 covers values between 56 and 59, while bucket number 102 covers the
+ * values between 28672 and 30719.
+ */
+#define DNS_RTTHISTO_SIGBITS 3
+#define DNS_RTTHISTO_MAX     102
+
+/*
+ * For consistency with other stats counters
+ */
+enum {
+	dns_queryrttcounter_in_max = DNS_RTTHISTO_MAX + 1,
+	dns_queryrttcounter_out_max = DNS_RTTHISTO_MAX + 1,
 };
 
 /*%
