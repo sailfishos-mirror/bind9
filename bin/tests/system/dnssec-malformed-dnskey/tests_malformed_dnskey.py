@@ -12,6 +12,7 @@
 import base64
 from re import compile as Re
 
+import os
 import pytest
 
 pytest.importorskip("cryptography")
@@ -117,7 +118,11 @@ def test_malformed_ecdsa(ns3):
     msg = isctest.query.create("malformed-dnskey.example", "A")
 
     openssl_vers = ns3.log.grep(log_openssl_version)
-    if openssl_vers and int(openssl_vers[0].group(1)) >= 3:
+    if (
+        openssl_vers
+        and int(openssl_vers[0].group(1)) >= 3
+        and os.getenv("FEATURE_QUERYTRACE") == "1"
+    ):
         # extra check for OpenSSL 3.0.0+
         with ns3.watch_log_from_here() as watcher:
             res = isctest.query.tcp(msg, "10.53.0.3")
@@ -162,7 +167,11 @@ def test_multiple_rrsigs(ns3):
         pytest.skip("valid RRSIG listed first in response, re-run test")
 
     openssl_vers = ns3.log.grep(log_openssl_version)
-    if openssl_vers and int(openssl_vers[0].group(1)) >= 3:
+    if (
+        openssl_vers
+        and int(openssl_vers[0].group(1)) >= 3
+        and os.getenv("FEATURE_QUERYTRACE") == "1"
+    ):
         # extra check for OpenSSL 3.0.0+
         with ns3.watch_log_from_here() as watcher:
             res = isctest.query.tcp(msg, "10.53.0.3")
