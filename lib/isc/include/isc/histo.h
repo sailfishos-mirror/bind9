@@ -279,20 +279,6 @@ isc_histomulti_create(isc_mem_t *mctx, uint sigbits, isc_histomulti_t **hmp);
  */
 
 void
-isc_histomulti_destroy(isc_histomulti_t **hmp);
-/*%<
- * Destroy a multithreaded sharded histogram
- *
- * Requires:
- *\li	`hmp != NULL`
- *\li	`*hmp` is a pointer to a valid multithreaded sharded histogram
- *
- * Ensures:
- *\li	all memory allocated by the histogram has been released
- *\li	`*hmp == NULL`
- */
-
-void
 isc_histomulti_merge(isc_histo_t **targetp, const isc_histomulti_t *source);
 /*%<
  * Increase the counts in `*targetp` by the counts recorded in `source`
@@ -325,6 +311,21 @@ isc_histomulti_add(isc_histomulti_t *hm, uint64_t value, uint64_t inc);
  * Requires:
  *\li	`hm` is a pointer to a valid histomulti
  */
+
+#ifdef ISC_HISTO_TRACE
+#define isc_histomulti_ref(ptr) \
+	dns_histomulti__ref(ptr, __func__, __FILE__, __LINE__)
+#define isc_histomulti_unref(ptr) \
+	isc_histomulti__unref(ptr, __func__, __FILE__, __LINE__)
+#define isc_histomulti_attach(ptr, ptrp) \
+	isc_histomulti__attach(ptr, ptrp, __func__, __FILE__, __LINE__)
+#define isc_histomulti_detach(ptrp) \
+	isc_histomulti__detach(ptrp, __func__, __FILE__, __LINE__)
+
+ISC_REFCOUNT_TRACE_DECL(isc_histomulti);
+#else
+ISC_REFCOUNT_DECL(isc_histomulti);
+#endif /* ISC_HISTO_TRACE */
 
 /**********************************************************************/
 
