@@ -58,6 +58,11 @@ def check_zone_timers(loaded, expires, refresh, loaded_exp):
     check_loaded(loaded, loaded_exp, now)
 
 
+def check_rtt(rtt, rtt_expected):
+    for val in rtt_expected:
+        assert rtt[val[0]] == val[1]
+
+
 #
 # The output is gibberish, but at least make sure it does not crash.
 #
@@ -225,3 +230,33 @@ def test_traffic(fetch_traffic, **kwargs):
     data = fetch_traffic(statsip, statsport)
 
     check_traffic(data, exp)
+
+
+def test_rtt(fetch_views, **kwargs):
+    statsip = kwargs["statsip"]
+    statsport = kwargs["statsport"]
+
+    # auth query, 0 delay is expected, only for "in"
+    msg = create_msg("a.example2.", "TXT")
+    ans = isctest.query.tcp(msg, statsip, attempts=1)
+    isctest.check.noerror(ans)
+
+    # resolver query with a 530ms delay for both "in" and "out"
+    msg = create_msg("530.latency.example2.", "A")
+    ans = isctest.query.tcp(msg, statsip, attempts=1)
+    isctest.check.noerror(ans)
+
+    # resolver query with a 540ms delay for both "in" and "out"
+    msg = create_msg("540.latency.example2.", "A")
+    ans = isctest.query.tcp(msg, statsip, attempts=1)
+    isctest.check.noerror(ans)
+
+    # resolver query with a 730ms delay for both "in" and "out"
+    msg = create_msg("730.latency.example2.", "A")
+    ans = isctest.query.tcp(msg, statsip, attempts=1)
+    isctest.check.noerror(ans)
+
+    data = fetch_views(statsip, statsport)
+
+    check_rtt(data["in-queries-rtt"], [["~0", 1], ["512-575", 2], ["704-767", 1]])
+    check_rtt(data["out-queries-rtt"], [["512-575", 2], ["704-767", 1]])

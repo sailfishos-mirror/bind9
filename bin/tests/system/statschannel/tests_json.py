@@ -24,6 +24,7 @@ pytestmark = [
     isctest.mark.with_json_c,
     pytest.mark.extra_artifacts(
         [
+            "ans5/ans.run",
             "ns2/*.jnl",
             "ns2/*.signed",
             "ns2/dsset-*",
@@ -60,6 +61,19 @@ def fetch_traffic_json(statsip, statsport):
     data = r.json()
 
     return data["traffic"]
+
+
+def fetch_rtt_json(statsip, statsport):
+    r = requests.get(f"http://{statsip}:{statsport}/json/v1", timeout=600)
+    assert r.status_code == 200
+
+    views = r.json()["views"]
+    data = {
+        "in-queries-rtt": views["_default"]["resolver"]["in-queries-rtt"],
+        "out-queries-rtt": views["_default"]["resolver"]["out-queries-rtt"],
+    }
+
+    return data
 
 
 def load_timers_json(zone, primary=True):
@@ -119,3 +133,8 @@ def test_zone_with_many_keys_json(statsport):
 @pytest.mark.flaky(max_runs=2)
 def test_traffic_json(statsport):
     generic.test_traffic(fetch_traffic_json, statsip="10.53.0.2", statsport=statsport)
+
+
+@pytest.mark.flaky(max_runs=2)
+def test_rtt_json(statsport):
+    generic.test_rtt(fetch_rtt_json, statsip="10.53.0.4", statsport=statsport)
