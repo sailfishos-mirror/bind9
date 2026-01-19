@@ -861,7 +861,7 @@ get_attached_fctx(dns_resolver_t *res, isc_loop_t *loop, const dns_name_t *name,
  *      or any records returned in response to a query of type ANY
  *      (rctx_answer_any()).
  *    - Scan the authority section for NS or other records that may be
- *      included with a positive answer (rctx_authority_scan()).
+ *      included with a positive answer (rctx_authority_positive()).
  *
  * 4. rctx_answer_none():
  *    - Determine whether this is an NXDOMAIN, NXRRSET, or referral.
