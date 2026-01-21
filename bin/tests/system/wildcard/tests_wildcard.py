@@ -27,9 +27,13 @@ Limitations - untested properties:
     - special behavior of rdtypes like CNAME
 """
 
+# Silence incorrect warnings cause by hypothesis.assume()
+# https://github.com/pylint-dev/pylint/issues/10785#issuecomment-3677224217
+# pylint: disable=unreachable
+
 import pytest
 
-pytest.importorskip("dns", minversion="2.0.0")
+import dns
 import dns.message
 import dns.name
 import dns.query
