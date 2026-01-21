@@ -324,6 +324,7 @@ def test_nsec3_ent(ns3, templates):
     assert match in str(rrset[0])
 
     # remove a name, bump the SOA, and reload
+    time.sleep(1)
     templates.render(f"{ns3.identifier}/nsec3-ent.kasp.db", {"serial": 2})
 
     messages = [
@@ -347,6 +348,7 @@ def test_nsec3_ent(ns3, templates):
     assert response.rcode() == dns.rcode.NXDOMAIN
 
     # add a name with an ENT, bump the SOA, and reload ensuring the time stamp changes
+    time.sleep(1)
     templates.render(f"{ns3.identifier}/nsec3-ent.kasp.db", {"serial": 3})
 
     messages = [
