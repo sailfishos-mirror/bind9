@@ -55,7 +55,6 @@ import dns.tsig
 import dns.version
 import dns.zone
 
-
 _UdpHandler = Callable[
     [bytes, Tuple[str, int], asyncio.DatagramTransport], Coroutine[Any, Any, None]
 ]

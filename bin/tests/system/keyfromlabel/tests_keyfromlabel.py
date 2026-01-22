@@ -18,7 +18,6 @@ import pytest
 
 import isctest.mark
 
-
 pytestmark = [
     isctest.mark.supported_openssl_version,
     isctest.mark.softhsm2_environment,

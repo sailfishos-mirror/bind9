@@ -14,7 +14,6 @@ from pathlib import Path
 import textwrap
 from typing import Dict, Optional
 
-
 CONFTEST_LOGGER = logging.getLogger("conftest")
 LOG_FORMAT = "%(asctime)s %(levelname)7s:%(name)s  %(message)s"
 LOG_INDENT = 4

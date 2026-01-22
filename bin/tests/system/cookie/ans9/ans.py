@@ -294,7 +294,7 @@ while running:
 
         if s == query4_tcp1 or s == query6_tcp1 or s == query4_tcp2 or s == query6_tcp2:
             try:
-                (cs, _) = s.accept()
+                cs, _ = s.accept()
                 if s == query4_tcp1 or s == query6_tcp1:
                     print(
                         "TCP Query received on %s"

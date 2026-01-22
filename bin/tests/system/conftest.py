@@ -27,7 +27,6 @@ pytest.register_assert_rewrite("isctest")
 
 import isctest
 
-
 # Silence warnings caused by passing a pytest fixture to another fixture.
 # pylint: disable=redefined-outer-name
 

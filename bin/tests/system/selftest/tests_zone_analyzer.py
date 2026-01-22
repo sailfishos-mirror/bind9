@@ -14,7 +14,6 @@ isctest.name.ZoneAnalyzer self-test
 Generate insane test zone and check expected output of ZoneAnalyzer utility class
 """
 
-
 import collections
 import itertools
 from pathlib import Path

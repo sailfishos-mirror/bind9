@@ -21,7 +21,6 @@ import isctest.mark
 pytest.register_assert_rewrite("generic")
 import generic
 
-
 pytestmark = [
     isctest.mark.have_json_c,
     pytest.mark.extra_artifacts(
