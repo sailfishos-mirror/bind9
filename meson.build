@@ -1511,6 +1511,7 @@ executable(
     implicit_include_directories: true,
     include_directories: [bin_inc],
     install: true,
+    sources: bind_keys,
     dependencies: [
         libisc_dep,
         libdns_dep,
