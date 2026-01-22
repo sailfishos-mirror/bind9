@@ -2057,6 +2057,7 @@ merge-tag:
 
 update-stable-tag:
   <<: *manual_release_job_qa
+  needs: []
   variables:
     GIT_DEPTH: 1
   script:
