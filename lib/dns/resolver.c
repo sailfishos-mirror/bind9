@@ -861,7 +861,7 @@ get_attached_fctx(dns_resolver_t *res, isc_loop_t *loop, const dns_name_t *name,
  *      or any records returned in response to a query of type ANY
  *      (rctx_answer_any()).
  *    - Scan the authority section for NS or other records that may be
- *      included with a positive answer (rctx_authority_scan()).
+ *      included with a positive answer (rctx_authority_positive()).
  *
  * 4. rctx_answer_none():
  *    - Determine whether this is an NXDOMAIN, NXRRSET, or referral.
@@ -9179,6 +9179,9 @@ again:
  * rctx_nextserver():
  * We found something wrong with the remote server, but it may be
  * useful to try another one.
+ * Or nothing is wrong, but the server returned a referral
+ * (rctx->get_nameservers has been set by rctx_referral()) so we need to try
+ * again with a new zonecut.
  */
 static void
 rctx_nextserver(respctx_t *rctx, dns_message_t *message,
@@ -9398,6 +9401,7 @@ rctx_done(respctx_t *rctx, isc_result_t result) {
 
 	if (rctx->next_server) {
 		UNLOCK(&fctx->lock);
+		FCTXTRACE("nextserver");
 		rctx_nextserver(rctx, message, addrinfo, result);
 	} else if (rctx->resend) {
 		UNLOCK(&fctx->lock);
