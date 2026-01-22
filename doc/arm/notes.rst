@@ -86,3 +86,5 @@ Thank You
 ---------
 
 Thank you to everyone who assisted us in making this release possible.
+
+Thank you RtD for compiling these docs.
