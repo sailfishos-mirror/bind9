@@ -1966,6 +1966,9 @@ update-stable-tag:
     GIT_DEPTH: 1
   script:
     - bind9-qa/releng/update_stable_tag.py --tag "$CI_COMMIT_TAG"
+    # Work around https://github.com/readthedocs/readthedocs.org/issues/10838
+    - sleep 300
+    - bind9-qa/releng/update_stable_tag.py --tag "$CI_COMMIT_TAG"
   rules:
     - *rule_tag_open_source
   artifacts:
