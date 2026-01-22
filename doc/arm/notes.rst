@@ -66,8 +66,6 @@ https://gitlab.isc.org/isc-projects/bind9/-/wikis/Known-Issues-in-BIND-9.20
 
 .. _relnotes_license:
 
-Random note, should not be picked unless a delay is introduced in RtD.
-
 License
 -------
 
