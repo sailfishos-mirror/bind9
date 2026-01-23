@@ -1463,6 +1463,7 @@ ISC_TEST_ENTRY_CUSTOM(privilege_drop, _setup, _teardown)
 ISC_TEST_ENTRY_CUSTOM(privileged_events, _setup, _teardown)
 ISC_TEST_ENTRY_CUSTOM(purge, _setup2, _teardown)
 ISC_TEST_ENTRY_CUSTOM(purgeevent, _setup2, _teardown)
+ISC_TEST_ENTRY_CUSTOM(purgerange, _setup2, _teardown)
 ISC_TEST_ENTRY_CUSTOM(task_shutdown, _setup4, _teardown)
 ISC_TEST_ENTRY_CUSTOM(task_exclusive, _setup4, _teardown)
 

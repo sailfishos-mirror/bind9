@@ -90,7 +90,7 @@ teardown_managers(void **state);
 	int setup_test_##name(void **state __attribute__((unused)));
 
 #define ISC_RUN_TEST_DECLARE(name) \
-	void run_test_##name(void **state __attribute__((unused)));
+	static void run_test_##name(void **state __attribute__((unused)));
 
 #define ISC_TEARDOWN_TEST_DECLARE(name) \
 	int teardown_test_##name(void **state __attribute__((unused)))
@@ -99,9 +99,9 @@ teardown_managers(void **state);
 	int setup_test_##name(void **state __attribute__((unused))); \
 	int setup_test_##name(void **state __attribute__((unused)))
 
-#define ISC_RUN_TEST_IMPL(name)                                     \
-	void run_test_##name(void **state __attribute__((unused))); \
-	void run_test_##name(void **state __attribute__((unused)))
+#define ISC_RUN_TEST_IMPL(name)                                            \
+	static void run_test_##name(void **state __attribute__((unused))); \
+	static void run_test_##name(void **state __attribute__((unused)))
 
 #define ISC_TEARDOWN_TEST_IMPL(name)                                    \
 	int teardown_test_##name(void **state __attribute__((unused))); \
