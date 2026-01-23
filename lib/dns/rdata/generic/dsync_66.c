@@ -237,7 +237,7 @@ fromstruct_dsync(ARGS_FROMSTRUCT) {
 	UNUSED(rdclass);
 
 	RETERR(uint16_tobuffer(dsync->type, target));
-	RETERR(uint16_tobuffer(dsync->scheme, target));
+	RETERR(uint8_tobuffer(dsync->scheme, target));
 	RETERR(uint16_tobuffer(dsync->port, target));
 	dns_name_toregion(&dsync->target, &region);
 	return isc_buffer_copyregion(target, &region);
