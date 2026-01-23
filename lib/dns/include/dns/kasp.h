@@ -34,6 +34,20 @@
 #include <dns/name.h>
 #include <dns/types.h>
 
+/* Add -DDNS_KASP_TRACE=1 to CFLAGS for detailed reference tracing */
+
+#if DNS_KASP_TRACE
+#define dns_kasp_ref(ptr)   dns_kasp_ref(ptr, __func__, __FILE__, __LINE__)
+#define dns_kasp_unref(ptr) dns_kasp__unref(ptr, __func__, __FILE__, __LINE__)
+#define dns_kasp_attach(ptr, ptrp) \
+	dns_kasp__attach(ptr, ptrp, __func__, __FILE__, __LINE__)
+#define dns_kasp_detach(ptrp) \
+	dns_kasp__detach(ptrp, __func__, __FILE__, __LINE__)
+ISC_REFCOUNT_TRACE_DECL(dns_kasp);
+#else
+ISC_REFCOUNT_DECL(dns_kasp);
+#endif
+
 /* For storing a list of digest types */
 struct dns_kasp_digest {
 	dns_dsdigest_t digest;
@@ -154,38 +168,6 @@ dns_kasp_create(isc_mem_t *mctx, const char *name, dns_kasp_t **kaspp);
  *\li  kaspp != NULL && *kaspp == NULL
  *
  * Returns:
- */
-
-void
-dns_kasp_attach(dns_kasp_t *source, dns_kasp_t **targetp);
-/*%<
- * Attach '*targetp' to 'source'.
- *
- * Requires:
- *
- *\li   'source' is a valid, frozen kasp.
- *
- *\li   'targetp' points to a NULL dns_kasp_t *.
- *
- * Ensures:
- *
- *\li   *targetp is attached to source.
- *
- *\li   While *targetp is attached, the kasp will not shut down.
- */
-
-void
-dns_kasp_detach(dns_kasp_t **kaspp);
-/*%<
- * Detach KASP.
- *
- * Requires:
- *
- *\li   'kaspp' points to a valid dns_kasp_t *
- *
- * Ensures:
- *
- *\li   *kaspp is NULL.
  */
 
 void

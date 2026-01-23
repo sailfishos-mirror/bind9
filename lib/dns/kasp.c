@@ -56,15 +56,6 @@ dns_kasp_create(isc_mem_t *mctx, const char *name, dns_kasp_t **kaspp) {
 	*kaspp = kasp;
 }
 
-void
-dns_kasp_attach(dns_kasp_t *source, dns_kasp_t **targetp) {
-	REQUIRE(DNS_KASP_VALID(source));
-	REQUIRE(targetp != NULL && *targetp == NULL);
-
-	isc_refcount_increment(&source->references);
-	*targetp = source;
-}
-
 static void
 destroy(dns_kasp_t *kasp) {
 	REQUIRE(!ISC_LINK_LINKED(kasp, link));
@@ -86,17 +77,11 @@ destroy(dns_kasp_t *kasp) {
 	isc_mem_putanddetach(&kasp->mctx, kasp, sizeof(*kasp));
 }
 
-void
-dns_kasp_detach(dns_kasp_t **kaspp) {
-	REQUIRE(kaspp != NULL && DNS_KASP_VALID(*kaspp));
-
-	dns_kasp_t *kasp = *kaspp;
-	*kaspp = NULL;
-
-	if (isc_refcount_decrement(&kasp->references) == 1) {
-		destroy(kasp);
-	}
-}
+#if DNS_KASP_TRACE
+ISC_REFCOUNT_TRACE_IMPL(dns_kasp, destroy);
+#else
+ISC_REFCOUNT_IMPL(dns_kasp, destroy);
+#endif
 
 const char *
 dns_kasp_getname(dns_kasp_t *kasp) {
