@@ -77,10 +77,11 @@ ISC_RUN_TEST_IMPL(isc_mutex) {
 #define CNT_MIN 800
 #define CNT_MAX 1600
 
-static size_t shared_counter = 0;
-static size_t expected_counter = SIZE_MAX;
+#if !defined(__SANITIZE_THREAD__)
 static isc_mutex_t lock;
 static pthread_mutex_t mutex;
+static size_t expected_counter = SIZE_MAX;
+static size_t shared_counter = 0;
 
 static void *
 pthread_mutex_thread(void *arg) {
@@ -203,6 +204,7 @@ ISC_RUN_TEST_IMPL(isc_mutex_benchmark) {
 
 	isc_mem_cput(mctx, threads, workers, sizeof(*threads));
 }
+#endif
 
 ISC_TEST_LIST_START
 
