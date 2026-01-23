@@ -29,7 +29,7 @@ fromtext_in_nimloc(ARGS_FROMTEXT) {
 	UNUSED(rdclass);
 	UNUSED(callbacks);
 
-	return isc_hex_tobuffer(lexer, target, -2);
+	return isc_hex_tobuffer(lexer, target, isc_one_or_more);
 }
 
 static isc_result_t
