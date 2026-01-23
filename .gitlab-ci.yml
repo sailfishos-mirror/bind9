@@ -101,13 +101,13 @@ default:
 
 stages:
   - autoconf
-  - precheck
+  - quick-checks
+  - other-checks
   - build
   - unit
   - system
   - performance
   - docs
-  - postcheck
   - postmerge
   - release
 
@@ -357,15 +357,26 @@ stages:
     - *rule_source_other_than_mr
     - *rule_mr_system_tests
 
-.precheck: &precheck_job
+.quick-check: &quick_checks_job
   <<: *default_triggering_rules
   <<: *base_image
-  stage: precheck
+  stage: quick-checks
+  needs: []
+  tags:
+    - smalljob
+
+.other-check: &other_checks_job
+  <<: *default_triggering_rules
+  <<: *base_image
+  stage: other-checks
+  needs: []
 
 .autoconf: &autoconf_job
   <<: *default_triggering_rules
   <<: *base_image
   stage: autoconf
+  tags:
+    - smalljob
   script:
     - autoreconf -fi
   artifacts:
@@ -665,13 +676,13 @@ stages:
 
 ### Job Definitions
 
-# Jobs in the precheck stage
+# Jobs in the quick-checks stage
 
 autoreconf:
   <<: *autoconf_job
 
 misc:
-  <<: *precheck_job
+  <<: *quick_checks_job
   script:
     - sh util/checklibs.sh > checklibs.out
     - sh util/check-categories.sh
@@ -681,16 +692,14 @@ misc:
     - bash util/unused-headers.sh
     # Check dangling symlinks in the repository
     - if find . -xtype l | grep .; then exit 1; fi
-  needs: []
   artifacts:
     paths:
       - checklibs.out
     when: on_failure
 
 black:
-  <<: *precheck_job
+  <<: *quick_checks_job
   <<: *python_triggering_rules
-  needs: []
   script:
     - black $(git ls-files '*.py')
     - git diff > black.patch
@@ -702,14 +711,13 @@ black:
     when: on_failure
 
 vulture:
-  <<: *precheck_job
+  <<: *quick_checks_job
   <<: *python_triggering_rules
-  needs: []
   script:
     - vulture --exclude "*ans.py,conftest.py,re_compile_checker.py,isctest" --ignore-names "after_servers_start,bootstrap,pytestmark,autouse_*" bin/tests/system/
 
 ci-variables:
-  <<: *precheck_job
+  <<: *quick_checks_job
   script:
     - export BIND_BASELINE_BRANCH="$(sed -n -E "s|^m4_define\(\[bind_VERSION_MINOR\], ([0-9]+)\)dnl$|\1|p" configure.ac)"
     # When testing a .0 release, compare it against the previous development
@@ -725,18 +733,17 @@ ci-variables:
       dotenv: ci_vars.env
 
 ci-orphaned-anchors:
-  <<: *precheck_job
+  <<: *quick_checks_job
   script:
     - *git_clone_bind9-qa
     - bind9-qa/ci-orphaned-anchors/check-orphaned-anchors-ci.py .gitlab-ci.yml
-  needs: []
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
       changes:
         - .gitlab-ci.yml
 
 clang-format:
-  <<: *precheck_job
+  <<: *quick_checks_job
   rules:
     - if: '$CI_MERGE_REQUEST_DIFF_BASE_SHA != null'
       changes:
@@ -747,7 +754,6 @@ clang-format:
     - *rule_mr_manual
     - *rule_tag
     - *rule_source_other_than_mr
-  needs: []
   script:
     - if [ -r .clang-format ]; then "${CLANG_FORMAT}" -i -style=file $(git ls-files '*.c' '*.h'); fi
     - git diff > clang-format.patch
@@ -758,25 +764,8 @@ clang-format:
     expire_in: "1 week"
     when: on_failure
 
-coccinelle:
-  <<: *precheck_job
-  rules:
-    - if: '$CI_MERGE_REQUEST_DIFF_BASE_SHA != null'
-      changes:
-        - '**/*.c'
-        - '**/*.h'
-        - 'cocci/**'
-        - 'util/check-cocci.sh'
-    - *rule_mr_manual
-    - *rule_tag
-    - *rule_source_other_than_mr
-  needs: []
-  script:
-    - util/check-cocci.sh
-    - if test "$(git status --porcelain | grep -Ev '\?\?' | wc -l)" -gt "0"; then git status --short; exit 1; fi
-
 doctest:
-  <<: *precheck_job
+  <<: *quick_checks_job
   # This script needs to: 1) fail if the doctest fails, 2) fail if
   # the junit.xml file is broken, 3) produce the junit.xml file even if
   # the doctest fails.  Therefore, $RET is used to "cache" the
@@ -805,9 +794,8 @@ doctest:
         - junit.xml
 
 pylint:
-  <<: *precheck_job
+  <<: *quick_checks_job
   <<: *python_triggering_rules
-  needs: []
   variables:
     PYTHONPATH: "${CI_PROJECT_DIR}/bin/tests/system"
   script:
@@ -816,8 +804,7 @@ pylint:
     - pylint --rcfile $CI_PROJECT_DIR/.pylintrc --load-plugins re_compile_checker --disable=wrong-import-position $(git ls-files 'bin/tests/system/*.py' | grep -vE '(ans\.py|vulture_ignore_list\.py)')
 
 reuse:
-  <<: *precheck_job
-  needs: []
+  <<: *quick_checks_job
   image:
     name: docker.io/fsfe/reuse:latest
     entrypoint: [""]
@@ -825,9 +812,8 @@ reuse:
     - reuse lint
 
 shfmt:
-  <<: *precheck_job
+  <<: *quick_checks_job
   <<: *shell_triggering_rules
-  needs: []
   script:
     - shfmt -w -i 2 -ci -bn . $(find . -name "*.sh.in")
     - git diff > shfmt.patch
@@ -839,31 +825,171 @@ shfmt:
     when: on_failure
 
 danger:
-  <<: *precheck_job
-  needs: []
+  <<: *quick_checks_job
   script:
     - pip install git+https://gitlab.isc.org/isc-projects/hazard.git
     - hazard
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
 
-checkbashisms:
-  <<: *precheck_job
-  <<: *shell_triggering_rules
-  needs: []
-  script:
-    - checkbashisms $(find . -path './.git' -prune -o -type f -exec sh -c 'head -n 1 "{}" | grep -qsF "#!/bin/sh"' \; -print)
-
 mypy:
-  <<: *precheck_job
+  <<: *quick_checks_job
   <<: *python_triggering_rules
   script:
     - mypy "bin/tests/system/isctest/"
 
+linkcheck:
+  <<: *quick_checks_job
+  script:
+    # Some domains tested by linkchecker may think that we connect to them too
+    # often and will refuse connection or reply with and error code, which
+    # makes this job fail. Let's check links only on Wednesdays.
+    - if [ "$(date +%w)" != "3" ]; then exit 0; fi
+    - pushd doc/arm/ > /dev/null && sphinx-build -b linkcheck . linkcheck_output/
+  artifacts:
+    paths:
+      - doc/arm/linkcheck_output/
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+
+generate-stress-test-configs:
+  <<: *quick_checks_job
+  script:
+    - *git_clone_bind9-qa
+    - bind9-qa/stress/generate-stress-test-configs.py > stress-test-configs.yml
+  artifacts:
+    paths:
+      - stress-test-configs.yml
+
+generate-tsan-stress-test-configs:
+  <<: *quick_checks_job
+  script:
+    - util/generate-tsan-stress-jobs.py > tsan-stress-test-configs.yml
+  artifacts:
+    paths:
+      - tsan-stress-test-configs.yml
+  when: manual
+
+# Jobs in the other-checks stage
+
+checkbashisms:
+  <<: *other_checks_job
+  <<: *shell_triggering_rules
+  script:
+    - checkbashisms $(find . -path './.git' -prune -o -type f -exec sh -c 'head -n 1 "{}" | grep -qsF "#!/bin/sh"' \; -print)
+
+coccinelle:
+  <<: *other_checks_job
+  rules:
+    - if: '$CI_MERGE_REQUEST_DIFF_BASE_SHA != null'
+      changes:
+        - '**/*.c'
+        - '**/*.h'
+        - 'cocci/**'
+        - 'util/check-cocci.sh'
+    - *rule_mr_manual
+    - *rule_tag
+    - *rule_source_other_than_mr
+  script:
+    - util/check-cocci.sh
+    - if test "$(git status --porcelain | grep -Ev '\?\?' | wc -l)" -gt "0"; then git status --short; exit 1; fi
+
+# Jobs for scan-build builds on Debian 13 "trixie" (amd64)
+
+.scan_build: &scan_build
+  - ${SCAN_BUILD} --html-title="BIND 9 ($CI_COMMIT_SHORT_SHA)"
+                  --keep-cc
+                  --status-bugs
+                  --keep-going
+                  -o scan-build.reports make -j${BUILD_PARALLEL_JOBS:-1} all V=1
+
+scan-build:
+  <<: *other_checks_job
+  variables:
+    CC: "${CLANG}"
+    CFLAGS: "${CFLAGS_COMMON}"
+    CONFIGURE: "${SCAN_BUILD} ./configure"
+    EXTRA_CONFIGURE: "--with-libidn2"
+  before_script:
+    - *list_installed_package_versions
+  script:
+    - *configure
+    - *scan_build
+  needs:
+    - job: autoreconf
+      artifacts: true
+  artifacts:
+    paths:
+      - scan-build.reports/
+    when: on_failure
+
+# Coverity Scan analysis upload
+
+.coverity_prep: &coverity_prep
+  - curl --output /tmp/cov-analysis-linux64.md5 https://scan.coverity.com/download/linux64
+         --form project=$COVERITY_SCAN_PROJECT_NAME
+         --form token=$COVERITY_SCAN_TOKEN
+         --form md5=1
+  - curl --output /tmp/cov-analysis-linux64.tgz https://scan.coverity.com/download/linux64
+         --form project=$COVERITY_SCAN_PROJECT_NAME
+         --form token=$COVERITY_SCAN_TOKEN
+  - test "$(md5sum /tmp/cov-analysis-linux64.tgz | awk '{ print $1 }')" = "$(cat /tmp/cov-analysis-linux64.md5)"
+  - tar --extract --gzip --file=/tmp/cov-analysis-linux64.tgz --directory=/tmp
+  - test -d /tmp/cov-analysis-linux64-*
+
+.coverity_build: &coverity_build
+  - /tmp/cov-analysis-linux64-*/bin/cov-build --dir /tmp/cov-int sh -c 'make -j${BUILD_PARALLEL_JOBS:-1} -k all V=1'
+  - tar --create --gzip --file=/tmp/cov-int.tar.gz --directory /tmp cov-int
+  - curl -v https://scan.coverity.com/builds?project=$COVERITY_SCAN_PROJECT_NAME
+        --form token=$COVERITY_SCAN_TOKEN
+        --form email=bind-changes@isc.org
+        --form file=@/tmp/cov-int.tar.gz
+        --form version="$(git rev-parse --short HEAD)"
+        --form description="$(git rev-parse --short HEAD) / $CI_COMMIT_TITLE / $CI_COMMIT_REF_NAME:$CI_PIPELINE_ID" 2>&1
+        | tee curl-response.txt
+  - grep -q 'Build successfully submitted' curl-response.txt
+
+coverity:
+  <<: *other_checks_job
+  variables:
+    CC: gcc
+    CFLAGS: "${CFLAGS_COMMON} -Og"
+    EXTRA_CONFIGURE: "--with-libidn2"
+  script:
+    - *coverity_prep
+    - *configure
+    - *coverity_build
+  after_script:
+    - mv -v /tmp/cov-int.tar.gz ${CI_PROJECT_DIR}/
+  needs:
+    - job: autoreconf
+      artifacts: true
+  artifacts:
+    paths:
+      - curl-response.txt
+      - cov-int.tar.gz
+    expire_in: "1 week"
+    when: on_failure
+  rules:
+    - if: '$COVERITY_SCAN_PROJECT_NAME != null && $COVERITY_SCAN_TOKEN != null'
+
+# git fsck operates over the whole repository and is sufficient to schedule it
+# only in one branch, preferably "main". GitLab's clone strategy prevents us
+# from using the "bind9" repo clone; we need to clone it ourselves.
+fsck:
+  <<: *other_checks_job
+  variables:
+    GIT_STRATEGY: none
+  script:
+    - git clone https://gitlab.isc.org/isc-projects/bind9.git bind9-full-clone
+    - cd bind9-full-clone/
+    - git fsck
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+
 tarball-create:
-  stage: precheck
+  <<: *build_job
   <<: *base_image
-  <<: *default_triggering_rules
   script:
     - ./configure --enable-maintainer-mode
     - make maintainer-clean
@@ -905,22 +1031,6 @@ changelog:
       artifacts: true
   artifacts:
     untracked: true
-
-linkcheck:
-  <<: *base_image
-  stage: docs
-  script:
-    # Some domains tested by linkchecker may think that we connect to them too
-    # often and will refuse connection or reply with and error code, which
-    # makes this job fail. Let's check links only on Wednesdays.
-    - if [ "$(date +%w)" != "3" ]; then exit 0; fi
-    - pushd doc/arm/ > /dev/null && sphinx-build -b linkcheck . linkcheck_output/
-  artifacts:
-    paths:
-      - doc/arm/linkcheck_output/
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "schedule"'
-  needs: []
 
 docs:
   <<: *default_triggering_rules
@@ -1314,37 +1424,6 @@ gcc:trixie:amd64cross32:
   <<: *debian_trixie_amd64cross32_image
   <<: *build_job
 
-# Jobs for scan-build builds on Debian 13 "trixie" (amd64)
-
-.scan_build: &scan_build
-  - ${SCAN_BUILD} --html-title="BIND 9 ($CI_COMMIT_SHORT_SHA)"
-                  --keep-cc
-                  --status-bugs
-                  --keep-going
-                  -o scan-build.reports make -j${BUILD_PARALLEL_JOBS:-1} all V=1
-
-scan-build:
-  <<: *default_triggering_rules
-  <<: *base_image
-  stage: postcheck
-  variables:
-    CC: "${CLANG}"
-    CFLAGS: "${CFLAGS_COMMON}"
-    CONFIGURE: "${SCAN_BUILD} ./configure"
-    EXTRA_CONFIGURE: "--with-libidn2"
-  before_script:
-    - *list_installed_package_versions
-  script:
-    - *configure
-    - *scan_build
-  needs:
-    - job: autoreconf
-      artifacts: true
-  artifacts:
-    paths:
-      - scan-build.reports/
-    when: on_failure
-
 # Jobs for strict OpenSSL 3.x (no deprecated) GCC builds on Debian "trixie" (amd64)
 # Run with pkcs11-provider tests
 
@@ -1668,21 +1747,9 @@ unit:clang:tsan:
     - job: clang:tsan
       artifacts: true
 
-generate-tsan-stress-test-configs:
-  <<: *base_image
-  <<: *default_triggering_rules
-  stage: system
-  script:
-    - util/generate-tsan-stress-jobs.py > tsan-stress-test-configs.yml
-  artifacts:
-    paths:
-      - tsan-stress-test-configs.yml
-  needs: []
-  when: manual
-
 tsan:stress:
   <<: *default_triggering_rules
-  stage: postcheck
+  stage: system
   variables:
     PARENT_PIPELINE_ID: $CI_PIPELINE_ID
   trigger:
@@ -1844,6 +1911,8 @@ release:
       artifacts: true
     - job: docs
       artifacts: true
+  tags:
+    - smalljob
   rules:
     - *rule_tag
   artifacts:
@@ -1974,6 +2043,8 @@ publish:
   needs:
     - job: staging
       artifacts: false
+  tags:
+    - smalljob
 
 # Setting the FORCE_CVE_IDS environment variable to a comma-separated
 # list of CVE IDs enables overriding the autodetected ones.
@@ -2109,57 +2180,6 @@ customer-git:tag:
   script:
     - bind9-qa/releng/push_to_customer_repository.py --tag "$CI_COMMIT_TAG" --entitlements isc-customer-settings/entitlements.yaml --force
 
-# Coverity Scan analysis upload
-
-.coverity_prep: &coverity_prep
-  - curl --output /tmp/cov-analysis-linux64.md5 https://scan.coverity.com/download/linux64
-         --form project=$COVERITY_SCAN_PROJECT_NAME
-         --form token=$COVERITY_SCAN_TOKEN
-         --form md5=1
-  - curl --output /tmp/cov-analysis-linux64.tgz https://scan.coverity.com/download/linux64
-         --form project=$COVERITY_SCAN_PROJECT_NAME
-         --form token=$COVERITY_SCAN_TOKEN
-  - test "$(md5sum /tmp/cov-analysis-linux64.tgz | awk '{ print $1 }')" = "$(cat /tmp/cov-analysis-linux64.md5)"
-  - tar --extract --gzip --file=/tmp/cov-analysis-linux64.tgz --directory=/tmp
-  - test -d /tmp/cov-analysis-linux64-*
-
-.coverity_build: &coverity_build
-  - /tmp/cov-analysis-linux64-*/bin/cov-build --dir /tmp/cov-int sh -c 'make -j${BUILD_PARALLEL_JOBS:-1} -k all V=1'
-  - tar --create --gzip --file=/tmp/cov-int.tar.gz --directory /tmp cov-int
-  - curl -v https://scan.coverity.com/builds?project=$COVERITY_SCAN_PROJECT_NAME
-        --form token=$COVERITY_SCAN_TOKEN
-        --form email=bind-changes@isc.org
-        --form file=@/tmp/cov-int.tar.gz
-        --form version="$(git rev-parse --short HEAD)"
-        --form description="$(git rev-parse --short HEAD) / $CI_COMMIT_TITLE / $CI_COMMIT_REF_NAME:$CI_PIPELINE_ID" 2>&1
-        | tee curl-response.txt
-  - grep -q 'Build successfully submitted' curl-response.txt
-
-coverity:
-  <<: *base_image
-  stage: postcheck
-  variables:
-    CC: gcc
-    CFLAGS: "${CFLAGS_COMMON} -Og"
-    EXTRA_CONFIGURE: "--with-libidn2"
-  script:
-    - *coverity_prep
-    - *configure
-    - *coverity_build
-  after_script:
-    - mv -v /tmp/cov-int.tar.gz ${CI_PROJECT_DIR}/
-  needs:
-    - job: autoreconf
-      artifacts: true
-  artifacts:
-    paths:
-      - curl-response.txt
-      - cov-int.tar.gz
-    expire_in: "1 week"
-    when: on_failure
-  rules:
-    - if: '$COVERITY_SCAN_PROJECT_NAME != null && $COVERITY_SCAN_TOKEN != null'
-
 # Respdiff tests
 
 respdiff:
@@ -2274,18 +2294,6 @@ shotgun:doh-get:
   #   - *shotgun_rule_tag
   #   - *shotgun_rule_other
 
-generate-stress-test-configs:
-  <<: *base_image
-  <<: *default_triggering_rules
-  stage: precheck
-  script:
-    - *git_clone_bind9-qa
-    - bind9-qa/stress/generate-stress-test-configs.py > stress-test-configs.yml
-  artifacts:
-    paths:
-      - stress-test-configs.yml
-  needs: []
-
 stress-test-child-pipeline:
   <<: *default_triggering_rules
   stage: performance
@@ -2307,26 +2315,10 @@ stress-test-child-pipeline:
     - job: generate-stress-test-configs
       artifacts: true
 
-# git fsck operates over the whole repository and is sufficient to schedule it
-# only in one branch, preferably "main". GitLab's clone strategy prevents us
-# from using the "bind9" repo clone; we need to clone it ourselves.
-fsck:
-  <<: *base_image
-  stage: postcheck
-  variables:
-    GIT_STRATEGY: none
-  script:
-    - git clone https://gitlab.isc.org/isc-projects/bind9.git bind9-full-clone
-    - cd bind9-full-clone/
-    - git fsck
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "schedule"'
-  needs: []
-
 gcov:
-  <<: *base_image
   <<: *default_triggering_rules
-  stage: postcheck
+  <<: *base_image
+  stage: system
   needs:
     - job: system:gcc:trixie:amd64
       artifacts: true
@@ -2379,6 +2371,8 @@ pairwise:
   <<: *base_image
   stage: postmerge
   needs: []
+  tags:
+    - smalljob
   # post-merge processes should run even if another MR was merged while the job was running (or queued)
   interruptible: false
   variables:
