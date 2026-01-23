@@ -100,7 +100,7 @@ file_path_to_groupname(const char *path, char *out, size_t outlen);
 	int setup_test_##name(void **state ISC_ATTR_UNUSED);
 
 #define ISC_RUN_TEST_DECLARE(name) \
-	void run_test_##name(void **state ISC_ATTR_UNUSED);
+	static void run_test_##name(void **state ISC_ATTR_UNUSED);
 
 #define ISC_TEARDOWN_TEST_DECLARE(name) \
 	int teardown_test_##name(void **state ISC_ATTR_UNUSED)
@@ -129,9 +129,9 @@ file_path_to_groupname(const char *path, char *out, size_t outlen);
 	int setup_test_##name(void **state ISC_ATTR_UNUSED); \
 	int setup_test_##name(void **state ISC_ATTR_UNUSED)
 
-#define ISC_RUN_TEST_IMPL(name)                             \
-	void run_test_##name(void **state ISC_ATTR_UNUSED); \
-	void run_test_##name(void **state ISC_ATTR_UNUSED)
+#define ISC_RUN_TEST_IMPL(name)                                    \
+	static void run_test_##name(void **state ISC_ATTR_UNUSED); \
+	static void run_test_##name(void **state ISC_ATTR_UNUSED)
 
 #define ISC_TEARDOWN_TEST_IMPL(name)                            \
 	int teardown_test_##name(void **state ISC_ATTR_UNUSED); \
@@ -143,9 +143,9 @@ file_path_to_groupname(const char *path, char *out, size_t outlen);
 	;
 
 #define ISC_LOOP_TEST_CUSTOM_IMPL(name, setup, teardown)                    \
-	void run_test_##name(void **state ISC_ATTR_UNUSED);                 \
-	void loop_test_##name(void *arg ISC_ATTR_UNUSED);                   \
-	void run_test_##name(void **state ISC_ATTR_UNUSED) {                \
+	static void run_test_##name(void **state ISC_ATTR_UNUSED);          \
+	static void loop_test_##name(void *arg ISC_ATTR_UNUSED);            \
+	static void run_test_##name(void **state ISC_ATTR_UNUSED) {         \
 		isc_job_cb setup_loop = setup;                              \
 		isc_job_cb teardown_loop = teardown;                        \
 		if (setup_loop != NULL) {                                   \
@@ -158,7 +158,7 @@ file_path_to_groupname(const char *path, char *out, size_t outlen);
 		isc_loop_setup(isc_loop_main(), loop_test_##name, state);   \
 		isc_loopmgr_run();                                          \
 	}                                                                   \
-	void loop_test_##name(void *arg ISC_ATTR_UNUSED)
+	static void loop_test_##name(void *arg ISC_ATTR_UNUSED)
 
 #define ISC_LOOP_TEST_IMPL(name) ISC_LOOP_TEST_CUSTOM_IMPL(name, NULL, NULL)
 
