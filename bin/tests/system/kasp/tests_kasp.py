@@ -936,6 +936,42 @@ def test_kasp_default(ns3):
     check_all(ns3, zone, policy, keys, [])
 
 
+def test_kasp_uppercase(ns3):
+    # check the zone with uppercase characters is loaded and signed.
+    isctest.log.info("check a zone with upper case characters is signed")
+    zone = "UPPER.KASP"
+    policy = "default"
+
+    isctest.kasp.wait_keymgr_done(ns3, zone)
+
+    # Key properties.
+    # DNSKEY, RRSIG (ksk), RRSIG (zsk) are published. DS needs to wait.
+    keyprops = [
+        "csk 0 13 256 goal:omnipresent dnskey:rumoured krrsig:rumoured zrrsig:rumoured ds:hidden",
+    ]
+    expected = isctest.kasp.policy_to_properties(ttl=3600, keys=keyprops)
+    keys = isctest.kasp.keydir_to_keylist(zone, "ns3")
+    isctest.kasp.check_dnssec_verify(ns3, zone)
+    isctest.kasp.check_keys(zone, keys, expected)
+    set_keytimes_default_policy(expected[0])
+    isctest.kasp.check_keytimes(keys, expected)
+    check_all(ns3, zone, policy, keys, [])
+
+    fqdn = f"{zone}."
+    query = isctest.query.create(fqdn, dns.rdatatype.NSEC)
+    response = isctest.query.tcp(query, ns3.ip)
+    assert response.rcode() == dns.rcode.NOERROR
+
+    nsec = response.get_rrset(
+        response.answer,
+        dns.name.from_text(fqdn),
+        dns.rdataclass.IN,
+        dns.rdatatype.NSEC,
+    )
+    nextname = nsec[0].next
+    assert str(nextname) == "a.upper.kasp."
+
+
 def test_kasp_dynamic(ns3):
     # Standard dynamic zone.
     isctest.log.info("check dynamic zone is updated and signed after update")

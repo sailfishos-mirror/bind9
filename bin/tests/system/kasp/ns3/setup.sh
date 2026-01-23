@@ -56,11 +56,15 @@ for zn in default dnssec-keygen some-keys legacy-keys pregenerated \
 done
 
 #
-# Setup special zone
+# Setup special zones
 #
 zone="i-am.\":\;?&[]\@!\$*+,|=\.\(\)special.kasp."
 echo_i "setting up zone: $zone"
 cp template.db.in "i-am.special.kasp.db"
+
+zone="UPPER.KASP."
+echo_i "setting up zone: $zone"
+cp upper.kasp.db.in "upper.kasp.db"
 
 #
 # Set up RSASHA1 based zones
