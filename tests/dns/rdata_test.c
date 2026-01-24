@@ -1102,7 +1102,7 @@ ISC_RUN_TEST_IMPL(amtrelay) {
 }
 
 /* BRIB RDATA - base64 encoded opaque */
-ISC_RUN_TEST_IMPL(brib) {
+ISC_RUN_TEST_IMPL(brid) {
 	text_ok_t text_ok[] = { /* empty  */
 				TEXT_INVALID(""),
 				/* valid base64 string */
@@ -3280,6 +3280,7 @@ ISC_TEST_LIST_START
 ISC_TEST_ENTRY(amtrelay)
 ISC_TEST_ENTRY(apl)
 ISC_TEST_ENTRY(atma)
+ISC_TEST_ENTRY(brid)
 ISC_TEST_ENTRY(cdnskey)
 ISC_TEST_ENTRY(csync)
 ISC_TEST_ENTRY(dnskey)
@@ -3287,6 +3288,7 @@ ISC_TEST_ENTRY(doa)
 ISC_TEST_ENTRY(ds)
 ISC_TEST_ENTRY(dsync)
 ISC_TEST_ENTRY(eid)
+ISC_TEST_ENTRY(hhit)
 ISC_TEST_ENTRY(hip)
 ISC_TEST_ENTRY(https_svcb)
 ISC_TEST_ENTRY(isdn)
@@ -3296,8 +3298,8 @@ ISC_TEST_ENTRY(nimloc)
 ISC_TEST_ENTRY(nsec)
 ISC_TEST_ENTRY(nsec3)
 ISC_TEST_ENTRY(nxt)
-ISC_TEST_ENTRY(rkey)
 ISC_TEST_ENTRY(resinfo)
+ISC_TEST_ENTRY(rkey)
 ISC_TEST_ENTRY(sshfp)
 ISC_TEST_ENTRY(wallet)
 ISC_TEST_ENTRY(wks)
