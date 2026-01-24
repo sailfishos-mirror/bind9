@@ -45,8 +45,6 @@ totext_hhit(ARGS_TOTEXT) {
 		RETERR(str_totext(" (", target));
 	}
 
-	RETERR(str_totext(tctx->linebreak, target));
-
 	if (tctx->width == 0) { /* No splitting */
 		RETERR(isc_base64_totext(&sr, 60, "", target));
 	} else {
