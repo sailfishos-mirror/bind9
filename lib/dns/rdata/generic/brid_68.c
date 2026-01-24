@@ -28,7 +28,7 @@ fromtext_brid(ARGS_FROMTEXT) {
 	UNUSED(options);
 	UNUSED(callbacks);
 
-	return isc_base64_tobuffer(lexer, target, -1);
+	return isc_base64_tobuffer(lexer, target, -2);
 }
 
 static isc_result_t
