@@ -445,7 +445,9 @@ def system_test_dir(request, env, system_test_name, expected_artifacts):
         ), f"Unexpected files found in test directory: {unexpected_files}"
 
     # Create a temporary directory with a copy of the original system test dir contents
-    system_test_root = Path(f"{env['TOP_BUILDDIR']}/{SYSTEM_TEST_DIR_GIT_PATH}")
+    system_test_root = Path(
+        f"{env['TOP_BUILDDIR']}/{SYSTEM_TEST_DIR_GIT_PATH}"
+    ).resolve()
     testdir = Path(
         tempfile.mkdtemp(prefix=f"{system_test_name}_tmp_", dir=system_test_root)
     )
