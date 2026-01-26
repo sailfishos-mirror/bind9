@@ -704,13 +704,14 @@ def test_negative_validation_optout():
 
 
 def test_cache(ns4):
-    # check that key id's are logged when dumping the cache
     ns4.rndc("dumpdb -cache")
-    dumpdb = isctest.text.TextFile("ns4/named_dump.db")
-    assert "; key id = " in dumpdb
-
-    # check for RRSIG covered type in negative cache
-    assert "; example. RRSIG NSEC " in dumpdb
+    with isctest.log.WatchLogFromStart("ns4/named_dump.db") as watcher:
+        watcher.wait_for_all(
+            [
+                "; key id = ",  # check that key id's are logged when dumping the cache
+                "; example. RRSIG NSEC ",  # check for RRSIG covered type in negative cache
+            ]
+        )
 
     # check validated data are not cached longer than originalttl
     msg = isctest.query.create("a.ttlpatch.example", "A")
@@ -938,8 +939,8 @@ def test_validation_recovery(ns2, ns4):
     res = isctest.query.tcp(msg, "10.53.0.4")
     isctest.check.servfail(res)
     ns4.rndc("dumpdb")
-    dumpdb = isctest.text.TextFile("ns4/named_dump.db")
-    assert "10.53.0.100" in dumpdb
+    with isctest.log.WatchLogFromStart("ns4/named_dump.db") as watcher:
+        watcher.wait_for_line("10.53.0.100")
 
     # then reload server with properly signed zone
     shutil.copyfile(
