@@ -69,7 +69,7 @@ def check_manykeys(name, zone=None):
 
 def zone_mtime(zonedir, name):
     try:
-        si = os.stat(os.path.join(zonedir, "{}.db".format(name)))
+        si = os.stat(os.path.join(zonedir, f"{name}.db"))
     except FileNotFoundError:
         return dayzero
 
@@ -160,7 +160,7 @@ def create_expected(data):
 def update_expected(expected, key, msg):
     msg_len = len(msg.to_wire())
     bucket_num = (msg_len // 16) * 16
-    bucket = "{}-{}".format(bucket_num, bucket_num + 15)
+    bucket = f"{bucket_num}-{bucket_num + 15}"
 
     expected[key][bucket] += 1
 

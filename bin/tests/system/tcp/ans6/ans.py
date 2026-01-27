@@ -65,7 +65,7 @@ def open_connections(active_conns, count, host, port):
         sock.setblocking(0)
         err = sock.connect_ex((host, port))
         if err not in (0, errno.EINPROGRESS):
-            log("%s on connect for socket %s" % (errno.errorcode[err], sock))
+            log(f"{errno.errorcode[err]} on connect for socket {sock}")
             errors.append(sock)
         else:
             queued.append(sock)
@@ -81,7 +81,7 @@ def open_connections(active_conns, count, host, port):
             queued.remove(sock)
             err = sock.getsockopt(socket.SOL_SOCKET, socket.SO_ERROR)
             if err:
-                log("%s for socket %s" % (errno.errorcode[err], sock))
+                log(f"{errno.errorcode[err]} for socket {sock}")
                 errors.append(sock)
             else:
                 sock.send(VERSION_QUERY)
@@ -98,7 +98,7 @@ def open_connections(active_conns, count, host, port):
 
 
 def close_connections(active_conns, count):
-    log("Closing %s connections..." % "all" if count == 0 else str(count))
+    log("Closing {} connections...".format("all") if count == 0 else str(count))
     if count == 0:
         count = len(active_conns)
     for _ in range(count):
@@ -136,10 +136,10 @@ def main():
 
     while True:
         clientsock, _ = ctlsock.accept()
-        log("Accepted control connection from %s" % clientsock)
+        log(f"Accepted control connection from {clientsock}")
         cmdline = clientsock.recv(512).decode("ascii").strip()
         if cmdline:
-            log("Received command: %s" % cmdline)
+            log(f"Received command: {cmdline}")
             cmd = cmdline.split()
             if cmd[0] == "open":
                 count, host, port = cmd[1:]

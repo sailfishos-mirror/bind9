@@ -125,7 +125,7 @@ def check_directory(path):
         os.listdir(path)
         return path
     except OSError as ex:
-        msg = "Path {} cannot be listed as a directory: {}".format(path, ex)
+        msg = f"Path {path} cannot be listed as a directory: {ex}"
         raise argparse.ArgumentTypeError(msg)
 
 
