@@ -89,7 +89,7 @@ generic_fromtext_key(ARGS_FROMTEXT) {
 	 */
 	used = isc_buffer_usedlength(target);
 
-	RETERR(isc_base64_tobuffer(lexer, target, -2));
+	RETERR(isc_base64_tobuffer(lexer, target, isc_one_or_more));
 
 	if (alg == DNS_KEYALG_PRIVATEDNS || alg == DNS_KEYALG_PRIVATEOID) {
 		isc_buffer_t b;
