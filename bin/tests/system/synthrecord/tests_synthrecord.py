@@ -286,9 +286,7 @@ def test_synthrecord_reverse_anysoa(qname, qtype, rcode, answerscount):
 
 
 def build_synthetic_name_v4(prefix, ip, domain):
-    return dns.name.from_text(
-        "{0}{1}.{2}".format(prefix, format(ip).replace(".", "-"), domain)
-    )
+    return dns.name.from_text(f"{prefix}{format(ip).replace('.', '-')}.{domain}")
 
 
 def build_synthetic_name_v6(prefix, ip, domain):

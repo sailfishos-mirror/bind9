@@ -48,7 +48,7 @@ def test_gnutls_cli_query(gnutls_cli_executable, named_tlsport):
         "--no-ocsp",
         "--alpn=dot",
         "--logfile=gnutls-cli.log",
-        "--port=%d" % named_tlsport,
+        f"--port={named_tlsport}",
         "10.53.0.1",
     ]
     with open("gnutls-cli.err", "wb") as gnutls_cli_stderr, subprocess.Popen(
