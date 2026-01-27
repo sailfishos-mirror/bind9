@@ -228,8 +228,8 @@ def run_test(http_secure=True):
     assert subdig.alive(), "The single DIG instance is expected to be alive"
     assert multidig.alive(), (
         "The DIG instances from the set are all expected to "
-        "be alive, but {} of them have completed"
-    ).format(multidig.completed())
+        f"be alive, but {multidig.completed()} of them have completed"
+    )
     # Let's close opened connections (in random order) to let all dig
     # processes to complete
     connector.disconnect_all()

@@ -46,9 +46,7 @@ pytestmark = [
 
 # XML helper functions
 def fetch_zones_xml(statsip, statsport):
-    r = requests.get(
-        "http://{}:{}/xml/v3/zones".format(statsip, statsport), timeout=600
-    )
+    r = requests.get(f"http://{statsip}:{statsport}/xml/v3/zones", timeout=600)
     assert r.status_code == 200
 
     root = ET.fromstring(r.text)
@@ -71,9 +69,7 @@ def fetch_traffic_xml(statsip, statsport):
 
         return out
 
-    r = requests.get(
-        "http://{}:{}/xml/v3/traffic".format(statsip, statsport), timeout=600
-    )
+    r = requests.get(f"http://{statsip}:{statsport}/xml/v3/traffic", timeout=600)
     assert r.status_code == 200
 
     root = ET.fromstring(r.text)
@@ -84,9 +80,9 @@ def fetch_traffic_xml(statsip, statsport):
             proto_root = root.find("traffic").find(ip).find(proto)
             for counters in proto_root.findall("counters"):
                 if counters.attrib["type"] == "request-size":
-                    key = "dns-{}-requests-sizes-received-{}".format(proto, ip)
+                    key = f"dns-{proto}-requests-sizes-received-{ip}"
                 else:
-                    key = "dns-{}-responses-sizes-sent-{}".format(proto, ip)
+                    key = f"dns-{proto}-responses-sizes-sent-{ip}"
 
                 values = load_counters(counters)
                 traffic[key] = values

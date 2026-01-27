@@ -46,9 +46,7 @@ pytestmark = [
 
 # JSON helper functions
 def fetch_zones_json(statsip, statsport):
-    r = requests.get(
-        "http://{}:{}/json/v1/zones".format(statsip, statsport), timeout=600
-    )
+    r = requests.get(f"http://{statsip}:{statsport}/json/v1/zones", timeout=600)
     assert r.status_code == 200
 
     data = r.json()
@@ -56,9 +54,7 @@ def fetch_zones_json(statsip, statsport):
 
 
 def fetch_traffic_json(statsip, statsport):
-    r = requests.get(
-        "http://{}:{}/json/v1/traffic".format(statsip, statsport), timeout=600
-    )
+    r = requests.get(f"http://{statsip}:{statsport}/json/v1/traffic", timeout=600)
     assert r.status_code == 200
 
     data = r.json()
