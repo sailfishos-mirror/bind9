@@ -58,7 +58,7 @@ def open_connections(active_conns, count, host, port):
     except socket.error:
         family = socket.AF_INET6
 
-    log("Opening %d connections..." % count)
+    log(f"Opening {count} connections...")
 
     for _ in range(count):
         sock = socket.socket(family, socket.SOCK_STREAM)
@@ -88,23 +88,23 @@ def open_connections(active_conns, count, host, port):
                 active_conns.append(sock)
 
     if errors:
-        log("result=FAIL: %d connection(s) failed" % len(errors))
+        log(f"result=FAIL: {len(errors)} connection(s) failed")
     elif queued:
-        log("result=FAIL: Timed out, aborting %d pending connections" % len(queued))
+        log(f"result=FAIL: Timed out, aborting {len(queued)} pending connections")
         for sock in queued:
             sock.close()
     else:
-        log("result=OK: Successfully opened %d connections" % count)
+        log(f"result=OK: Successfully opened {count} connections")
 
 
 def close_connections(active_conns, count):
-    log("Closing {} connections...".format("all") if count == 0 else str(count))
+    log(f"Closing {'all' if count == 0 else count} connections...")
     if count == 0:
         count = len(active_conns)
     for _ in range(count):
         sock = active_conns.pop(0)
         sock.close()
-    log("result=OK: Successfully closed %d connections" % count)
+    log(f"result=OK: Successfully closed {count} connections")
 
 
 def sigterm(*_):
@@ -127,7 +127,7 @@ def main():
     except KeyError:
         port = 5309
 
-    log("Listening on %s:%d" % (listenip, port))
+    log(f"Listening on {listenip}:{port}")
 
     ctlsock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     ctlsock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
