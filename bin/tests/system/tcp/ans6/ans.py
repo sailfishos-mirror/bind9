@@ -118,7 +118,7 @@ def main():
 
     signal.signal(signal.SIGTERM, sigterm)
 
-    with open("ans.pid", "w") as pidfile:
+    with open("ans.pid", "w", encoding="utf-8") as pidfile:
         print(os.getpid(), file=pidfile)
 
     listenip = "10.53.0.6"
