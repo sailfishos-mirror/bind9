@@ -18,8 +18,7 @@ import requests
 
 import isctest.mark
 
-pytest.register_assert_rewrite("generic")
-import generic
+from . import generic
 
 pytestmark = [
     isctest.mark.with_json_c,
