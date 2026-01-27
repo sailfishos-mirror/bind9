@@ -54,7 +54,7 @@ fromtext_sink(ARGS_FROMTEXT) {
 	}
 	RETERR(uint8_tobuffer(token.value.as_ulong, target));
 
-	return isc_base64_tobuffer(lexer, target, -1);
+	return isc_base64_tobuffer(lexer, target, isc_zero_or_more);
 }
 
 static isc_result_t

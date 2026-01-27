@@ -1,0 +1,24 @@
+@@
+expression E1, E2;
+@@
+isc_base64_tobuffer
+-(E1, E2, -1)
++(E1, E2, isc_zero_or_more)
+@@
+expression E1, E2;
+@@
+isc_base64_tobuffer
+-(E1, E2, -2)
++(E1, E2, isc_one_or_more)
+@@
+expression E1, E2;
+@@
+isc_hex_tobuffer
+-(E1, E2, -1)
++(E1, E2, isc_zero_or_more)
+@@
+expression E1, E2;
+@@
+isc_hex_tobuffer
+-(E1, E2, -2)
++(E1, E2, isc_one_or_more)

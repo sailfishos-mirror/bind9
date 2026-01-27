@@ -80,6 +80,12 @@ typedef struct isc_nm_http_endpoints isc_nm_http_endpoints_t;
 /*%< HTTP endpoints set */
 #endif /* HAVE_LIBNGHTTP2 */
 
+/*% Used by isc_base64 and isc_hex for expected lower bound */
+enum {
+	isc_zero_or_more = -1,
+	isc_one_or_more = -2,
+};
+
 /*% Statistics formats (text file or XML) */
 typedef enum {
 	isc_statsformat_file,

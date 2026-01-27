@@ -67,7 +67,7 @@ fromtext_doa(ARGS_FROMTEXT) {
 		return ISC_R_SUCCESS;
 	} else {
 		isc_lex_ungettoken(lexer, &token);
-		return isc_base64_tobuffer(lexer, target, -1);
+		return isc_base64_tobuffer(lexer, target, isc_zero_or_more);
 	}
 }
 

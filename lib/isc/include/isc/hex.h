@@ -143,8 +143,11 @@ isc_hex_tobuffer(isc_lex_t *lexer, isc_buffer_t *target, int length);
  * `target`. If 'length' is non-negative, it is the expected number of
  * encoded octets to convert.
  *
- * If 'length' is -1 then 0 or more encoded octets are expected.
- * If 'length' is -2 then 1 or more encoded octets are expected.
+ * If 'length' is isc_zero_or_more then 0 or more encoded octets are
+ * expected.
+ *
+ * If 'length' is isc_one_or_more then 1 or more encoded octets are
+ * expected.
  *
  * Returns:
  *\li	#ISC_R_BADHEX -- invalid hex encoding

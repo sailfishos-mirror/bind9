@@ -554,7 +554,7 @@ dst__privstruct_parse(dst_key_t *key, unsigned int alg, isc_lex_t *lex,
 		data = isc_mem_get(mctx, MAXFIELDSIZE);
 
 		isc_buffer_init(&b, data, MAXFIELDSIZE);
-		CHECK(isc_base64_tobuffer(lex, &b, -1));
+		CHECK(isc_base64_tobuffer(lex, &b, isc_zero_or_more));
 
 		isc_buffer_usedregion(&b, &r);
 		priv->elements[n].length = r.length;

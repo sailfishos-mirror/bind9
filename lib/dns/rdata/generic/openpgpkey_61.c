@@ -29,7 +29,7 @@ fromtext_openpgpkey(ARGS_FROMTEXT) {
 	/*
 	 * Keyring.
 	 */
-	return isc_base64_tobuffer(lexer, target, -2);
+	return isc_base64_tobuffer(lexer, target, isc_one_or_more);
 }
 
 static isc_result_t
