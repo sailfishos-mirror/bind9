@@ -24,7 +24,12 @@ from isctest.asyncserver import (
     ResponseAction,
 )
 
-from qmin_ans import DelayedResponseHandler, EntRcodeChanger, QueryLogHandler, log_query
+from ..qmin_ans import (
+    DelayedResponseHandler,
+    EntRcodeChanger,
+    QueryLogHandler,
+    log_query,
+)
 
 
 class QueryLogger(QueryLogHandler):

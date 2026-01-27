@@ -32,7 +32,7 @@ from isctest.asyncserver import (
     StaticResponseHandler,
 )
 
-from resolver_ans import rrset
+from ..resolver_ans import rrset
 
 
 class HeaderOnlyHandler(ResponseHandler):

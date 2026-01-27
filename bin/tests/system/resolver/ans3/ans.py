@@ -29,7 +29,7 @@ from isctest.asyncserver import (
     ResponseHandler,
 )
 
-from resolver_ans import (
+from ..resolver_ans import (
     DelegationHandler,
     Gl6412AHandler,
     Gl6412Handler,
