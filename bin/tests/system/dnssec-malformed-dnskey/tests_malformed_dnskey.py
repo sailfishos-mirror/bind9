@@ -15,8 +15,6 @@ from re import compile as Re
 import os
 import pytest
 
-pytest.importorskip("cryptography")
-
 from cryptography.hazmat.primitives.asymmetric import ec
 
 import dns

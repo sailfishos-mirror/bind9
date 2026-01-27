@@ -23,8 +23,11 @@ import pytest
 
 pytest.register_assert_rewrite("isctest")
 
+# pylint: disable=wrong-import-position
 import isctest
 from isctest.vars.build import SYSTEM_TEST_DIR_GIT_PATH
+
+# pylint: enable=wrong-import-position
 
 # Silence warnings caused by passing a pytest fixture to another fixture.
 # pylint: disable=redefined-outer-name

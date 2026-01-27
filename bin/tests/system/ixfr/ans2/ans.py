@@ -11,14 +11,14 @@ See the COPYRIGHT file distributed with this work for additional
 information regarding copyright ownership.
 """
 
+from typing import AsyncGenerator, Collection, Iterable
+
 import abc
 
 import dns.rcode
 import dns.rdataclass
 import dns.rdatatype
 import dns.rrset
-
-from typing import AsyncGenerator, Collection, Iterable
 
 from isctest.asyncserver import (
     ControllableAsyncDnsServer,
