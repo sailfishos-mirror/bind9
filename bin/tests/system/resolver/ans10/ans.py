@@ -21,7 +21,7 @@ from isctest.asyncserver import (
     ResponseHandler,
 )
 
-from resolver_ans import rrset, soa_rrset
+from ..resolver_ans import rrset, soa_rrset
 
 
 class EdnsWithOptionsFormerrHandler(ResponseHandler):

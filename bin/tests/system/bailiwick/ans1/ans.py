@@ -22,7 +22,7 @@ from isctest.asyncserver import (
     ResponseAction,
 )
 
-from bailiwick_ans import ResponseSpoofer, spoofing_server
+from ..bailiwick_ans import ResponseSpoofer, spoofing_server
 
 ATTACKER_IP = "10.53.0.3"
 TTL = 3600

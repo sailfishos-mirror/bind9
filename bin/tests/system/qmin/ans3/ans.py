@@ -15,7 +15,7 @@ import dns.rcode
 
 from isctest.asyncserver import AsyncDnsServer
 
-from qmin_ans import DelayedResponseHandler, EntRcodeChanger, QueryLogHandler
+from ..qmin_ans import DelayedResponseHandler, EntRcodeChanger, QueryLogHandler
 
 
 class QueryLogger(QueryLogHandler):

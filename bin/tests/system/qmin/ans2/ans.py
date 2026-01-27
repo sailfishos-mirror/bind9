@@ -27,7 +27,7 @@ from isctest.asyncserver import (
     ResponseAction,
 )
 
-from qmin_ans import (
+from ..qmin_ans import (
     DelayedResponseHandler,
     EntRcodeChanger,
     QueryLogHandler,
