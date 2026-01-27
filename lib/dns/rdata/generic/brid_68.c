@@ -28,7 +28,7 @@ fromtext_brid(ARGS_FROMTEXT) {
 	UNUSED(options);
 	UNUSED(callbacks);
 
-	return isc_base64_tobuffer(lexer, target, -1);
+	return isc_base64_tobuffer(lexer, target, -2);
 }
 
 static isc_result_t
@@ -44,8 +44,6 @@ totext_brid(ARGS_TOTEXT) {
 	if ((tctx->flags & DNS_STYLEFLAG_MULTILINE) != 0) {
 		RETERR(str_totext(" (", target));
 	}
-
-	RETERR(str_totext(tctx->linebreak, target));
 
 	if (tctx->width == 0) { /* No splitting */
 		RETERR(isc_base64_totext(&sr, 60, "", target));
