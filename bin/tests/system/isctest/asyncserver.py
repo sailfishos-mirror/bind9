@@ -642,6 +642,105 @@ class QnameHandler(ResponseHandler):
         return qctx.qname in self._qnames
 
 
+class QnameQtypeHandler(QnameHandler):
+    """
+    Handle queries for which both of the following conditions are true:
+
+    - the query's QNAME is present in `self.qnames`,
+    - the query's QTYPE is present in `self.qtypes`.
+    """
+
+    @property
+    @abc.abstractmethod
+    def qtypes(self) -> List[dns.rdatatype.RdataType]:
+        """
+        A list of QTYPEs handled by this class.
+        """
+        raise NotImplementedError
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._qtypes: List[dns.rdatatype.RdataType] = self.qtypes
+
+    def __str__(self) -> str:
+        return f"{self.__class__.__name__}(QNAMEs: {', '.join(self.qnames)}; QTYPEs: {', '.join(map(str, self.qtypes))})"
+
+    def match(self, qctx: QueryContext) -> bool:
+        """
+        Handle queries whose QNAME and QTYPE match any of the QNAMEs and
+        QTYPEs handled by this class.
+        """
+        return qctx.qtype in self._qtypes and super().match(qctx)
+
+
+class StaticResponseHandler(ResponseHandler):
+    """
+    Base class used for deriving custom static response handlers.
+
+    The derived class can specify the RRsets to be included in the answer,
+    authority, and additional sections of the response, whether to set the AA
+    bit in the response, and a delay before sending the response.
+
+    The default implementation of `get_responses()` uses these properties to
+    prepare and yield a single response.
+    """
+
+    @property
+    def rcode(self) -> Optional[dns.rcode.Rcode]:
+        """
+        Optional RCODE to be set in the response.
+        """
+        return None
+
+    @property
+    def answer(self) -> Sequence[dns.rrset.RRset]:
+        """
+        RRsets to be included in the answer section of the response.
+        """
+        return []
+
+    @property
+    def authority(self) -> Sequence[dns.rrset.RRset]:
+        """
+        RRsets to be included in the authority section of the response.
+        """
+        return []
+
+    @property
+    def additional(self) -> Sequence[dns.rrset.RRset]:
+        """
+        RRsets to be included in the additional section of the response.
+        """
+        return []
+
+    @property
+    def authoritative(self) -> Optional[bool]:
+        """
+        Whether to set the AA bit in the response.
+        """
+        return None
+
+    @property
+    def delay(self) -> float:
+        """
+        Delay before sending the response.
+        """
+        return 0.0
+
+    async def get_responses(
+        self, qctx: QueryContext
+    ) -> AsyncGenerator[DnsResponseSend, None]:
+        qctx.prepare_new_response(with_zone_data=False)
+        qctx.response.answer.extend(self.answer)
+        qctx.response.authority.extend(self.authority)
+        qctx.response.additional.extend(self.additional)
+        if self.rcode is not None:
+            qctx.response.set_rcode(self.rcode)
+        yield DnsResponseSend(
+            qctx.response, authoritative=self.authoritative, delay=self.delay
+        )
+
+
 class DomainHandler(ResponseHandler):
     """
     Base class used for deriving custom domain handlers.
@@ -649,6 +748,8 @@ class DomainHandler(ResponseHandler):
     The derived class must specify a list of `domains` that it wants to handle.
     Queries for any of these domains (and their subdomains) will then be passed
     to the `get_response()` method in the derived class.
+
+    The most specific matching domain is stored in the `matched_domain` attribute.
     """
 
     @property
@@ -660,9 +761,15 @@ class DomainHandler(ResponseHandler):
         raise NotImplementedError
 
     def __init__(self) -> None:
-        self._domains: List[dns.name.Name] = [
-            dns.name.from_text(d) for d in self.domains
-        ]
+        self._domains: List[dns.name.Name] = sorted(
+            [dns.name.from_text(d) for d in self.domains], reverse=True
+        )
+        self._matched_domain: Optional[dns.name.Name] = None
+
+    @property
+    def matched_domain(self) -> dns.name.Name:
+        assert self._matched_domain is not None
+        return self._matched_domain
 
     def __str__(self) -> str:
         return f"{self.__class__.__name__}(domains: {', '.join(self.domains)})"
@@ -672,8 +779,10 @@ class DomainHandler(ResponseHandler):
         Handle queries whose QNAME matches any of the domains handled by this
         class.
         """
+        self._matched_domain = None
         for domain in self._domains:
             if qctx.qname.is_subdomain(domain):
+                self._matched_domain = domain
                 return True
         return False
 
