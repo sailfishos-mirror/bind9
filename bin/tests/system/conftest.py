@@ -42,7 +42,6 @@ isctest.vars.init_vars()
 # ----------------------- Globals definition -----------------------------
 
 FILE_DIR = os.path.abspath(Path(__file__).parent)
-ENV_RE = Re(b"([^=]+)=(.*)")
 PRIORITY_TESTS = [
     # Tests that are scheduled first. Speeds up parallel execution.
     "rpz/",
