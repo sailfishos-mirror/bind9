@@ -41,7 +41,6 @@ isctest.vars.init_vars()
 
 # ----------------------- Globals definition -----------------------------
 
-XDIST_WORKER = os.environ.get("PYTEST_XDIST_WORKER", "")
 FILE_DIR = os.path.abspath(Path(__file__).parent)
 ENV_RE = Re(b"([^=]+)=(.*)")
 PRIORITY_TESTS = [
@@ -75,25 +74,6 @@ def pytest_addoption(parser):
         default=False,
         help="don't remove the temporary test directories with artifacts",
     )
-
-
-def pytest_configure(config):
-    # Ensure this hook only runs on the main pytest instance if xdist is
-    # used to spawn other workers.
-    if not XDIST_WORKER:
-        if config.pluginmanager.has_plugin("xdist") and config.option.numprocesses:
-            # system tests depend on module scope for setup & teardown
-            # enforce use "loadscope" scheduler or disable paralelism
-            try:
-                import xdist.scheduler.loadscope  # pylint: disable=unused-import
-            except ImportError:
-                isctest.log.debug(
-                    "xdist is too old and does not have "
-                    "scheduler.loadscope, disabling parallelism"
-                )
-                config.option.dist = "no"
-            else:
-                config.option.dist = "loadscope"
 
 
 def pytest_ignore_collect(collection_path):
