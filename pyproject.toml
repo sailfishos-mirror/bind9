@@ -92,6 +92,8 @@ target-version = "py310"
 lint.select = [
   # import order
   "I",
+  # sorted __all__
+  "RUF022",
   # f-strings
   "UP031",
   "UP032",
