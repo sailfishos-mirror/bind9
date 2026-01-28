@@ -22,8 +22,7 @@ def active(blob):
 
 # global start-time variable
 # pylint: disable=global-statement
-# pylint: disable=global-variable-not-assigned
-start = 0
+START = 0
 
 
 def test_initial():
@@ -70,7 +69,7 @@ def test_nta_bogus_lifetimes(servers):
 
 
 def test_nta_install(servers):
-    global start
+    global START
 
     ns4 = servers["ns4"]
     ns4.rndc("nta -f -l 20s bogus.example")
@@ -91,12 +90,11 @@ def test_nta_install(servers):
     response = ns4.rndc("nta -d")
     assert len(response.out.splitlines()) == 5
 
-    start = time.time()
+    START = time.time()
 
 
 def test_nta_behavior(servers):
-    global start
-    assert start, "test_nta_behavior must be run as part of the full NTA test"
+    assert START, "test_nta_behavior must be run as part of the full NTA test"
 
     m = isctest.query.create("a.bogus.example.", "A")
     res = isctest.query.tcp(m, "10.53.0.4")
@@ -129,7 +127,7 @@ def test_nta_behavior(servers):
     # is configured to 9s, so at t=10 the NTAs for secure.example and
     # fakenode.secure.example should both be lifted, while badds.example
     # should still be going.
-    delay = start + 10 - time.time()
+    delay = START + 10 - time.time()
     if delay > 0:
         time.sleep(delay)
 
@@ -151,7 +149,7 @@ def test_nta_behavior(servers):
     # bogus.example was set to expire in 20s, so at t=13
     # it should still be NTA'd, but badds.example used the default
     # lifetime of 12s, so it should revert to SERVFAIL now.
-    delay = start + 13 - time.time()
+    delay = START + 13 - time.time()
     if delay > 0:
         time.sleep(delay)
 
@@ -177,7 +175,7 @@ def test_nta_behavior(servers):
     isctest.check.adflag(res)
 
     # at t=21, all the NTAs should have expired.
-    delay = start + 21 - time.time()
+    delay = START + 21 - time.time()
     if delay > 0:
         time.sleep(delay)
 
@@ -225,15 +223,15 @@ def test_nta_removals(servers):
 
 
 def test_nta_restarts(servers):
-    global start
-    assert start, "test_nta_restarts must be run as part of the full NTA test"
+    global START
+    assert START, "test_nta_restarts must be run as part of the full NTA test"
 
     # test NTA persistence across restarts
     ns4 = servers["ns4"]
     response = ns4.rndc("nta -d")
     assert active(response.out) == 0
 
-    start = time.time()
+    START = time.time()
     ns4.rndc("nta -f -l 30s bogus.example")
     ns4.rndc("nta -f -l 10s badds.example")
     response = ns4.rndc("nta -d")
@@ -244,7 +242,7 @@ def test_nta_restarts(servers):
 
     # wait 14s before restarting. badds.example's NTA (lifetime=10s) should
     # have expired, and bogus.example should still be running.
-    delay = start + 14 - time.time()
+    delay = START + 14 - time.time()
     if delay > 0:
         time.sleep(delay)
     ns4.start(["--noclean", "--restart", "--port", os.environ["PORT"]])
@@ -266,8 +264,8 @@ def test_nta_restarts(servers):
 
 
 def test_nta_regular(servers):
-    global start
-    assert start, "test_nta_regular must be run as part of the full NTA test"
+    global START
+    assert START, "test_nta_regular must be run as part of the full NTA test"
 
     # check "regular" attribute in NTA file
     ns4 = servers["ns4"]
@@ -297,8 +295,8 @@ def test_nta_regular(servers):
 
     # nta-recheck is configured as 9s, so at t=12 the NTA for
     # secure.example. should be lifted as it is not a "forced" NTA.
-    start = time.mktime(now)
-    delay = start + 12 - time.time()
+    START = time.mktime(now)
+    delay = START + 12 - time.time()
     if delay > 0:
         time.sleep(delay)
 
@@ -314,8 +312,8 @@ def test_nta_regular(servers):
 
 
 def test_nta_forced(servers):
-    global start
-    assert start, "test_nta_regular must be run as part of the full NTA test"
+    global START
+    assert START, "test_nta_regular must be run as part of the full NTA test"
 
     # check "forced" attribute in NTA file
     ns4 = servers["ns4"]
@@ -348,8 +346,8 @@ def test_nta_forced(servers):
 
     # nta-recheck is configured as 9s. at t=12 the NTA for
     # secure.example. should NOT be lifted as it is "forced".
-    start = time.mktime(now)
-    delay = start + 12 - time.time()
+    START = time.mktime(now)
+    delay = START + 12 - time.time()
     if delay > 0:
         time.sleep(delay)
 

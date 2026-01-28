@@ -9,13 +9,18 @@
 # See the COPYRIGHT file distributed with this work for additional
 # information regarding copyright ownership.
 
+[tool.pylint.basic]
+good-names-rgxs = [
+  # Allow names from KASP tests
+  "I(pub|ret)C?",
+  "T(act|pub|ret|rem|sbm)N1?",
+]
 [tool.pylint.imports]
 deprecated-modules = [
   "dns.resolver",
 ]
 [tool.pylint.messages_control]
 disable = [
-  "C0103", # invalid-name
   "C0114", # missing-module-docstring
   "C0115", # missing-class-docstring
   "C0116", # missing-function-docstring

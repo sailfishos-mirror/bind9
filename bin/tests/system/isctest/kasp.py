@@ -86,24 +86,24 @@ def Iret(config, zsk=True, ksk=False, rollover=True, smooth=True):
             sign_delay = config["signatures-validity"] - config["signatures-refresh"]
         safety_interval = config["retire-safety"]
 
-    iretKSK = timedelta(0)
+    iret_ksk = timedelta(0)
     if ksk:
         # KSK: Double-KSK Method: Iret = DprpP + TTLds
-        iretKSK = (
+        iret_ksk = (
             config["parent-propagation-delay"] + config["ds-ttl"] + safety_interval
         )
 
-    iretZSK = timedelta(0)
+    iret_zsk = timedelta(0)
     if zsk:
         # ZSK: Pre-Publication Method: Iret = Dsgn + Dprp + TTLsig
-        iretZSK = (
+        iret_zsk = (
             sign_delay
             + config["zone-propagation-delay"]
             + config["max-zone-ttl"]
             + safety_interval
         )
 
-    return max(iretKSK, iretZSK)
+    return max(iret_ksk, iret_zsk)
 
 
 @total_ordering
@@ -314,6 +314,7 @@ class KeyProperties:
             self.timing["ZRRSIGChange"] = None
 
 
+# pylint: disable=invalid-name
 @dataclass
 class SettimeOptions:
 

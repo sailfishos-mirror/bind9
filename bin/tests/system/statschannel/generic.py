@@ -21,7 +21,7 @@ import dns.rcode
 import isctest
 
 # ISO datetime format without msec
-fmt = "%Y-%m-%dT%H:%M:%SZ"
+FMT = "%Y-%m-%dT%H:%M:%SZ"
 
 # The constants were taken from BIND 9 source code (lib/dns/zone.c)
 max_refresh = timedelta(seconds=2419200)  # 4 weeks
@@ -29,7 +29,7 @@ max_expires = timedelta(seconds=14515200)  # 24 weeks
 dayzero = datetime.utcfromtimestamp(0).replace(microsecond=0)
 
 # Wait for the secondary zone files to appear to extract their mtime
-max_secondary_zone_waittime_sec = 5
+MAX_SECONDARY_ZONE_WAITTIME_SEC = 5
 
 
 # Generic helper functions
@@ -45,7 +45,7 @@ def check_refresh(refresh, min_time, max_time):
 
 def check_loaded(loaded, expected, now):
     # Sanity check the zone timers values
-    assert (loaded - expected).total_seconds() < max_secondary_zone_waittime_sec
+    assert (loaded - expected).total_seconds() < MAX_SECONDARY_ZONE_WAITTIME_SEC
     assert loaded <= now
 
 
@@ -97,7 +97,7 @@ def test_zone_timers_secondary(fetch_zones, load_timers, **kwargs):
     zonedir = kwargs["zonedir"]
 
     # If any one of the zone files isn't ready, then retry until timeout.
-    tries = max_secondary_zone_waittime_sec
+    tries = MAX_SECONDARY_ZONE_WAITTIME_SEC
     while tries >= 0:
         zones = fetch_zones(statsip, statsport)
         again = False
