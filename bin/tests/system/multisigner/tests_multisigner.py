@@ -552,8 +552,8 @@ def test_multisigner(ns2, ns3, ns4):
     # Add DNSKEY to RRset.
     newprops = [f"zsk unlimited {ALGORITHM} {SIZE}"]
     extra = isctest.kasp.policy_to_properties(ttl=TTL, keys=newprops)
-    extra[0].private = False  # noqa
-    extra[0].legacy = True  # noqa
+    extra[0].private = False
+    extra[0].legacy = True
 
     check_add_zsk(ns3, zone, keys3, expected3, [zsks4[0]], extra)
     check_add_zsk(ns4, zone, keys4, expected4, [zsks3[0]], extra)
@@ -567,8 +567,8 @@ def test_multisigner(ns2, ns3, ns4):
     # Add CDNSKEY RRset.
     newprops = [f"ksk unlimited {ALGORITHM} {SIZE}"]
     extra = isctest.kasp.policy_to_properties(ttl=TTL, keys=newprops)
-    extra[0].private = False  # noqa
-    extra[0].legacy = True  # noqa
+    extra[0].private = False
+    extra[0].legacy = True
 
     check_add_cdnskey(ns3, zone, keys3, expected3, [ksks4[0]], extra)
     check_add_cdnskey(ns4, zone, keys4, expected4, [ksks3[0]], extra)
@@ -660,8 +660,8 @@ def test_multisigner_secondary(ns2, ns3, ns4, ns5):
     # Add DNSKEY to RRset.
     newprops = [f"zsk unlimited {ALGORITHM} {SIZE}"]
     extra = isctest.kasp.policy_to_properties(ttl=TTL, keys=newprops)
-    extra[0].private = False  # noqa
-    extra[0].legacy = True  # noqa
+    extra[0].private = False
+    extra[0].legacy = True
 
     check_add_zsk(ns3, zone, keys3, expected3, [zsks4[0]], extra, primary=ns5)
     check_add_zsk(ns4, zone, keys4, expected4, [zsks3[0]], extra, primary=ns5)
@@ -677,8 +677,8 @@ def test_multisigner_secondary(ns2, ns3, ns4, ns5):
     # Add CDNSKEY RRset.
     newprops = [f"ksk unlimited {ALGORITHM} {SIZE}"]
     extra = isctest.kasp.policy_to_properties(ttl=TTL, keys=newprops)
-    extra[0].private = False  # noqa
-    extra[0].legacy = True  # noqa
+    extra[0].private = False
+    extra[0].legacy = True
 
     check_add_cdnskey(ns3, zone, keys3, expected3, [ksks4[0]], extra, primary=ns5)
     check_add_cdnskey(ns4, zone, keys4, expected4, [ksks3[0]], extra, primary=ns5)

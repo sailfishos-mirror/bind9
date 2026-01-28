@@ -56,19 +56,29 @@ source-roots = [
 
 [tool.vulture]
 paths = [
-  "bin/tests/system/",
+  ".",
 ]
 exclude = [
   "*ans.py",
-  "conftest.py",
-  "re_compile_checker.py",
+  "contrib",
+  "*doc/arm/_ext/*conf.py",
+  "doc/arm/conf.py",
+  "doc/man/conf.py",
   "isctest",
+  "re_compile_checker.py",
+]
+ignore_decorators = [
+  "@pytest.fixture",
 ]
 ignore_names = [
-  "after_servers_start",
-  "bootstrap",
-  "pytestmark",
-  "autouse_*",
+  "pytest*",
+  # attributes of `isctest.kasp.KeyProperties` set but later not read in:
+  # - bin/tests/system/kasp/tests_kasp.py
+  # - bin/tests/system/multisigner/tests_multisigner.py
+  # - bin/tests/system/nsec3/common.py
+  # - bin/tests/system/rollover-multisigner/tests_rollover_multisigner.py
+  "private",
+  "legacy",
 ]
 
 [tool.ruff]
