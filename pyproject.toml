@@ -38,20 +38,26 @@ disable = [
 [tool.pylint.main]
 ignore-paths = [
   ".git",
+  # Temporary directories created by the system test runner
+  # (see bin/tests/system/conftest.py:system_test_dir)
+  "bin/tests/system/.*_tmp_.*/",
   "bin/tests/system/vulture_ignore_list.py",
   "contrib",
   "dangerfile.py",
-  "doc",
+  "doc/arm/conf.py",
+  "doc/man/conf.py",
 ]
-ignore-patterns = [
-  "^.*_tmp_.*\\.py$",
+
+# Both `init-hook` and `source-roots` are needed to avoid import errors,
+# enable plugin loading and calling pylint from CI as `pylint $(git ls-files '*.py')`
+init-hook = "import sys; sys.path.extend(('bin/tests/system', 'doc/misc', 'doc/arm/_ext'));"
+source-roots = [
+  "bin/tests/system",
+  "doc/misc",
+  "doc/arm/_ext",
 ]
-init-hook = "import sys; sys.path.append('bin/tests/system')"
 load-plugins = [
   "re_compile_checker",
-]
-source-roots = [
-  "bin/tests/system/",
 ]
 
 [tool.vulture]
@@ -92,5 +98,6 @@ extend-exclude = [
   "bin/tests/system/vulture_ignore_list.py",
   "contrib",
   "dangerfile.py",
-  "doc",
+  "doc/arm/conf.py",
+  "doc/man/conf.py",
 ]
