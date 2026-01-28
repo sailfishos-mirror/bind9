@@ -2093,7 +2093,7 @@ Boolean Options
    necessarily the smallest available RRset.) Additionally,
    :any:`minimal-responses` is turned on for these queries, so no
    unnecessary records are added to the authority or additional
-   sections. The default is ``no``.
+   sections. The default is ``yes``.
 
 .. namedconf:statement:: notify
    :tags: transfer

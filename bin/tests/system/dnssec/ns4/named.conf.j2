@@ -26,8 +26,9 @@ options {
 	pid-file "named.pid";
 	listen-on { 10.53.0.4; };
 	listen-on-v6 { none; };
-	recursion yes;
+	minimal-any no;
 	minimal-responses no;
+	recursion yes;
 
 	{% if accept_expired %}
 		dnssec-accept-expired yes;
