@@ -95,7 +95,7 @@ def load_timers_xml(zone, primary=True):
 
     loaded_el = zone.find("loaded")
     assert loaded_el is not None
-    loaded = datetime.strptime(loaded_el.text, generic.fmt)
+    loaded = datetime.strptime(loaded_el.text, generic.FMT)
 
     expires_el = zone.find("expires")
     refresh_el = zone.find("refresh")
@@ -107,8 +107,8 @@ def load_timers_xml(zone, primary=True):
     else:
         assert expires_el is not None
         assert refresh_el is not None
-        expires = datetime.strptime(expires_el.text, generic.fmt)
-        refresh = datetime.strptime(refresh_el.text, generic.fmt)
+        expires = datetime.strptime(expires_el.text, generic.FMT)
+        refresh = datetime.strptime(refresh_el.text, generic.FMT)
 
     return (name, loaded, expires, refresh)
 
