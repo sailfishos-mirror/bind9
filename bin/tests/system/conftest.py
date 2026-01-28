@@ -256,7 +256,7 @@ def configure_algorithm_set(request):
         name = None
     else:
         name = mark.args[0]
-    isctest.vars.set_algorithm_set(name)
+    isctest.vars.algorithms.set_algorithm_set(name)
 
 
 @pytest.fixture(autouse=True)

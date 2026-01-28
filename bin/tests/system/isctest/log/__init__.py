@@ -23,3 +23,19 @@ from .basic import (
     warning,
 )
 from .watchlog import WatchLogFromHere, WatchLogFromStart
+
+__all__ = [
+    "WatchLogFromHere",
+    "WatchLogFromStart",
+    "avoid_duplicated_logs",
+    "critical",
+    "debug",
+    "deinit_module_logger",
+    "deinit_test_logger",
+    "error",
+    "info",
+    "init_conftest_logger",
+    "init_module_logger",
+    "init_test_logger",
+    "warning",
+]
