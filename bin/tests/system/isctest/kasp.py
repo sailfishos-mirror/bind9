@@ -650,14 +650,10 @@ class Key:
             isctest.log.debug(f"{self.name} {key} TIMING UNEXPECTED: {value}")
         return value == "undefined"
 
-    def match_properties(self, zone, properties):
+    def _check_public_key_file(self, zone, properties):
         """
-        Check the key with given properties.
+        Check the public key file.
         """
-        # Check file existence.
-        # Noop. If file is missing then the get_metadata calls will fail.
-
-        # Check the public key file.
         role = properties.role_full()
         comment = f"This is a {role} key, keyid {self.tag}, for {zone}."
         if not isctest.util.file_contents_contain(self.keyfile, comment):
@@ -672,31 +668,45 @@ class Key:
             isctest.log.debug(f"{self.name} DNSKEY MISMATCH: expected '{dnskey}'")
             return False
 
-        # Now check the private key file.
-        if properties.private:
-            # Retrieve creation date.
-            created = self.get_metadata("Generated")
+        return True
 
-            pval = self.get_metadata("Created", file=self.privatefile)
-            if pval != created:
-                isctest.log.debug(
-                    f"{self.name} Created METADATA MISMATCH: {pval} - {created}"
-                )
-                return False
-            pval = self.get_metadata("Private-key-format", file=self.privatefile)
-            if pval != "v1.3":
-                isctest.log.debug(
-                    f"{self.name} Private-key-format METADATA MISMATCH: {pval} - v1.3"
-                )
-                return False
-            pval = self.get_metadata("Algorithm", file=self.privatefile)
-            if pval != f"{alg}":
-                isctest.log.debug(
-                    f"{self.name} Algorithm METADATA MISMATCH: {pval} - {alg}"
-                )
-                return False
+    def _check_private_key_file(self, properties):
+        """
+        Check the private key file.
+        """
+        if not properties.private:
+            return True
 
-        # Now check the key state file.
+        alg = properties.metadata["Algorithm"]
+
+        # Retrieve creation date.
+        created = self.get_metadata("Generated")
+
+        pval = self.get_metadata("Created", file=self.privatefile)
+        if pval != created:
+            isctest.log.debug(
+                f"{self.name} Created METADATA MISMATCH: {pval} - {created}"
+            )
+            return False
+        pval = self.get_metadata("Private-key-format", file=self.privatefile)
+        if pval != "v1.3":
+            isctest.log.debug(
+                f"{self.name} Private-key-format METADATA MISMATCH: {pval} - v1.3"
+            )
+            return False
+        pval = self.get_metadata("Algorithm", file=self.privatefile)
+        if pval != f"{alg}":
+            isctest.log.debug(
+                f"{self.name} Algorithm METADATA MISMATCH: {pval} - {alg}"
+            )
+            return False
+
+        return True
+
+    def _check_key_state_file(self, zone, properties):
+        """
+        Check the key state file.
+        """
         if properties.legacy:
             return True
 
@@ -727,7 +737,24 @@ class Key:
         if self.tag > properties.keytag_max:
             return False
 
-        # A match is found.
+        return True
+
+    def match_properties(self, zone, properties):
+        """
+        Check the key with given properties.
+        """
+        # Check file existence.
+        # Noop. If file is missing then the get_metadata calls will fail.
+
+        if not self._check_public_key_file(zone, properties):
+            return False
+
+        if not self._check_private_key_file(properties):
+            return False
+
+        if not self._check_key_state_file(zone, properties):
+            return False
+
         return True
 
     def match_timingmetadata(self, timings, file=None, comment=False):
