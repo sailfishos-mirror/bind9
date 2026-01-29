@@ -538,7 +538,7 @@ ixfr_apply_one(dns_xfrin_t *xfr, ixfr_apply_data_t *data) {
 	 * So we need to commit *before* calling dns_zone_verifydb, and rely
 	 * on closeversion to actually do cleanup.
 	 */
-	dns_db_commitupdate(xfr->db, &callbacks);
+	CHECK(dns_db_commitupdate(xfr->db, &callbacks));
 
 	CHECK(dns_zone_verifydb(xfr->zone, xfr->db, xfr->ver));
 
@@ -550,7 +550,7 @@ cleanup:
 	 * For the reason stated above, dns_db_abortupdate must *commit* the
 	 * changes and rely on closeversion to clean them up.
 	 */
-	dns_db_abortupdate(xfr->db, &callbacks);
+	(void)dns_db_abortupdate(xfr->db, &callbacks);
 
 	/* We need to end the transaction, but keep the previous error */
 	(void)ixfr_end_transaction(&xfr->ixfr);

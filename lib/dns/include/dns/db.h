@@ -603,7 +603,8 @@ isc_result_t
 dns_db_abortupdate(dns_db_t *db, dns_rdatacallbacks_t *callbacks);
 /*%<
  * Abort the update to 'db'. Must be safe to double-call or call after
- * dns_db_commitupdate.
+ * dns_db_commitupdate. Must also be safe to call without having called
+ * dns_db_beginupdate first.
  *
  * Requires:
  *
