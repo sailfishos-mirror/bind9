@@ -467,29 +467,24 @@ stages:
 .shotgun: &shotgun_job
   <<: *base_image
   stage: performance
-  rules:  # FIXME disabled shotgun jobs temporarily due to infra issue
-    # - if: '$CI_MERGE_REQUEST_DIFF_BASE_SHA != null'
-    #   changes:
-    #     - '**/*.c'
-    #     - '**/*.h'
-    #   variables:
-    #     BASELINE: '$CI_MERGE_REQUEST_DIFF_BASE_SHA'
-    - &shotgun_rule_mr_manual
-      if: '$CI_MERGE_REQUEST_DIFF_BASE_SHA != null'
+  rules:
+    - if: '$CI_MERGE_REQUEST_DIFF_BASE_SHA != null'
       variables:
         BASELINE: '$CI_MERGE_REQUEST_DIFF_BASE_SHA'
+        SHOTGUN_ROUNDS: 5
       when: manual  # don't run on each MR unless requested
       allow_failure: true
-    # - &shotgun_rule_tag
-    #   if: '$CI_PROJECT_NAMESPACE == "isc-private" && $CI_COMMIT_TAG != null'
-    #   variables:
-    #     SHOTGUN_ROUNDS: 3
-    # - &shotgun_rule_other
-    #   if: '$CI_PIPELINE_SOURCE =~ /^(api|pipeline|schedule|trigger|web)$/ && $REBASE_ONLY != "1"'
-  # when using data from a single run, the overall instability of the results
-  # causes quite high false positive rate, rerun the test to attemp to reduce those
-  retry: 1
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+      variables:
+        SHOTGUN_ROUNDS: 5
+        WEEKDAY: "1"  # run only on Monday mornings
+    - if: '$CI_PIPELINE_SOURCE =~ /^(api|pipeline|trigger|web)$/ && $REBASE_ONLY != "1"'
+      variables:
+        SHOTGUN_ROUNDS: 5
+      when: manual
+      allow_failure: true
   script:
+    - if [ -n "$WEEKDAY" ] && [ "$(date +%w)" != "$WEEKDAY" ]; then exit 0; fi  # if WEEKDAY is set, only run on those days
     - if [ -z "$BASELINE" ]; then export BASELINE=$BIND_BASELINE_VERSION; fi  # this dotenv variable can't be set in the rules section, because rules are evaluated before any jobs run
     - PIPELINE_ID=$(curl -s -X POST --fail
         -F "token=$CI_JOB_TOKEN"
@@ -512,7 +507,7 @@ stages:
         https://gitlab.isc.org/api/v4/projects/188/trigger/pipeline | jq .id)
     - *git_clone_bind9-qa
     - >
-      "$CI_PROJECT_DIR"/bind9-qa/ci/wait_shotgun.py $PIPELINE_ID
+      "$CI_PROJECT_DIR"/bind9-qa/ci/wait_shotgun.py ${WEEKDAY:+--notify} $PIPELINE_ID
   needs:
     - job: ci-variables
       artifacts: true
@@ -2245,10 +2240,6 @@ shotgun:dot:
   variables:
     SHOTGUN_SCENARIO: dot
     SHOTGUN_TRAFFIC_MULTIPLIER: 5
-  rules:  # FIXME disabled shotgun jobs temporarily due to infra issue
-    - *shotgun_rule_mr_manual
-  #   - *shotgun_rule_tag
-  #   - *shotgun_rule_other
 
 shotgun:doh-get:
   <<: *shotgun_job
@@ -2256,10 +2247,6 @@ shotgun:doh-get:
     SHOTGUN_SCENARIO: doh-get
     SHOTGUN_TRAFFIC_MULTIPLIER: 2
     SHOTGUN_EVAL_THRESHOLD_LATENCY_PCTL_MAX: 0.4  # bump from the default due to increased tail-end jitter
-  rules:  # FIXME disabled shotgun jobs temporarily due to infra issue
-    - *shotgun_rule_mr_manual
-  #   - *shotgun_rule_tag
-  #   - *shotgun_rule_other
 
 stress-test-child-pipeline:
   <<: *default_triggering_rules
