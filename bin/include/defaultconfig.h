@@ -154,7 +154,7 @@ options {\n\
 	message-compression yes;\n\
 	min-ncache-ttl 0; /* 0 hours */\n\
 	min-cache-ttl 0; /* 0 seconds */\n\
-	minimal-any false;\n\
+	minimal-any yes;\n\
 	minimal-responses no-auth-recursive;\n\
 	notify-source *;\n\
 	notify-source-v6 *;\n\
