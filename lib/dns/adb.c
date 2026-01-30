@@ -2193,6 +2193,10 @@ post_copy:
 		find->cbarg = cbarg;
 	}
 
+	if (wanted_fetches) {
+		find->options |= DNS_ADBFIND_STARTEDFETCH;
+	}
+
 	*findp = find;
 
 	UNLOCK(&adbname->lock);
