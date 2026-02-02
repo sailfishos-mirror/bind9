@@ -17,8 +17,9 @@
 #include <openssl/err.h>
 #include <openssl/opensslv.h>
 
-#include <isc/crypto.h>
 #include <isc/iterated_hash.h>
+#include <isc/md.h>
+#include <isc/ossl_wrap.h>
 #include <isc/thread.h>
 #include <isc/util.h>
 
@@ -150,7 +151,8 @@ isc__iterated_hash_initialize(void) {
 	mdctx = EVP_MD_CTX_new();
 	INSIST(mdctx != NULL);
 
-	RUNTIME_CHECK(EVP_DigestInit_ex(basectx, isc__crypto_sha1, NULL) == 1);
+	RUNTIME_CHECK(EVP_DigestInit_ex(basectx, isc__crypto_md[ISC_MD_SHA1],
+					NULL) == 1);
 	initialized = true;
 }
 

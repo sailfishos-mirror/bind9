@@ -1389,15 +1389,13 @@ gcc:trixie:amd64cross32:
   <<: *debian_trixie_amd64cross32_image
   <<: *build_job
 
-# Jobs for strict OpenSSL 3.x (no deprecated) GCC builds on Debian "trixie" (amd64)
 # Run with pkcs11-provider tests
-
 gcc:ossl3:trixie:amd64:
   <<: *debian_trixie_amd64_image
   <<: *build_job
   variables:
     CC: gcc
-    CFLAGS: "${CFLAGS_COMMON} -DOPENSSL_NO_DEPRECATED=1 -DOPENSSL_API_COMPAT=30000"
+    CFLAGS: "${CFLAGS_COMMON}"
     # See https://gitlab.isc.org/isc-projects/bind9/-/issues/3444
     EXTRA_CONFIGURE: "-Doptimization=3 -Djemalloc=disabled -Dleak-detection=disabled"
     RUN_MESON_INSTALL: 1
