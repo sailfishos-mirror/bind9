@@ -44,6 +44,7 @@
 #include <dns/callbacks.h>
 #include <dns/db.h>
 #include <dns/dbiterator.h>
+#include <dns/diff.h>
 #include <dns/fixedname.h>
 #include <dns/log.h>
 #include <dns/masterdump.h>
@@ -62,6 +63,7 @@
 #include <dns/zonekey.h>
 
 #include "db_p.h"
+#include "isc/attributes.h"
 #include "rbtdb_p.h"
 
 #define EXISTS(header)                                 \
@@ -1677,8 +1679,8 @@ done:
 }
 
 static isc_result_t
-loading_addrdataset(void *arg, const dns_name_t *name,
-		    dns_rdataset_t *rdataset DNS__DB_FLARG) {
+loading_addrdataset(void *arg, const dns_name_t *name, dns_rdataset_t *rdataset,
+		    dns_diffop_t op ISC_ATTR_UNUSED DNS__DB_FLARG) {
 	rbtdb_load_t *loadctx = arg;
 	dns_rbtdb_t *rbtdb = (dns_rbtdb_t *)loadctx->db;
 	dns_rbtnode_t *node = NULL;
@@ -1812,7 +1814,7 @@ beginload(dns_db_t *db, dns_rdatacallbacks_t *callbacks) {
 
 	RWUNLOCK(&rbtdb->lock, isc_rwlocktype_write);
 
-	callbacks->add = loading_addrdataset;
+	callbacks->update = loading_addrdataset;
 	callbacks->add_private = loadctx;
 
 	return ISC_R_SUCCESS;
@@ -1849,7 +1851,7 @@ endload(dns_db_t *db, dns_rdatacallbacks_t *callbacks) {
 		RWUNLOCK(&rbtdb->lock, isc_rwlocktype_write);
 	}
 
-	callbacks->add = NULL;
+	callbacks->update = NULL;
 	callbacks->add_private = NULL;
 
 	isc_mem_put(rbtdb->common.mctx, loadctx, sizeof(*loadctx));
@@ -2247,10 +2249,52 @@ addglue(dns_db_t *db, dns_dbversion_t *dbversion, dns_rdataset_t *rdataset,
 	return ISC_R_SUCCESS;
 }
 
+static isc_result_t
+rbt_beginupdate(dns_db_t *db, dns_dbversion_t *ver,
+		dns_rdatacallbacks_t *callbacks) {
+	dns_rbtdb_t *rbtdb = (dns_rbtdb_t *)db;
+
+	REQUIRE(VALID_RBTDB(rbtdb));
+	REQUIRE(ver != NULL);
+	REQUIRE(DNS_CALLBACK_VALID(callbacks));
+
+	dns_updatectx_t *ctx = isc_mem_get(rbtdb->common.mctx, sizeof(*ctx));
+	*ctx = (dns_updatectx_t){
+		.db = db,
+		.ver = ver,
+		.warn = true,
+	};
+
+	callbacks->update = update_callback;
+	callbacks->add_private = ctx;
+
+	return ISC_R_SUCCESS;
+}
+
+static isc_result_t
+rbt_endupdate(dns_db_t *db, dns_rdatacallbacks_t *callbacks) {
+	dns_rbtdb_t *rbtdb = (dns_rbtdb_t *)db;
+	dns_updatectx_t *ctx;
+
+	REQUIRE(VALID_RBTDB(rbtdb));
+	REQUIRE(DNS_CALLBACK_VALID(callbacks));
+
+	ctx = (dns_updatectx_t *)callbacks->add_private;
+	if (ctx != NULL) {
+		isc_mem_put(rbtdb->common.mctx, ctx, sizeof(*ctx));
+		callbacks->add_private = NULL;
+	}
+
+	return ISC_R_SUCCESS;
+}
+
 dns_dbmethods_t dns__rbtdb_zonemethods = {
 	.destroy = dns__rbtdb_destroy,
 	.beginload = beginload,
 	.endload = endload,
+	.beginupdate = rbt_beginupdate,
+	.commitupdate = rbt_endupdate,
+	.abortupdate = rbt_endupdate,
 	.currentversion = dns__rbtdb_currentversion,
 	.newversion = dns__rbtdb_newversion,
 	.attachversion = dns__rbtdb_attachversion,

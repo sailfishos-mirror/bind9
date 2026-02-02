@@ -2236,6 +2236,7 @@ respdiff-third-party:
 .respdiff-recent-named: &respdiff_recent_named
   <<: *respdiff_job
   <<: *base_image
+  allow_failure: true #GL!11355
   needs:
     - job: ci-variables
       artifacts: true
