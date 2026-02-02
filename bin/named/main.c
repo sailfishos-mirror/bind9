@@ -120,6 +120,9 @@ extern unsigned int dns_zone_mkey_hour;
 extern unsigned int dns_zone_mkey_day;
 extern unsigned int dns_zone_mkey_month;
 
+extern unsigned int dns_adb_entrywindow;
+extern unsigned int dns_adb_cachemin;
+
 static bool want_stats = false;
 static char program_name[NAME_MAX] = "named";
 static char absolute_conffile[PATH_MAX];
@@ -802,6 +805,10 @@ parse_T_opt(char *option) {
 		transferstuck = true;
 	} else if (!strncmp(option, "tat=", 4)) {
 		named_g_tat_interval = atoi(option + 4);
+	} else if (!strncmp(option, "adbentrywindow=", 15)) {
+		dns_adb_entrywindow = atoi(option + 15);
+	} else if (!strncmp(option, "adbcachemin=", 12)) {
+		dns_adb_cachemin = atoi(option + 12);
 	} else {
 		fprintf(stderr, "unknown -T flag '%s'\n", option);
 	}
