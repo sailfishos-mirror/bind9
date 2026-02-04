@@ -13,15 +13,7 @@
 
 import pytest
 
-from rollover.common import (
-    CDSS,
-    DEFAULT_CONFIG,
-    DURATION,
-    UNSIGNING_CONFIG,
-    alg,
-    pytestmark,
-    size,
-)
+from rollover.common import CDSS, DEFAULT_CONFIG, DURATION, UNSIGNING_CONFIG, pytestmark
 from rollover.setup import configure_going_insecure, configure_root, configure_tld
 
 import isctest
@@ -57,7 +49,7 @@ def after_servers_start(ns3, templates):
         "going-insecure-dynamic.kasp",
     ],
 )
-def test_going_insecure_reconfig_step1(zone, alg, size, ns3):
+def test_going_insecure_reconfig_step1(zone, ns3, default_algorithm):
     config = DEFAULT_CONFIG
     policy = "insecure"
     szone = f"step1.{zone}"
@@ -70,8 +62,8 @@ def test_going_insecure_reconfig_step1(zone, alg, size, ns3):
         "zone": szone,
         "cdss": CDSS,
         "keyprops": [
-            f"ksk 0 {alg} {size} goal:hidden dnskey:omnipresent krrsig:omnipresent ds:unretentive offset:{-DURATION['P10D']}",
-            f"zsk {DURATION['P60D']} {alg} {size} goal:hidden dnskey:omnipresent zrrsig:omnipresent offset:{-DURATION['P10D']}",
+            f"ksk 0 {default_algorithm.number} {default_algorithm.bits} goal:hidden dnskey:omnipresent krrsig:omnipresent ds:unretentive offset:{-DURATION['P10D']}",
+            f"zsk {DURATION['P60D']} {default_algorithm.number} {default_algorithm.bits} goal:hidden dnskey:omnipresent zrrsig:omnipresent offset:{-DURATION['P10D']}",
         ],
         # Next key event is when the DS becomes HIDDEN. This
         # happens after the# parent propagation delay plus DS TTL.
@@ -100,7 +92,7 @@ def test_going_insecure_reconfig_step1(zone, alg, size, ns3):
         "going-insecure-dynamic.kasp",
     ],
 )
-def test_going_insecure_reconfig_step2(zone, alg, size, ns3):
+def test_going_insecure_reconfig_step2(zone, ns3, default_algorithm):
     config = DEFAULT_CONFIG
     policy = "insecure"
     zone = f"step2.{zone}"
@@ -114,8 +106,8 @@ def test_going_insecure_reconfig_step2(zone, alg, size, ns3):
         "zone": zone,
         "cdss": CDSS,
         "keyprops": [
-            f"ksk 0 {alg} {size} goal:hidden dnskey:unretentive krrsig:unretentive ds:hidden offset:{-DURATION['P10D']}",
-            f"zsk {DURATION['P60D']} {alg} {size} goal:hidden dnskey:unretentive zrrsig:unretentive offset:{-DURATION['P10D']}",
+            f"ksk 0 {default_algorithm.number} {default_algorithm.bits} goal:hidden dnskey:unretentive krrsig:unretentive ds:hidden offset:{-DURATION['P10D']}",
+            f"zsk {DURATION['P60D']} {default_algorithm.number} {default_algorithm.bits} goal:hidden dnskey:unretentive zrrsig:unretentive offset:{-DURATION['P10D']}",
         ],
         # Next key event is when the DNSKEY becomes HIDDEN.
         # This happens after the propagation delay, plus DNSKEY TTL.

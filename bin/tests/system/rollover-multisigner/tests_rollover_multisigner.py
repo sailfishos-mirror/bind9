@@ -21,7 +21,7 @@ import pytest
 
 from isctest.kasp import Iret, SettimeOptions
 from isctest.run import EnvCmd
-from rollover.common import alg, pytestmark, size
+from rollover.common import pytestmark
 from rollover.setup import fake_lifetime, render_and_sign_zone, setkeytimes
 
 import isctest
@@ -96,7 +96,7 @@ def bootstrap():
     return {}
 
 
-def test_rollover_multisigner(ns3, alg, size):
+def test_rollover_multisigner(ns3, default_algorithm):
     policy = "multisigner-model2"
     config = {
         "dnskey-ttl": timedelta(hours=1),
@@ -118,7 +118,7 @@ def test_rollover_multisigner(ns3, alg, size):
         keygen_command = [
             os.environ.get("KEYGEN"),
             "-a",
-            alg,
+            default_algorithm.name,
             "-L",
             "3600",
             "-M",
@@ -135,12 +135,14 @@ def test_rollover_multisigner(ns3, alg, size):
     isctest.kasp.check_dnssec_verify(ns3, zone)
 
     key_properties = [
-        f"ksk unlimited {alg} {size} goal:omnipresent dnskey:rumoured krrsig:rumoured ds:hidden tag-range:32768-65535",
-        f"zsk unlimited {alg} {size} goal:omnipresent dnskey:rumoured zrrsig:rumoured tag-range:32768-65535",
+        f"ksk unlimited {default_algorithm.number} {default_algorithm.bits} goal:omnipresent dnskey:rumoured krrsig:rumoured ds:hidden tag-range:32768-65535",
+        f"zsk unlimited {default_algorithm.number} {default_algorithm.bits} goal:omnipresent dnskey:rumoured zrrsig:rumoured tag-range:32768-65535",
     ]
     expected = isctest.kasp.policy_to_properties(ttl, key_properties)
 
-    newprops = [f"zsk unlimited {alg} {size} tag-range:0-32767"]
+    newprops = [
+        f"zsk unlimited {default_algorithm.number} {default_algorithm.bits} tag-range:0-32767"
+    ]
     expected2 = isctest.kasp.policy_to_properties(ttl, newprops)
     expected2[0].private = False
     expected2[0].legacy = True
@@ -164,7 +166,9 @@ def test_rollover_multisigner(ns3, alg, size):
     # Update zone with ZSK from another provider for zone.
     out = keygen(zone)
     newkeys = isctest.kasp.keystr_to_keylist(out)
-    newprops = [f"zsk unlimited {alg} {size} tag-range:0-32767"]
+    newprops = [
+        f"zsk unlimited {default_algorithm.number} {default_algorithm.bits} tag-range:0-32767"
+    ]
     expected2 = isctest.kasp.policy_to_properties(ttl, newprops)
     expected2[0].private = False
     expected2[0].legacy = True
@@ -211,10 +215,10 @@ def test_rollover_multisigner(ns3, alg, size):
     isctest.kasp.check_dnssec_verify(ns3, zone)
 
     key_properties = [
-        f"ksk unlimited {alg} {size} goal:omnipresent dnskey:rumoured krrsig:rumoured ds:hidden tag-range:32768-65535",
-        f"zsk unlimited {alg} {size} goal:omnipresent dnskey:rumoured zrrsig:hidden tag-range:32768-65535",
-        f"ksk unlimited {alg} {size} goal:hidden dnskey:omnipresent krrsig:omnipresent ds:omnipresent tag-range:0-32767 offset:{offval}",
-        f"zsk unlimited {alg} {size} goal:hidden dnskey:omnipresent zrrsig:omnipresent tag-range:0-32767 offset:{offval}",
+        f"ksk unlimited {default_algorithm.number} {default_algorithm.bits} goal:omnipresent dnskey:rumoured krrsig:rumoured ds:hidden tag-range:32768-65535",
+        f"zsk unlimited {default_algorithm.number} {default_algorithm.bits} goal:omnipresent dnskey:rumoured zrrsig:hidden tag-range:32768-65535",
+        f"ksk unlimited {default_algorithm.number} {default_algorithm.bits} goal:hidden dnskey:omnipresent krrsig:omnipresent ds:omnipresent tag-range:0-32767 offset:{offval}",
+        f"zsk unlimited {default_algorithm.number} {default_algorithm.bits} goal:hidden dnskey:omnipresent zrrsig:omnipresent tag-range:0-32767 offset:{offval}",
     ]
     expected = isctest.kasp.policy_to_properties(ttl, key_properties)
     keys = isctest.kasp.keydir_to_keylist(zone, ns3.identifier)

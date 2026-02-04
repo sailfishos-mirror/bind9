@@ -136,12 +136,12 @@ def test_expiring_rrsig(ns3):
     assert sigs
 
 
-def test_apex_signing():
+def test_apex_signing(default_algorithm):
     # check that DNAME at apex with NSEC3 is correctly signed
     msg = isctest.query.create("dname-at-apex-nsec3.example.", "TXT")
     res = isctest.query.tcp(msg, "10.53.0.3")
     sigs = [str(a) for a in res.authority if a.rdtype == rdatatype.RRSIG]
-    alg = os.environ.get("DEFAULT_ALGORITHM_NUMBER")
+    alg = default_algorithm.number
     assert any(f"NSEC3 {alg} 3 600" in a for a in sigs)
 
 
@@ -171,7 +171,7 @@ def test_occluded_data():
     isctest.check.rr_count_eq(res.answer, 4)  # A+RRSIG, NSEC+RRSIG
 
 
-def test_update_signing():
+def test_update_signing(default_algorithm):
     # minimal update test: add and delete a single record
     up = update.UpdateMessage("dynamic.example.")
     up.add("a.dynamic.example.", 300, "A", "73.80.65.49")
@@ -191,7 +191,7 @@ def test_update_signing():
     # check that the NSEC3 record for the apex is properly signed
     # when a DNSKEY is added via UPDATE
     key = keygen(
-        "-Kns3", "-q3fk", "-a", os.environ["DEFAULT_ALGORITHM"], "update-nsec3.example."
+        "-Kns3", "-q3fk", "-a", default_algorithm.name, "update-nsec3.example."
     )
 
     with open(f"ns3/{key}.key", "r", encoding="utf-8") as f:
@@ -416,7 +416,7 @@ def test_zonestatus_signing(ns3):
     assert when < sigs[0].expiration
 
 
-def test_offline_ksk_signing(ns2):
+def test_offline_ksk_signing(ns2, default_algorithm):
     def getfrom(file):
         with open(file, encoding="utf-8") as f:
             return f.read().strip()
@@ -498,9 +498,9 @@ def test_offline_ksk_signing(ns2):
         "-Pnone",
         "-Anone",
         "-a",
-        os.environ["DEFAULT_ALGORITHM"],
+        default_algorithm.name,
         "-b",
-        os.environ["DEFAULT_BITS"],
+        f"{default_algorithm.bits}",
         zone,
     )
     zsk_2_id = getkeyid(zsk_2)
@@ -557,9 +557,9 @@ def test_offline_ksk_signing(ns2):
         "-Pnone",
         "-Anone",
         "-a",
-        os.environ["DEFAULT_ALGORITHM"],
+        default_algorithm.name,
         "-b",
-        os.environ["DEFAULT_BITS"],
+        f"{default_algorithm.bits}",
         zone,
     )
     zsk_3_id = getkeyid(zsk_3)

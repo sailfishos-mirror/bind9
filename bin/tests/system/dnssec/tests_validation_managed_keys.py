@@ -29,7 +29,7 @@ def getfrom(file):
         return f.read().strip()
 
 
-def test_secure_root_managed(ns4):
+def test_secure_root_managed(ns4, default_algorithm):
     # check that a query for a secure root validates
     msg = isctest.query.create(".", "KEY")
     res = isctest.query.tcp(msg, "10.53.0.4")
@@ -38,9 +38,8 @@ def test_secure_root_managed(ns4):
 
     # check that "rndc secroots" dumps the trusted keys
     key = int(getfrom("ns1/managed.key.id"))
-    alg = os.environ["DEFAULT_ALGORITHM"]
     response = ns4.rndc("secroots -")
-    assert f"./{alg}/{key} ; managed" in response.out
+    assert f"./{default_algorithm.name}/{key} ; managed" in response.out
     assert len(response.out.splitlines()) == 10
 
 

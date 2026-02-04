@@ -11,8 +11,6 @@
 
 from datetime import timedelta
 
-import os
-
 import dns
 import pytest
 
@@ -38,9 +36,6 @@ pytestmark = pytest.mark.extra_artifacts(
         "ns3/named-*.conf",
     ]
 )
-
-ALGORITHM = os.environ["DEFAULT_ALGORITHM_NUMBER"]
-SIZE = os.environ["DEFAULT_BITS"]
 
 default_config = {
     "dnskey-ttl": timedelta(hours=1),

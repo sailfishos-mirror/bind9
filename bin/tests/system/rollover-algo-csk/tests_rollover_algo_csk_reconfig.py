@@ -27,9 +27,7 @@ from rollover.common import (
     CDSS,
     DURATION,
     TIMEDELTA,
-    alg,
     pytestmark,
-    size,
 )
 from rollover.setup import configure_algo_csk, configure_root, configure_tld
 
@@ -87,7 +85,7 @@ def after_servers_start(ns3, templates):
         param("manual"),
     ],
 )
-def test_algoroll_csk_reconfig_step1(tld, ns3, alg, size):
+def test_algoroll_csk_reconfig_step1(tld, ns3, default_algorithm):
     zone = f"step1.csk-algorithm-roll.{tld}"
     policy = f"{POLICY}-{tld}"
 
@@ -128,7 +126,7 @@ def test_algoroll_csk_reconfig_step1(tld, ns3, alg, size):
             # The RSASHA keys are outroducing.
             f"csk 0 8 2048 goal:hidden dnskey:omnipresent krrsig:omnipresent zrrsig:omnipresent ds:omnipresent offset:{ALGOROLL_OFFVAL}",
             # The ECDSAP256SHA256 keys are introducing.
-            f"csk 0 {alg} {size} goal:omnipresent dnskey:rumoured krrsig:rumoured zrrsig:rumoured ds:hidden",
+            f"csk 0 {default_algorithm.number} {default_algorithm.bits} goal:omnipresent dnskey:rumoured krrsig:rumoured zrrsig:rumoured ds:hidden",
         ],
         # Next key event is when the ecdsa256 keys have been propagated.
         "nextev": ALGOROLL_IPUB,
@@ -145,7 +143,7 @@ def test_algoroll_csk_reconfig_step1(tld, ns3, alg, size):
         param("manual"),
     ],
 )
-def test_algoroll_csk_reconfig_step2(tld, ns3, alg, size):
+def test_algoroll_csk_reconfig_step2(tld, ns3, default_algorithm):
     zone = f"step2.csk-algorithm-roll.{tld}"
     policy = f"{POLICY}-{tld}"
 
@@ -163,7 +161,7 @@ def test_algoroll_csk_reconfig_step2(tld, ns3, alg, size):
             f"csk 0 8 2048 goal:hidden dnskey:omnipresent krrsig:omnipresent zrrsig:omnipresent ds:omnipresent offset:{ALGOROLL_OFFVAL}",
             # The ECDSAP256SHA256 keys are introducing. The DNSKEY RRset is
             # omnipresent, but the zone signatures are not.
-            f"csk 0 {alg} {size} goal:omnipresent dnskey:omnipresent krrsig:omnipresent zrrsig:rumoured ds:hidden offset:{ALGOROLL_OFFSETS['step2']}",
+            f"csk 0 {default_algorithm.number} {default_algorithm.bits} goal:omnipresent dnskey:omnipresent krrsig:omnipresent zrrsig:rumoured ds:hidden offset:{ALGOROLL_OFFSETS['step2']}",
         ],
         # Next key event is when all zone signatures are signed with the
         # new algorithm.  This is the child publication interval, minus
@@ -184,7 +182,7 @@ def test_algoroll_csk_reconfig_step2(tld, ns3, alg, size):
         param("manual"),
     ],
 )
-def test_algoroll_csk_reconfig_step3(tld, ns3, alg, size):
+def test_algoroll_csk_reconfig_step3(tld, ns3, default_algorithm):
     zone = f"step3.csk-algorithm-roll.{tld}"
     policy = f"{POLICY}-{tld}"
 
@@ -197,7 +195,7 @@ def test_algoroll_csk_reconfig_step3(tld, ns3, alg, size):
             "cdss": CDSS,
             "keyprops": [
                 f"csk 0 8 2048 goal:hidden dnskey:omnipresent krrsig:omnipresent zrrsig:omnipresent ds:omnipresent offset:{ALGOROLL_OFFVAL}",
-                f"csk 0 {alg} {size} goal:omnipresent dnskey:omnipresent krrsig:omnipresent zrrsig:omnipresent ds:hidden offset:{ALGOROLL_OFFSETS['step3']}",
+                f"csk 0 {default_algorithm.number} {default_algorithm.bits} goal:omnipresent dnskey:omnipresent krrsig:omnipresent zrrsig:omnipresent ds:hidden offset:{ALGOROLL_OFFSETS['step3']}",
             ],
             "manual-mode": True,
             "nextev": None,
@@ -237,7 +235,7 @@ def test_algoroll_csk_reconfig_step3(tld, ns3, alg, size):
         "keyprops": [
             # The DS can be swapped.
             f"csk 0 8 2048 goal:hidden dnskey:omnipresent krrsig:omnipresent zrrsig:omnipresent ds:unretentive offset:{ALGOROLL_OFFVAL}",
-            f"csk 0 {alg} {size} goal:omnipresent dnskey:omnipresent krrsig:omnipresent zrrsig:omnipresent ds:rumoured offset:{ALGOROLL_OFFSETS['step3']}",
+            f"csk 0 {default_algorithm.number} {default_algorithm.bits} goal:omnipresent dnskey:omnipresent krrsig:omnipresent zrrsig:omnipresent ds:rumoured offset:{ALGOROLL_OFFSETS['step3']}",
         ],
         # Next key event is when the DS becomes OMNIPRESENT. This happens
         # after the publication interval of the parent side.
@@ -258,7 +256,7 @@ def test_algoroll_csk_reconfig_step3(tld, ns3, alg, size):
         param("manual"),
     ],
 )
-def test_algoroll_csk_reconfig_step4(tld, ns3, alg, size):
+def test_algoroll_csk_reconfig_step4(tld, ns3, default_algorithm):
     zone = f"step4.csk-algorithm-roll.{tld}"
     policy = f"{POLICY}-{tld}"
 
@@ -271,7 +269,7 @@ def test_algoroll_csk_reconfig_step4(tld, ns3, alg, size):
             "cdss": CDSS,
             "keyprops": [
                 f"csk 0 8 2048 goal:hidden dnskey:omnipresent krrsig:omnipresent zrrsig:omnipresent ds:hidden offset:{ALGOROLL_OFFVAL}",
-                f"csk 0 {alg} {size} goal:omnipresent dnskey:omnipresent krrsig:omnipresent zrrsig:omnipresent ds:omnipresent offset:{ALGOROLL_OFFSETS['step4']}",
+                f"csk 0 {default_algorithm.number} {default_algorithm.bits} goal:omnipresent dnskey:omnipresent krrsig:omnipresent zrrsig:omnipresent ds:omnipresent offset:{ALGOROLL_OFFSETS['step4']}",
             ],
             "manual-mode": True,
             "nextev": None,
@@ -297,7 +295,7 @@ def test_algoroll_csk_reconfig_step4(tld, ns3, alg, size):
         "keyprops": [
             # The old DS is HIDDEN, we can remove the old algorithm records.
             f"csk 0 8 2048 goal:hidden dnskey:unretentive krrsig:unretentive zrrsig:unretentive ds:hidden offset:{ALGOROLL_OFFVAL}",
-            f"csk 0 {alg} {size} goal:omnipresent dnskey:omnipresent krrsig:omnipresent zrrsig:omnipresent ds:omnipresent offset:{ALGOROLL_OFFSETS['step4']}",
+            f"csk 0 {default_algorithm.number} {default_algorithm.bits} goal:omnipresent dnskey:omnipresent krrsig:omnipresent zrrsig:omnipresent ds:omnipresent offset:{ALGOROLL_OFFSETS['step4']}",
         ],
         # Next key event is when the old DNSKEY becomes HIDDEN.
         # This happens after the DNSKEY TTL plus zone propagation delay.
@@ -315,7 +313,7 @@ def test_algoroll_csk_reconfig_step4(tld, ns3, alg, size):
         param("manual"),
     ],
 )
-def test_algoroll_csk_reconfig_step5(tld, ns3, alg, size):
+def test_algoroll_csk_reconfig_step5(tld, ns3, default_algorithm):
     zone = f"step5.csk-algorithm-roll.{tld}"
     policy = f"{POLICY}-{tld}"
 
@@ -329,7 +327,7 @@ def test_algoroll_csk_reconfig_step5(tld, ns3, alg, size):
         "keyprops": [
             # The DNSKEY becomes HIDDEN.
             f"csk 0 8 2048 goal:hidden dnskey:hidden krrsig:hidden zrrsig:unretentive ds:hidden offset:{ALGOROLL_OFFVAL}",
-            f"csk 0 {alg} {size} goal:omnipresent dnskey:omnipresent krrsig:omnipresent zrrsig:omnipresent ds:omnipresent offset:{ALGOROLL_OFFSETS['step5']}",
+            f"csk 0 {default_algorithm.number} {default_algorithm.bits} goal:omnipresent dnskey:omnipresent krrsig:omnipresent zrrsig:omnipresent ds:omnipresent offset:{ALGOROLL_OFFSETS['step5']}",
         ],
         # Next key event is when the RSASHA signatures become HIDDEN.
         # This happens after the max-zone-ttl plus zone propagation delay
@@ -351,7 +349,7 @@ def test_algoroll_csk_reconfig_step5(tld, ns3, alg, size):
         param("manual"),
     ],
 )
-def test_algoroll_csk_reconfig_step6(tld, ns3, alg, size):
+def test_algoroll_csk_reconfig_step6(tld, ns3, default_algorithm):
     zone = f"step6.csk-algorithm-roll.{tld}"
     policy = f"{POLICY}-{tld}"
 
@@ -365,7 +363,7 @@ def test_algoroll_csk_reconfig_step6(tld, ns3, alg, size):
         "keyprops": [
             # The zone signatures are now HIDDEN.
             f"csk 0 8 2048 goal:hidden dnskey:hidden krrsig:hidden zrrsig:hidden ds:hidden offset:{ALGOROLL_OFFVAL}",
-            f"csk 0 {alg} {size} goal:omnipresent dnskey:omnipresent krrsig:omnipresent zrrsig:omnipresent ds:omnipresent offset:{ALGOROLL_OFFSETS['step6']}",
+            f"csk 0 {default_algorithm.number} {default_algorithm.bits} goal:omnipresent dnskey:omnipresent krrsig:omnipresent zrrsig:omnipresent ds:omnipresent offset:{ALGOROLL_OFFSETS['step6']}",
         ],
         # Next key event is never since we established the policy and the
         # keys have an unlimited lifetime.  Fallback to the default

@@ -19,6 +19,7 @@ import time
 import pytest
 
 from isctest.kasp import KeyTimingMetadata
+from isctest.vars.algorithms import Algorithm
 
 import isctest
 
@@ -112,12 +113,17 @@ def ksr(zone, policy, action, options="", raise_on_exception=True, to_file=""):
 def check_keys(
     keys,
     lifetime,
-    alg=os.environ["DEFAULT_ALGORITHM_DST_NUMBER"],
-    size=os.environ["DEFAULT_BITS"],
+    alg=None,
+    size=None,
     offset=0,
     with_state=False,
 ):
     # Check keys that were created.
+    if alg is None:
+        alg = Algorithm.default().dst
+    if size is None:
+        size = Algorithm.default().bits
+
     num = 0
 
     now = KeyTimingMetadata.now()

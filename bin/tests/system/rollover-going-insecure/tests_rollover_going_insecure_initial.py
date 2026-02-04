@@ -13,7 +13,7 @@
 
 import pytest
 
-from rollover.common import CDSS, DURATION, UNSIGNING_CONFIG, alg, pytestmark, size
+from rollover.common import CDSS, DURATION, UNSIGNING_CONFIG, pytestmark
 from rollover.setup import configure_going_insecure, configure_root, configure_tld
 
 import isctest
@@ -43,7 +43,7 @@ def bootstrap():
         "going-insecure-dynamic.kasp",
     ],
 )
-def test_going_insecure_initial(zone, ns3, alg, size):
+def test_going_insecure_initial(zone, ns3, default_algorithm):
     config = UNSIGNING_CONFIG
     policy = "unsigning"
     zone = f"step1.{zone}"
@@ -54,8 +54,8 @@ def test_going_insecure_initial(zone, ns3, alg, size):
         "zone": zone,
         "cdss": CDSS,
         "keyprops": [
-            f"ksk 0 {alg} {size} goal:omnipresent dnskey:omnipresent krrsig:omnipresent ds:omnipresent offset:{-DURATION['P10D']}",
-            f"zsk {DURATION['P60D']} {alg} {size} goal:omnipresent dnskey:omnipresent zrrsig:omnipresent offset:{-DURATION['P10D']}",
+            f"ksk 0 {default_algorithm.number} {default_algorithm.bits} goal:omnipresent dnskey:omnipresent krrsig:omnipresent ds:omnipresent offset:{-DURATION['P10D']}",
+            f"zsk {DURATION['P60D']} {default_algorithm.number} {default_algorithm.bits} goal:omnipresent dnskey:omnipresent zrrsig:omnipresent offset:{-DURATION['P10D']}",
         ],
         "nextev": None,
     }

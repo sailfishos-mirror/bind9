@@ -19,8 +19,8 @@ import dns
 import dns.update
 import pytest
 
-from isctest.vars.algorithms import RSASHA1
-from nsec3.common import ALGORITHM, SIZE, check_nsec3_case, default_config, pytestmark
+from isctest.vars.algorithms import RSASHA1, Algorithm
+from nsec3.common import check_nsec3_case, default_config, pytestmark
 
 import isctest
 import isctest.mark
@@ -95,7 +95,7 @@ def test_nsec3_case(ns3):
             "salt-length": 8,
         },
         "key-properties": [
-            f"csk 0 {ALGORITHM} {SIZE} goal:omnipresent dnskey:rumoured krrsig:rumoured zrrsig:rumoured ds:hidden",
+            f"csk 0 {Algorithm.default().number} {Algorithm.default().bits} goal:omnipresent dnskey:rumoured krrsig:rumoured zrrsig:rumoured ds:hidden",
         ],
     }
     zone = params["zone"]

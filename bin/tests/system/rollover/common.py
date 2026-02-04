@@ -11,12 +11,9 @@
 
 from datetime import timedelta
 
-import os
-
 import pytest
 
 from isctest.kasp import Ipub, IpubC, Iret
-from isctest.vars.algorithms import Algorithm
 
 pytestmark = pytest.mark.extra_artifacts(
     [
@@ -131,22 +128,3 @@ KSK_IPUB = Ipub(KSK_CONFIG)
 KSK_IPUBC = IpubC(KSK_CONFIG)
 KSK_IRET = Iret(KSK_CONFIG, zsk=False, ksk=True)
 KSK_KEYTTLPROP = KSK_CONFIG["dnskey-ttl"] + KSK_CONFIG["zone-propagation-delay"]
-
-
-@pytest.fixture
-def alg():
-    return os.environ["DEFAULT_ALGORITHM_NUMBER"]
-
-
-@pytest.fixture
-def size():
-    return os.environ["DEFAULT_BITS"]
-
-
-def default_algorithm():
-    return Algorithm(
-        os.environ["DEFAULT_ALGORITHM"],
-        int(os.environ["DEFAULT_ALGORITHM_NUMBER"]),
-        int(os.environ["DEFAULT_ALGORITHM_DST_NUMBER"]),
-        int(os.environ["DEFAULT_BITS"]),
-    )

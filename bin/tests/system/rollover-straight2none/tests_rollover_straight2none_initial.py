@@ -13,7 +13,7 @@
 
 import pytest
 
-from rollover.common import CDSS, DEFAULT_CONFIG, DURATION, alg, pytestmark, size
+from rollover.common import CDSS, DEFAULT_CONFIG, DURATION, pytestmark
 from rollover.setup import configure_root, configure_straight2none, configure_tld
 
 import isctest
@@ -43,7 +43,7 @@ def bootstrap():
         "going-straight-to-none-dynamic.kasp",
     ],
 )
-def test_straight2none_initial(zone, ns3, alg, size):
+def test_straight2none_initial(zone, ns3, default_algorithm):
     config = DEFAULT_CONFIG
     policy = "default"
 
@@ -53,7 +53,7 @@ def test_straight2none_initial(zone, ns3, alg, size):
         "zone": zone,
         "cdss": CDSS,
         "keyprops": [
-            f"csk 0 {alg} {size} goal:omnipresent dnskey:omnipresent krrsig:omnipresent zrrsig:omnipresent ds:omnipresent offset:{-DURATION['P10D']}",
+            f"csk 0 {default_algorithm.number} {default_algorithm.bits} goal:omnipresent dnskey:omnipresent krrsig:omnipresent zrrsig:omnipresent ds:omnipresent offset:{-DURATION['P10D']}",
         ],
         "nextev": None,
     }

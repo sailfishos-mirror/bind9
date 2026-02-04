@@ -11,8 +11,6 @@
 
 from re import compile as Re
 
-import os
-
 import isctest
 
 
@@ -50,10 +48,9 @@ def test_validator_logging(ns4):
         watcher.wait_for_line(pattern)
 
 
-def test_secure_roots(ns4):
+def test_secure_roots(ns4, default_algorithm):
     # check that "rndc secroots" dumps the trusted keys with multiple views
     key = int(getfrom("ns1/managed.key.id"))
-    alg = os.environ["DEFAULT_ALGORITHM"]
     response = ns4.rndc("secroots -")
-    assert f"./{alg}/{key} ; static" in response.out
+    assert f"./{default_algorithm.name}/{key} ; static" in response.out
     assert len(response.out.splitlines()) == 17

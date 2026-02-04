@@ -16,14 +16,14 @@ import shutil
 from isctest.kasp import SettimeOptions, private_type_record
 from isctest.run import EnvCmd
 from isctest.template import Nameserver, TrustAnchor, Zone
-from rollover.common import default_algorithm
+from isctest.vars.algorithms import Algorithm
 
 import isctest
 
 
 def configure_tld(zonename: str, delegations: List[Zone]) -> Zone:
     templates = isctest.template.TemplateEngine(".")
-    alg = default_algorithm()
+    alg = Algorithm.default()
     keygen = EnvCmd("KEYGEN", f"-q -a {alg.number} -b {alg.bits} -L 3600")
     signer = EnvCmd("SIGNER", "-S -g")
 
@@ -57,7 +57,7 @@ def configure_tld(zonename: str, delegations: List[Zone]) -> Zone:
 
 def configure_root(delegations: List[Zone]) -> TrustAnchor:
     templates = isctest.template.TemplateEngine(".")
-    alg = default_algorithm()
+    alg = Algorithm.default()
     keygen = EnvCmd("KEYGEN", f"-q -a {alg.number} -b {alg.bits} -L 3600")
     signer = EnvCmd("SIGNER", "-S -g")
 
