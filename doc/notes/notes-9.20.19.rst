@@ -17,13 +17,10 @@ Feature Changes
 
 - Update requirements for system test suite.
 
-  Python 3.10 or newer is now required for running the system test
-  suite. The required python packages and their version requirements are
-  now tracked in `bin/tests/system/requirements.txt`.
+  Python 3.10 or newer is now required for running the system test suite. The
+  required Python packages and their version requirements are now tracked in the
+  file `bin/tests/system/requirements.txt`. :gl:`#5690` :gl:`#5614`
 
-  Support for pytest 9.0.0 has been added its minimum supported version
-  has been raised to 7.0.0. The minimum supported dnspython version has
-  been raised to 2.3.0. :gl:`#5690`  :gl:`#5614`
 
 Bug Fixes
 ~~~~~~~~~
@@ -35,28 +32,12 @@ Bug Fixes
   handle IXFR transfers. :gl:`#5442`
 
 - Make catalog zone names and member zones' entry names
-  case-insensitive.
+  case-insensitive. :gl:`#5693`
 
-  Previously, the catalog zone names and their member zones' entry names
-  were unintentionally case-sensitive. This has been fixed. :gl:`#5693`
+- Fix implementation of BRID and HHIT record types. :gl:`#5710`
 
-- Fix brid and hhit implementation.
+- Fix implementation of DSYNC record type. :gl:`#5711`
 
-  Fix bugs in BRID and HHIT implementation and enable the unit tests.
-  :gl:`#5710`
+- Fix response policy and catalog zones to work with `$INCLUDE` directive.
 
-- DSYNC record incorrectly used two octets for the Scheme Field.
-
-  When creating the `DSYNC` record from a structure, `uint16_tobuffer`
-  was used instead of `uint8_tobuffer` when adding the scheme, causing a
-  `DSYNC` record that was one octet too long. This has been fixed.
-  :gl:`#5711`
-
-- Fix a possible issue with reponse policy zones and catalog zones.
-
-  If a response policy zone (RPZ) or a catalog zone contained an
-  `$INCLUDE` directive, then manually reloading that zone could fail to
-  process the changes in the response policy or in the catalog,
-  respectively. This has been fixed. :gl:`#5714`
-
-
+  Reloading a RPZ or a catalog zone could have failed when `$INCLUDE` was in use. :gl:`#5714`
