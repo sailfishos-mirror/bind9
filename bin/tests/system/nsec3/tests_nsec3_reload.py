@@ -18,7 +18,7 @@ import time
 import dns
 import pytest
 
-from nsec3.common import ALGORITHM, SIZE, check_nsec3_case
+from nsec3.common import check_nsec3_case
 
 import isctest
 
@@ -34,13 +34,13 @@ def bootstrap():
     }
 
 
-def test_nsec3_case(ns3):
+def test_nsec3_case(ns3, default_algorithm):
     # Get test parameters.
     params = {
         "zone": "nsec3-fails-to-load.kasp",
         "policy": "nsec3",
         "key-properties": [
-            f"csk 0 {ALGORITHM} {SIZE} goal:omnipresent dnskey:rumoured krrsig:rumoured zrrsig:rumoured ds:hidden",
+            f"csk 0 {default_algorithm.number} {default_algorithm.bits} goal:omnipresent dnskey:rumoured krrsig:rumoured zrrsig:rumoured ds:hidden",
         ],
     }
     zone = params["zone"]

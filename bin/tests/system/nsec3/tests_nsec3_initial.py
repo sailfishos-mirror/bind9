@@ -17,8 +17,8 @@ import dns
 import dns.update
 import pytest
 
-from isctest.vars.algorithms import RSASHA1
-from nsec3.common import ALGORITHM, SIZE, check_nsec3_case, default_config, pytestmark
+from isctest.vars.algorithms import RSASHA1, Algorithm
+from nsec3.common import check_nsec3_case, default_config, pytestmark
 
 import isctest
 import isctest.mark
@@ -65,7 +65,7 @@ def bootstrap():
                 "zone": "nsec-to-nsec3.kasp",
                 "policy": "nsec",
                 "key-properties": [
-                    f"csk 0 {ALGORITHM} {SIZE} goal:omnipresent dnskey:rumoured krrsig:rumoured zrrsig:rumoured ds:hidden",
+                    f"csk 0 {Algorithm.default().number} {Algorithm.default().bits} goal:omnipresent dnskey:rumoured krrsig:rumoured zrrsig:rumoured ds:hidden",
                 ],
             },
             id="nsec-to-nsec3.kasp",
@@ -99,10 +99,10 @@ def bootstrap():
                 "zone": "nsec3-xfr-inline.kasp",
                 "policy": "nsec",
                 "key-properties": [
-                    f"csk 0 {ALGORITHM} {SIZE} goal:omnipresent dnskey:rumoured krrsig:rumoured zrrsig:rumoured ds:hidden",
+                    f"csk 0 {Algorithm.default().number} {Algorithm.default().bits} goal:omnipresent dnskey:rumoured krrsig:rumoured zrrsig:rumoured ds:hidden",
                 ],
                 "external-keys": [
-                    f"csk 0 {ALGORITHM} {SIZE}",
+                    f"csk 0 {Algorithm.default().number} {Algorithm.default().bits}",
                 ],
                 "external-keydir": "ns2",
             },
@@ -113,7 +113,7 @@ def bootstrap():
                 "zone": "nsec3-dynamic-update-inline.kasp",
                 "policy": "nsec",
                 "key-properties": [
-                    f"csk 0 {ALGORITHM} {SIZE} goal:omnipresent dnskey:rumoured krrsig:rumoured zrrsig:rumoured ds:hidden",
+                    f"csk 0 {Algorithm.default().number} {Algorithm.default().bits} goal:omnipresent dnskey:rumoured krrsig:rumoured zrrsig:rumoured ds:hidden",
                 ],
             },
             id="nsec3-dynamic-update-inline.kasp",
@@ -156,7 +156,7 @@ def test_nsec_case(ns3, params):
                 "zone": "nsec3-to-rsasha1.kasp",
                 "policy": "nsec3",
                 "key-properties": [
-                    f"csk 0 {ALGORITHM} {SIZE} goal:omnipresent dnskey:omnipresent krrsig:omnipresent zrrsig:omnipresent ds:omnipresent",
+                    f"csk 0 {Algorithm.default().number} {Algorithm.default().bits} goal:omnipresent dnskey:omnipresent krrsig:omnipresent zrrsig:omnipresent ds:omnipresent",
                 ],
             },
             id="nsec3-to-rsasha1.kasp",
@@ -167,7 +167,7 @@ def test_nsec_case(ns3, params):
                 "zone": "nsec3-to-rsasha1-ds.kasp",
                 "policy": "nsec3",
                 "key-properties": [
-                    f"csk 0 {ALGORITHM} {SIZE} goal:omnipresent dnskey:omnipresent krrsig:omnipresent zrrsig:omnipresent ds:omnipresent",
+                    f"csk 0 {Algorithm.default().number} {Algorithm.default().bits} goal:omnipresent dnskey:omnipresent krrsig:omnipresent zrrsig:omnipresent ds:omnipresent",
                 ],
             },
             id="nsec3-to-rsasha1-ds.kasp",
@@ -178,7 +178,7 @@ def test_nsec_case(ns3, params):
                 "zone": "nsec3.kasp",
                 "policy": "nsec3",
                 "key-properties": [
-                    f"csk 0 {ALGORITHM} {SIZE} goal:omnipresent dnskey:rumoured krrsig:rumoured zrrsig:rumoured ds:hidden",
+                    f"csk 0 {Algorithm.default().number} {Algorithm.default().bits} goal:omnipresent dnskey:rumoured krrsig:rumoured zrrsig:rumoured ds:hidden",
                 ],
             },
             id="nsec3.kasp",
@@ -188,7 +188,7 @@ def test_nsec_case(ns3, params):
                 "zone": "nsec3-dynamic.kasp",
                 "policy": "nsec3",
                 "key-properties": [
-                    f"csk 0 {ALGORITHM} {SIZE} goal:omnipresent dnskey:rumoured krrsig:rumoured zrrsig:rumoured ds:hidden",
+                    f"csk 0 {Algorithm.default().number} {Algorithm.default().bits} goal:omnipresent dnskey:rumoured krrsig:rumoured zrrsig:rumoured ds:hidden",
                 ],
             },
             id="nsec3-dynamic.kasp",
@@ -198,7 +198,7 @@ def test_nsec_case(ns3, params):
                 "zone": "nsec3-change.kasp",
                 "policy": "nsec3",
                 "key-properties": [
-                    f"csk 0 {ALGORITHM} {SIZE} goal:omnipresent dnskey:rumoured krrsig:rumoured zrrsig:rumoured ds:hidden",
+                    f"csk 0 {Algorithm.default().number} {Algorithm.default().bits} goal:omnipresent dnskey:rumoured krrsig:rumoured zrrsig:rumoured ds:hidden",
                 ],
             },
             id="nsec3-change.kasp",
@@ -208,7 +208,7 @@ def test_nsec_case(ns3, params):
                 "zone": "nsec3-dynamic-change.kasp",
                 "policy": "nsec3",
                 "key-properties": [
-                    f"csk 0 {ALGORITHM} {SIZE} goal:omnipresent dnskey:rumoured krrsig:rumoured zrrsig:rumoured ds:hidden",
+                    f"csk 0 {Algorithm.default().number} {Algorithm.default().bits} goal:omnipresent dnskey:rumoured krrsig:rumoured zrrsig:rumoured ds:hidden",
                 ],
             },
             id="nsec3-dynamic-change.kasp",
@@ -218,7 +218,7 @@ def test_nsec_case(ns3, params):
                 "zone": "nsec3-dynamic-to-inline.kasp",
                 "policy": "nsec3",
                 "key-properties": [
-                    f"csk 0 {ALGORITHM} {SIZE} goal:omnipresent dnskey:rumoured krrsig:rumoured zrrsig:rumoured ds:hidden",
+                    f"csk 0 {Algorithm.default().number} {Algorithm.default().bits} goal:omnipresent dnskey:rumoured krrsig:rumoured zrrsig:rumoured ds:hidden",
                 ],
             },
             id="nsec3-dynamic-to-inline.kasp",
@@ -228,7 +228,7 @@ def test_nsec_case(ns3, params):
                 "zone": "nsec3-inline-to-dynamic.kasp",
                 "policy": "nsec3",
                 "key-properties": [
-                    f"csk 0 {ALGORITHM} {SIZE} goal:omnipresent dnskey:rumoured krrsig:rumoured zrrsig:rumoured ds:hidden",
+                    f"csk 0 {Algorithm.default().number} {Algorithm.default().bits} goal:omnipresent dnskey:rumoured krrsig:rumoured zrrsig:rumoured ds:hidden",
                 ],
             },
             id="nsec3-inline-to-dynamic.kasp",
@@ -238,7 +238,7 @@ def test_nsec_case(ns3, params):
                 "zone": "nsec3-to-nsec.kasp",
                 "policy": "nsec3",
                 "key-properties": [
-                    f"csk 0 {ALGORITHM} {SIZE} goal:omnipresent dnskey:rumoured krrsig:rumoured zrrsig:rumoured ds:hidden",
+                    f"csk 0 {Algorithm.default().number} {Algorithm.default().bits} goal:omnipresent dnskey:rumoured krrsig:rumoured zrrsig:rumoured ds:hidden",
                 ],
             },
             id="nsec3-to-nsec.kasp",
@@ -248,7 +248,7 @@ def test_nsec_case(ns3, params):
                 "zone": "nsec3-to-optout.kasp",
                 "policy": "nsec3",
                 "key-properties": [
-                    f"csk 0 {ALGORITHM} {SIZE} goal:omnipresent dnskey:rumoured krrsig:rumoured zrrsig:rumoured ds:hidden",
+                    f"csk 0 {Algorithm.default().number} {Algorithm.default().bits} goal:omnipresent dnskey:rumoured krrsig:rumoured zrrsig:rumoured ds:hidden",
                 ],
             },
             id="nsec3-to-optout.kasp",
@@ -262,7 +262,7 @@ def test_nsec_case(ns3, params):
                     "salt-length": 0,
                 },
                 "key-properties": [
-                    f"csk 0 {ALGORITHM} {SIZE} goal:omnipresent dnskey:rumoured krrsig:rumoured zrrsig:rumoured ds:hidden",
+                    f"csk 0 {Algorithm.default().number} {Algorithm.default().bits} goal:omnipresent dnskey:rumoured krrsig:rumoured zrrsig:rumoured ds:hidden",
                 ],
             },
             id="nsec3-from-optout.kasp",
@@ -276,7 +276,7 @@ def test_nsec_case(ns3, params):
                     "salt-length": 8,
                 },
                 "key-properties": [
-                    f"csk 0 {ALGORITHM} {SIZE} goal:omnipresent dnskey:rumoured krrsig:rumoured zrrsig:rumoured ds:hidden",
+                    f"csk 0 {Algorithm.default().number} {Algorithm.default().bits} goal:omnipresent dnskey:rumoured krrsig:rumoured zrrsig:rumoured ds:hidden",
                 ],
             },
             id="nsec3-other.kasp",

@@ -17,14 +17,8 @@ import dns
 import dns.update
 import pytest
 
-from nsec3.common import (
-    ALGORITHM,
-    SIZE,
-    check_nsec3_case,
-    check_nsec3param,
-    default_config,
-    pytestmark,
-)
+from isctest.vars.algorithms import Algorithm
+from nsec3.common import check_nsec3_case, check_nsec3param, default_config, pytestmark
 
 import isctest
 import isctest.mark
@@ -75,7 +69,7 @@ def perform_nsec3_tests(server, params):
                 "zone": "nsec3.kasp",
                 "policy": "nsec3",
                 "key-properties": [
-                    f"csk 0 {ALGORITHM} {SIZE} goal:omnipresent dnskey:rumoured krrsig:rumoured zrrsig:rumoured ds:hidden",
+                    f"csk 0 {Algorithm.default().number} {Algorithm.default().bits} goal:omnipresent dnskey:rumoured krrsig:rumoured zrrsig:rumoured ds:hidden",
                 ],
             },
             id="nsec3.kasp",
@@ -89,7 +83,7 @@ def perform_nsec3_tests(server, params):
                     "salt-length": 8,
                 },
                 "key-properties": [
-                    f"csk 0 {ALGORITHM} {SIZE} goal:omnipresent dnskey:rumoured krrsig:rumoured zrrsig:rumoured ds:hidden",
+                    f"csk 0 {Algorithm.default().number} {Algorithm.default().bits} goal:omnipresent dnskey:rumoured krrsig:rumoured zrrsig:rumoured ds:hidden",
                 ],
             },
             id="nsec3-other.kasp",

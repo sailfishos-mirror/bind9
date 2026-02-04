@@ -14,7 +14,7 @@
 import pytest
 
 from isctest.util import param
-from rollover.common import CDSS, DEFAULT_CONFIG, DURATION, alg, pytestmark, size
+from rollover.common import CDSS, DEFAULT_CONFIG, DURATION, pytestmark
 
 import isctest
 
@@ -28,7 +28,7 @@ import isctest
         param("unlimit-lifetime", "short-lifetime", "P6M"),
     ],
 )
-def test_lifetime_initial(zone, policy, lifetime, alg, size, ns3):
+def test_lifetime_initial(zone, policy, lifetime, ns3, default_algorithm):
     config = DEFAULT_CONFIG
 
     isctest.kasp.wait_keymgr_done(ns3, f"{zone}.kasp")
@@ -37,7 +37,7 @@ def test_lifetime_initial(zone, policy, lifetime, alg, size, ns3):
         "zone": f"{zone}.kasp",
         "cdss": CDSS,
         "keyprops": [
-            f"csk {DURATION[lifetime]} {alg} {size} goal:omnipresent dnskey:rumoured krrsig:rumoured zrrsig:rumoured ds:hidden",
+            f"csk {DURATION[lifetime]} {default_algorithm.number} {default_algorithm.bits} goal:omnipresent dnskey:rumoured krrsig:rumoured zrrsig:rumoured ds:hidden",
         ],
         "nextev": None,
     }

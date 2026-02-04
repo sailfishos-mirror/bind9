@@ -17,7 +17,7 @@ import pytest
 
 from isctest.kasp import Ipub, Iret
 from isctest.util import param
-from rollover.common import TIMEDELTA, alg, pytestmark, size
+from rollover.common import TIMEDELTA, pytestmark
 from rollover.setup import configure_cskroll1, configure_root, configure_tld
 
 import isctest
@@ -92,7 +92,7 @@ def bootstrap():
         param("manual"),
     ],
 )
-def test_csk_roll1_step1(tld, ns3, alg, size):
+def test_csk_roll1_step1(tld, ns3, default_algorithm):
     zone = f"step1.csk-roll1.{tld}"
     policy = f"{POLICY}-{tld}"
 
@@ -106,7 +106,7 @@ def test_csk_roll1_step1(tld, ns3, alg, size):
         "zone": zone,
         "cdss": CDSS,
         "keyprops": [
-            f"csk {LIFETIME_POLICY} {alg} {size} goal:omnipresent dnskey:omnipresent krrsig:omnipresent zrrsig:omnipresent ds:omnipresent offset:{OFFSETS['step1-p']}",
+            f"csk {LIFETIME_POLICY} {default_algorithm.number} {default_algorithm.bits} goal:omnipresent dnskey:omnipresent krrsig:omnipresent zrrsig:omnipresent ds:omnipresent offset:{OFFSETS['step1-p']}",
         ],
         # Next key event is when the successor CSK needs to be published
         # minus time already elapsed. This is Lcsk - Ipub + Dreg (we ignore
@@ -123,7 +123,7 @@ def test_csk_roll1_step1(tld, ns3, alg, size):
         param("manual"),
     ],
 )
-def test_csk_roll1_step2(tld, alg, size, ns3):
+def test_csk_roll1_step2(tld, ns3, default_algorithm):
     zone = f"step2.csk-roll1.{tld}"
     policy = f"{POLICY}-{tld}"
 
@@ -135,7 +135,7 @@ def test_csk_roll1_step2(tld, alg, size, ns3):
             "zone": zone,
             "cdss": CDSS,
             "keyprops": [
-                f"csk {LIFETIME_POLICY} {alg} {size} goal:omnipresent dnskey:omnipresent krrsig:omnipresent zrrsig:omnipresent ds:omnipresent offset:{OFFSETS['step2-p']}",
+                f"csk {LIFETIME_POLICY} {default_algorithm.number} {default_algorithm.bits} goal:omnipresent dnskey:omnipresent krrsig:omnipresent zrrsig:omnipresent ds:omnipresent offset:{OFFSETS['step2-p']}",
             ],
             "manual-mode": True,
             "nextev": None,
@@ -164,8 +164,8 @@ def test_csk_roll1_step2(tld, alg, size, ns3):
         "zone": zone,
         "cdss": CDSS,
         "keyprops": [
-            f"csk {LIFETIME_POLICY} {alg} {size} goal:hidden dnskey:omnipresent krrsig:omnipresent zrrsig:omnipresent ds:omnipresent offset:{OFFSETS['step2-p']}",
-            f"csk {LIFETIME_POLICY} {alg} {size} goal:omnipresent dnskey:rumoured krrsig:rumoured zrrsig:hidden ds:hidden offset:{OFFSETS['step2-s']}",
+            f"csk {LIFETIME_POLICY} {default_algorithm.number} {default_algorithm.bits} goal:hidden dnskey:omnipresent krrsig:omnipresent zrrsig:omnipresent ds:omnipresent offset:{OFFSETS['step2-p']}",
+            f"csk {LIFETIME_POLICY} {default_algorithm.number} {default_algorithm.bits} goal:omnipresent dnskey:rumoured krrsig:rumoured zrrsig:hidden ds:hidden offset:{OFFSETS['step2-s']}",
         ],
         "keyrelationships": [0, 1],
         # Next key event is when the successor CSK becomes OMNIPRESENT.
@@ -181,7 +181,7 @@ def test_csk_roll1_step2(tld, alg, size, ns3):
         param("manual"),
     ],
 )
-def test_csk_roll1_step3(tld, alg, size, ns3):
+def test_csk_roll1_step3(tld, ns3, default_algorithm):
     zone = f"step3.csk-roll1.{tld}"
     policy = f"{POLICY}-{tld}"
 
@@ -193,8 +193,8 @@ def test_csk_roll1_step3(tld, alg, size, ns3):
             "zone": zone,
             "cdss": CDSS,
             "keyprops": [
-                f"csk {LIFETIME_POLICY} {alg} {size} goal:hidden dnskey:omnipresent krrsig:omnipresent zrrsig:omnipresent ds:omnipresent offset:{OFFSETS['step3-p']}",
-                f"csk {LIFETIME_POLICY} {alg} {size} goal:omnipresent dnskey:omnipresent krrsig:omnipresent zrrsig:hidden ds:hidden offset:{OFFSETS['step3-s']}",
+                f"csk {LIFETIME_POLICY} {default_algorithm.number} {default_algorithm.bits} goal:hidden dnskey:omnipresent krrsig:omnipresent zrrsig:omnipresent ds:omnipresent offset:{OFFSETS['step3-p']}",
+                f"csk {LIFETIME_POLICY} {default_algorithm.number} {default_algorithm.bits} goal:omnipresent dnskey:omnipresent krrsig:omnipresent zrrsig:hidden ds:hidden offset:{OFFSETS['step3-s']}",
             ],
             "keyrelationships": [0, 1],
             "manual-mode": True,
@@ -245,8 +245,8 @@ def test_csk_roll1_step3(tld, alg, size, ns3):
         # CSK1 ds: omnipresent -> unretentive
         # CSK2 ds: hidden -> rumoured
         "keyprops": [
-            f"csk {LIFETIME_POLICY} {alg} {size} goal:hidden dnskey:omnipresent krrsig:omnipresent zrrsig:unretentive ds:unretentive offset:{OFFSETS['step3-p']}",
-            f"csk {LIFETIME_POLICY} {alg} {size} goal:omnipresent dnskey:omnipresent krrsig:omnipresent zrrsig:rumoured ds:rumoured offset:{OFFSETS['step3-s']}",
+            f"csk {LIFETIME_POLICY} {default_algorithm.number} {default_algorithm.bits} goal:hidden dnskey:omnipresent krrsig:omnipresent zrrsig:unretentive ds:unretentive offset:{OFFSETS['step3-p']}",
+            f"csk {LIFETIME_POLICY} {default_algorithm.number} {default_algorithm.bits} goal:omnipresent dnskey:omnipresent krrsig:omnipresent zrrsig:rumoured ds:rumoured offset:{OFFSETS['step3-s']}",
         ],
         "keyrelationships": [0, 1],
         # Next key event is when the predecessor DS has been replaced with
@@ -268,7 +268,7 @@ def test_csk_roll1_step3(tld, alg, size, ns3):
         param("manual"),
     ],
 )
-def test_csk_roll1_step4(tld, alg, size, ns3):
+def test_csk_roll1_step4(tld, ns3, default_algorithm):
     zone = f"step4.csk-roll1.{tld}"
     policy = f"{POLICY}-{tld}"
 
@@ -280,8 +280,8 @@ def test_csk_roll1_step4(tld, alg, size, ns3):
             "zone": zone,
             "cdss": CDSS,
             "keyprops": [
-                f"csk {LIFETIME_POLICY} {alg} {size} goal:hidden dnskey:omnipresent krrsig:omnipresent zrrsig:unretentive ds:hidden offset:{OFFSETS['step4-p']}",
-                f"csk {LIFETIME_POLICY} {alg} {size} goal:omnipresent dnskey:omnipresent krrsig:omnipresent zrrsig:rumoured ds:omnipresent offset:{OFFSETS['step4-s']}",
+                f"csk {LIFETIME_POLICY} {default_algorithm.number} {default_algorithm.bits} goal:hidden dnskey:omnipresent krrsig:omnipresent zrrsig:unretentive ds:hidden offset:{OFFSETS['step4-p']}",
+                f"csk {LIFETIME_POLICY} {default_algorithm.number} {default_algorithm.bits} goal:omnipresent dnskey:omnipresent krrsig:omnipresent zrrsig:rumoured ds:omnipresent offset:{OFFSETS['step4-s']}",
             ],
             "keyrelationships": [0, 1],
             "manual-mode": True,
@@ -313,8 +313,8 @@ def test_csk_roll1_step4(tld, alg, size, ns3):
         # CSK1 ds: unretentive -> hidden
         # CSK2 ds: rumoured -> omnipresent
         "keyprops": [
-            f"csk {LIFETIME_POLICY} {alg} {size} goal:hidden dnskey:omnipresent krrsig:unretentive zrrsig:unretentive ds:hidden offset:{OFFSETS['step4-p']}",
-            f"csk {LIFETIME_POLICY} {alg} {size} goal:omnipresent dnskey:omnipresent krrsig:omnipresent zrrsig:rumoured ds:omnipresent offset:{OFFSETS['step4-s']}",
+            f"csk {LIFETIME_POLICY} {default_algorithm.number} {default_algorithm.bits} goal:hidden dnskey:omnipresent krrsig:unretentive zrrsig:unretentive ds:hidden offset:{OFFSETS['step4-p']}",
+            f"csk {LIFETIME_POLICY} {default_algorithm.number} {default_algorithm.bits} goal:omnipresent dnskey:omnipresent krrsig:omnipresent zrrsig:rumoured ds:omnipresent offset:{OFFSETS['step4-s']}",
         ],
         "keyrelationships": [0, 1],
         # Next key event is when the KRRSIG enters the HIDDEN state.
@@ -333,7 +333,7 @@ def test_csk_roll1_step4(tld, alg, size, ns3):
         param("manual"),
     ],
 )
-def test_csk_roll1_step5(tld, alg, size, ns3):
+def test_csk_roll1_step5(tld, ns3, default_algorithm):
     zone = f"step5.csk-roll1.{tld}"
     policy = f"{POLICY}-{tld}"
 
@@ -347,8 +347,8 @@ def test_csk_roll1_step5(tld, alg, size, ns3):
         # The predecessor KRRSIG records are now all hidden.
         # CSK1 krrsig: unretentive -> hidden
         "keyprops": [
-            f"csk {LIFETIME_POLICY} {alg} {size} goal:hidden dnskey:omnipresent krrsig:hidden zrrsig:unretentive ds:hidden offset:{OFFSETS['step5-p']}",
-            f"csk {LIFETIME_POLICY} {alg} {size} goal:omnipresent dnskey:omnipresent krrsig:omnipresent zrrsig:rumoured ds:omnipresent offset:{OFFSETS['step5-s']}",
+            f"csk {LIFETIME_POLICY} {default_algorithm.number} {default_algorithm.bits} goal:hidden dnskey:omnipresent krrsig:hidden zrrsig:unretentive ds:hidden offset:{OFFSETS['step5-p']}",
+            f"csk {LIFETIME_POLICY} {default_algorithm.number} {default_algorithm.bits} goal:omnipresent dnskey:omnipresent krrsig:omnipresent zrrsig:rumoured ds:omnipresent offset:{OFFSETS['step5-s']}",
         ],
         "keyrelationships": [0, 1],
         # Next key event is when the DNSKEY can be removed.  This is when
@@ -366,7 +366,7 @@ def test_csk_roll1_step5(tld, alg, size, ns3):
         param("manual"),
     ],
 )
-def test_csk_roll1_step6(tld, alg, size, ns3):
+def test_csk_roll1_step6(tld, ns3, default_algorithm):
     zone = f"step6.csk-roll1.{tld}"
     policy = f"{POLICY}-{tld}"
 
@@ -384,8 +384,8 @@ def test_csk_roll1_step6(tld, alg, size, ns3):
         # CSK1 zrrsig: unretentive -> hidden
         # CSK2 zrrsig: rumoured -> omnipresent
         "keyprops": [
-            f"csk {LIFETIME_POLICY} {alg} {size} goal:hidden dnskey:unretentive krrsig:hidden zrrsig:hidden ds:hidden offset:{OFFSETS['step6-p']}",
-            f"csk {LIFETIME_POLICY} {alg} {size} goal:omnipresent dnskey:omnipresent krrsig:omnipresent zrrsig:omnipresent ds:omnipresent offset:{OFFSETS['step6-s']}",
+            f"csk {LIFETIME_POLICY} {default_algorithm.number} {default_algorithm.bits} goal:hidden dnskey:unretentive krrsig:hidden zrrsig:hidden ds:hidden offset:{OFFSETS['step6-p']}",
+            f"csk {LIFETIME_POLICY} {default_algorithm.number} {default_algorithm.bits} goal:omnipresent dnskey:omnipresent krrsig:omnipresent zrrsig:omnipresent ds:omnipresent offset:{OFFSETS['step6-s']}",
         ],
         "keyrelationships": [0, 1],
         # Next key event is when the DNSKEY enters the HIDDEN state.
@@ -402,7 +402,7 @@ def test_csk_roll1_step6(tld, alg, size, ns3):
         param("manual"),
     ],
 )
-def test_csk_roll1_step7(tld, alg, size, ns3):
+def test_csk_roll1_step7(tld, ns3, default_algorithm):
     zone = f"step7.csk-roll1.{tld}"
     policy = f"{POLICY}-{tld}"
 
@@ -415,8 +415,8 @@ def test_csk_roll1_step7(tld, alg, size, ns3):
         "cdss": CDSS,
         # The predecessor CSK is now completely HIDDEN.
         "keyprops": [
-            f"csk {LIFETIME_POLICY} {alg} {size} goal:hidden dnskey:hidden krrsig:hidden zrrsig:hidden ds:hidden offset:{OFFSETS['step7-p']}",
-            f"csk {LIFETIME_POLICY} {alg} {size} goal:omnipresent dnskey:omnipresent krrsig:omnipresent zrrsig:omnipresent ds:omnipresent offset:{OFFSETS['step7-s']}",
+            f"csk {LIFETIME_POLICY} {default_algorithm.number} {default_algorithm.bits} goal:hidden dnskey:hidden krrsig:hidden zrrsig:hidden ds:hidden offset:{OFFSETS['step7-p']}",
+            f"csk {LIFETIME_POLICY} {default_algorithm.number} {default_algorithm.bits} goal:omnipresent dnskey:omnipresent krrsig:omnipresent zrrsig:omnipresent ds:omnipresent offset:{OFFSETS['step7-s']}",
         ],
         "keyrelationships": [0, 1],
         # Next key event is when the new successor needs to be published.
@@ -434,7 +434,7 @@ def test_csk_roll1_step7(tld, alg, size, ns3):
         param("manual"),
     ],
 )
-def test_csk_roll1_step8(tld, alg, size, ns3):
+def test_csk_roll1_step8(tld, ns3, default_algorithm):
     zone = f"step8.csk-roll1.{tld}"
     policy = f"{POLICY}-{tld}"
 
@@ -446,7 +446,7 @@ def test_csk_roll1_step8(tld, alg, size, ns3):
         "zone": zone,
         "cdss": CDSS,
         "keyprops": [
-            f"csk {LIFETIME_POLICY} {alg} {size} goal:omnipresent dnskey:omnipresent krrsig:omnipresent zrrsig:omnipresent ds:omnipresent offset:{OFFSETS['step8-s']}",
+            f"csk {LIFETIME_POLICY} {default_algorithm.number} {default_algorithm.bits} goal:omnipresent dnskey:omnipresent krrsig:omnipresent zrrsig:omnipresent ds:omnipresent offset:{OFFSETS['step8-s']}",
         ],
         "nextev": None,
     }

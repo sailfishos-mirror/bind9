@@ -57,6 +57,14 @@ class Algorithm(NamedTuple):
     number: int
     bits: int
 
+    @classmethod
+    def default(cls):
+        return cls(
+            os.environ["DEFAULT_ALGORITHM"],
+            int(os.environ["DEFAULT_ALGORITHM_NUMBER"]),
+            int(os.environ["DEFAULT_BITS"]),
+        )
+
 
 class AlgorithmSet(NamedTuple):
     """Collection of DEFAULT, ALTERNATIVE and DISABLED algorithms"""
