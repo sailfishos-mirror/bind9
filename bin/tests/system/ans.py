@@ -32,9 +32,7 @@ useful in other system tests, please consider opening a merge request extending
 isctest/asyncserver.py.
 """
 
-from isctest.asyncserver import (
-    AsyncDnsServer,
-)
+from isctest.asyncserver import AsyncDnsServer
 
 
 def main() -> None:

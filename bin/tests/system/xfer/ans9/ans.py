@@ -19,10 +19,10 @@ import dns.rrset
 
 from isctest.asyncserver import (
     ControllableAsyncDnsServer,
+    DnsResponseSend,
     DomainHandler,
     QueryContext,
     ResponseAction,
-    DnsResponseSend,
     ToggleResponsesCommand,
 )
 

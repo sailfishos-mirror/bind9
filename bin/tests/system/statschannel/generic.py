@@ -9,9 +9,10 @@
 # See the COPYRIGHT file distributed with this work for additional
 # information regarding copyright ownership.
 
-from datetime import datetime, timedelta
 from collections import defaultdict
+from datetime import datetime, timedelta
 from time import sleep
+
 import os
 
 import dns.message

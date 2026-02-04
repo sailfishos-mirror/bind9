@@ -15,26 +15,23 @@ from datetime import timedelta
 
 import pytest
 
-import isctest
 from isctest.util import param
 from rollover.common import (
-    pytestmark,
-    alg,
-    size,
     KSK_CONFIG,
-    KSK_LIFETIME,
-    KSK_LIFETIME_POLICY,
     KSK_IPUB,
     KSK_IPUBC,
     KSK_IRET,
     KSK_KEYTTLPROP,
+    KSK_LIFETIME,
+    KSK_LIFETIME_POLICY,
     TIMEDELTA,
+    alg,
+    pytestmark,
+    size,
 )
-from rollover.setup import (
-    configure_root,
-    configure_tld,
-    configure_ksk_doubleksk,
-)
+from rollover.setup import configure_ksk_doubleksk, configure_root, configure_tld
+
+import isctest
 
 CDSS = ["CDS (SHA-256)"]
 POLICY = "ksk-doubleksk"

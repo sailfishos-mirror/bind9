@@ -16,11 +16,10 @@
 import socket
 import time
 
-import pytest
-
 import dns.message
 import dns.query
 import dns.tsigkeyring
+import pytest
 
 pytestmark = pytest.mark.extra_artifacts(
     [

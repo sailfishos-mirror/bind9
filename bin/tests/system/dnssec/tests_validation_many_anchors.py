@@ -11,10 +11,12 @@
 
 
 from dns.edns import EDECode
+
 import pytest
 
-import isctest
 from isctest.util import param
+
+import isctest
 
 
 def bootstrap():

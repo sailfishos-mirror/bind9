@@ -10,18 +10,19 @@
 # information regarding copyright ownership.
 
 
+from re import compile as Re
+
 import fileinput
 import os
-from re import compile as Re
 import socket
 import time
 
+import dns.message
 import pytest
 
-import isctest
 from isctest.util import param
 
-import dns.message
+import isctest
 
 NEW_SOA_SERIAL = 1397051953
 OLD_SOA_SERIAL = 1397051952

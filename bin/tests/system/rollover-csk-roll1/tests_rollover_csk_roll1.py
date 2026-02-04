@@ -15,20 +15,12 @@ from datetime import timedelta
 
 import pytest
 
-import isctest
 from isctest.kasp import Ipub, Iret
 from isctest.util import param
-from rollover.common import (
-    pytestmark,
-    alg,
-    size,
-    TIMEDELTA,
-)
-from rollover.setup import (
-    configure_root,
-    configure_tld,
-    configure_cskroll1,
-)
+from rollover.common import TIMEDELTA, alg, pytestmark, size
+from rollover.setup import configure_cskroll1, configure_root, configure_tld
+
+import isctest
 
 CDSS = ["CDNSKEY", "CDS (SHA-384)"]
 CONFIG = {

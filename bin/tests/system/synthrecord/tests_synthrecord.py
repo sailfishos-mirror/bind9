@@ -13,24 +13,23 @@
 # https://github.com/pylint-dev/pylint/issues/10785#issuecomment-3677224217
 # pylint: disable=unreachable
 
+from ipaddress import IPv4Address, IPv6Address
+
 import glob
 import os
 import subprocess
 
-from ipaddress import IPv4Address, IPv6Address
-
-import pytest
+from dns.reversename import ipv4_reverse_domain, ipv6_reverse_domain
+from hypothesis import assume, example, given
+from hypothesis.strategies import ip_addresses
 
 import dns.message
 import dns.reversename
-from dns.reversename import ipv4_reverse_domain
-from dns.reversename import ipv6_reverse_domain
+import pytest
 
-import isctest
 from isctest.hypothesis.strategies import dns_names
 
-from hypothesis import assume, given, example
-from hypothesis.strategies import ip_addresses
+import isctest
 
 SERVER = "10.53.0.1"
 

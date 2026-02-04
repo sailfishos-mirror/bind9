@@ -13,21 +13,12 @@
 
 import pytest
 
-import isctest
 from isctest.kasp import Ipub, IpubC, Iret
 from isctest.util import param
-from rollover.common import (
-    pytestmark,
-    alg,
-    size,
-    CDSS,
-    TIMEDELTA,
-)
-from rollover.setup import (
-    configure_root,
-    configure_tld,
-    configure_enable_dnssec,
-)
+from rollover.common import CDSS, TIMEDELTA, alg, pytestmark, size
+from rollover.setup import configure_enable_dnssec, configure_root, configure_tld
+
+import isctest
 
 CONFIG = {
     "dnskey-ttl": TIMEDELTA["PT5M"],

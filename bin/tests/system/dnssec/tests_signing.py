@@ -10,9 +10,10 @@
 # information regarding copyright ownership.
 
 from collections import namedtuple
+from re import compile as Re
+
 import os
 import re
-from re import compile as Re
 import struct
 import time
 
@@ -21,6 +22,7 @@ from dns import dnssec, name, rdataclass, rdatatype, update
 import pytest
 
 from isctest.kasp import SettimeOptions
+
 import isctest
 
 pytestmark = pytest.mark.extra_artifacts(

@@ -10,13 +10,13 @@
 # information regarding copyright ownership.
 
 from datetime import timedelta
-import os
 from re import compile as Re
 
-import pytest
+import os
 
 import dns
 import dns.update
+import pytest
 
 import isctest
 

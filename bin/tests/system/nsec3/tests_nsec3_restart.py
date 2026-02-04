@@ -17,16 +17,17 @@ import dns
 import dns.update
 import pytest
 
-import isctest
-import isctest.mark
 from nsec3.common import (
     ALGORITHM,
     SIZE,
-    default_config,
-    pytestmark,
     check_nsec3_case,
     check_nsec3param,
+    default_config,
+    pytestmark,
 )
+
+import isctest
+import isctest.mark
 
 # include the following zones when rendering named configs
 ZONES = {

@@ -17,7 +17,8 @@
 
 import time
 
-import pytest
+from hypothesis import assume, example, given
+from hypothesis.strategies import binary, booleans, composite, just, sampled_from
 
 import dns.exception
 import dns.message
@@ -27,12 +28,11 @@ import dns.rdatatype
 import dns.rdtypes.ANY.TSIG
 import dns.rrset
 import dns.tsig
+import pytest
 
-import isctest
 from isctest.hypothesis.strategies import dns_names, uint
 
-from hypothesis import assume, example, given
-from hypothesis.strategies import binary, booleans, composite, just, sampled_from
+import isctest
 
 pytestmark = pytest.mark.extra_artifacts(
     [

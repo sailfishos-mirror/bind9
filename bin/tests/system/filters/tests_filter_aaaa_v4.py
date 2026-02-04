@@ -11,15 +11,15 @@
 
 import pytest
 
-import isctest
-import isctest.mark
-
 from filters.common import (
     ARTIFACTS,
     check_filter,
     check_filter_other_family,
     prime_cache,
 )
+
+import isctest
+import isctest.mark
 
 pytestmark = pytest.mark.extra_artifacts(ARTIFACTS)
 

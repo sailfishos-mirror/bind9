@@ -13,11 +13,10 @@
 
 import os
 
-import pytest
-
 import dns
 import dns.rcode
 import dns.rrset
+import pytest
 
 import isctest
 

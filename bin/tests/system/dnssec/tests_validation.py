@@ -10,6 +10,7 @@
 # information regarding copyright ownership.
 
 from re import compile as Re
+
 import os
 import shutil
 import time
@@ -19,9 +20,10 @@ from dns.edns import EDECode
 
 import pytest
 
+from isctest.util import param
+
 import isctest
 import isctest.mark
-from isctest.util import param
 
 pytestmark = pytest.mark.extra_artifacts(
     [

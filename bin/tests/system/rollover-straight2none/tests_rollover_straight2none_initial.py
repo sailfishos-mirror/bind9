@@ -13,20 +13,10 @@
 
 import pytest
 
+from rollover.common import CDSS, DEFAULT_CONFIG, DURATION, alg, pytestmark, size
+from rollover.setup import configure_root, configure_straight2none, configure_tld
+
 import isctest
-from rollover.common import (
-    pytestmark,
-    alg,
-    size,
-    CDSS,
-    DURATION,
-    DEFAULT_CONFIG,
-)
-from rollover.setup import (
-    configure_root,
-    configure_tld,
-    configure_straight2none,
-)
 
 
 def bootstrap():

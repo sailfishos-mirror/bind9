@@ -20,12 +20,11 @@ import dns.tsigkeyring
 
 from isctest.asyncserver import (
     AsyncDnsServer,
-    ResponseHandler,
-    DnsResponseSend,
     DnsProtocol,
+    DnsResponseSend,
     QueryContext,
+    ResponseHandler,
 )
-
 from isctest.name import prepend_label
 from isctest.vars.algorithms import ALG_VARS
 

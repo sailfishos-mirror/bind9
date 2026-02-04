@@ -13,8 +13,9 @@ from dns import flags
 
 import pytest
 
-import isctest
 from isctest.util import param
+
+import isctest
 
 pytestmark = pytest.mark.extra_artifacts(
     [

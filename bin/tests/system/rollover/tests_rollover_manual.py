@@ -10,25 +10,22 @@
 # information regarding copyright ownership.
 
 from datetime import timedelta
+
 import os
 
-import isctest
 from isctest.kasp import (
-    KeyTimingMetadata,
     Ipub,
     Iret,
-    private_type_record,
+    KeyTimingMetadata,
     SettimeOptions,
+    private_type_record,
 )
-from isctest.template import Nameserver, Zone
 from isctest.run import EnvCmd
-
+from isctest.template import Nameserver, Zone
 from rollover.common import default_algorithm
-from rollover.setup import (
-    configure_root,
-    configure_tld,
-    setkeytimes,
-)
+from rollover.setup import configure_root, configure_tld, setkeytimes
+
+import isctest
 
 
 def setup_zone(zone, ksk_time, ksk_timings, zsk_time, zsk_timings) -> Zone:

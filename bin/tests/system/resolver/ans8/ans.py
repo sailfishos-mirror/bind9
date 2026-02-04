@@ -11,9 +11,9 @@ See the COPYRIGHT file distributed with this work for additional
 information regarding copyright ownership.
 """
 
-import abc
-
 from typing import AsyncGenerator
+
+import abc
 
 import dns.flags
 import dns.message
@@ -22,8 +22,8 @@ import dns.rdatatype
 
 from isctest.asyncserver import (
     AsyncDnsServer,
-    DnsResponseSend,
     DnsProtocol,
+    DnsResponseSend,
     DomainHandler,
     QnameHandler,
     QnameQtypeHandler,

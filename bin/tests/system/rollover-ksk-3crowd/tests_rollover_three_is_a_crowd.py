@@ -13,22 +13,19 @@
 
 from datetime import timedelta
 
-import isctest
 from isctest.kasp import KeyTimingMetadata
 from rollover.common import (
-    pytestmark,
-    alg,
-    size,
     KSK_CONFIG,
-    KSK_LIFETIME_POLICY,
     KSK_IPUB,
     KSK_IRET,
+    KSK_LIFETIME_POLICY,
+    alg,
+    pytestmark,
+    size,
 )
-from rollover.setup import (
-    configure_root,
-    configure_tld,
-    configure_ksk_3crowd,
-)
+from rollover.setup import configure_ksk_3crowd, configure_root, configure_tld
+
+import isctest
 
 CDSS = ["CDS (SHA-256)"]
 POLICY = "ksk-doubleksk-autosign"

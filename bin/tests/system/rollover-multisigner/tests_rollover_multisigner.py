@@ -12,22 +12,19 @@
 # pylint: disable=redefined-outer-name,unused-import
 
 from datetime import timedelta
-import os
 
-import pytest
+import os
 
 import dns
 import dns.update
+import pytest
 
-import isctest
 from isctest.kasp import Iret, SettimeOptions
 from isctest.run import EnvCmd
-from rollover.common import (
-    pytestmark,
-    alg,
-    size,
-)
+from rollover.common import alg, pytestmark, size
 from rollover.setup import fake_lifetime, render_and_sign_zone, setkeytimes
+
+import isctest
 
 
 def bootstrap():

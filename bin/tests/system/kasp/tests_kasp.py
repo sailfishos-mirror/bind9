@@ -9,26 +9,23 @@
 # See the COPYRIGHT file distributed with this work for additional
 # information regarding copyright ownership.
 
+from datetime import timedelta
+
 import os
 import shutil
 import subprocess
 import time
 
-from datetime import timedelta
-
 import dns
 import dns.update
 import pytest
 
-import isctest
-import isctest.mark
-from isctest.kasp import (
-    KeyProperties,
-    KeyTimingMetadata,
-    SettimeOptions,
-)
+from isctest.kasp import KeyProperties, KeyTimingMetadata, SettimeOptions
 from isctest.util import param
 from isctest.vars.algorithms import ECDSAP256SHA256, ECDSAP384SHA384
+
+import isctest
+import isctest.mark
 
 pytestmark = pytest.mark.extra_artifacts(
     [

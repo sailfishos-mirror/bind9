@@ -18,15 +18,15 @@ import os
 import sys
 import time
 
-import isctest
-import pytest
-
 import dns.exception
 import dns.message
 import dns.name
 import dns.rcode
 import dns.rdataclass
 import dns.rdatatype
+import pytest
+
+import isctest
 
 pytestmark = [
     pytest.mark.skipif(

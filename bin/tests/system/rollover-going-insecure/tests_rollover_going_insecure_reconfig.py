@@ -13,21 +13,18 @@
 
 import pytest
 
-import isctest
 from rollover.common import (
-    pytestmark,
-    alg,
-    size,
     CDSS,
     DEFAULT_CONFIG,
     DURATION,
     UNSIGNING_CONFIG,
+    alg,
+    pytestmark,
+    size,
 )
-from rollover.setup import (
-    configure_root,
-    configure_tld,
-    configure_going_insecure,
-)
+from rollover.setup import configure_going_insecure, configure_root, configure_tld
+
+import isctest
 
 
 def bootstrap():

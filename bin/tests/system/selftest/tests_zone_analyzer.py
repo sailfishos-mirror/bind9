@@ -14,13 +14,15 @@ isctest.name.ZoneAnalyzer self-test
 Generate insane test zone and check expected output of ZoneAnalyzer utility class
 """
 
+from pathlib import Path
+
 import collections
 import itertools
-from pathlib import Path
+
+from dns.name import Name
 
 import dns
 import dns.name
-from dns.name import Name
 import pytest
 
 import isctest

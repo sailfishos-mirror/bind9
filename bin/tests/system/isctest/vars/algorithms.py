@@ -9,16 +9,17 @@
 # See the COPYRIGHT file distributed with this work for additional
 # information regarding copyright ownership.
 
+from typing import Dict, List, NamedTuple, Optional, Union
+
 import os
 import platform
 import random
 import subprocess
 import tempfile
 import time
-from typing import Dict, List, NamedTuple, Optional, Union
 
-from .basic import BASIC_VARS
 from .. import log
+from .basic import BASIC_VARS
 
 # Algorithms are selected randomly at runtime from a list of supported
 # algorithms. The randomization is deterministic and remains stable for a

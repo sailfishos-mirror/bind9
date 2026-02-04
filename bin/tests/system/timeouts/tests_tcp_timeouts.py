@@ -16,8 +16,6 @@
 import socket
 import time
 
-import pytest
-
 import dns
 import dns.edns
 import dns.message
@@ -25,6 +23,7 @@ import dns.name
 import dns.query
 import dns.rdataclass
 import dns.rdatatype
+import pytest
 
 import isctest.mark  # pylint: disable=import-error
 

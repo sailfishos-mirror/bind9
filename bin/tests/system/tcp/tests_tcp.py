@@ -17,11 +17,10 @@ import socket
 import struct
 import time
 
-import pytest
-
 import dns
 import dns.message
 import dns.query
+import pytest
 
 pytestmark = pytest.mark.extra_artifacts(
     [

@@ -18,12 +18,9 @@ import time
 import dns
 import pytest
 
+from nsec3.common import ALGORITHM, SIZE, check_nsec3_case
+
 import isctest
-from nsec3.common import (
-    ALGORITHM,
-    SIZE,
-    check_nsec3_case,
-)
 
 # include the following zones when rendering named configs
 ZONES = {

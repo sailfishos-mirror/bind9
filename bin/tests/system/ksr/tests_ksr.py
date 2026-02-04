@@ -10,6 +10,7 @@
 # information regarding copyright ownership.
 
 from datetime import timedelta
+
 import os
 import re
 import shutil
@@ -17,8 +18,9 @@ import time
 
 import pytest
 
-import isctest
 from isctest.kasp import KeyTimingMetadata
+
+import isctest
 
 pytestmark = pytest.mark.extra_artifacts(
     [

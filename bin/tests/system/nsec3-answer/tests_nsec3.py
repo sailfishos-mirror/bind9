@@ -16,11 +16,12 @@
 # pylint: disable=unreachable
 
 from dataclasses import dataclass
-import os
 from pathlib import Path
 from typing import Container, Iterable, Optional, Set, Tuple
 
-import pytest
+import os
+
+from hypothesis import assume, given
 
 import dns.dnssec
 import dns.message
@@ -29,15 +30,15 @@ import dns.query
 import dns.rcode
 import dns.rdataclass
 import dns.rdatatype
-import dns.rdtypes.ANY.RRSIG
 import dns.rdtypes.ANY.NSEC3
+import dns.rdtypes.ANY.RRSIG
 import dns.rrset
+import pytest
 
 from isctest.hypothesis.strategies import dns_names, sampled_from
+
 import isctest
 import isctest.name
-
-from hypothesis import assume, given
 
 SUFFIX = dns.name.from_text(".")
 AUTH = "10.53.0.1"

@@ -13,8 +13,8 @@
 
 import os
 import platform
-import socket
 import shutil
+import socket
 
 import pytest
 

@@ -11,17 +11,15 @@
 # See the COPYRIGHT file distributed with this work for additional
 # information regarding copyright ownership.
 
+from functools import reduce
+from resource import RLIMIT_NOFILE, getrlimit, setrlimit
+
 import os
-import sys
+import random
 import socket
 import subprocess
-import random
+import sys
 import time
-
-from functools import reduce
-from resource import getrlimit
-from resource import setrlimit
-from resource import RLIMIT_NOFILE
 
 MULTIDIG_INSTANCES = 10
 CONNECT_TRIES = 5

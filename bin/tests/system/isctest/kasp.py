@@ -12,13 +12,14 @@
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from functools import total_ordering
+from pathlib import Path
+from re import compile as Re
+from typing import Dict, List, Optional, Tuple, Union
+
 import glob
 import os
-from pathlib import Path
 import re
-from re import compile as Re
 import time
-from typing import Dict, List, Optional, Tuple, Union
 
 import dns
 import dns.dnssec
@@ -26,13 +27,14 @@ import dns.rdatatype
 import dns.rrset
 import dns.tsig
 
+from isctest.instance import NamedInstance
+from isctest.run import EnvCmd
+from isctest.template import TrustAnchor
+from isctest.vars.algorithms import ALL_ALGORITHMS_BY_NUM, Algorithm
+
 import isctest.log
 import isctest.query
 import isctest.util
-from isctest.instance import NamedInstance
-from isctest.template import TrustAnchor
-from isctest.run import EnvCmd
-from isctest.vars.algorithms import Algorithm, ALL_ALGORITHMS_BY_NUM
 
 DEFAULT_TTL = 300
 

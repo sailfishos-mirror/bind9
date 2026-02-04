@@ -9,23 +9,25 @@
 # See the COPYRIGHT file distributed with this work for additional
 # information regarding copyright ownership.
 
-import filecmp
-import os
 from pathlib import Path
 from re import compile as Re
+
+import filecmp
+import os
 import shutil
 import subprocess
+import sys
 import tempfile
 import time
-import sys
 
 import pytest
 
 pytest.register_assert_rewrite("isctest")
 
 # pylint: disable=wrong-import-position
-import isctest
 from isctest.vars.build import SYSTEM_TEST_DIR_GIT_PATH
+
+import isctest
 
 # pylint: enable=wrong-import-position
 

@@ -9,12 +9,13 @@
 # See the COPYRIGHT file distributed with this work for additional
 # information regarding copyright ownership.
 
-import os
-import time
 from typing import Any, Callable, Optional
 
-import dns.query
+import os
+import time
+
 import dns.message
+import dns.query
 
 import isctest.log
 

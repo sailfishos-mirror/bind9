@@ -11,18 +11,18 @@
 # See the COPYRIGHT file distributed with this work for additional
 # information regarding copyright ownership.
 
+from pathlib import Path
 from typing import List, NamedTuple, Optional
 
 import os
-from pathlib import Path
 import re
 
-import dns.update
 import dns.rcode
+import dns.update
 
-from .log import debug, WatchLogFromStart, WatchLogFromHere
-from .run import CmdResult, EnvCmd, perl
+from .log import WatchLogFromHere, WatchLogFromStart, debug
 from .query import udp
+from .run import CmdResult, EnvCmd, perl
 from .text import TextFile
 
 
