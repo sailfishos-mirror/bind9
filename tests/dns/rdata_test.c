@@ -1104,10 +1104,14 @@ ISC_RUN_TEST_IMPL(amtrelay) {
 		    dns_rdatatype_amtrelay, sizeof(dns_rdata_amtrelay_t));
 }
 
-/* BRIB RDATA - base64 encoded opaque */
+/* BRID RDATA - base64 encoded opaque */
 ISC_RUN_TEST_IMPL(brid) {
 	text_ok_t text_ok[] = { /* empty  */
 				TEXT_INVALID(""),
+				/* zero length */
+				TEXT_INVALID("\\# 0"),
+				/* valid base64 string - minimum size */
+				TEXT_VALID("AA=="),
 				/* valid base64 string */
 				TEXT_VALID("aaaa"),
 				/* invalid base64 string */
@@ -2101,6 +2105,10 @@ ISC_RUN_TEST_IMPL(hip) {
 ISC_RUN_TEST_IMPL(hhit) {
 	text_ok_t text_ok[] = { /* empty  */
 				TEXT_INVALID(""),
+				/* zero length */
+				TEXT_INVALID("\\# 0"),
+				/* valid base64 string - minimum size */
+				TEXT_VALID("AA=="),
 				/* valid base64 string */
 				TEXT_VALID("aaaa"),
 				/* invalid base64 string */
