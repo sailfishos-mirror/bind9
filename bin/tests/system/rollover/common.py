@@ -15,7 +15,7 @@ import pytest
 
 from isctest.kasp import Ipub, IpubC, Iret
 
-pytestmark = pytest.mark.extra_artifacts(
+ROLLOVER_MARK = pytest.mark.extra_artifacts(
     [
         "*.axfr*",
         "dig.out*",

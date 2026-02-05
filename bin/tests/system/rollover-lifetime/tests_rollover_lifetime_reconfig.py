@@ -14,9 +14,11 @@
 import pytest
 
 from isctest.util import param
-from rollover.common import CDSS, DEFAULT_CONFIG, DURATION, pytestmark
+from rollover.common import CDSS, DEFAULT_CONFIG, DURATION, ROLLOVER_MARK
 
 import isctest
+
+pytestmark = ROLLOVER_MARK
 
 
 @pytest.fixture(scope="module", autouse=True)

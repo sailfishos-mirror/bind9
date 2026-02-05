@@ -13,10 +13,12 @@
 
 import pytest
 
-from rollover.common import CDSS, DURATION, UNSIGNING_CONFIG, pytestmark
+from rollover.common import CDSS, DURATION, ROLLOVER_MARK, UNSIGNING_CONFIG
 from rollover.setup import configure_going_insecure, configure_root, configure_tld
 
 import isctest
+
+pytestmark = ROLLOVER_MARK
 
 
 def bootstrap():

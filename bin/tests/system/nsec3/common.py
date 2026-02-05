@@ -16,7 +16,7 @@ import pytest
 
 import isctest
 
-pytestmark = pytest.mark.extra_artifacts(
+NSEC3_MARK = pytest.mark.extra_artifacts(
     [
         "*.axfr",
         "*.created",

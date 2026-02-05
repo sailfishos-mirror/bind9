@@ -26,12 +26,14 @@ from rollover.common import (
     ALGOROLL_OFFVAL,
     CDSS,
     DURATION,
+    ROLLOVER_MARK,
     TIMEDELTA,
-    pytestmark,
 )
 from rollover.setup import configure_algo_ksk_zsk, configure_root, configure_tld
 
 import isctest
+
+pytestmark = ROLLOVER_MARK
 
 CONFIG = ALGOROLL_CONFIG
 POLICY = "ecdsa256"

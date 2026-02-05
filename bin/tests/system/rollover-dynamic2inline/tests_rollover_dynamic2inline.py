@@ -11,9 +11,11 @@
 
 # pylint: disable=redefined-outer-name,unused-import
 
-from rollover.common import CDSS, DEFAULT_CONFIG, pytestmark
+from rollover.common import CDSS, DEFAULT_CONFIG, ROLLOVER_MARK
 
 import isctest
+
+pytestmark = ROLLOVER_MARK
 
 
 def test_dynamic2inline(ns3, default_algorithm, templates):

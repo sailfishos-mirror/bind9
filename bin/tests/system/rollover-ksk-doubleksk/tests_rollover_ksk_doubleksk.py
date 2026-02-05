@@ -24,12 +24,14 @@ from rollover.common import (
     KSK_KEYTTLPROP,
     KSK_LIFETIME,
     KSK_LIFETIME_POLICY,
+    ROLLOVER_MARK,
     TIMEDELTA,
-    pytestmark,
 )
 from rollover.setup import configure_ksk_doubleksk, configure_root, configure_tld
 
 import isctest
+
+pytestmark = ROLLOVER_MARK
 
 CDSS = ["CDS (SHA-256)"]
 POLICY = "ksk-doubleksk"

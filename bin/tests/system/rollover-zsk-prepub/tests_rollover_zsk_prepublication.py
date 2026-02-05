@@ -17,10 +17,12 @@ import pytest
 
 from isctest.kasp import Ipub, Iret
 from isctest.util import param
-from rollover.common import TIMEDELTA, pytestmark
+from rollover.common import ROLLOVER_MARK, TIMEDELTA
 from rollover.setup import configure_root, configure_tld, configure_zsk_prepub
 
 import isctest
+
+pytestmark = ROLLOVER_MARK
 
 CONFIG = {
     "dnskey-ttl": TIMEDELTA["PT1H"],
