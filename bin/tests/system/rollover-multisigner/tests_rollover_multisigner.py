@@ -21,10 +21,12 @@ import pytest
 
 from isctest.kasp import Iret, SettimeOptions
 from isctest.run import EnvCmd
-from rollover.common import pytestmark
+from rollover.common import ROLLOVER_MARK
 from rollover.setup import fake_lifetime, render_and_sign_zone, setkeytimes
 
 import isctest
+
+pytestmark = ROLLOVER_MARK
 
 
 def bootstrap():

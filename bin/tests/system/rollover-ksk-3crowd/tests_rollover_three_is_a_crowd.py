@@ -19,11 +19,13 @@ from rollover.common import (
     KSK_IPUB,
     KSK_IRET,
     KSK_LIFETIME_POLICY,
-    pytestmark,
+    ROLLOVER_MARK,
 )
 from rollover.setup import configure_ksk_3crowd, configure_root, configure_tld
 
 import isctest
+
+pytestmark = ROLLOVER_MARK
 
 CDSS = ["CDS (SHA-256)"]
 POLICY = "ksk-doubleksk-autosign"

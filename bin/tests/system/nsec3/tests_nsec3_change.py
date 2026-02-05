@@ -20,10 +20,12 @@ import dns.update
 import pytest
 
 from isctest.vars.algorithms import RSASHA1, Algorithm
-from nsec3.common import check_nsec3_case, default_config, pytestmark
+from nsec3.common import NSEC3_MARK, check_nsec3_case, default_config
 
 import isctest
 import isctest.mark
+
+pytestmark = NSEC3_MARK
 
 # include the following zones when rendering named configs
 ZONES = {

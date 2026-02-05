@@ -17,10 +17,12 @@ import pytest
 
 from isctest.kasp import Ipub, Iret
 from isctest.util import param
-from rollover.common import TIMEDELTA, pytestmark
+from rollover.common import ROLLOVER_MARK, TIMEDELTA
 from rollover.setup import configure_cskroll2, configure_root, configure_tld
 
 import isctest
+
+pytestmark = ROLLOVER_MARK
 
 CDSS = ["CDNSKEY", "CDS (SHA-256)", "CDS (SHA-384)"]
 CONFIG = {

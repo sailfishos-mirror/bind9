@@ -21,10 +21,12 @@ import dns.update
 import pytest
 
 from isctest.vars.algorithms import RSASHA256
-from nsec3.common import check_auth_nsec3, check_nsec3param, pytestmark
+from nsec3.common import NSEC3_MARK, check_auth_nsec3, check_nsec3param
 
 import isctest
 import isctest.mark
+
+pytestmark = NSEC3_MARK
 
 DNSKEY_TTL = int(timedelta(hours=1).total_seconds())
 ZSK_LIFETIME = int(timedelta(days=90).total_seconds())

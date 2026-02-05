@@ -18,9 +18,11 @@ import time
 import dns
 import pytest
 
-from nsec3.common import check_nsec3_case
+from nsec3.common import NSEC3_MARK, check_nsec3_case
 
 import isctest
+
+pytestmark = NSEC3_MARK
 
 # include the following zones when rendering named configs
 ZONES = {

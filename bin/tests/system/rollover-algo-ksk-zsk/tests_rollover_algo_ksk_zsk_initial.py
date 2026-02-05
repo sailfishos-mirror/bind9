@@ -14,10 +14,12 @@
 import pytest
 
 from isctest.util import param
-from rollover.common import ALGOROLL_CONFIG, CDSS, DURATION, TIMEDELTA, pytestmark
+from rollover.common import ALGOROLL_CONFIG, CDSS, DURATION, ROLLOVER_MARK, TIMEDELTA
 from rollover.setup import configure_algo_ksk_zsk, configure_root, configure_tld
 
 import isctest
+
+pytestmark = ROLLOVER_MARK
 
 
 def bootstrap():
