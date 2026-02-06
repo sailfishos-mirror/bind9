@@ -137,8 +137,7 @@ isc_hmac_key_destroy(isc_hmac_key_t **keyp) {
 
 	key->magic = 0x00;
 
-	isc_safe_memwipe(key->secret, sizeof(key->len));
-
+	isc_safe_memwipe(key->secret, key->len);
 	isc_mem_putanddetach(&key->mctx, key,
 			     STRUCT_FLEX_SIZE(key, secret, key->len));
 }
