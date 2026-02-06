@@ -120,6 +120,7 @@ cfg_kaspkey_fromconfig(const cfg_obj_t *config, dns_kasp_t *kasp,
 	isc_result_t result;
 	dns_kasp_key_t *key = NULL;
 	const cfg_obj_t *tagrange = NULL;
+	uint32_t min_lifetime = UINT32_MAX;
 
 	/* Create a new key reference. */
 	dns_kasp_key_create(kasp, &key);
@@ -199,18 +200,22 @@ cfg_kaspkey_fromconfig(const cfg_obj_t *config, dns_kasp_t *kasp,
 					cfg_obj_log(obj, ISC_LOG_WARNING,
 						    "dnssec-policy: key "
 						    "lifetime is "
-						    "shorter than 30 days");
+						    "shorter than the "
+						    "recommended 30 days");
 				}
 			}
 			if ((key->role & DNS_KASP_KEY_ROLE_KSK) != 0 &&
 			    key->lifetime <= ksk_min_lifetime)
 			{
 				error = true;
+				min_lifetime = ksk_min_lifetime;
 			}
 			if ((key->role & DNS_KASP_KEY_ROLE_ZSK) != 0 &&
 			    key->lifetime <= zsk_min_lifetime)
 			{
 				error = true;
+				min_lifetime = ISC_MIN(min_lifetime,
+						       zsk_min_lifetime);
 			}
 			if (error) {
 				if (log_errors) {
@@ -219,7 +224,11 @@ cfg_kaspkey_fromconfig(const cfg_obj_t *config, dns_kasp_t *kasp,
 						    "lifetime is "
 						    "shorter than the time it "
 						    "takes to "
-						    "do a rollover");
+						    "do a rollover (lifetime "
+						    "with these parameters "
+						    "must be higher than %u "
+						    "seconds)",
+						    min_lifetime);
 				}
 				CLEANUP(ISC_R_FAILURE);
 			}
