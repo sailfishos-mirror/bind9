@@ -43,6 +43,10 @@ def is_dnsrps_available():
     return True
 
 
+def is_host_freebsd(*_):
+    return platform.system() == "FreeBSD"
+
+
 def is_host_freebsd_13(*_):
     return platform.system() == "FreeBSD" and platform.release().startswith("13")
 
