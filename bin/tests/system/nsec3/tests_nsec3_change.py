@@ -62,6 +62,7 @@ def after_servers_start(ns3, templates):
     fqdn = f"{zone}."
     isctest.kasp.wait_keymgr_done(ns3, zone)
 
+    time.sleep(1)
     shutil.copyfile(f"{nsdir}/template2.db.in", f"{nsdir}/{zone}.db")
     ns3.rndc(f"reload {zone}")
 
