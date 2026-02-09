@@ -11,12 +11,7 @@
 
 # pylint: disable=redefined-outer-name,unused-import
 
-import os
 import shutil
-import time
-
-import dns
-import pytest
 
 from nsec3.common import NSEC3_MARK, check_nsec3_case
 

@@ -12,7 +12,6 @@
 # pylint: disable=redefined-outer-name,unused-import
 
 import os
-import shutil
 import time
 
 import dns
@@ -20,7 +19,7 @@ import dns.update
 import pytest
 
 from isctest.vars.algorithms import RSASHA1, Algorithm
-from nsec3.common import NSEC3_MARK, check_nsec3_case, default_config
+from nsec3.common import NSEC3_MARK, check_nsec3_case
 
 import isctest
 import isctest.mark

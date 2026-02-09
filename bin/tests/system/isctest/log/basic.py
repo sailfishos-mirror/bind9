@@ -10,7 +10,6 @@
 # information regarding copyright ownership.
 
 from pathlib import Path
-from typing import Dict, Optional
 
 import logging
 import textwrap
