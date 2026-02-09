@@ -2964,8 +2964,8 @@ add(qpcache_t *qpdb, qpcnode_t *qpnode, dns_slabheader_t *newheader,
 	if (EXISTS(newheader) && NEGATIVE(newheader) &&
 	    !dns_rdatatype_issig(rdtype) && related != NULL)
 	{
-		dns_slabheader_t *oldsigheader = first_header(oldtop->related);
-		mark_ancient(oldsigheader);
+		dns_slabheader_t *relatedheader = first_header(related);
+		mark_ancient(relatedheader);
 	}
 
 	bindrdataset(qpdb, qpnode, newheader, now, nlocktype, tlocktype,
