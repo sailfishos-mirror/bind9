@@ -9,8 +9,6 @@
 # See the COPYRIGHT file distributed with this work for additional
 # information regarding copyright ownership.
 
-from typing import List
-
 import shutil
 
 from isctest.kasp import SettimeOptions, private_type_record
@@ -21,7 +19,7 @@ from isctest.vars.algorithms import Algorithm
 import isctest
 
 
-def configure_tld(zonename: str, delegations: List[Zone]) -> Zone:
+def configure_tld(zonename: str, delegations: list[Zone]) -> Zone:
     templates = isctest.template.TemplateEngine(".")
     alg = Algorithm.default()
     keygen = EnvCmd("KEYGEN", f"-q -a {alg.number} -b {alg.bits} -L 3600")
@@ -55,7 +53,7 @@ def configure_tld(zonename: str, delegations: List[Zone]) -> Zone:
     return Zone(zonename, f"{outfile}.signed", Nameserver("ns2", "10.53.0.2"))
 
 
-def configure_root(delegations: List[Zone]) -> TrustAnchor:
+def configure_root(delegations: list[Zone]) -> TrustAnchor:
     templates = isctest.template.TemplateEngine(".")
     alg = Algorithm.default()
     keygen = EnvCmd("KEYGEN", f"-q -a {alg.number} -b {alg.bits} -L 3600")
@@ -115,7 +113,7 @@ def setkeytimes(key_name: str, options: SettimeOptions):
 
 
 def render_and_sign_zone(
-    zonename: str, keys: List[str], signing: bool = True, extra_options: str = ""
+    zonename: str, keys: list[str], signing: bool = True, extra_options: str = ""
 ):
     dnskeys = []
     privaterrs = []
@@ -142,7 +140,7 @@ def render_and_sign_zone(
         )
 
 
-def configure_algo_csk(tld: str, policy: str, reconfig: bool = False) -> List[Zone]:
+def configure_algo_csk(tld: str, policy: str, reconfig: bool = False) -> list[Zone]:
     # The zones at csk-algorithm-roll.$tld represent the various steps
     # of a CSK algorithm rollover.
     zones = []
@@ -341,7 +339,7 @@ def configure_algo_csk(tld: str, policy: str, reconfig: bool = False) -> List[Zo
     return zones
 
 
-def configure_algo_ksk_zsk(tld: str, reconfig: bool = False) -> List[Zone]:
+def configure_algo_ksk_zsk(tld: str, reconfig: bool = False) -> list[Zone]:
     # The zones at algorithm-roll.$tld represent the various steps of a ZSK/KSK
     # algorithm rollover.
     zones = []
@@ -659,7 +657,7 @@ def configure_algo_ksk_zsk(tld: str, reconfig: bool = False) -> List[Zone]:
     return zones
 
 
-def configure_cskroll1(tld: str, policy: str) -> List[Zone]:
+def configure_cskroll1(tld: str, policy: str) -> list[Zone]:
     # The zones at csk-roll1.$tld represent the various steps of a CSK rollover
     # (which is essentially a ZSK Pre-Publication / KSK Double-KSK rollover).
     zones = []
@@ -1053,7 +1051,7 @@ def configure_cskroll1(tld: str, policy: str) -> List[Zone]:
     return zones
 
 
-def configure_cskroll2(tld: str, policy: str) -> List[Zone]:
+def configure_cskroll2(tld: str, policy: str) -> list[Zone]:
     # The zones at csk-roll2.$tld represent the various steps of a CSK rollover
     # (which is essentially a ZSK Pre-Publication / KSK Double-KSK rollover).
     # This scenario differs from the csk-roll1 one because the zone signatures (ZRRSIG)
@@ -1464,7 +1462,7 @@ def configure_cskroll2(tld: str, policy: str) -> List[Zone]:
     return zones
 
 
-def configure_enable_dnssec(tld: str, policy: str) -> List[Zone]:
+def configure_enable_dnssec(tld: str, policy: str) -> list[Zone]:
     # The zones at enable-dnssec.$tld represent the various steps of the
     # initial signing of a zone.
     zones = []
@@ -1559,7 +1557,7 @@ def configure_enable_dnssec(tld: str, policy: str) -> List[Zone]:
     return zones
 
 
-def configure_going_insecure(tld: str, reconfig: bool = False) -> List[Zone]:
+def configure_going_insecure(tld: str, reconfig: bool = False) -> list[Zone]:
     zones = []
     keygen = EnvCmd("KEYGEN", "-a ECDSA256 -L 7200")
 
@@ -1639,7 +1637,7 @@ def configure_going_insecure(tld: str, reconfig: bool = False) -> List[Zone]:
     return zones
 
 
-def configure_straight2none(tld: str) -> List[Zone]:
+def configure_straight2none(tld: str) -> list[Zone]:
     # These zones are going straight to "none" policy. This is undefined behavior.
     zones = []
     keygen = EnvCmd("KEYGEN", "-k default")
@@ -1687,7 +1685,7 @@ def configure_straight2none(tld: str) -> List[Zone]:
     return zones
 
 
-def configure_ksk_doubleksk(tld: str) -> List[Zone]:
+def configure_ksk_doubleksk(tld: str) -> list[Zone]:
     # The zones at ksk-doubleksk.$tld represent the various steps of a KSK
     # Double-KSK rollover.
     zones = []
@@ -2003,7 +2001,7 @@ def configure_ksk_doubleksk(tld: str) -> List[Zone]:
     return zones
 
 
-def configure_ksk_3crowd(tld: str) -> List[Zone]:
+def configure_ksk_3crowd(tld: str) -> list[Zone]:
     # Test #2375, the "three is a crowd" bug, where a new key is introduced but the
     # previous rollover has not finished yet. In other words, we have a key KEY2
     # that is the successor of key KEY1, and we introduce a new key KEY3 that is
@@ -2072,7 +2070,7 @@ def configure_ksk_3crowd(tld: str) -> List[Zone]:
     return zones
 
 
-def configure_zsk_prepub(tld: str) -> List[Zone]:
+def configure_zsk_prepub(tld: str) -> list[Zone]:
     # The zones at zsk-prepub.$tld represent the various steps of a ZSK
     # Pre-Publication rollover.
     zones = []

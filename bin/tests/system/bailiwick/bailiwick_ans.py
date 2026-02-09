@@ -11,7 +11,7 @@ See the COPYRIGHT file distributed with this work for additional
 information regarding copyright ownership.
 """
 
-from typing import Dict, List, Optional, Type
+from typing import Optional
 
 import abc
 
@@ -30,7 +30,7 @@ from isctest.asyncserver import (
 
 class ResponseSpoofer(ResponseHandler, abc.ABC):
 
-    spoofers: Dict[str, Type["ResponseSpoofer"]] = {}
+    spoofers: dict[str, type["ResponseSpoofer"]] = {}
 
     def __init_subclass__(cls, mode: str) -> None:
         assert mode not in cls.spoofers
@@ -69,7 +69,7 @@ class SetSpoofingModeCommand(ControlCommand):
         self._current_handler: Optional[ResponseSpoofer] = None
 
     def handle(
-        self, args: List[str], server: ControllableAsyncDnsServer, qctx: QueryContext
+        self, args: list[str], server: ControllableAsyncDnsServer, qctx: QueryContext
     ) -> Optional[str]:
         if len(args) != 1:
             qctx.response.set_rcode(dns.rcode.SERVFAIL)

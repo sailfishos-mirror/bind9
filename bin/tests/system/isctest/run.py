@@ -10,7 +10,7 @@
 # information regarding copyright ownership.
 
 from pathlib import Path
-from typing import List, Optional
+from typing import Optional
 
 import os
 import subprocess
@@ -98,7 +98,7 @@ class EnvCmd:
 def _run_script(
     interpreter: str,
     script: str,
-    args: Optional[List[str]] = None,
+    args: Optional[list[str]] = None,
 ):
     if args is None:
         args = []
@@ -130,12 +130,12 @@ def _run_script(
         isctest.log.debug("  exited with %d", returncode)
 
 
-def shell(script: str, args: Optional[List[str]] = None) -> None:
+def shell(script: str, args: Optional[list[str]] = None) -> None:
     """Run a given script with system's shell interpreter."""
     _run_script(os.environ["SHELL"], script, args)
 
 
-def perl(script: str, args: Optional[List[str]] = None) -> None:
+def perl(script: str, args: Optional[list[str]] = None) -> None:
     """Run a given script with system's perl interpreter."""
     _run_script(os.environ["PERL"], script, args)
 

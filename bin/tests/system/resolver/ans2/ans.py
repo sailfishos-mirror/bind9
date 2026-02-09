@@ -11,7 +11,7 @@ See the COPYRIGHT file distributed with this work for additional
 information regarding copyright ownership.
 """
 
-from typing import AsyncGenerator, Tuple, Union
+from typing import AsyncGenerator, Union
 
 import dns.edns
 import dns.name
@@ -55,7 +55,7 @@ class BadGoodDnameNsHandler(QnameQtypeHandler, StaticResponseHandler):
 
 def _cname_rrsets(
     qname: Union[dns.name.Name, str],
-) -> Tuple[dns.rrset.RRset, dns.rrset.RRset]:
+) -> tuple[dns.rrset.RRset, dns.rrset.RRset]:
     return (
         rrset(qname, dns.rdatatype.CNAME, f"{qname}"),
         rrset(qname, dns.rdatatype.A, "1.2.3.4"),

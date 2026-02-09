@@ -13,7 +13,7 @@
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, Optional, Union
+from typing import Any, Optional, Union
 
 import jinja2
 
@@ -44,7 +44,7 @@ class TemplateEngine:
     def render(
         self,
         output: str,
-        data: Optional[Dict[str, Any]] = None,
+        data: Optional[dict[str, Any]] = None,
         template: Optional[str] = None,
     ) -> None:
         """
@@ -69,7 +69,7 @@ class TemplateEngine:
         stream = self.j2env.get_template(template).stream(data)
         stream.dump(output, encoding="utf-8")
 
-    def render_auto(self, data: Optional[Dict[str, Any]] = None):
+    def render_auto(self, data: Optional[dict[str, Any]] = None):
         """
         Render all *.j2 templates with default (and optionally the provided)
         values and write the output to files without the .j2 extensions.

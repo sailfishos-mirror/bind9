@@ -17,7 +17,7 @@
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Container, Iterable, Optional, Set, Tuple
+from typing import Container, Iterable, Optional
 
 import os
 
@@ -63,7 +63,7 @@ def is_related_to_any(
 
 def do_test_query(
     qname: dns.name.Name, qtype: dns.rdatatype.RdataType, server: str, named_port: int
-) -> Tuple[dns.message.QueryMessage, "NSEC3Checker"]:
+) -> tuple[dns.message.QueryMessage, "NSEC3Checker"]:
     query = dns.message.make_query(qname, qtype, use_edns=True, want_dnssec=True)
     response = isctest.query.tcp(query, server, named_port, timeout=TIMEOUT)
     isctest.check.is_response_to(response, query)
@@ -349,8 +349,8 @@ class NSEC3Checker:
         assert attrs_seen["algorithm"] is not None, f"no NSEC3 found\n{response}"
         self.params: NSEC3Params = NSEC3Params(**attrs_seen)
         self.response: dns.message.Message = response
-        self.owners_present: Set[dns.name.Name] = owners_seen
-        self.owners_used: Set[dns.name.Name] = set()
+        self.owners_present: set[dns.name.Name] = owners_seen
+        self.owners_used: set[dns.name.Name] = set()
 
     @staticmethod
     def nsec3_covers(rrset: dns.rrset.RRset, hashed_name: dns.name.Name) -> bool:

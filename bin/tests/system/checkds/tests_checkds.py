@@ -12,7 +12,7 @@
 # information regarding copyright ownership.
 
 
-from typing import NamedTuple, Tuple
+from typing import NamedTuple
 
 import os
 import sys
@@ -189,7 +189,7 @@ def keystate_check(server, zone, key):
 
 class CheckDSTest(NamedTuple):
     zone: str
-    logs_to_wait_for: Tuple[str]
+    logs_to_wait_for: tuple[str]
     expected_parent_state: str
 
 

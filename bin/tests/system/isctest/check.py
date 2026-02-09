@@ -9,7 +9,7 @@
 # See the COPYRIGHT file distributed with this work for additional
 # information regarding copyright ownership.
 
-from typing import List, Optional, cast
+from typing import Optional, cast
 
 import difflib
 import os
@@ -72,10 +72,10 @@ def noraflag(message: dns.message.Message) -> None:
 
 def _extract_ede_options(
     message: dns.message.Message,
-) -> List[EDEOption]:
+) -> list[EDEOption]:
     """Extract EDE options from the DNS message."""
     return cast(
-        List[EDEOption],
+        list[EDEOption],
         [
             option
             for option in message.options
