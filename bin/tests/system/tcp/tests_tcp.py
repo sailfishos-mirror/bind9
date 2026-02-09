@@ -11,8 +11,6 @@
 # See the COPYRIGHT file distributed with this work for additional
 # information regarding copyright ownership.
 
-# pylint: disable=unused-variable
-
 import socket
 import struct
 import time

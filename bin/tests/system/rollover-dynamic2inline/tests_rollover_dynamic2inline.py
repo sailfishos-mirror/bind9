@@ -9,8 +9,6 @@
 # See the COPYRIGHT file distributed with this work for additional
 # information regarding copyright ownership.
 
-# pylint: disable=redefined-outer-name,unused-import
-
 from rollover.common import CDSS, DEFAULT_CONFIG, ROLLOVER_MARK
 
 import isctest

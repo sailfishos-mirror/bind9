@@ -14,16 +14,14 @@ import os
 import sys
 
 
-# getting explicit encoding specification right for Python 2/3 would be messy,
-# so let's hope for the best
 def read_whole_text(filename):
-    with open(filename) as inf:  # pylint: disable-msg=unspecified-encoding
+    with open(filename, encoding="utf-8") as inf:
         return inf.read().strip()
 
 
 def read_trs_result(filename):
     result = None
-    with open(filename, "r") as trs:  # pylint: disable-msg=unspecified-encoding
+    with open(filename, "r", encoding="utf-8") as trs:
         for line in trs:
             items = line.split()
             if len(items) < 2:
