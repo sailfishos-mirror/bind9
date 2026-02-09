@@ -17,7 +17,6 @@ import os
 
 import dns
 import dns.update
-import pytest
 
 from isctest.kasp import Iret, SettimeOptions
 from isctest.run import EnvCmd

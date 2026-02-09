@@ -18,7 +18,7 @@ import dns.update
 import pytest
 
 from isctest.vars.algorithms import RSASHA1, Algorithm
-from nsec3.common import NSEC3_MARK, check_nsec3_case, default_config
+from nsec3.common import NSEC3_MARK, check_nsec3_case
 
 import isctest
 import isctest.mark
