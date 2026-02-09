@@ -12,7 +12,7 @@
 # information regarding copyright ownership.
 
 from pathlib import Path
-from typing import List, NamedTuple, Optional
+from typing import NamedTuple, Optional
 
 import os
 import re
@@ -175,7 +175,7 @@ class NamedInstance:
             watcher.wait_for_line("all zones loaded")
         return cmd
 
-    def stop(self, args: Optional[List[str]] = None) -> None:
+    def stop(self, args: Optional[list[str]] = None) -> None:
         """Stop the instance."""
         args = args or []
         perl(
@@ -183,7 +183,7 @@ class NamedInstance:
             [self.system_test_name, self.identifier] + args,
         )
 
-    def start(self, args: Optional[List[str]] = None) -> None:
+    def start(self, args: Optional[list[str]] = None) -> None:
         """Start the instance."""
         args = args or []
         perl(

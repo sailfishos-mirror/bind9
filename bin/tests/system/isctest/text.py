@@ -12,7 +12,7 @@
 # information regarding copyright ownership.
 
 from re import compile as Re
-from typing import Iterator, List, Match, Optional, Pattern, TextIO, Union
+from typing import Iterator, Match, Optional, Pattern, TextIO, Union
 
 import abc
 import re
@@ -48,7 +48,7 @@ class Grep(abc.ABC):
             if match:
                 yield match
 
-    def grep(self, pattern: FlexPattern) -> List[Match]:
+    def grep(self, pattern: FlexPattern) -> list[Match]:
         """
         Get list of lines matching the pattern.
         """

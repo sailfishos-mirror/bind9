@@ -17,12 +17,8 @@ from typing import (
     AsyncGenerator,
     Callable,
     Coroutine,
-    Dict,
-    List,
     Optional,
     Sequence,
-    Set,
-    Tuple,
     Union,
     cast,
 )
@@ -57,7 +53,7 @@ import dns.version
 import dns.zone
 
 _UdpHandler = Callable[
-    [bytes, Tuple[str, int], asyncio.DatagramTransport], Coroutine[Any, Any, None]
+    [bytes, tuple[str, int], asyncio.DatagramTransport], Coroutine[Any, Any, None]
 ]
 
 
@@ -84,7 +80,7 @@ class _AsyncUdpHandler(asyncio.DatagramProtocol):
         """
         self._transport = cast(asyncio.DatagramTransport, transport)
 
-    def datagram_received(self, data: bytes, addr: Tuple[str, int]) -> None:
+    def datagram_received(self, data: bytes, addr: tuple[str, int]) -> None:
         """
         Called by asyncio when a datagram is received.
         """
@@ -133,7 +129,7 @@ class AsyncServer:
         logging.info("Setting up IPv4 listener at %s:%d", ipv4_address, port)
         logging.info("Setting up IPv6 listener at [%s]:%d", ipv6_address, port)
 
-        self._ip_addresses: Tuple[str, str] = (ipv4_address, ipv6_address)
+        self._ip_addresses: tuple[str, str] = (ipv4_address, ipv6_address)
         self._port: int = port
         self._udp_handler: Optional[_UdpHandler] = udp_handler
         self._tcp_handler: Optional[_TcpHandler] = tcp_handler
@@ -186,7 +182,7 @@ class AsyncServer:
         loop.set_exception_handler(self._handle_exception)
 
     def _handle_exception(
-        self, _: asyncio.AbstractEventLoop, context: Dict[str, Any]
+        self, _: asyncio.AbstractEventLoop, context: dict[str, Any]
     ) -> None:
         assert self._work_done
         exception = context.get("exception", RuntimeError(context["message"]))
@@ -512,7 +508,7 @@ class IgnoreAllConnections(ConnectionHandler):
     client socket, effectively ignoring all incoming connections.
     """
 
-    _connections: Set[asyncio.StreamWriter] = field(default_factory=set)
+    _connections: set[asyncio.StreamWriter] = field(default_factory=set)
 
     async def handle(
         self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter, peer: Peer
@@ -623,14 +619,14 @@ class QnameHandler(ResponseHandler):
 
     @property
     @abc.abstractmethod
-    def qnames(self) -> List[str]:
+    def qnames(self) -> list[str]:
         """
         A list of QNAMEs handled by this class.
         """
         raise NotImplementedError
 
     def __init__(self) -> None:
-        self._qnames: List[dns.name.Name] = [dns.name.from_text(d) for d in self.qnames]
+        self._qnames: list[dns.name.Name] = [dns.name.from_text(d) for d in self.qnames]
 
     def __str__(self) -> str:
         return f"{self.__class__.__name__}(QNAMEs: {', '.join(self.qnames)})"
@@ -653,7 +649,7 @@ class QnameQtypeHandler(QnameHandler):
 
     @property
     @abc.abstractmethod
-    def qtypes(self) -> List[dns.rdatatype.RdataType]:
+    def qtypes(self) -> list[dns.rdatatype.RdataType]:
         """
         A list of QTYPEs handled by this class.
         """
@@ -661,7 +657,7 @@ class QnameQtypeHandler(QnameHandler):
 
     def __init__(self) -> None:
         super().__init__()
-        self._qtypes: List[dns.rdatatype.RdataType] = self.qtypes
+        self._qtypes: list[dns.rdatatype.RdataType] = self.qtypes
 
     def __str__(self) -> str:
         return f"{self.__class__.__name__}(QNAMEs: {', '.join(self.qnames)}; QTYPEs: {', '.join(map(str, self.qtypes))})"
@@ -755,14 +751,14 @@ class DomainHandler(ResponseHandler):
 
     @property
     @abc.abstractmethod
-    def domains(self) -> List[str]:
+    def domains(self) -> list[str]:
         """
         A list of domain names handled by this class.
         """
         raise NotImplementedError
 
     def __init__(self) -> None:
-        self._domains: List[dns.name.Name] = sorted(
+        self._domains: list[dns.name.Name] = sorted(
             [dns.name.from_text(d) for d in self.domains], reverse=True
         )
         self._matched_domain: Optional[dns.name.Name] = None
@@ -833,7 +829,7 @@ class ForwarderHandler(ResponseHandler):
             logging.debug("[OUT] %s", self._query.hex())
             cast(asyncio.DatagramTransport, transport).sendto(self._query)
 
-        def datagram_received(self, data: bytes, _: Tuple[str, int]) -> None:
+        def datagram_received(self, data: bytes, _: tuple[str, int]) -> None:
             logging.debug("[IN] %s", data.hex())
             self._response.set_result(data)
 
@@ -897,7 +893,7 @@ class _ZoneTreeNode:
     """
 
     zone: Optional[dns.zone.Zone]
-    children: List["_ZoneTreeNode"] = field(default_factory=list)
+    children: list["_ZoneTreeNode"] = field(default_factory=list)
 
 
 class _ZoneTree:
@@ -977,7 +973,7 @@ class _DnsMessageWithTsigDisabled(dns.message.Message):
             from failing on messages initialized with `dns.message.from_wire(keyring=False)`.
             """
 
-            def sign(*_: Any, **__: Any) -> Tuple[dns.rdata.Rdata, None]:
+            def sign(*_: Any, **__: Any) -> tuple[dns.rdata.Rdata, None]:
                 assert self.tsig
                 return self.tsig[0], None
 
@@ -1055,7 +1051,7 @@ class AsyncDnsServer(AsyncServer):
         default_rcode: dns.rcode.Rcode = dns.rcode.REFUSED,
         default_aa: bool = False,
         keyring: Union[
-            Dict[dns.name.Name, dns.tsig.Key], None, _NoKeyringType
+            dict[dns.name.Name, dns.tsig.Key], None, _NoKeyringType
         ] = _NoKeyringType(),
         acknowledge_manual_dname_handling: bool = False,
     ) -> None:
@@ -1063,7 +1059,7 @@ class AsyncDnsServer(AsyncServer):
 
         self._zone_tree: _ZoneTree = _ZoneTree()
         self._connection_handler: Optional[ConnectionHandler] = None
-        self._response_handlers: List[ResponseHandler] = []
+        self._response_handlers: list[ResponseHandler] = []
         self._default_rcode = default_rcode
         self._default_aa = default_aa
         self._keyring = keyring
@@ -1172,7 +1168,7 @@ class AsyncDnsServer(AsyncServer):
                     raise ValueError(error)
 
     async def _handle_udp(
-        self, wire: bytes, addr: Tuple[str, int], transport: asyncio.DatagramTransport
+        self, wire: bytes, addr: tuple[str, int], transport: asyncio.DatagramTransport
     ) -> None:
         logging.debug("Received UDP message: %s", wire.hex())
         socket_info = transport.get_extra_info("sockname")
@@ -1592,7 +1588,7 @@ class ControllableAsyncDnsServer(AsyncDnsServer):
         return dns.name.from_text(self._CONTROL_DOMAIN)
 
     @functools.cached_property
-    def _commands(self) -> Dict[dns.name.Name, "ControlCommand"]:
+    def _commands(self) -> dict[dns.name.Name, "ControlCommand"]:
         return {}
 
     def install_control_commands(self, *commands: "ControlCommand") -> None:
@@ -1703,7 +1699,7 @@ class ControlCommand(abc.ABC):
 
     @abc.abstractmethod
     def handle(
-        self, args: List[str], server: ControllableAsyncDnsServer, qctx: QueryContext
+        self, args: list[str], server: ControllableAsyncDnsServer, qctx: QueryContext
     ) -> Optional[str]:
         """
         This method is expected to carry out arbitrary actions in response to a
@@ -1745,7 +1741,7 @@ class ToggleResponsesCommand(ControlCommand):
         self._current_handler: Optional[IgnoreAllQueries] = None
 
     def handle(
-        self, args: List[str], server: ControllableAsyncDnsServer, qctx: QueryContext
+        self, args: list[str], server: ControllableAsyncDnsServer, qctx: QueryContext
     ) -> Optional[str]:
         if len(args) != 1:
             logging.error("Invalid %s query %s", self, qctx.qname)
@@ -1785,11 +1781,11 @@ class SwitchControlCommand(ControlCommand):
 
     control_subdomain = "switch"
 
-    def __init__(self, handler_mapping: Dict[str, Sequence[ResponseHandler]]):
+    def __init__(self, handler_mapping: dict[str, Sequence[ResponseHandler]]):
         self._handler_mapping = handler_mapping
 
     def handle(
-        self, args: List[str], server: ControllableAsyncDnsServer, qctx: QueryContext
+        self, args: list[str], server: ControllableAsyncDnsServer, qctx: QueryContext
     ) -> Optional[str]:
         if len(args) != 1 or args[0] not in self._handler_mapping:
             logging.error("Invalid %s query %s", self, qctx.qname)

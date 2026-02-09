@@ -11,7 +11,7 @@
 # See the COPYRIGHT file distributed with this work for additional
 # information regarding copyright ownership.
 
-from typing import List, Union
+from typing import Union
 from warnings import warn
 
 import collections.abc
@@ -156,7 +156,7 @@ dns_rdatatypes_without_meta = integers(0, dns.rdatatype.OPT - 1) | integers(dns.
 @composite
 def _partition_bytes_to_labels(
     draw, remaining_bytes: int, number_of_labels: int
-) -> List[int]:
+) -> list[int]:
     two_bytes_reserved_for_label = 2
 
     # Reserve two bytes for each label

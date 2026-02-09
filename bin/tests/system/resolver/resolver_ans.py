@@ -11,7 +11,7 @@ See the COPYRIGHT file distributed with this work for additional
 information regarding copyright ownership.
 """
 
-from typing import AsyncGenerator, List, NamedTuple, Union
+from typing import AsyncGenerator, NamedTuple, Union
 
 import abc
 
@@ -40,7 +40,7 @@ def rrset(
 def rrset_from_list(
     qname: Union[dns.name.Name, str],
     rtype: dns.rdatatype.RdataType,
-    rdata_list: List[str],
+    rdata_list: list[str],
     ttl: int = 300,
 ) -> dns.rrset.RRset:
     return dns.rrset.from_text_list(qname, ttl, dns.rdataclass.IN, rtype, rdata_list)

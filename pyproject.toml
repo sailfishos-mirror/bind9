@@ -96,6 +96,8 @@ lint.select = [
   "F401",
   # sorted __all__
   "RUF022",
+  # unnecessary `typing` imports
+  "UP006",
   # f-strings
   "UP031",
   "UP032",

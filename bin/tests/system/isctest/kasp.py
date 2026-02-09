@@ -13,7 +13,7 @@ from datetime import datetime, timedelta, timezone
 from functools import total_ordering
 from pathlib import Path
 from re import compile as Re
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Optional, Union
 
 import glob
 import os
@@ -178,7 +178,7 @@ class KeyProperties:
         self,
         name: str,
         metadata: dict,
-        timing: Dict[str, KeyTimingMetadata],
+        timing: dict[str, KeyTimingMetadata],
         private: bool = True,
         legacy: bool = False,
         role: str = "csk",
@@ -217,7 +217,7 @@ class KeyProperties:
             "KSK": "yes",
             "ZSK": "yes",
         }
-        timing: Dict[str, KeyTimingMetadata] = {}
+        timing: dict[str, KeyTimingMetadata] = {}
 
         result = KeyProperties(name="DEFAULT", metadata=metadata, timing=timing)
         result.name = "DEFAULT"
@@ -379,7 +379,7 @@ class Key:
 
     def get_signing_state(
         self, offline_ksk=False, zsk_missing=False, smooth=False
-    ) -> Tuple[bool, bool]:
+    ) -> tuple[bool, bool]:
         """
         This returns the signing state derived from the key states, KRRSIGState
         and ZRRSIGState.
@@ -1504,7 +1504,7 @@ def next_key_event_equals(server, zone, next_event):
 
 def keydir_to_keylist(
     zone: Optional[str], keydir: Optional[str] = None, in_use: bool = False
-) -> List[Key]:
+) -> list[Key]:
     """
     Retrieve all keys from the key files in a directory. If 'zone' is None,
     retrieve all keys in the directory, otherwise only those matching the
@@ -1544,11 +1544,11 @@ def keydir_to_keylist(
     return [k for k in all_keys if used(k)]
 
 
-def keystr_to_keylist(keystr: str, keydir: Optional[str] = None) -> List[Key]:
+def keystr_to_keylist(keystr: str, keydir: Optional[str] = None) -> list[Key]:
     return [Key(name, keydir) for name in keystr.split()]
 
 
-def policy_to_properties(ttl, keys: List[str]) -> List[KeyProperties]:
+def policy_to_properties(ttl, keys: list[str]) -> list[KeyProperties]:
     """
     Get the policies from a list of specially formatted strings.
     The splitted line should result in the following items:
@@ -1570,8 +1570,8 @@ def policy_to_properties(ttl, keys: List[str]) -> List[KeyProperties]:
         line = key.split()
 
         # defaults
-        metadata: Dict[str, Union[str, int]] = {}
-        timing: Dict[str, KeyTimingMetadata] = {}
+        metadata: dict[str, Union[str, int]] = {}
+        timing: dict[str, KeyTimingMetadata] = {}
         private = True
         legacy = False
         keytag_min = 0

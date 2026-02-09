@@ -9,7 +9,7 @@
 # See the COPYRIGHT file distributed with this work for additional
 # information regarding copyright ownership.
 
-from typing import Dict, List, NamedTuple, Optional, Union
+from typing import NamedTuple, Optional, Union
 
 import os
 import platform
@@ -69,14 +69,14 @@ class Algorithm(NamedTuple):
 class AlgorithmSet(NamedTuple):
     """Collection of DEFAULT, ALTERNATIVE and DISABLED algorithms"""
 
-    default: Union[Algorithm, List[Algorithm]]
+    default: Union[Algorithm, list[Algorithm]]
     """DEFAULT is the algorithm for testing."""
 
-    alternative: Union[Algorithm, List[Algorithm]]
+    alternative: Union[Algorithm, list[Algorithm]]
     """ALTERNATIVE is an alternative algorithm for test cases that require more
     than one algorithm (for example algorithm rollover)."""
 
-    disabled: Union[Algorithm, List[Algorithm]]
+    disabled: Union[Algorithm, list[Algorithm]]
     """DISABLED is an algorithm that is used for tests against the
     "disable-algorithms" configuration option."""
 
@@ -160,7 +160,7 @@ CRYPTO_SUPPORTED_VARS = {
     "ED448_SUPPORTED": "0",
 }
 
-SUPPORTED_ALGORITHMS: List[Algorithm] = []
+SUPPORTED_ALGORITHMS: list[Algorithm] = []
 
 
 def init_crypto_supported():
@@ -250,7 +250,7 @@ def _select_random(algs: AlgorithmSet, stable_period=STABLE_PERIOD) -> Algorithm
     return AlgorithmSet(default, alternative, disabled)
 
 
-def _algorithms_env(algs: AlgorithmSet, name: str) -> Dict[str, str]:
+def _algorithms_env(algs: AlgorithmSet, name: str) -> dict[str, str]:
     """Return environment variables with selected algorithms as a dict."""
     algs_env = {
         "ALGORITHM_SET": name,

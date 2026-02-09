@@ -9,7 +9,7 @@
 # See the COPYRIGHT file distributed with this work for additional
 # information regarding copyright ownership.
 
-from typing import AsyncGenerator, List, Optional
+from typing import AsyncGenerator, Optional
 
 import logging
 
@@ -31,7 +31,7 @@ from isctest.asyncserver import (
 class ErraticAxfrHandler(ResponseHandler):
     allowed_actions = ["no-response", "partial-axfr", "complete-axfr"]
 
-    def __init__(self, actions: List[str]) -> None:
+    def __init__(self, actions: list[str]) -> None:
         self.actions = actions
         self.counter = 0
         for action in actions:
@@ -72,7 +72,7 @@ class ResponseSequenceCommand(ControlCommand):
         self._current_handler: Optional[ResponseHandler] = None
 
     def handle(
-        self, args: List[str], server: ControllableAsyncDnsServer, qctx: QueryContext
+        self, args: list[str], server: ControllableAsyncDnsServer, qctx: QueryContext
     ) -> str:
         for action in args:
             if action not in ErraticAxfrHandler.allowed_actions:
