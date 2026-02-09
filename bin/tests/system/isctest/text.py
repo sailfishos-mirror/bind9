@@ -12,12 +12,12 @@
 # information regarding copyright ownership.
 
 from re import compile as Re
-from typing import Iterator, Match, Optional, Pattern, TextIO, Union
+from typing import Iterator, Match, Optional, Pattern, TextIO
 
 import abc
 import re
 
-FlexPattern = Union[str, Pattern]
+FlexPattern = str | Pattern
 
 
 def compile_pattern(string: FlexPattern) -> Pattern:

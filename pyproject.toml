@@ -98,6 +98,7 @@ lint.select = [
   "RUF022",
   # unnecessary `typing` imports
   "UP006",
+  "UP007",
   # f-strings
   "UP031",
   "UP032",

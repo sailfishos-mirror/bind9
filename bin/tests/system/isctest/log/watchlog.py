@@ -9,7 +9,8 @@
 # See the COPYRIGHT file distributed with this work for additional
 # information regarding copyright ownership.
 
-from typing import Any, Match, Optional, Pattern, TextIO, TypeVar, Union
+
+from typing import Any, Match, Optional, Pattern, TextIO, TypeAlias, TypeVar
 
 import abc
 import os
@@ -18,7 +19,7 @@ import time
 from isctest.text import FlexPattern, LineReader, compile_pattern
 
 T = TypeVar("T")
-OneOrMore = Union[T, list[T]]
+OneOrMore: TypeAlias = T | list[T]
 
 
 class WatchLogException(Exception):
