@@ -11,7 +11,7 @@ See the COPYRIGHT file distributed with this work for additional
 information regarding copyright ownership.
 """
 
-from typing import AsyncGenerator, NamedTuple, Union
+from typing import AsyncGenerator, NamedTuple
 
 import abc
 
@@ -29,7 +29,7 @@ from isctest.asyncserver import (
 
 
 def rrset(
-    qname: Union[dns.name.Name, str],
+    qname: dns.name.Name | str,
     rtype: dns.rdatatype.RdataType,
     rdata: str,
     ttl: int = 300,
@@ -38,7 +38,7 @@ def rrset(
 
 
 def rrset_from_list(
-    qname: Union[dns.name.Name, str],
+    qname: dns.name.Name | str,
     rtype: dns.rdatatype.RdataType,
     rdata_list: list[str],
     ttl: int = 300,
@@ -46,7 +46,7 @@ def rrset_from_list(
     return dns.rrset.from_text_list(qname, ttl, dns.rdataclass.IN, rtype, rdata_list)
 
 
-def soa_rrset(qname: Union[dns.name.Name, str]) -> dns.rrset.RRset:
+def soa_rrset(qname: dns.name.Name | str) -> dns.rrset.RRset:
     return rrset(qname, dns.rdatatype.SOA, ". . 0 0 0 0 0")
 
 
@@ -56,9 +56,9 @@ class DelegationRRsets(NamedTuple):
 
 
 def delegation_rrsets(
-    owner: Union[dns.name.Name, str],
+    owner: dns.name.Name | str,
     server_number: int,
-    ns_name: Union[dns.name.Name, str, None] = None,
+    ns_name: dns.name.Name | str | None = None,
 ) -> DelegationRRsets:
     if ns_name is None:
         ns_name = f"ns.{owner}"
@@ -68,7 +68,7 @@ def delegation_rrsets(
 
 
 def setup_delegation(
-    qctx: QueryContext, owner: Union[dns.name.Name, str], server_number: int
+    qctx: QueryContext, owner: dns.name.Name | str, server_number: int
 ) -> None:
     delegation = delegation_rrsets(owner, server_number)
     qctx.response.authority.append(delegation.ns_rrset)

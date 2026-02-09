@@ -14,7 +14,7 @@ from datetime import datetime, timedelta, timezone
 from functools import total_ordering
 from pathlib import Path
 from re import compile as Re
-from typing import Optional, Union
+from typing import Optional
 
 import glob
 import os
@@ -134,26 +134,26 @@ class KeyTimingMetadata:
     def __str__(self) -> str:
         return self.value.strftime(self.FORMAT)
 
-    def __add__(self, other: Union[timedelta, int]):
+    def __add__(self, other: timedelta | int):
         if isinstance(other, int):
             other = timedelta(seconds=other)
         result = KeyTimingMetadata.__new__(KeyTimingMetadata)
         result.value = self.value + other
         return result
 
-    def __sub__(self, other: Union[timedelta, int]):
+    def __sub__(self, other: timedelta | int):
         if isinstance(other, int):
             other = timedelta(seconds=other)
         result = KeyTimingMetadata.__new__(KeyTimingMetadata)
         result.value = self.value - other
         return result
 
-    def __iadd__(self, other: Union[timedelta, int]):
+    def __iadd__(self, other: timedelta | int):
         if isinstance(other, int):
             other = timedelta(seconds=other)
         self.value += other
 
-    def __isub__(self, other: Union[timedelta, int]):
+    def __isub__(self, other: timedelta | int):
         if isinstance(other, int):
             other = timedelta(seconds=other)
         self.value -= other
@@ -188,7 +188,7 @@ class KeyProperties:
         flags: int = 257,
         keytag_min: int = 0,
         keytag_max: int = 65535,
-        offset: Union[timedelta, int] = 0,
+        offset: timedelta | int = 0,
     ):
         self.name = name
         self.key = None
@@ -384,7 +384,7 @@ class Key:
     operations for KASP tests.
     """
 
-    def __init__(self, name: str, keydir: Optional[Union[str, Path]] = None):
+    def __init__(self, name: str, keydir: Optional[str | Path] = None):
         self.name = name
         if keydir is None:
             self.keydir = Path()
@@ -1663,7 +1663,7 @@ def policy_to_properties(ttl, keys: list[str]) -> list[KeyProperties]:
         line = key.split()
 
         # defaults
-        metadata: dict[str, Union[str, int]] = {}
+        metadata: dict[str, str | int] = {}
         timing: dict[str, KeyTimingMetadata] = {}
         private = True
         legacy = False

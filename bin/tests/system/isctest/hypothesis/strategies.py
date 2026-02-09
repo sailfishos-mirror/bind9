@@ -11,7 +11,6 @@
 # See the COPYRIGHT file distributed with this work for additional
 # information regarding copyright ownership.
 
-from typing import Union
 from warnings import warn
 
 import collections.abc
@@ -40,9 +39,7 @@ def dns_names(
     draw,
     *,
     prefix: dns.name.Name = dns.name.empty,
-    suffix: Union[
-        dns.name.Name, collections.abc.Iterable[dns.name.Name]
-    ] = dns.name.root,
+    suffix: dns.name.Name | collections.abc.Iterable[dns.name.Name] = dns.name.root,
     min_labels: int = 1,
     max_labels: int = 128,
 ) -> dns.name.Name:

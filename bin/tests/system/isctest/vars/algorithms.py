@@ -9,7 +9,7 @@
 # See the COPYRIGHT file distributed with this work for additional
 # information regarding copyright ownership.
 
-from typing import NamedTuple, Optional, Union
+from typing import NamedTuple, Optional
 
 import os
 import platform
@@ -74,14 +74,14 @@ class Algorithm(NamedTuple):
 class AlgorithmSet(NamedTuple):
     """Collection of DEFAULT, ALTERNATIVE and DISABLED algorithms"""
 
-    default: Union[Algorithm, list[Algorithm]]
+    default: Algorithm | list[Algorithm]
     """DEFAULT is the algorithm for testing."""
 
-    alternative: Union[Algorithm, list[Algorithm]]
+    alternative: Algorithm | list[Algorithm]
     """ALTERNATIVE is an alternative algorithm for test cases that require more
     than one algorithm (for example algorithm rollover)."""
 
-    disabled: Union[Algorithm, list[Algorithm]]
+    disabled: Algorithm | list[Algorithm]
     """DISABLED is an algorithm that is used for tests against the
     "disable-algorithms" configuration option."""
 
