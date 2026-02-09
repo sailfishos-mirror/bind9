@@ -9,7 +9,7 @@
 # See the COPYRIGHT file distributed with this work for additional
 # information regarding copyright ownership.
 
-from typing import AsyncGenerator, Optional
+from typing import AsyncGenerator
 
 import logging
 
@@ -69,7 +69,7 @@ class ResponseSequenceCommand(ControlCommand):
     control_subdomain = "response-sequence"
 
     def __init__(self) -> None:
-        self._current_handler: Optional[ResponseHandler] = None
+        self._current_handler: ResponseHandler | None = None
 
     def handle(
         self, args: list[str], server: ControllableAsyncDnsServer, qctx: QueryContext

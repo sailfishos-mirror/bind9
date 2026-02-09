@@ -13,7 +13,7 @@
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 import jinja2
 
@@ -44,8 +44,8 @@ class TemplateEngine:
     def render(
         self,
         output: str,
-        data: Optional[dict[str, Any]] = None,
-        template: Optional[str] = None,
+        data: dict[str, Any] | None = None,
+        template: str | None = None,
     ) -> None:
         """
         Render `output` file from jinja `template` and fill in the `data`. The
@@ -69,7 +69,7 @@ class TemplateEngine:
         stream = self.j2env.get_template(template).stream(data)
         stream.dump(output, encoding="utf-8")
 
-    def render_auto(self, data: Optional[dict[str, Any]] = None):
+    def render_auto(self, data: dict[str, Any] | None = None):
         """
         Render all *.j2 templates with default (and optionally the provided)
         values and write the output to files without the .j2 extensions.

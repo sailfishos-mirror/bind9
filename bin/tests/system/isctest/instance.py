@@ -12,7 +12,7 @@
 # information regarding copyright ownership.
 
 from pathlib import Path
-from typing import NamedTuple, Optional
+from typing import NamedTuple
 
 import os
 import re
@@ -53,8 +53,8 @@ class NamedInstance:
     def __init__(
         self,
         identifier: str,
-        num: Optional[int] = None,
-        ports: Optional[NamedPorts] = None,
+        num: int | None = None,
+        ports: NamedPorts | None = None,
     ) -> None:
         """
         `identifier` is the name of the instance's directory
@@ -94,7 +94,7 @@ class NamedInstance:
         return f"10.53.0.{self.num}"
 
     @staticmethod
-    def _identifier_to_num(identifier: str, num: Optional[int] = None) -> int:
+    def _identifier_to_num(identifier: str, num: int | None = None) -> int:
         regex_match = re.match(r"^ns(?P<index>[0-9]{1,2})$", identifier)
         if not regex_match:
             if num is None:
@@ -175,7 +175,7 @@ class NamedInstance:
             watcher.wait_for_line("all zones loaded")
         return cmd
 
-    def stop(self, args: Optional[list[str]] = None) -> None:
+    def stop(self, args: list[str] | None = None) -> None:
         """Stop the instance."""
         args = args or []
         perl(
@@ -183,7 +183,7 @@ class NamedInstance:
             [self.system_test_name, self.identifier] + args,
         )
 
-    def start(self, args: Optional[list[str]] = None) -> None:
+    def start(self, args: list[str] | None = None) -> None:
         """Start the instance."""
         args = args or []
         perl(

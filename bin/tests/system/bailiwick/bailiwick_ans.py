@@ -66,11 +66,11 @@ class SetSpoofingModeCommand(ControlCommand):
     control_subdomain = "set-spoofing-mode"
 
     def __init__(self) -> None:
-        self._current_handler: Optional[ResponseSpoofer] = None
+        self._current_handler: ResponseSpoofer | None = None
 
     def handle(
         self, args: list[str], server: ControllableAsyncDnsServer, qctx: QueryContext
-    ) -> Optional[str]:
+    ) -> str | None:
         if len(args) != 1:
             qctx.response.set_rcode(dns.rcode.SERVFAIL)
             return "invalid control command"

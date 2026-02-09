@@ -13,7 +13,6 @@ from datetime import datetime, timedelta, timezone
 from functools import total_ordering
 from pathlib import Path
 from re import compile as Re
-from typing import Optional
 
 import glob
 import os
@@ -324,7 +323,7 @@ class Key:
     operations for KASP tests.
     """
 
-    def __init__(self, name: str, keydir: Optional[str | Path] = None):
+    def __init__(self, name: str, keydir: str | Path | None = None):
         self.name = name
         if keydir is None:
             self.keydir = Path()
@@ -339,7 +338,7 @@ class Key:
 
     def get_timing(
         self, metadata: str, must_exist: bool = True
-    ) -> Optional[KeyTimingMetadata]:
+    ) -> KeyTimingMetadata | None:
         regex = rf";\s+{metadata}:\s+(\d+).*"
         with open(self.keyfile, "r", encoding="utf-8") as file:
             for line in file:
@@ -1503,7 +1502,7 @@ def next_key_event_equals(server, zone, next_event):
 
 
 def keydir_to_keylist(
-    zone: Optional[str], keydir: Optional[str] = None, in_use: bool = False
+    zone: str | None, keydir: str | None = None, in_use: bool = False
 ) -> list[Key]:
     """
     Retrieve all keys from the key files in a directory. If 'zone' is None,
@@ -1544,7 +1543,7 @@ def keydir_to_keylist(
     return [k for k in all_keys if used(k)]
 
 
-def keystr_to_keylist(keystr: str, keydir: Optional[str] = None) -> list[Key]:
+def keystr_to_keylist(keystr: str, keydir: str | None = None) -> list[Key]:
     return [Key(name, keydir) for name in keystr.split()]
 
 

@@ -9,7 +9,7 @@
 # See the COPYRIGHT file distributed with this work for additional
 # information regarding copyright ownership.
 
-from typing import Any, Callable, Optional
+from typing import Any, Callable
 
 import os
 import time
@@ -26,11 +26,11 @@ def generic_query(
     query_func: Callable[..., Any],
     message: dns.message.Message,
     ip: str,
-    port: Optional[int] = None,
-    source: Optional[str] = None,
+    port: int | None = None,
+    source: str | None = None,
     timeout: int = QUERY_TIMEOUT,
     attempts: int = 10,
-    expected_rcode: Optional[dns.rcode.Rcode] = None,
+    expected_rcode: dns.rcode.Rcode | None = None,
     verify: bool = False,
     log_query: bool = True,
     log_response: bool = True,

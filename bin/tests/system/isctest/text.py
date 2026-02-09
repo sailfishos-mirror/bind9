@@ -12,7 +12,7 @@
 # information regarding copyright ownership.
 
 from re import compile as Re
-from typing import Iterator, Match, Optional, Pattern, TextIO
+from typing import Iterator, Match, Pattern, TextIO
 
 import abc
 import re
@@ -150,7 +150,7 @@ class LineReader(Grep):
         self._stream = stream
         self._linebuf = ""
 
-    def readline(self) -> Optional[str]:
+    def readline(self) -> str | None:
         """
         Wrapper around io.readline() function to handle unfinished lines.
 
