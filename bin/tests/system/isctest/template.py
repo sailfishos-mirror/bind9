@@ -13,7 +13,7 @@
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Optional, Union
+from typing import Any, Optional
 
 import jinja2
 
@@ -26,7 +26,7 @@ class TemplateEngine:
     Engine for rendering jinja2 templates in system test directories.
     """
 
-    def __init__(self, directory: Union[str, Path], env_vars=ALL):
+    def __init__(self, directory: str | Path, env_vars=ALL):
         """
         Initialize the template engine for `directory`, optionally overriding
         the `env_vars` that will be used when rendering the templates (defaults

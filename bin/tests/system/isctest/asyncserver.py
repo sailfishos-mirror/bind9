@@ -12,16 +12,7 @@ information regarding copyright ownership.
 """
 
 from dataclasses import dataclass, field
-from typing import (
-    Any,
-    AsyncGenerator,
-    Callable,
-    Coroutine,
-    Optional,
-    Sequence,
-    Union,
-    cast,
-)
+from typing import Any, AsyncGenerator, Callable, Coroutine, Optional, Sequence, cast
 
 import abc
 import asyncio
@@ -318,7 +309,7 @@ class ResponseAction(abc.ABC):
     """
 
     @abc.abstractmethod
-    async def perform(self) -> Optional[Union[dns.message.Message, bytes]]:
+    async def perform(self) -> Optional[dns.message.Message | bytes]:
         """
         This method is expected to carry out arbitrary actions (e.g. wait for a
         specific amount of time, modify the answer, etc.) and then return the
@@ -345,7 +336,7 @@ class DnsResponseSend(ResponseAction):
     delay: float = 0.0
     acknowledge_hand_rolled_response: bool = False
 
-    async def perform(self) -> Optional[Union[dns.message.Message, bytes]]:
+    async def perform(self) -> Optional[dns.message.Message | bytes]:
         """
         Yield a potentially delayed response that is a dns.message.Message.
         """
@@ -391,7 +382,7 @@ class BytesResponseSend(ResponseAction):
     response: bytes
     delay: float = 0.0
 
-    async def perform(self) -> Optional[Union[dns.message.Message, bytes]]:
+    async def perform(self) -> Optional[dns.message.Message | bytes]:
         """
         Yield a potentially delayed response that is a sequence of bytes.
         """
@@ -408,7 +399,7 @@ class ResponseDrop(ResponseAction):
     Action which does nothing - as if a packet was dropped.
     """
 
-    async def perform(self) -> Optional[Union[dns.message.Message, bytes]]:
+    async def perform(self) -> Optional[dns.message.Message | bytes]:
         return None
 
 
@@ -426,7 +417,7 @@ class CloseConnection(ResponseAction):
 
     delay: float = 0.0
 
-    async def perform(self) -> Optional[Union[dns.message.Message, bytes]]:
+    async def perform(self) -> Optional[dns.message.Message | bytes]:
         if self.delay > 0:
             logging.info("Waiting %.1fs before closing TCP connection", self.delay)
             await asyncio.sleep(self.delay)
@@ -1050,9 +1041,9 @@ class AsyncDnsServer(AsyncServer):
         /,
         default_rcode: dns.rcode.Rcode = dns.rcode.REFUSED,
         default_aa: bool = False,
-        keyring: Union[
-            dict[dns.name.Name, dns.tsig.Key], None, _NoKeyringType
-        ] = _NoKeyringType(),
+        keyring: (
+            dict[dns.name.Name, dns.tsig.Key] | None | _NoKeyringType
+        ) = _NoKeyringType(),
         acknowledge_manual_dname_handling: bool = False,
     ) -> None:
         super().__init__(self._handle_udp, self._handle_tcp, "ans.pid")
@@ -1295,7 +1286,7 @@ class AsyncDnsServer(AsyncServer):
         )
 
     def _log_response(
-        self, qctx: QueryContext, response: Optional[Union[dns.message.Message, bytes]]
+        self, qctx: QueryContext, response: Optional[dns.message.Message | bytes]
     ) -> None:
         if not response:
             logging.info(
@@ -1395,7 +1386,7 @@ class AsyncDnsServer(AsyncServer):
 
     async def _prepare_responses(
         self, qctx: QueryContext
-    ) -> AsyncGenerator[Optional[Union[dns.message.Message, bytes]], None]:
+    ) -> AsyncGenerator[Optional[dns.message.Message | bytes], None]:
         """
         Yield response(s) either from response handlers or zone data.
         """
@@ -1609,7 +1600,7 @@ class ControllableAsyncDnsServer(AsyncDnsServer):
 
     async def _prepare_responses(
         self, qctx: QueryContext
-    ) -> AsyncGenerator[Optional[Union[dns.message.Message, bytes]], None]:
+    ) -> AsyncGenerator[Optional[dns.message.Message | bytes], None]:
         """
         Detect and handle control queries, falling back to normal processing
         for non-control queries.
