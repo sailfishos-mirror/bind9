@@ -11,7 +11,7 @@
 
 from re import compile as Re
 
-import dns.message
+import dns.rcode
 import pytest
 
 import isctest

@@ -11,6 +11,7 @@
 
 import itertools
 
+import dns.flags
 import dns.rrset
 import pytest
 

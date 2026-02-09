@@ -11,15 +11,13 @@
 
 import os
 
-import dns
-import dns.update
+import dns.rdatatype
 import pytest
 
 from isctest.vars.algorithms import Algorithm
 from nsec3.common import NSEC3_MARK, check_nsec3_case, check_nsec3param
 
 import isctest
-import isctest.mark
 
 pytestmark = NSEC3_MARK
 

@@ -17,6 +17,7 @@ from typing import NamedTuple
 import os
 import re
 
+import dns.exception
 import dns.rcode
 import dns.update
 

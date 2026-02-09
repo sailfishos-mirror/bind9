@@ -13,14 +13,13 @@ from datetime import timedelta
 
 import os
 
-import dns
-import dns.update
+import dns.rcode
+import dns.rdatatype
 
 from isctest.vars.algorithms import RSASHA256
 from nsec3.common import NSEC3_MARK, check_auth_nsec3, check_nsec3param
 
 import isctest
-import isctest.mark
 
 pytestmark = NSEC3_MARK
 

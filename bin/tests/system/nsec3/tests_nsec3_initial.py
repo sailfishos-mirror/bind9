@@ -11,7 +11,7 @@
 
 import os
 
-import dns
+import dns.rcode
 import dns.update
 import pytest
 

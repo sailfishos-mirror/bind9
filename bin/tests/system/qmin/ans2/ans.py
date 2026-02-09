@@ -13,7 +13,6 @@ information regarding copyright ownership.
 
 from typing import AsyncGenerator
 
-import dns.message
 import dns.name
 import dns.rcode
 import dns.rdatatype

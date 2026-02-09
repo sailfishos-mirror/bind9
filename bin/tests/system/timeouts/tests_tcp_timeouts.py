@@ -14,7 +14,6 @@
 import socket
 import time
 
-import dns
 import dns.edns
 import dns.message
 import dns.name

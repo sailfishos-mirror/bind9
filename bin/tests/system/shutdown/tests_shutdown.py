@@ -20,7 +20,6 @@ import signal
 import subprocess
 import time
 
-import dns
 import dns.exception
 import pytest
 

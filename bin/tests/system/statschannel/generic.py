@@ -16,8 +16,6 @@ from time import sleep
 import os
 
 import dns.message
-import dns.query
-import dns.rcode
 
 import isctest
 

@@ -20,8 +20,6 @@ import argparse
 import struct
 import time
 
-import dns
-import dns.message
 import dns.name
 import dns.rdata
 import dns.rdataclass

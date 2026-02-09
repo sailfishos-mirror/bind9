@@ -10,6 +10,7 @@
 # information regarding copyright ownership.
 
 
+import dns.edns
 import dns.flags
 import dns.message
 import pytest

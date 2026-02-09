@@ -16,6 +16,7 @@ import time
 
 import dns.message
 import dns.query
+import dns.tsig
 import dns.tsigkeyring
 import pytest
 

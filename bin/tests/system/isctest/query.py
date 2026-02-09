@@ -14,8 +14,12 @@ from typing import Any, Callable
 import os
 import time
 
+import dns.exception
+import dns.flags
 import dns.message
 import dns.query
+import dns.rcode
+import dns.rdataclass
 
 import isctest.log
 

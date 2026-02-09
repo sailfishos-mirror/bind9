@@ -20,6 +20,7 @@ import dns.edns
 import dns.flags
 import dns.message
 import dns.rcode
+import dns.rrset
 import dns.zone
 
 import isctest.log

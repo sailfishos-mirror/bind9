@@ -18,7 +18,7 @@ import shutil
 import signal
 import time
 
-import dns.message
+import dns.zone
 import pytest
 
 import isctest

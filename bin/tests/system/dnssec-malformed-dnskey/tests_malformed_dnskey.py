@@ -17,8 +17,11 @@ import os
 from cryptography.hazmat.primitives.asymmetric import ec
 from dns.rdtypes.dnskeybase import Flag
 
-import dns
 import dns.dnssec
+import dns.name
+import dns.rdataclass
+import dns.rdatatype
+import dns.rdtypes.ANY.RRSIG
 import dns.zone
 import pytest
 

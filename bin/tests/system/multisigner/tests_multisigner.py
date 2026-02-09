@@ -14,7 +14,10 @@ from re import compile as Re
 
 import os
 
-import dns
+import dns.name
+import dns.rcode
+import dns.rdataclass
+import dns.rdatatype
 import dns.update
 import pytest
 

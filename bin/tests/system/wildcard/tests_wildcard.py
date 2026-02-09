@@ -33,11 +33,7 @@ Limitations - untested properties:
 
 from hypothesis import assume, example, given, settings
 
-import dns
-import dns.message
 import dns.name
-import dns.query
-import dns.rcode
 import dns.rdataclass
 import dns.rdatatype
 import dns.rrset
