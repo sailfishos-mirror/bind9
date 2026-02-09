@@ -509,7 +509,6 @@ def check_signedkeyresponse(
                 # collect keys that should be in this bundle
                 # collect lines that should be in this bundle
                 bundle_keys.append(key)
-                # pylint: disable=unused-variable
                 for _arg in expected_cds:
                     bundle_lines.append(lines[line_no])
                     line_no += 1

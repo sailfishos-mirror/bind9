@@ -11,11 +11,7 @@
 
 import os
 
-# pylint: disable=import-error
 from .build import BUILD_VARS, SYSTEM_TEST_DIR_GIT_PATH  # type: ignore
-
-# pylint: enable=import-error
-
 
 DIR_VARS = {
     "builddir": f"{BUILD_VARS['TOP_BUILDDIR']}/{SYSTEM_TEST_DIR_GIT_PATH}",

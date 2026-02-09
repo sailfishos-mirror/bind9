@@ -11,11 +11,7 @@
 
 import os
 
-# pylint: disable=import-error
 from .build import BUILD_VARS  # type: ignore
-
-# pylint: enable=import-error
-
 
 BASIC_VARS = {
     "ARPANAME": f"{BUILD_VARS['TOP_BUILDDIR']}/arpaname",

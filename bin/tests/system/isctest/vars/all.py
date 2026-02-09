@@ -11,11 +11,8 @@
 
 from collections import ChainMap
 
-# pylint: enable=import-error
 from .algorithms import ALG_VARS, CRYPTO_SUPPORTED_VARS
 from .basic import BASIC_VARS
-
-# pylint: disable=import-error
 from .build import BUILD_VARS  # type: ignore
 from .dirs import DIR_VARS
 from .features import FEATURE_VARS
