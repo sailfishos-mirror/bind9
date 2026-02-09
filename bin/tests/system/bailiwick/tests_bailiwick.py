@@ -13,6 +13,7 @@
 import time
 
 import dns.message
+import dns.rrset
 import pytest
 
 from isctest.instance import NamedInstance

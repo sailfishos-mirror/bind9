@@ -18,6 +18,11 @@ import socket
 import time
 
 import dns.message
+import dns.query
+import dns.rdataclass
+import dns.rdatatype
+import dns.tsig
+import dns.zone
 import pytest
 
 from isctest.util import param

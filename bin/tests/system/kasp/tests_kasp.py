@@ -16,7 +16,12 @@ import shutil
 import subprocess
 import time
 
-import dns
+import dns.exception
+import dns.name
+import dns.rcode
+import dns.rdataclass
+import dns.rdatatype
+import dns.tsig
 import dns.update
 import pytest
 

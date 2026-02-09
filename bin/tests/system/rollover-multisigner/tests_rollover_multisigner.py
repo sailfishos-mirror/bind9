@@ -13,7 +13,6 @@ from datetime import timedelta
 
 import os
 
-import dns
 import dns.update
 
 from isctest.kasp import Iret, SettimeOptions

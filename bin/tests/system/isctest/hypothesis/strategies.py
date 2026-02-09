@@ -26,7 +26,6 @@ from hypothesis.strategies import (
     sampled_from,
 )
 
-import dns.message
 import dns.name
 import dns.rdataclass
 import dns.rdatatype

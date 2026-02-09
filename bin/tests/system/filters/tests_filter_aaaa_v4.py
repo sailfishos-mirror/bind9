@@ -18,7 +18,6 @@ from filters.common import (
     prime_cache,
 )
 
-import isctest
 import isctest.mark
 
 pytestmark = pytest.mark.extra_artifacts(ARTIFACTS)

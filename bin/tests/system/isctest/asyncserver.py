@@ -40,7 +40,6 @@ import dns.rdataset
 import dns.rdatatype
 import dns.rrset
 import dns.tsig
-import dns.version
 import dns.zone
 
 _UdpHandler = Callable[

@@ -11,7 +11,9 @@
 
 from datetime import timedelta
 
-import dns
+import dns.rcode
+import dns.rdataclass
+import dns.rdatatype
 import pytest
 
 import isctest

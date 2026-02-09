@@ -16,8 +16,8 @@ import struct
 import subprocess
 import time
 
-import dns
 import dns.exception
+import dns.message
 import dns.name
 import dns.rdataclass
 import dns.rdatatype

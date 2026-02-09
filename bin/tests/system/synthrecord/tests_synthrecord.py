@@ -24,7 +24,9 @@ from hypothesis import assume, example, given
 from hypothesis.strategies import ip_addresses
 
 import dns.message
-import dns.reversename
+import dns.name
+import dns.rcode
+import dns.rrset
 import pytest
 
 from isctest.hypothesis.strategies import dns_names

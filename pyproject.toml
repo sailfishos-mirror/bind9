@@ -58,6 +58,7 @@ source-roots = [
 ]
 load-plugins = [
   "re_compile_checker",
+  "dns_import_checker",
 ]
 
 [tool.vulture]
@@ -72,6 +73,7 @@ exclude = [
   "doc/man/conf.py",
   "isctest",
   "re_compile_checker.py",
+  "dns_import_checker.py",
 ]
 ignore_decorators = [
   "@pytest.fixture",

@@ -20,11 +20,17 @@ import os
 import re
 import time
 
-import dns
 import dns.dnssec
+import dns.exception
+import dns.message
+import dns.name
+import dns.rcode
+import dns.rdataclass
 import dns.rdatatype
 import dns.rrset
 import dns.tsig
+import dns.zone
+import dns.zonefile
 
 from isctest.instance import NamedInstance
 from isctest.run import EnvCmd

@@ -18,8 +18,6 @@ import os
 import sys
 import time
 
-import dns.exception
-import dns.message
 import dns.name
 import dns.rcode
 import dns.rdataclass

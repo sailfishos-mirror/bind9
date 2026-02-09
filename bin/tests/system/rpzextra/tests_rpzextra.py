@@ -13,7 +13,6 @@
 
 import os
 
-import dns
 import dns.rcode
 import dns.rrset
 import pytest

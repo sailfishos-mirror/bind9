@@ -14,6 +14,7 @@
 import os
 import re
 
+import dns.rcode
 import dns.rrset
 import pytest
 

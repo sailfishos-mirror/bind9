@@ -18,7 +18,6 @@ import pytest
 from isctest.vars.algorithms import Algorithm
 
 import isctest
-import isctest.mark
 
 pytestmark = pytest.mark.extra_artifacts(
     [

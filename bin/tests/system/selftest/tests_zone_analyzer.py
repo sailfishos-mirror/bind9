@@ -21,11 +21,9 @@ import itertools
 
 from dns.name import Name
 
-import dns
 import dns.name
 import pytest
 
-import isctest
 import isctest.name
 
 # set of properies present in the tested zone - read by tests_zone_analyzer.py

@@ -11,7 +11,7 @@
 
 from dns import rdataclass, rdatatype
 
-import dns
+import dns.name
 
 import isctest
 

@@ -12,8 +12,10 @@
 import os
 import time
 
-import dns
-import dns.update
+import dns.name
+import dns.rcode
+import dns.rdataclass
+import dns.rdatatype
 import pytest
 
 from isctest.vars.algorithms import RSASHA1, Algorithm
