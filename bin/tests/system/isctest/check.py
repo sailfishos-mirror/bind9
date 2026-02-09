@@ -9,7 +9,7 @@
 # See the COPYRIGHT file distributed with this work for additional
 # information regarding copyright ownership.
 
-from typing import Optional, cast
+from typing import cast
 
 import difflib
 import os
@@ -90,9 +90,7 @@ def noede(message: dns.message.Message) -> None:
     assert not ede_options, f"unexpected EDE options {ede_options} in {message}"
 
 
-def ede(
-    message: dns.message.Message, code: EDECode, text: Optional[str] = None
-) -> None:
+def ede(message: dns.message.Message, code: EDECode, text: str | None = None) -> None:
     """Check if message contains expected EDE code (and its text)."""
     msg_opts = _extract_ede_options(message)
     matching_opts = [opt for opt in msg_opts if opt.code == code]
@@ -138,7 +136,7 @@ def same_answer(res1: dns.message.Message, res2: dns.message.Message):
 def rrsets_equal(
     first_rrset: dns.rrset.RRset,
     second_rrset: dns.rrset.RRset,
-    compare_ttl: Optional[bool] = False,
+    compare_ttl: bool | None = False,
 ) -> None:
     """Compare two RRset (optionally including TTL)"""
 
@@ -167,7 +165,7 @@ def rrsets_equal(
 def zones_equal(
     first_zone: dns.zone.Zone,
     second_zone: dns.zone.Zone,
-    compare_ttl: Optional[bool] = False,
+    compare_ttl: bool | None = False,
 ) -> None:
     """Compare two zones (optionally including TTL)"""
 

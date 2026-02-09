@@ -13,7 +13,7 @@ information regarding copyright ownership.
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import AsyncGenerator, Optional
+from typing import AsyncGenerator
 
 import abc
 import logging
@@ -297,11 +297,11 @@ class ChainSetupCommand(ControlCommand):
     control_subdomain = "setup-chain"
 
     def __init__(self) -> None:
-        self._current_handler: Optional[ChainResponseHandler] = None
+        self._current_handler: ChainResponseHandler | None = None
 
     def handle(
         self, args: list[str], server: ControllableAsyncDnsServer, qctx: QueryContext
-    ) -> Optional[str]:
+    ) -> str | None:
         try:
             actions, selectors = self._parse_args(args)
         except ValueError as exc:

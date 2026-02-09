@@ -9,8 +9,7 @@
 # See the COPYRIGHT file distributed with this work for additional
 # information regarding copyright ownership.
 
-
-from typing import Any, Match, Optional, Pattern, TextIO, TypeAlias, TypeVar
+from typing import Any, Match, Pattern, TextIO, TypeAlias, TypeVar
 
 import abc
 import os
@@ -63,8 +62,8 @@ class WatchLog(abc.ABC):
           ...
         isctest.log.watchlog.WatchLogException: timeout must be greater than 0
         """
-        self._fd: Optional[TextIO] = None
-        self._reader: Optional[LineReader] = None
+        self._fd: TextIO | None = None
+        self._reader: LineReader | None = None
         self._path = path
         self._wait_function_called = False
         if timeout <= 0.0:

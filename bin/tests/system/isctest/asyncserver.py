@@ -12,7 +12,7 @@ information regarding copyright ownership.
 """
 
 from dataclasses import dataclass, field
-from typing import Any, AsyncGenerator, Callable, Coroutine, Optional, Sequence, cast
+from typing import Any, AsyncGenerator, Callable, Coroutine, Sequence, cast
 
 import abc
 import asyncio
@@ -62,7 +62,7 @@ class _AsyncUdpHandler(asyncio.DatagramProtocol):
         self,
         handler: _UdpHandler,
     ) -> None:
-        self._transport: Optional[asyncio.DatagramTransport] = None
+        self._transport: asyncio.DatagramTransport | None = None
         self._handler: _UdpHandler = handler
 
     def connection_made(self, transport: asyncio.BaseTransport) -> None:
@@ -96,9 +96,9 @@ class AsyncServer:
 
     def __init__(
         self,
-        udp_handler: Optional[_UdpHandler],
-        tcp_handler: Optional[_TcpHandler],
-        pidfile: Optional[str] = None,
+        udp_handler: _UdpHandler | None,
+        tcp_handler: _TcpHandler | None,
+        pidfile: str | None = None,
     ) -> None:
         logging.basicConfig(
             format="%(asctime)s %(levelname)8s  %(message)s",
@@ -122,10 +122,10 @@ class AsyncServer:
 
         self._ip_addresses: tuple[str, str] = (ipv4_address, ipv6_address)
         self._port: int = port
-        self._udp_handler: Optional[_UdpHandler] = udp_handler
-        self._tcp_handler: Optional[_TcpHandler] = tcp_handler
-        self._pidfile: Optional[str] = pidfile
-        self._work_done: Optional[asyncio.Future] = None
+        self._udp_handler: _UdpHandler | None = udp_handler
+        self._tcp_handler: _TcpHandler | None = tcp_handler
+        self._pidfile: str | None = pidfile
+        self._work_done: asyncio.Future | None = None
 
     def _get_ipv4_address_from_directory_name(self) -> str:
         containing_directory = pathlib.Path().absolute().stem
@@ -256,15 +256,13 @@ class QueryContext:
     socket: Peer
     peer: Peer
     protocol: DnsProtocol
-    zone: Optional[dns.zone.Zone] = field(default=None, init=False)
-    soa: Optional[dns.rrset.RRset] = field(default=None, init=False)
-    node: Optional[dns.node.Node] = field(default=None, init=False)
-    answer: Optional[dns.rdataset.Rdataset] = field(default=None, init=False)
-    alias: Optional[dns.name.Name] = field(default=None, init=False)
-    _initialized_response: Optional[dns.message.Message] = field(
-        default=None, init=False
-    )
-    _initialized_response_with_zone_data: Optional[dns.message.Message] = field(
+    zone: dns.zone.Zone | None = field(default=None, init=False)
+    soa: dns.rrset.RRset | None = field(default=None, init=False)
+    node: dns.node.Node | None = field(default=None, init=False)
+    answer: dns.rdataset.Rdataset | None = field(default=None, init=False)
+    alias: dns.name.Name | None = field(default=None, init=False)
+    _initialized_response: dns.message.Message | None = field(default=None, init=False)
+    _initialized_response_with_zone_data: dns.message.Message | None = field(
         default=None, init=False
     )
 
@@ -309,7 +307,7 @@ class ResponseAction(abc.ABC):
     """
 
     @abc.abstractmethod
-    async def perform(self) -> Optional[dns.message.Message | bytes]:
+    async def perform(self) -> dns.message.Message | bytes | None:
         """
         This method is expected to carry out arbitrary actions (e.g. wait for a
         specific amount of time, modify the answer, etc.) and then return the
@@ -332,11 +330,11 @@ class DnsResponseSend(ResponseAction):
     """
 
     response: dns.message.Message
-    authoritative: Optional[bool] = None
+    authoritative: bool | None = None
     delay: float = 0.0
     acknowledge_hand_rolled_response: bool = False
 
-    async def perform(self) -> Optional[dns.message.Message | bytes]:
+    async def perform(self) -> dns.message.Message | bytes | None:
         """
         Yield a potentially delayed response that is a dns.message.Message.
         """
@@ -382,7 +380,7 @@ class BytesResponseSend(ResponseAction):
     response: bytes
     delay: float = 0.0
 
-    async def perform(self) -> Optional[dns.message.Message | bytes]:
+    async def perform(self) -> dns.message.Message | bytes | None:
         """
         Yield a potentially delayed response that is a sequence of bytes.
         """
@@ -399,7 +397,7 @@ class ResponseDrop(ResponseAction):
     Action which does nothing - as if a packet was dropped.
     """
 
-    async def perform(self) -> Optional[dns.message.Message | bytes]:
+    async def perform(self) -> dns.message.Message | bytes | None:
         return None
 
 
@@ -417,7 +415,7 @@ class CloseConnection(ResponseAction):
 
     delay: float = 0.0
 
-    async def perform(self) -> Optional[dns.message.Message | bytes]:
+    async def perform(self) -> dns.message.Message | bytes | None:
         if self.delay > 0:
             logging.info("Waiting %.1fs before closing TCP connection", self.delay)
             await asyncio.sleep(self.delay)
@@ -674,7 +672,7 @@ class StaticResponseHandler(ResponseHandler):
     """
 
     @property
-    def rcode(self) -> Optional[dns.rcode.Rcode]:
+    def rcode(self) -> dns.rcode.Rcode | None:
         """
         Optional RCODE to be set in the response.
         """
@@ -702,7 +700,7 @@ class StaticResponseHandler(ResponseHandler):
         return []
 
     @property
-    def authoritative(self) -> Optional[bool]:
+    def authoritative(self) -> bool | None:
         """
         Whether to set the AA bit in the response.
         """
@@ -752,7 +750,7 @@ class DomainHandler(ResponseHandler):
         self._domains: list[dns.name.Name] = sorted(
             [dns.name.from_text(d) for d in self.domains], reverse=True
         )
-        self._matched_domain: Optional[dns.name.Name] = None
+        self._matched_domain: dns.name.Name | None = None
 
     @property
     def matched_domain(self) -> dns.name.Name:
@@ -883,7 +881,7 @@ class _ZoneTreeNode:
     A node representing a zone with one origin.
     """
 
-    zone: Optional[dns.zone.Zone]
+    zone: dns.zone.Zone | None
     children: list["_ZoneTreeNode"] = field(default_factory=list)
 
 
@@ -934,7 +932,7 @@ class _ZoneTree:
             node_from.children.remove(child)
             node_to.children.append(child)
 
-    def find_best_zone(self, name: dns.name.Name) -> Optional[dns.zone.Zone]:
+    def find_best_zone(self, name: dns.name.Name) -> dns.zone.Zone | None:
         """
         Return the closest matching zone (if any) for the domain name.
         """
@@ -952,7 +950,7 @@ class _DnsMessageWithTsigDisabled(dns.message.Message):
     """
 
     class _DisableTsigHandling(contextlib.ContextDecorator):
-        def __init__(self, message: Optional[dns.message.Message] = None) -> None:
+        def __init__(self, message: dns.message.Message | None = None) -> None:
             self.original_tsig_sign = dns.tsig.sign
             self.original_tsig_validate = dns.tsig.validate
             if message:
@@ -1049,7 +1047,7 @@ class AsyncDnsServer(AsyncServer):
         super().__init__(self._handle_udp, self._handle_tcp, "ans.pid")
 
         self._zone_tree: _ZoneTree = _ZoneTree()
-        self._connection_handler: Optional[ConnectionHandler] = None
+        self._connection_handler: ConnectionHandler | None = None
         self._response_handlers: list[ResponseHandler] = []
         self._default_rcode = default_rcode
         self._default_aa = default_aa
@@ -1202,7 +1200,7 @@ class AsyncDnsServer(AsyncServer):
 
     async def _read_tcp_query(
         self, reader: asyncio.StreamReader, peer: Peer
-    ) -> Optional[bytes]:
+    ) -> bytes | None:
         wire_length = await self._read_tcp_query_wire_length(reader, peer)
         if not wire_length:
             return None
@@ -1211,7 +1209,7 @@ class AsyncDnsServer(AsyncServer):
 
     async def _read_tcp_query_wire_length(
         self, reader: asyncio.StreamReader, peer: Peer
-    ) -> Optional[int]:
+    ) -> int | None:
         logging.debug("Receiving TCP message length from %s...", peer)
 
         wire_length_bytes = await self._read_tcp_octets(reader, peer, 2)
@@ -1224,7 +1222,7 @@ class AsyncDnsServer(AsyncServer):
 
     async def _read_tcp_query_wire(
         self, reader: asyncio.StreamReader, peer: Peer, wire_length: int
-    ) -> Optional[bytes]:
+    ) -> bytes | None:
         logging.debug("Receiving TCP message (%d octets) from %s...", wire_length, peer)
 
         wire = await self._read_tcp_octets(reader, peer, wire_length)
@@ -1237,7 +1235,7 @@ class AsyncDnsServer(AsyncServer):
 
     async def _read_tcp_octets(
         self, reader: asyncio.StreamReader, peer: Peer, expected: int
-    ) -> Optional[bytes]:
+    ) -> bytes | None:
         buffer = b""
 
         while len(buffer) < expected:
@@ -1286,7 +1284,7 @@ class AsyncDnsServer(AsyncServer):
         )
 
     def _log_response(
-        self, qctx: QueryContext, response: Optional[dns.message.Message | bytes]
+        self, qctx: QueryContext, response: dns.message.Message | bytes | None
     ) -> None:
         if not response:
             logging.info(
@@ -1386,7 +1384,7 @@ class AsyncDnsServer(AsyncServer):
 
     async def _prepare_responses(
         self, qctx: QueryContext
-    ) -> AsyncGenerator[Optional[dns.message.Message | bytes], None]:
+    ) -> AsyncGenerator[dns.message.Message | bytes | None, None]:
         """
         Yield response(s) either from response handlers or zone data.
         """
@@ -1600,7 +1598,7 @@ class ControllableAsyncDnsServer(AsyncDnsServer):
 
     async def _prepare_responses(
         self, qctx: QueryContext
-    ) -> AsyncGenerator[Optional[dns.message.Message | bytes], None]:
+    ) -> AsyncGenerator[dns.message.Message | bytes | None, None]:
         """
         Detect and handle control queries, falling back to normal processing
         for non-control queries.
@@ -1613,9 +1611,7 @@ class ControllableAsyncDnsServer(AsyncDnsServer):
         async for response in super()._prepare_responses(qctx):
             yield response
 
-    def _handle_control_command(
-        self, qctx: QueryContext
-    ) -> Optional[dns.message.Message]:
+    def _handle_control_command(self, qctx: QueryContext) -> dns.message.Message | None:
         """
         Detect and handle control queries.
 
@@ -1691,7 +1687,7 @@ class ControlCommand(abc.ABC):
     @abc.abstractmethod
     def handle(
         self, args: list[str], server: ControllableAsyncDnsServer, qctx: QueryContext
-    ) -> Optional[str]:
+    ) -> str | None:
         """
         This method is expected to carry out arbitrary actions in response to a
         control query.  Note that it is invoked synchronously (it is not a
@@ -1729,11 +1725,11 @@ class ToggleResponsesCommand(ControlCommand):
     control_subdomain = "send-responses"
 
     def __init__(self) -> None:
-        self._current_handler: Optional[IgnoreAllQueries] = None
+        self._current_handler: IgnoreAllQueries | None = None
 
     def handle(
         self, args: list[str], server: ControllableAsyncDnsServer, qctx: QueryContext
-    ) -> Optional[str]:
+    ) -> str | None:
         if len(args) != 1:
             logging.error("Invalid %s query %s", self, qctx.qname)
             qctx.response.set_rcode(dns.rcode.SERVFAIL)
@@ -1777,7 +1773,7 @@ class SwitchControlCommand(ControlCommand):
 
     def handle(
         self, args: list[str], server: ControllableAsyncDnsServer, qctx: QueryContext
-    ) -> Optional[str]:
+    ) -> str | None:
         if len(args) != 1 or args[0] not in self._handler_mapping:
             logging.error("Invalid %s query %s", self, qctx.qname)
             qctx.response.set_rcode(dns.rcode.SERVFAIL)

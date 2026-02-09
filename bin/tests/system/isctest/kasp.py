@@ -14,7 +14,6 @@ from datetime import datetime, timedelta, timezone
 from functools import total_ordering
 from pathlib import Path
 from re import compile as Re
-from typing import Optional
 
 import glob
 import os
@@ -320,46 +319,46 @@ class KeyProperties:
 @dataclass
 class SettimeOptions:
 
-    P: Optional[str] = None
+    P: str | None = None
     """-P date/[+-]offset/none: set/unset key publication date"""
 
-    P_ds: Optional[str] = None
+    P_ds: str | None = None
     """-P ds date/[+-]offset/none: set/unset DS publication date"""
 
-    P_sync: Optional[str] = None
+    P_sync: str | None = None
     """-P sync date/[+-]offset/none: set/unset CDS and CDNSKEY publication date"""
 
-    A: Optional[str] = None
+    A: str | None = None
     """-A date/[+-]offset/none: set/unset key activation date"""
 
-    R: Optional[str] = None
+    R: str | None = None
     """-R date/[+-]offset/none: set/unset key revocation date"""
 
-    I: Optional[str] = None
+    I: str | None = None
     """-I date/[+-]offset/none: set/unset key inactivation date"""
 
-    D: Optional[str] = None
+    D: str | None = None
     """-D date/[+-]offset/none: set/unset key deletion date"""
 
-    D_ds: Optional[str] = None
+    D_ds: str | None = None
     """-D ds date/[+-]offset/none: set/unset DS deletion date"""
 
-    D_sync: Optional[str] = None
+    D_sync: str | None = None
     """-D sync date/[+-]offset/none: set/unset CDS and CDNSKEY deletion date"""
 
-    g: Optional[str] = None
+    g: str | None = None
     """-g state: set the goal state for this key"""
 
-    d: Optional[str] = None
+    d: str | None = None
     """-d state date/[+-]offset: set the DS state"""
 
-    k: Optional[str] = None
+    k: str | None = None
     """-k state date/[+-]offset: set the DNSKEY state"""
 
-    r: Optional[str] = None
+    r: str | None = None
     """-r state date/[+-]offset: set the RRSIG (KSK) state"""
 
-    z: Optional[str] = None
+    z: str | None = None
     """-z state date/[+-]offset: set the RRSIG (ZSK) state"""
 
     def __str__(self):
@@ -384,7 +383,7 @@ class Key:
     operations for KASP tests.
     """
 
-    def __init__(self, name: str, keydir: Optional[str | Path] = None):
+    def __init__(self, name: str, keydir: str | Path | None = None):
         self.name = name
         if keydir is None:
             self.keydir = Path()
@@ -399,7 +398,7 @@ class Key:
 
     def get_timing(
         self, metadata: str, must_exist: bool = True
-    ) -> Optional[KeyTimingMetadata]:
+    ) -> KeyTimingMetadata | None:
         regex = rf";\s+{metadata}:\s+(\d+).*"
         with open(self.keyfile, "r", encoding="utf-8") as file:
             for line in file:
@@ -1595,7 +1594,7 @@ def next_key_event_equals(server, zone, next_event):
 
 
 def keydir_to_keylist(
-    zone: Optional[str], keydir: Optional[str] = None, in_use: bool = False
+    zone: str | None, keydir: str | None = None, in_use: bool = False
 ) -> list[Key]:
     """
     Retrieve all keys from the key files in a directory. If 'zone' is None,
@@ -1637,7 +1636,7 @@ def keydir_to_keylist(
     return [k for k in all_keys if used(k)]
 
 
-def keystr_to_keylist(keystr: str, keydir: Optional[str] = None) -> list[Key]:
+def keystr_to_keylist(keystr: str, keydir: str | None = None) -> list[Key]:
     return [Key(name, keydir) for name in keystr.split()]
 
 

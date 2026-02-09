@@ -17,7 +17,7 @@
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Container, Iterable, Optional
+from typing import Container, Iterable
 
 import os
 
@@ -291,7 +291,7 @@ class NSEC3Params:
     algorithm: int
     flags: int
     iterations: int
-    salt: Optional[bytes]
+    salt: bytes | None
 
 
 class NSEC3Checker:

@@ -9,7 +9,7 @@
 # See the COPYRIGHT file distributed with this work for additional
 # information regarding copyright ownership.
 
-from typing import NamedTuple, Optional
+from typing import NamedTuple
 
 import os
 import platform
@@ -285,7 +285,7 @@ def _algorithms_env(algs: AlgorithmSet, name: str) -> dict[str, str]:
     return algs_env
 
 
-def set_algorithm_set(name: Optional[str]):
+def set_algorithm_set(name: str | None):
     if name is None:
         name = "stable"
     assert name in ALGORITHM_SETS, f'ALGORITHM_SET "{name}" unknown'
