@@ -11,7 +11,8 @@ See the COPYRIGHT file distributed with this work for additional
 information regarding copyright ownership.
 """
 
-from typing import AsyncGenerator, NamedTuple
+from collections.abc import AsyncGenerator
+from typing import NamedTuple
 
 import abc
 

@@ -11,8 +11,9 @@ See the COPYRIGHT file distributed with this work for additional
 information regarding copyright ownership.
 """
 
+from collections.abc import AsyncGenerator, Callable, Coroutine, Sequence
 from dataclasses import dataclass, field
-from typing import Any, AsyncGenerator, Callable, Coroutine, Sequence, cast
+from typing import Any, cast
 
 import abc
 import asyncio

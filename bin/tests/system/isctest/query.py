@@ -9,7 +9,8 @@
 # See the COPYRIGHT file distributed with this work for additional
 # information regarding copyright ownership.
 
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 import os
 import time

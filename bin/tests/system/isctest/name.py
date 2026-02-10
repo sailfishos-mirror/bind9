@@ -9,7 +9,7 @@
 # See the COPYRIGHT file distributed with this work for additional
 # information regarding copyright ownership.
 
-from typing import Iterable
+from collections.abc import Iterable
 
 from dns.name import Name
 

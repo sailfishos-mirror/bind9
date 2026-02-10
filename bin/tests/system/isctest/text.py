@@ -11,8 +11,10 @@
 # See the COPYRIGHT file distributed with this work for additional
 # information regarding copyright ownership.
 
+from collections.abc import Iterator
+from re import Match, Pattern
 from re import compile as Re
-from typing import Iterator, Match, Pattern, TextIO
+from typing import TextIO
 
 import abc
 import re
