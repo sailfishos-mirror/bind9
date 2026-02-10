@@ -773,6 +773,12 @@ pylint:
   script:
     - pylint $(git ls-files '*.py')
 
+ruff:
+  <<: *quick_checks_job
+  <<: *python_triggering_rules
+  script:
+    - ruff check
+
 reuse:
   <<: *quick_checks_job
   image:
