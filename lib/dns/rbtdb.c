@@ -3180,7 +3180,7 @@ addnoqname(isc_mem_t *mctx, dns_slabheader_t *newheader, uint32_t maxrrperset,
 	dns_slabheader_proof_t *noqname = NULL;
 	dns_name_t name = DNS_NAME_INITEMPTY;
 	dns_rdataset_t neg = DNS_RDATASET_INIT, negsig = DNS_RDATASET_INIT;
-	isc_region_t r1, r2;
+	isc_region_t r1 = { .base = NULL }, r2 = { .base = NULL };
 
 	result = dns_rdataset_getnoqname(rdataset, &name, &neg, &negsig);
 	RUNTIME_CHECK(result == ISC_R_SUCCESS);
@@ -3206,6 +3206,14 @@ addnoqname(isc_mem_t *mctx, dns_slabheader_t *newheader, uint32_t maxrrperset,
 	newheader->noqname = noqname;
 
 cleanup:
+	if (result != ISC_R_SUCCESS) {
+		if (r1.base != NULL) {
+			isc_mem_put(mctx, r1.base, r1.length);
+		}
+		if (r2.base != NULL) {
+			isc_mem_put(mctx, r2.base, r2.length);
+		}
+	}
 	dns_rdataset_disassociate(&neg);
 	dns_rdataset_disassociate(&negsig);
 
@@ -3219,7 +3227,7 @@ addclosest(isc_mem_t *mctx, dns_slabheader_t *newheader, uint32_t maxrrperset,
 	dns_slabheader_proof_t *closest = NULL;
 	dns_name_t name = DNS_NAME_INITEMPTY;
 	dns_rdataset_t neg = DNS_RDATASET_INIT, negsig = DNS_RDATASET_INIT;
-	isc_region_t r1, r2;
+	isc_region_t r1 = { .base = NULL }, r2 = { .base = NULL };
 
 	result = dns_rdataset_getclosest(rdataset, &name, &neg, &negsig);
 	RUNTIME_CHECK(result == ISC_R_SUCCESS);
@@ -3245,6 +3253,14 @@ addclosest(isc_mem_t *mctx, dns_slabheader_t *newheader, uint32_t maxrrperset,
 	newheader->closest = closest;
 
 cleanup:
+	if (result != ISC_R_SUCCESS) {
+		if (r1.base != NULL) {
+			isc_mem_put(mctx, r1.base, r1.length);
+		}
+		if (r2.base != NULL) {
+			isc_mem_put(mctx, r2.base, r2.length);
+		}
+	}
 	dns_rdataset_disassociate(&neg);
 	dns_rdataset_disassociate(&negsig);
 	return result;
