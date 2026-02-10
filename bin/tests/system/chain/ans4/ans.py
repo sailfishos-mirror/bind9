@@ -11,9 +11,9 @@ See the COPYRIGHT file distributed with this work for additional
 information regarding copyright ownership.
 """
 
+from collections.abc import AsyncGenerator
 from dataclasses import dataclass
 from enum import Enum
-from typing import AsyncGenerator
 
 import abc
 import logging

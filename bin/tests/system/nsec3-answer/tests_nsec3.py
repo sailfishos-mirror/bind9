@@ -15,9 +15,9 @@
 # https://github.com/pylint-dev/pylint/issues/10785#issuecomment-3677224217
 # pylint: disable=unreachable
 
+from collections.abc import Container, Iterable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Container, Iterable
 
 import os
 

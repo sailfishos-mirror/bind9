@@ -9,7 +9,8 @@
 # See the COPYRIGHT file distributed with this work for additional
 # information regarding copyright ownership.
 
-from typing import Any, Match, Pattern, TextIO, TypeAlias, TypeVar
+from re import Match, Pattern
+from typing import Any, TextIO, TypeAlias, TypeVar
 
 import abc
 import os
