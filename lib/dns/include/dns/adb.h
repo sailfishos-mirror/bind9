@@ -194,6 +194,10 @@ struct dns_adbfind {
  */
 #define DNS_ADBFIND_STATICSTUB 0x00001000
 #define DNS_ADBFIND_NOVALIDATE 0x00002000
+/*%
+ *      This specific find created a fetch
+ */
+#define DNS_ADBFIND_STARTEDFETCH 0x00010000
 
 /*%
  * The answers to queries come back as a list of these.

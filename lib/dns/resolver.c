@@ -1087,6 +1087,9 @@ set_stats(dns_resolver_t *res, isc_statscounter_t counter, uint64_t val) {
 	}
 }
 
+static bool
+waiting_for_fetch(fetchctx_t *fctx, const dns_name_t *name,
+		  dns_rdatatype_t type, const dns_name_t *domain);
 static void
 valcreate(fetchctx_t *fctx, dns_message_t *message, dns_adbaddrinfo_t *addrinfo,
 	  dns_name_t *name, dns_rdatatype_t type, dns_rdataset_t *rdataset,
@@ -3340,9 +3343,10 @@ sort_finds(dns_adbfindlist_t *findlist, unsigned int bias) {
 }
 
 /*
- * Return true iff the ADB find has a pending fetch for 'type'.  This is
- * used to find out whether we're in a loop, where a fetch is waiting for a
- * find which is waiting for that same fetch.
+ * Return true iff the ADB find has an already pending fetch for 'type'.  This
+ * is used to find out whether we're in a loop, where a fetch is waiting for a
+ * find which is waiting for that same fetch. So if the current find actually
+ * started the fetch, we know it can't be a loop, so we returns false.
  *
  * Note: This could be done with either an equivalence check (e.g.,
  * query_pending == DNS_ADBFIND_INET) or with a bit check, as below.  If
@@ -3361,7 +3365,11 @@ sort_finds(dns_adbfindlist_t *findlist, unsigned int bias) {
  * evil.
  */
 static bool
-waiting_for(dns_adbfind_t *find, dns_rdatatype_t type) {
+already_waiting_for(dns_adbfind_t *find, dns_rdatatype_t type) {
+	if ((find->options & DNS_ADBFIND_STARTEDFETCH) != 0) {
+		return false;
+	}
+
 	switch (type) {
 	case dns_rdatatype_a:
 		return (find->query_pending & DNS_ADBFIND_INET) != 0;
@@ -3471,22 +3479,25 @@ findname(fetchctx_t *fctx, const dns_name_t *name, in_port_t port,
 	 * We don't know any of the addresses for this name.
 	 *
 	 * The find may be waiting on a resolver fetch for a server
-	 * address. We need to make sure it isn't waiting on *this*
+	 * address. We need to make sure it isn't waiting before *this*
 	 * fetch, because if it is, we won't be answering it and it
 	 * won't be answering us.
 	 */
-	if (waiting_for(find, fctx->type) && dns_name_equal(name, fctx->name)) {
-		fctx->adberr++;
+	if (already_waiting_for(find, fctx->type) &&
+	    dns_name_equal(name, fctx->name))
+	{
 		isc_log_write(DNS_LOGCATEGORY_RESOLVER, DNS_LOGMODULE_RESOLVER,
 			      ISC_LOG_INFO, "loop detected resolving '%s'",
 			      fctx->info);
 
+		fctx->adberr++;
 		if ((find->options & DNS_ADBFIND_WANTEVENT) != 0) {
 			dns_adb_cancelfind(find);
 		} else {
 			dns_adb_destroyfind(&find);
 			fetchctx_detach(&fctx);
 		}
+
 		return;
 	}
 
@@ -10127,11 +10138,26 @@ get_attached_fctx(dns_resolver_t *res, isc_loop_t *loop, const dns_name_t *name,
 }
 
 static bool
+is_samedomain(const dns_name_t *domain1, const dns_name_t *domain2) {
+	if (domain1 == NULL && domain2 == NULL) {
+		return true;
+	}
+
+	if (domain1 == NULL || domain2 == NULL) {
+		return false;
+	}
+
+	return !dns_name_compare(domain1, domain2);
+}
+
+static bool
 waiting_for_fetch(fetchctx_t *fctx, const dns_name_t *name,
-		  dns_rdatatype_t type) {
+		  dns_rdatatype_t type, const dns_name_t *domain) {
 	while (fctx != NULL) {
 		if (type == fctx->type && !dns_name_compare(name, fctx->name)) {
-			return true;
+			if (is_samedomain(domain, fctx->domain)) {
+				return true;
+			}
 		}
 		fctx = fctx->parent;
 	}
@@ -10181,18 +10207,30 @@ dns_resolver_createfetch(dns_resolver_t *res, const dns_name_t *name,
 
 	log_fetch(name, type);
 
-	if (waiting_for_fetch(parent, name, type)) {
+	/*
+	 * This fetch loop detection enable to guard against loop scenarios
+	 * where the DNSSEC is involved. See
+	 * `4d307ac67a0e3f9831c9a4e66ac481e2f9ceebb5`. This is a complementary
+	 * detection with the ADB lookup loop detection (in `findname()`).
+	 */
+	if (waiting_for_fetch(parent, name, type, domain)) {
 		if (isc_log_wouldlog(ISC_LOG_INFO)) {
 			char namebuf[DNS_NAME_FORMATSIZE + 1];
 			char typebuf[DNS_RDATATYPE_FORMATSIZE];
+			char domainbuf[DNS_NAME_FORMATSIZE + 1] = { 0 };
 
 			dns_name_format(name, namebuf, sizeof(namebuf));
 			dns_rdatatype_format(type, typebuf, sizeof(typebuf));
+			if (domain != NULL) {
+				dns_name_format(domain, domainbuf,
+						sizeof(domainbuf));
+			}
 
 			isc_log_write(DNS_LOGCATEGORY_RESOLVER,
 				      DNS_LOGMODULE_RESOLVER, ISC_LOG_DEBUG(2),
-				      "fetch loop detected resolving '%s/%s'",
-				      namebuf, typebuf);
+				      "fetch loop detected resolving '%s/%s "
+				      "(in '%s'?)",
+				      namebuf, typebuf, domainbuf);
 		}
 		return DNS_R_LOOPDETECTED;
 	}
