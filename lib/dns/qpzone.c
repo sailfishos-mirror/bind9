@@ -2641,17 +2641,16 @@ typedef enum { FORWARD, BACK } direction_t;
  */
 static bool
 step(qpz_search_t *search, dns_qpiter_t *it, direction_t direction,
-     dns_name_t *nextname) {
-	dns_fixedname_t fnodename;
-	dns_name_t *nodename = dns_fixedname_initname(&fnodename);
-	qpznode_t *node = NULL;
+     qpznode_t **node_p) {
+	REQUIRE(node_p != NULL && *node_p == NULL);
+
+	qpznode_t *node = NULL, *previous_node = NULL;
 	isc_result_t result = ISC_R_SUCCESS;
 
 	result = dns_qpiter_current(it, (void **)&node, NULL);
-	if (result == ISC_R_SUCCESS) {
-		dns_name_copy(&node->name, nodename);
-	}
 	while (result == ISC_R_SUCCESS) {
+		previous_node = node;
+
 		isc_rwlock_t *nlock = qpzone_get_lock(node);
 		isc_rwlocktype_t nlocktype = isc_rwlocktype_none;
 		dns_vecheader_t *found = NULL;
@@ -2670,13 +2669,11 @@ step(qpz_search_t *search, dns_qpiter_t *it, direction_t direction,
 		} else {
 			result = dns_qpiter_prev(it, (void **)&node, NULL);
 		}
-		if (result == ISC_R_SUCCESS) {
-			dns_name_copy(&node->name, nodename);
-		}
 	};
+
 	if (result == ISC_R_SUCCESS) {
-		if (nextname != NULL) {
-			dns_name_copy(nodename, nextname);
+		if (previous_node != NULL) {
+			*node_p = previous_node;
 		}
 		return true;
 	}
@@ -2686,8 +2683,7 @@ step(qpz_search_t *search, dns_qpiter_t *it, direction_t direction,
 
 static bool
 activeempty(qpz_search_t *search, dns_qpiter_t *it, const dns_name_t *current) {
-	dns_fixedname_t fnext;
-	dns_name_t *next = dns_fixedname_initname(&fnext);
+	qpznode_t *next_node = NULL;
 
 	/*
 	 * The iterator is currently pointed at the predecessor
@@ -2702,17 +2698,15 @@ activeempty(qpz_search_t *search, dns_qpiter_t *it, const dns_name_t *current) {
 		/* An ENT at the end of the zone is impossible */
 		return false;
 	}
-	return step(search, it, FORWARD, next) &&
-	       dns_name_issubdomain(next, current);
+	return step(search, it, FORWARD, &next_node) &&
+	       dns_name_issubdomain(&next_node->name, current);
 }
 
 static bool
 wildcard_blocked(qpz_search_t *search, const dns_name_t *qname,
 		 dns_name_t *wname) {
 	isc_result_t result;
-	dns_fixedname_t fnext;
-	dns_fixedname_t fprev;
-	dns_name_t *next = NULL, *prev = NULL;
+	qpznode_t *next_node = NULL, *prev_node = NULL;
 	dns_name_t name;
 	dns_name_t rname;
 	dns_name_t tname;
@@ -2724,8 +2718,6 @@ wildcard_blocked(qpz_search_t *search, const dns_name_t *qname,
 	dns_name_init(&name);
 	dns_name_init(&tname);
 	dns_name_init(&rname);
-	next = dns_fixedname_initname(&fnext);
-	prev = dns_fixedname_initname(&fprev);
 
 	/*
 	 * The qname seems to have matched a wildcard, but we
@@ -2739,13 +2731,13 @@ wildcard_blocked(qpz_search_t *search, const dns_name_t *qname,
 	 * data.
 	 */
 	it = search->iter;
-	check_prev = step(search, &it, BACK, prev);
+	check_prev = step(search, &it, BACK, &prev_node);
 
 	/* Now reset the iterator and look for a successor with data. */
 	it = search->iter;
 	result = dns_qpiter_next(&it, NULL, NULL);
 	if (result == ISC_R_SUCCESS) {
-		check_next = step(search, &it, FORWARD, next);
+		check_next = step(search, &it, FORWARD, &next_node);
 	}
 
 	if (!check_prev && !check_next) {
@@ -2762,8 +2754,10 @@ wildcard_blocked(qpz_search_t *search, const dns_name_t *qname,
 	dns_name_getlabelsequence(wname, 1, n - 1, &tname);
 
 	do {
-		if ((check_prev && dns_name_issubdomain(prev, &rname)) ||
-		    (check_next && dns_name_issubdomain(next, &rname)))
+		if ((check_prev &&
+		     dns_name_issubdomain(&prev_node->name, &rname)) ||
+		    (check_next &&
+		     dns_name_issubdomain(&next_node->name, &rname)))
 		{
 			return true;
 		}
@@ -2916,6 +2910,8 @@ previous_closest_nsec(dns_rdatatype_t type, qpz_search_t *search,
 	dns_qpmulti_query(search->qpdb->tree, &qpr);
 
 	for (;;) {
+		qpznode_t *nsec_node = NULL;
+
 		if (*firstp) {
 			/*
 			 * This is the first attempt to find 'name' in the
@@ -2924,7 +2920,6 @@ previous_closest_nsec(dns_rdatatype_t type, qpz_search_t *search,
 			*firstp = false;
 			result = dns_qp_lookup(&qpr, name, DNS_DBNAMESPACE_NSEC,
 					       nit, NULL, NULL, NULL);
-			qpznode_t *node = NULL;
 
 			INSIST(result != ISC_R_NOTFOUND);
 			if (result == ISC_R_SUCCESS) {
@@ -2936,11 +2931,8 @@ previous_closest_nsec(dns_rdatatype_t type, qpz_search_t *search,
 				 * NSEC record; we want the previous node
 				 * in the NSEC tree.
 				 */
-				result = dns_qpiter_prev(nit, (void **)&node,
-							 NULL);
-				if (result == ISC_R_SUCCESS) {
-					dns_name_copy(&node->name, name);
-				}
+				result = dns_qpiter_prev(
+					nit, (void **)&nsec_node, NULL);
 			} else if (result == DNS_R_PARTIALMATCH) {
 				/*
 				 * This was a partial match, so the
@@ -2949,10 +2941,8 @@ previous_closest_nsec(dns_rdatatype_t type, qpz_search_t *search,
 				 * what we want.
 				 */
 				isc_result_t iresult = dns_qpiter_current(
-					nit, (void **)&node, NULL);
-				if (iresult == ISC_R_SUCCESS) {
-					dns_name_copy(&node->name, name);
-				}
+					nit, (void **)&nsec_node, NULL);
+				REQUIRE(iresult == ISC_R_SUCCESS);
 				result = ISC_R_SUCCESS;
 			}
 		} else {
@@ -2963,21 +2953,20 @@ previous_closest_nsec(dns_rdatatype_t type, qpz_search_t *search,
 			 * work; perhaps they lacked signature records.
 			 * Keep searching.
 			 */
-			qpznode_t *tempnode = NULL;
-			result = dns_qpiter_prev(nit, (void **)&tempnode, NULL);
-			if (result == ISC_R_SUCCESS) {
-				dns_name_copy(&tempnode->name, name);
-			}
+			result = dns_qpiter_prev(nit, (void **)&nsec_node,
+						 NULL);
 		}
+
 		if (result != ISC_R_SUCCESS) {
 			break;
 		}
 
 		*nodep = NULL;
-		result = dns_qp_lookup(&search->qpr, name,
+		result = dns_qp_lookup(&search->qpr, &nsec_node->name,
 				       DNS_DBNAMESPACE_NORMAL, &search->iter,
 				       &search->chain, (void **)nodep, NULL);
 		if (result == ISC_R_SUCCESS) {
+			dns_name_copy(&nsec_node->name, name);
 			break;
 		}
 
