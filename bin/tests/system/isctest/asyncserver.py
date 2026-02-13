@@ -266,6 +266,7 @@ class QueryContext:
 
     query: dns.message.Message
     response: dns.message.Message
+    socket: Peer
     peer: Peer
     protocol: DnsProtocol
     zone: Optional[dns.zone.Zone] = field(default=None, init=False)
@@ -787,6 +788,108 @@ class DomainHandler(ResponseHandler):
         return False
 
 
+class ForwarderHandler(ResponseHandler):
+    """
+    A handler forwarding all received queries to another DNS server with an
+    optional delay and then relaying the responses back to the original client.
+
+    Queries are currently always forwarded via UDP.
+    """
+
+    @property
+    @abc.abstractmethod
+    def target(self) -> str:
+        """
+        The address of the DNS server to forward queries to.
+        """
+        raise NotImplementedError
+
+    @property
+    def port(self) -> int:
+        """
+        The port of the DNS server to forward queries to.
+
+        The default value of 0 causes the same port as the one used by this
+        server for listening to be used.
+        """
+        return 0
+
+    @property
+    def delay(self) -> float:
+        """
+        The number of seconds to wait before forwarding each query.
+        """
+        return 0.0
+
+    def __str__(self) -> str:
+        return f"{self.__class__.__name__}(target: {self.target}:{self.port})"
+
+    class ForwarderProtocol(asyncio.DatagramProtocol):
+        def __init__(self, query: bytes, response: asyncio.Future) -> None:
+            self._query = query
+            self._response = response
+
+        def connection_made(self, transport: asyncio.BaseTransport) -> None:
+            logging.debug("[OUT] %s", self._query.hex())
+            cast(asyncio.DatagramTransport, transport).sendto(self._query)
+
+        def datagram_received(self, data: bytes, _: Tuple[str, int]) -> None:
+            logging.debug("[IN] %s", data.hex())
+            self._response.set_result(data)
+
+    async def get_responses(
+        self, qctx: QueryContext
+    ) -> AsyncGenerator[ResponseAction, None]:
+        loop = asyncio.get_running_loop()
+        response = loop.create_future()
+        forwarding_target = f"{self.target}:{self.port or qctx.socket.port}"
+
+        if self.delay > 0:
+            logging.info(
+                "Waiting %.1fs before forwarding %s query from %s to %s over UDP",
+                self.delay,
+                qctx.protocol.name,
+                qctx.peer,
+                forwarding_target,
+            )
+            await asyncio.sleep(self.delay)
+
+        logging.info(
+            "Forwarding %s query from %s to %s over UDP",
+            qctx.protocol.name,
+            qctx.peer,
+            forwarding_target,
+        )
+
+        transport, _ = await loop.create_datagram_endpoint(
+            lambda: self.ForwarderProtocol(qctx.query.to_wire(), response),
+            local_addr=(qctx.socket.host, 0),
+            remote_addr=(self.target, self.port or qctx.socket.port),
+        )
+
+        try:
+            await response
+        finally:
+            transport.close()
+
+        logging.info(
+            "Relaying UDP response from %s to %s over %s",
+            forwarding_target,
+            qctx.peer,
+            qctx.protocol.name,
+        )
+
+        try:
+            message = _DnsMessageWithTsigDisabled.from_wire(response.result())
+            yield DnsResponseSend(message, acknowledge_hand_rolled_response=True)
+        except dns.exception.DNSException:
+            logging.warning(
+                "Failed to parse response from %s as a DNS message, relaying it as raw bytes",
+                forwarding_target,
+            )
+            yield BytesResponseSend(response.result())
+
+
 @dataclass
 class _ZoneTreeNode:
     """
@@ -1072,8 +1175,10 @@ class AsyncDnsServer(AsyncServer):
         self, wire: bytes, addr: Tuple[str, int], transport: asyncio.DatagramTransport
     ) -> None:
         logging.debug("Received UDP message: %s", wire.hex())
+        socket_info = transport.get_extra_info("sockname")
+        socket = Peer(socket_info[0], socket_info[1])
         peer = Peer(addr[0], addr[1])
-        responses = self._handle_query(wire, peer, DnsProtocol.UDP)
+        responses = self._handle_query(wire, socket, peer, DnsProtocol.UDP)
         async for response in responses:
             logging.debug("Sending UDP message: %s", response.hex())
             transport.sendto(response, addr)
@@ -1170,39 +1275,39 @@ class AsyncDnsServer(AsyncServer):
     async def _send_tcp_response(
         self, writer: asyncio.StreamWriter, peer: Peer, wire: bytes
     ) -> None:
-        responses = self._handle_query(wire, peer, DnsProtocol.TCP)
+        socket_info = writer.get_extra_info("sockname")
+        socket = Peer(socket_info[0], socket_info[1])
+        responses = self._handle_query(wire, socket, peer, DnsProtocol.TCP)
         async for response in responses:
             logging.debug("Sending TCP response: %s", response.hex())
             writer.write(response)
             await writer.drain()
 
-    def _log_query(self, qctx: QueryContext, peer: Peer, protocol: DnsProtocol) -> None:
+    def _log_query(self, qctx: QueryContext) -> None:
         logging.info(
-            "Received %s/%s/%s (ID=%d) query from %s (%s)",
+            "Received %s/%s/%s (ID=%d) query from %s on %s (%s)",
             qctx.qname.to_text(omit_final_dot=True),
             dns.rdataclass.to_text(qctx.qclass),
             dns.rdatatype.to_text(qctx.qtype),
             qctx.query.id,
-            peer,
-            protocol.name,
+            qctx.peer,
+            qctx.socket,
+            qctx.protocol.name,
         )
         logging.debug(
             "\n".join([f"[IN] {l}" for l in [""] + str(qctx.query).splitlines()])
         )
 
     def _log_response(
-        self,
-        qctx: QueryContext,
-        response: Optional[Union[dns.message.Message, bytes]],
-        peer: Peer,
-        protocol: DnsProtocol,
+        self, qctx: QueryContext, response: Optional[Union[dns.message.Message, bytes]]
     ) -> None:
         if not response:
             logging.info(
-                "Not sending a response to query (ID=%d) from %s (%s)",
+                "Not sending a response to query (ID=%d) from %s on %s (%s)",
                 qctx.query.id,
-                peer,
-                protocol.name,
+                qctx.peer,
+                qctx.socket,
+                qctx.protocol.name,
             )
             return
 
@@ -1217,7 +1322,7 @@ class AsyncDnsServer(AsyncServer):
                 qtype = "-"
 
             logging.info(
-                "Sending %s/%s/%s (ID=%d) response (%d/%d/%d/%d) to a query (ID=%d) from %s (%s)",
+                "Sending %s/%s/%s (ID=%d) response (%d/%d/%d/%d) to a query (ID=%d) from %s on %s (%s)",
                 qname,
                 qclass,
                 qtype,
@@ -1227,8 +1332,9 @@ class AsyncDnsServer(AsyncServer):
                 len(response.authority),
                 len(response.additional),
                 qctx.query.id,
-                peer,
-                protocol.name,
+                qctx.peer,
+                qctx.socket,
+                qctx.protocol.name,
             )
             logging.debug(
                 "\n".join([f"[OUT] {l}" for l in [""] + str(response).splitlines()])
@@ -1236,16 +1342,17 @@ class AsyncDnsServer(AsyncServer):
             return
 
         logging.info(
-            "Sending response (%d bytes) to a query (ID=%d) from %s (%s)",
+            "Sending response (%d bytes) to a query (ID=%d) from %s on %s (%s)",
             len(response),
             qctx.query.id,
-            peer,
-            protocol.name,
+            qctx.peer,
+            qctx.socket,
+            qctx.protocol.name,
         )
         logging.debug("[OUT] %s", response.hex())
 
     async def _handle_query(
-        self, wire: bytes, peer: Peer, protocol: DnsProtocol
+        self, wire: bytes, socket: Peer, peer: Peer, protocol: DnsProtocol
     ) -> AsyncGenerator[bytes, None]:
         """
         Yield wire data to send as a response over the established transport.
@@ -1256,11 +1363,11 @@ class AsyncDnsServer(AsyncServer):
             logging.error("Invalid query from %s (%s): %s", peer, wire.hex(), exc)
             return
         response_stub = _make_asyncserver_response(query)
-        qctx = QueryContext(query, response_stub, peer, protocol)
-        self._log_query(qctx, peer, protocol)
+        qctx = QueryContext(query, response_stub, socket, peer, protocol)
+        self._log_query(qctx)
         responses = self._prepare_responses(qctx)
         async for response in responses:
-            self._log_response(qctx, response, peer, protocol)
+            self._log_response(qctx, response)
             if response:
                 if isinstance(response, dns.message.Message):
                     response = response.to_wire(max_size=65535)
