@@ -1181,33 +1181,31 @@ class AsyncDnsServer(AsyncServer):
             writer.write(response)
             await writer.drain()
 
-    def _log_query(self, qctx: QueryContext, peer: Peer, protocol: DnsProtocol) -> None:
+    def _log_query(self, qctx: QueryContext) -> None:
         logging.info(
-            "Received %s/%s/%s (ID=%d) query from %s (%s)",
+            "Received %s/%s/%s (ID=%d) query from %s on %s (%s)",
             qctx.qname.to_text(omit_final_dot=True),
             dns.rdataclass.to_text(qctx.qclass),
             dns.rdatatype.to_text(qctx.qtype),
             qctx.query.id,
-            peer,
-            protocol.name,
+            qctx.peer,
+            qctx.socket,
+            qctx.protocol.name,
         )
         logging.debug(
             "\n".join([f"[IN] {l}" for l in [""] + str(qctx.query).splitlines()])
         )
 
     def _log_response(
-        self,
-        qctx: QueryContext,
-        response: Optional[Union[dns.message.Message, bytes]],
-        peer: Peer,
-        protocol: DnsProtocol,
+        self, qctx: QueryContext, response: Optional[Union[dns.message.Message, bytes]]
     ) -> None:
         if not response:
             logging.info(
-                "Not sending a response to query (ID=%d) from %s (%s)",
+                "Not sending a response to query (ID=%d) from %s on %s (%s)",
                 qctx.query.id,
-                peer,
-                protocol.name,
+                qctx.peer,
+                qctx.socket,
+                qctx.protocol.name,
             )
             return
 
@@ -1222,7 +1220,7 @@ class AsyncDnsServer(AsyncServer):
                 qtype = "-"
 
             logging.info(
-                "Sending %s/%s/%s (ID=%d) response (%d/%d/%d/%d) to a query (ID=%d) from %s (%s)",
+                "Sending %s/%s/%s (ID=%d) response (%d/%d/%d/%d) to a query (ID=%d) from %s on %s (%s)",
                 qname,
                 qclass,
                 qtype,
@@ -1232,8 +1230,9 @@ class AsyncDnsServer(AsyncServer):
                 len(response.authority),
                 len(response.additional),
                 qctx.query.id,
-                peer,
-                protocol.name,
+                qctx.peer,
+                qctx.socket,
+                qctx.protocol.name,
             )
             logging.debug(
                 "\n".join([f"[OUT] {l}" for l in [""] + str(response).splitlines()])
@@ -1241,11 +1240,12 @@ class AsyncDnsServer(AsyncServer):
             return
 
         logging.info(
-            "Sending response (%d bytes) to a query (ID=%d) from %s (%s)",
+            "Sending response (%d bytes) to a query (ID=%d) from %s on %s (%s)",
             len(response),
             qctx.query.id,
-            peer,
-            protocol.name,
+            qctx.peer,
+            qctx.socket,
+            qctx.protocol.name,
         )
         logging.debug("[OUT] %s", response.hex())
 
@@ -1262,10 +1262,10 @@ class AsyncDnsServer(AsyncServer):
             return
         response_stub = _make_asyncserver_response(query)
         qctx = QueryContext(query, response_stub, socket, peer, protocol)
-        self._log_query(qctx, peer, protocol)
+        self._log_query(qctx)
         responses = self._prepare_responses(qctx)
         async for response in responses:
-            self._log_response(qctx, response, peer, protocol)
+            self._log_response(qctx, response)
             if response:
                 if isinstance(response, dns.message.Message):
                     response = response.to_wire(max_size=65535)
