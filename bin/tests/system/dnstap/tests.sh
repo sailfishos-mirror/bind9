@@ -199,253 +199,109 @@ ur5=$($DNSTAPREAD ns5/dnstap.out.save | grep "UR " | wc -l)
 
 echo_i "checking UDP message counts"
 ret=0
-[ $udp1 -eq 0 ] || {
-  echo_i "ns1 $udp1 expected 0"
-  ret=1
-}
-[ $udp2 -eq 2 ] || {
-  echo_i "ns2 $udp2 expected 2"
-  ret=1
-}
-[ $udp3 -eq 4 ] || {
-  echo_i "ns3 $udp3 expected 4"
-  ret=1
-}
-[ $udp5 -eq 0 ] || {
-  echo_i "ns5 $udp5 expected 0"
-  ret=1
-}
+check_count ns1 $udp1 0
+check_count ns2 $udp2 2
+check_count ns3 $udp3 4
+check_count ns5 $udp5 0
 if [ $ret != 0 ]; then echo_i "failed"; fi
 status=$((status + ret))
 
 echo_i "checking TCP message counts"
 ret=0
-[ $tcp1 -eq 6 ] || {
-  echo_i "ns1 $tcp1 expected 6"
-  ret=1
-}
-[ $tcp2 -eq 2 ] || {
-  echo_i "ns2 $tcp2 expected 2"
-  ret=1
-}
-[ $tcp3 -eq 6 ] || {
-  echo_i "ns3 $tcp3 expected 6"
-  ret=1
-}
-[ $tcp5 -eq 2 ] || {
-  echo_i "ns5 $tcp5 expected 2"
-  ret=1
-}
+check_count ns1 $tcp1 6
+check_count ns2 $tcp2 2
+check_count ns3 $tcp3 6
+check_count ns5 $tcp5 2
 if [ $ret != 0 ]; then echo_i "failed"; fi
 status=$((status + ret))
 
 echo_i "checking AUTH_QUERY message counts"
 ret=0
-[ $aq1 -eq 3 ] || {
-  echo_i "ns1 $aq1 exepcted 3"
-  ret=1
-}
-[ $aq2 -eq 2 ] || {
-  echo_i "ns2 $aq2 expected 2"
-  ret=1
-}
-[ $aq3 -eq 1 ] || {
-  echo_i "ns3 $aq3 expected 1"
-  ret=1
-}
-[ $aq5 -eq 1 ] || {
-  echo_i "ns5 $aq5 expected 1"
-  ret=1
-}
+check_count ns1 $aq1 3
+check_count ns2 $aq2 2
+check_count ns3 $aq3 1
+check_count ns5 $aq5 1
 if [ $ret != 0 ]; then echo_i "failed"; fi
 status=$((status + ret))
 
 echo_i "checking AUTH_RESPONSE message counts"
 ret=0
-[ $ar1 -eq 2 ] || {
-  echo_i "ns1 $ar1 expected 2"
-  ret=1
-}
-[ $ar2 -eq 1 ] || {
-  echo_i "ns2 $ar2 expected 1"
-  ret=1
-}
-[ $ar3 -eq 0 ] || {
-  echo_i "ns3 $ar3 expected 0"
-  ret=1
-}
-[ $ar5 -eq 0 ] || {
-  echo_i "ns5 $ar5 expected 0"
-  ret=1
-}
+check_count ns1 $ar1 2
+check_count ns2 $ar2 1
+check_count ns3 $ar3 0
+check_count ns5 $ar5 0
 if [ $ret != 0 ]; then echo_i "failed"; fi
 status=$((status + ret))
 
 echo_i "checking CLIENT_QUERY message counts"
 ret=0
-[ $cq1 -eq 0 ] || {
-  echo_i "ns1 $cq1 expected 0"
-  ret=1
-}
-[ $cq2 -eq 0 ] || {
-  echo_i "ns2 $cq2 expected 0"
-  ret=1
-}
-[ $cq3 -eq 1 ] || {
-  echo_i "ns3 $cq3 expected 1"
-  ret=1
-}
-[ $cq5 -eq 0 ] || {
-  echo_i "ns5 $cq5 expected 0"
-  ret=1
-}
+check_count ns1 $cq1 0
+check_count ns2 $cq2 0
+check_count ns3 $cq3 1
+check_count ns5 $cq5 0
 if [ $ret != 0 ]; then echo_i "failed"; fi
 status=$((status + ret))
 
 echo_i "checking CLIENT_RESPONSE message counts"
 ret=0
-[ $cr1 -eq 1 ] || {
-  echo_i "ns1 $cr1 expected 1"
-  ret=1
-}
-[ $cr2 -eq 1 ] || {
-  echo_i "ns2 $cr2 expected 1"
-  ret=1
-}
-[ $cr3 -eq 2 ] || {
-  echo_i "ns3 $cr3 expected 2"
-  ret=1
-}
-[ $cr5 -eq 1 ] || {
-  echo_i "ns5 $cr5 expected 1"
-  ret=1
-}
+check_count ns1 $cr1 1
+check_count ns2 $cr2 1
+check_count ns3 $cr3 2
+check_count ns5 $cr5 1
 if [ $ret != 0 ]; then echo_i "failed"; fi
 status=$((status + ret))
 
 echo_i "checking RESOLVER_QUERY message counts"
 ret=0
-[ $rq1 -eq 0 ] || {
-  echo_i "ns1 $rq1 expected 0"
-  ret=1
-}
-[ $rq2 -eq 0 ] || {
-  echo_i "ns2 $rq2 expected 0"
-  ret=1
-}
-[ $rq3 -eq 3 ] || {
-  echo_i "ns3 $rq3 expected 3"
-  ret=1
-}
-[ $rq5 -eq 0 ] || {
-  echo_i "ns5 $rq5 expected 0"
-  ret=1
-}
+check_count ns1 $rq1 0
+check_count ns2 $rq2 0
+check_count ns3 $rq3 3
+check_count ns5 $rq5 0
 if [ $ret != 0 ]; then echo_i "failed"; fi
 status=$((status + ret))
 
 echo_i "checking RESOLVER_RESPONSE message counts"
 ret=0
-[ $rr1 -eq 0 ] || {
-  echo_i "ns1 $rr1 expected 0"
-  ret=1
-}
-[ $rr2 -eq 0 ] || {
-  echo_i "ns2 $rr2 expected 0"
-  ret=1
-}
-[ $rr3 -eq 3 ] || {
-  echo_i "ns3 $rr3 expected 3"
-  ret=1
-}
-[ $rr5 -eq 0 ] || {
-  echo_i "ns5 $rr5 expected 0"
-  ret=1
-}
+check_count ns1 $rr1 0
+check_count ns2 $rr2 0
+check_count ns3 $rr3 3
+check_count ns5 $rr5 0
 if [ $ret != 0 ]; then echo_i "failed"; fi
 status=$((status + ret))
 
 echo_i "checking FORWARD_QUERY message counts"
 ret=0
-[ $fq1 -eq 0 ] || {
-  echo_i "ns1 $fq1 expected 0"
-  ret=1
-}
-[ $fq2 -eq 0 ] || {
-  echo_i "ns2 $fq2 expected 0"
-  ret=1
-}
-[ $fq3 -eq 0 ] || {
-  echo_i "ns3 $fq3 expected 0"
-  ret=1
-}
-[ $fq5 -eq 0 ] || {
-  echo_i "ns5 $fq5 expected 0"
-  ret=1
-}
+check_count ns1 $fq1 0
+check_count ns2 $fq2 0
+check_count ns3 $fq3 0
+check_count ns5 $fq5 0
 if [ $ret != 0 ]; then echo_i "failed"; fi
 status=$((status + ret))
 
 echo_i "checking FORWARD_RESPONSE message counts"
 ret=0
-[ $fr1 -eq 0 ] || {
-  echo_i "ns1 $fr1 expected 0"
-  ret=1
-}
-[ $fr2 -eq 0 ] || {
-  echo_i "ns2 $fr2 expected 0"
-  ret=1
-}
-[ $fr3 -eq 0 ] || {
-  echo_i "ns3 $fr3 expected 0"
-  ret=1
-}
-[ $fr5 -eq 0 ] || {
-  echo_i "ns5 $fr5 expected 0"
-  ret=1
-}
+check_count ns1 $fr1 0
+check_count ns2 $fr2 0
+check_count ns3 $fr3 0
+check_count ns5 $fr5 0
 if [ $ret != 0 ]; then echo_i "failed"; fi
 status=$((status + ret))
 
 echo_i "checking UPDATE_QUERY message counts"
 ret=0
-[ $uq1 -eq 0 ] || {
-  echo_i "ns1 $uq1 expected 0"
-  ret=1
-}
-[ $uq2 -eq 0 ] || {
-  echo_i "ns2 $uq2 expected 0"
-  ret=1
-}
-[ $uq3 -eq 0 ] || {
-  echo_i "ns3 $uq3 expected 0"
-  ret=1
-}
-[ $uq5 -eq 0 ] || {
-  echo_i "ns5 $uq5 expected 0"
-  ret=1
-}
+check_count ns1 $uq1 0
+check_count ns2 $uq2 0
+check_count ns3 $uq3 0
+check_count ns5 $uq5 0
 if [ $ret != 0 ]; then echo_i "failed"; fi
 status=$((status + ret))
 
 echo_i "checking UPDATE_RESPONSE message counts"
 ret=0
-[ $ur1 -eq 0 ] || {
-  echo_i "ns1 $ur1 expected 0"
-  ret=1
-}
-[ $ur2 -eq 0 ] || {
-  echo_i "ns2 $ur2 expected 0"
-  ret=1
-}
-[ $ur3 -eq 0 ] || {
-  echo_i "ns3 $ur3 expected 0"
-  ret=1
-}
-[ $ur5 -eq 0 ] || {
-  echo_i "ns5 $ur5 expected 0"
-  ret=1
-}
+check_count ns1 $ur1 0
+check_count ns2 $ur2 0
+check_count ns3 $ur3 0
+check_count ns5 $ur5 0
 if [ $ret != 0 ]; then echo_i "failed"; fi
 status=$((status + ret))
 
@@ -505,253 +361,109 @@ ur5=$($DNSTAPREAD ns5/dnstap.out | grep "UR " | wc -l)
 
 echo_i "checking UDP message counts"
 ret=0
-[ $udp1 -eq 0 ] || {
-  echo_i "ns1 $udp1 expected 0"
-  ret=1
-}
-[ $udp2 -eq 2 ] || {
-  echo_i "ns2 $udp2 expected 2"
-  ret=1
-}
-[ $udp3 -eq 2 ] || {
-  echo_i "ns3 $udp3 expected 2"
-  ret=1
-}
-[ $udp5 -eq 4 ] || {
-  echo_i "ns5 $udp5 expected 4"
-  ret=1
-}
+check_count ns1 $udp1 0
+check_count ns2 $udp2 2
+check_count ns3 $udp3 2
+check_count ns5 $udp5 4
 if [ $ret != 0 ]; then echo_i "failed"; fi
 status=$((status + ret))
 
 echo_i "checking TCP message counts"
 ret=0
-[ $tcp1 -eq 0 ] || {
-  echo_i "ns1 $tcp1 expected 0"
-  ret=1
-}
-[ $tcp2 -eq 0 ] || {
-  echo_i "ns2 $tcp2 expected 0"
-  ret=1
-}
-[ $tcp3 -eq 0 ] || {
-  echo_i "ns3 $tcp3 expected 0"
-  ret=1
-}
-[ $tcp5 -eq 0 ] || {
-  echo_i "ns5 $tcp5 expected 0"
-  ret=1
-}
+check_count ns1 $tcp1 0
+check_count ns2 $tcp2 0
+check_count ns3 $tcp3 0
+check_count ns5 $tcp5 0
 if [ $ret != 0 ]; then echo_i "failed"; fi
 status=$((status + ret))
 
 echo_i "checking AUTH_QUERY message counts"
 ret=0
-[ $aq1 -eq 0 ] || {
-  echo_i "ns1 $aq1 exepcted 0"
-  ret=1
-}
-[ $aq2 -eq 0 ] || {
-  echo_i "ns2 $aq2 expected 0"
-  ret=1
-}
-[ $aq3 -eq 0 ] || {
-  echo_i "ns3 $aq3 expected 0"
-  ret=1
-}
-[ $aq5 -eq 0 ] || {
-  echo_i "ns5 $aq5 expected 0"
-  ret=1
-}
+check_count ns1 $aq1 0
+check_count ns2 $aq2 0
+check_count ns3 $aq3 0
+check_count ns5 $aq5 0
 if [ $ret != 0 ]; then echo_i "failed"; fi
 status=$((status + ret))
 
 echo_i "checking AUTH_RESPONSE message counts"
 ret=0
-[ $ar1 -eq 0 ] || {
-  echo_i "ns1 $ar1 expected 0"
-  ret=1
-}
-[ $ar2 -eq 0 ] || {
-  echo_i "ns2 $ar2 expected 0"
-  ret=1
-}
-[ $ar3 -eq 0 ] || {
-  echo_i "ns3 $ar3 expected 0"
-  ret=1
-}
-[ $ar5 -eq 0 ] || {
-  echo_i "ns5 $ar5 expected 0"
-  ret=1
-}
+check_count ns1 $ar1 0
+check_count ns2 $ar2 0
+check_count ns3 $ar3 0
+check_count ns5 $ar5 0
 if [ $ret != 0 ]; then echo_i "failed"; fi
 status=$((status + ret))
 
 echo_i "checking CLIENT_QUERY message counts"
 ret=0
-[ $cq1 -eq 0 ] || {
-  echo_i "ns1 $cq1 expected 0"
-  ret=1
-}
-[ $cq2 -eq 0 ] || {
-  echo_i "ns2 $cq2 expected 0"
-  ret=1
-}
-[ $cq3 -eq 1 ] || {
-  echo_i "ns3 $cq3 expected 1"
-  ret=1
-}
-[ $cq5 -eq 1 ] || {
-  echo_i "ns5 $cq5 expected 1"
-  ret=1
-}
+check_count ns1 $cq1 0
+check_count ns2 $cq2 0
+check_count ns3 $cq3 1
+check_count ns5 $cq5 1
 if [ $ret != 0 ]; then echo_i "failed"; fi
 status=$((status + ret))
 
 echo_i "checking CLIENT_RESPONSE message counts"
 ret=0
-[ $cr1 -eq 0 ] || {
-  echo_i "ns1 $cr1 expected 0"
-  ret=1
-}
-[ $cr2 -eq 0 ] || {
-  echo_i "ns2 $cr2 expected 0"
-  ret=1
-}
-[ $cr3 -eq 1 ] || {
-  echo_i "ns3 $cr3 expected 1"
-  ret=1
-}
-[ $cr5 -eq 1 ] || {
-  echo_i "ns5 $cr5 expected 1"
-  ret=1
-}
+check_count ns1 $cr1 0
+check_count ns2 $cr2 0
+check_count ns3 $cr3 1
+check_count ns5 $cr5 1
 if [ $ret != 0 ]; then echo_i "failed"; fi
 status=$((status + ret))
 
 echo_i "checking RESOLVER_QUERY message counts"
 ret=0
-[ $rq1 -eq 0 ] || {
-  echo_i "ns1 $rq1 expected 0"
-  ret=1
-}
-[ $rq2 -eq 0 ] || {
-  echo_i "ns2 $rq2 expected 0"
-  ret=1
-}
-[ $rq3 -eq 0 ] || {
-  echo_i "ns3 $rq3 expected 0"
-  ret=1
-}
-[ $rq5 -eq 0 ] || {
-  echo_i "ns5 $rq5 expected 0"
-  ret=1
-}
+check_count ns1 $rq1 0
+check_count ns2 $rq2 0
+check_count ns3 $rq3 0
+check_count ns5 $rq5 0
 if [ $ret != 0 ]; then echo_i "failed"; fi
 status=$((status + ret))
 
 echo_i "checking RESOLVER_RESPONSE message counts"
 ret=0
-[ $rr1 -eq 0 ] || {
-  echo_i "ns1 $rr1 expected 0"
-  ret=1
-}
-[ $rr2 -eq 0 ] || {
-  echo_i "ns2 $rr2 expected 0"
-  ret=1
-}
-[ $rr3 -eq 0 ] || {
-  echo_i "ns3 $rr3 expected 0"
-  ret=1
-}
-[ $rr5 -eq 0 ] || {
-  echo_i "ns5 $rr5 expected 0"
-  ret=1
-}
+check_count ns1 $rr1 0
+check_count ns2 $rr2 0
+check_count ns3 $rr3 0
+check_count ns5 $rr5 0
 if [ $ret != 0 ]; then echo_i "failed"; fi
 status=$((status + ret))
 
 echo_i "checking FORWARD_QUERY message counts"
 ret=0
-[ $fq1 -eq 0 ] || {
-  echo_i "ns1 $fq1 expected 0"
-  ret=1
-}
-[ $fq2 -eq 0 ] || {
-  echo_i "ns2 $fq2 expected 0"
-  ret=1
-}
-[ $fq3 -eq 0 ] || {
-  echo_i "ns3 $fq3 expected 0"
-  ret=1
-}
-[ $fq5 -eq 1 ] || {
-  echo_i "ns5 $fq5 expected 1"
-  ret=1
-}
+check_count ns1 $fq1 0
+check_count ns2 $fq2 0
+check_count ns3 $fq3 0
+check_count ns5 $fq5 1
 if [ $ret != 0 ]; then echo_i "failed"; fi
 status=$((status + ret))
 
 echo_i "checking FORWARD_RESPONSE message counts"
 ret=0
-[ $fr1 -eq 0 ] || {
-  echo_i "ns1 $fr1 expected 0"
-  ret=1
-}
-[ $fr2 -eq 0 ] || {
-  echo_i "ns2 $fr2 expected 0"
-  ret=1
-}
-[ $fr3 -eq 0 ] || {
-  echo_i "ns3 $fr3 expected 0"
-  ret=1
-}
-[ $fr5 -eq 1 ] || {
-  echo_i "ns5 $fr5 expected 1"
-  ret=1
-}
+check_count ns1 $fr1 0
+check_count ns2 $fr2 0
+check_count ns3 $fr3 0
+check_count ns5 $fr5 1
 if [ $ret != 0 ]; then echo_i "failed"; fi
 status=$((status + ret))
 
 echo_i "checking UPDATE_QUERY message counts"
 ret=0
-[ $uq1 -eq 0 ] || {
-  echo_i "ns1 $uq1 expected 0"
-  ret=1
-}
-[ $uq2 -eq 1 ] || {
-  echo_i "ns2 $uq2 expected 1"
-  ret=1
-}
-[ $uq3 -eq 0 ] || {
-  echo_i "ns3 $uq3 expected 0"
-  ret=1
-}
-[ $uq5 -eq 0 ] || {
-  echo_i "ns5 $uq5 expected 0"
-  ret=1
-}
+check_count ns1 $uq1 0
+check_count ns2 $uq2 1
+check_count ns3 $uq3 0
+check_count ns5 $uq5 0
 if [ $ret != 0 ]; then echo_i "failed"; fi
 status=$((status + ret))
 
 echo_i "checking UPDATE_RESPONSE message counts"
 ret=0
-[ $ur1 -eq 0 ] || {
-  echo_i "ns1 $ur1 expected 0"
-  ret=1
-}
-[ $ur2 -eq 1 ] || {
-  echo_i "ns2 $ur2 expected 1"
-  ret=1
-}
-[ $ur3 -eq 0 ] || {
-  echo_i "ns3 $ur3 expected 0"
-  ret=1
-}
-[ $ur5 -eq 0 ] || {
-  echo_i "ns5 $ur5 expected 0"
-  ret=1
-}
+check_count ns1 $ur1 0
+check_count ns2 $ur2 1
+check_count ns3 $ur3 0
+check_count ns5 $ur5 0
 if [ $ret != 0 ]; then echo_i "failed"; fi
 status=$((status + ret))
 
@@ -820,109 +532,73 @@ EOF
 
   echo_i "checking UDP message counts"
   ret=0
-  [ $udp4 -eq 4 ] || {
-    echo_i "ns4 $udp4 expected 4"
-    ret=1
-  }
+  check_count ns4 $udp4 4
   if [ $ret != 0 ]; then echo_i "failed"; fi
   status=$((status + ret))
 
   echo_i "checking TCP message counts"
   ret=0
-  [ $tcp4 -eq 0 ] || {
-    echo_i "ns4 $tcp4 expected 0"
-    ret=1
-  }
+  check_count ns4 $tcp4 0
   if [ $ret != 0 ]; then echo_i "failed"; fi
   status=$((status + ret))
 
   echo_i "checking AUTH_QUERY message counts"
   ret=0
-  [ $aq4 -eq 0 ] || {
-    echo_i "ns4 $aq4 expected 0"
-    ret=1
-  }
+  check_count ns4 $aq4 0
   if [ $ret != 0 ]; then echo_i "failed"; fi
   status=$((status + ret))
 
   echo_i "checking AUTH_RESPONSE message counts"
   ret=0
-  [ $ar4 -eq 0 ] || {
-    echo_i "ns4 $ar4 expected 0"
-    ret=1
-  }
+  check_count ns4 $ar4 0
   if [ $ret != 0 ]; then echo_i "failed"; fi
   status=$((status + ret))
 
   echo_i "checking CLIENT_QUERY message counts"
   ret=0
-  [ $cq4 -eq 1 ] || {
-    echo_i "ns4 $cq4 expected 1"
-    ret=1
-  }
+  check_count ns4 $cq4 1
   if [ $ret != 0 ]; then echo_i "failed"; fi
   status=$((status + ret))
 
   echo_i "checking CLIENT_RESPONSE message counts"
   ret=0
-  [ $cr4 -eq 1 ] || {
-    echo_i "ns4 $cr4 expected 1"
-    ret=1
-  }
+  check_count ns4 $cr4 1
   if [ $ret != 0 ]; then echo_i "failed"; fi
   status=$((status + ret))
 
   echo_i "checking RESOLVER_QUERY message counts"
   ret=0
-  [ $rq4 -eq 0 ] || {
-    echo_i "ns4 $rq4 expected 0"
-    ret=1
-  }
+  check_count ns4 $rq4 0
   if [ $ret != 0 ]; then echo_i "failed"; fi
   status=$((status + ret))
 
   echo_i "checking RESOLVER_RESPONSE message counts"
   ret=0
-  [ $rr4 -eq 0 ] || {
-    echo_i "ns4 $rr4 expected 0"
-    ret=1
-  }
+  check_count ns4 $rr4 0
   if [ $ret != 0 ]; then echo_i "failed"; fi
   status=$((status + ret))
 
   echo_i "checking FORWARDER_QUERY message counts"
   ret=0
-  [ $fq4 -eq 0 ] || {
-    echo_i "ns4 $fq4 expected 0"
-    ret=1
-  }
+  check_count ns4 $fq4 0
   if [ $ret != 0 ]; then echo_i "failed"; fi
   status=$((status + ret))
 
   echo_i "checking FORWARDER_RESPONSE message counts"
   ret=0
-  [ $fr4 -eq 0 ] || {
-    echo_i "ns4 $fr4 expected 0"
-    ret=1
-  }
+  check_count ns4 $fr4 0
   if [ $ret != 0 ]; then echo_i "failed"; fi
   status=$((status + ret))
 
   echo_i "checking UPDATE_QUERY message counts"
   ret=0
-  [ $uq4 -eq 1 ] || {
-    echo_i "ns4 $uq4 expected 1"
-    ret=1
-  }
+  check_count ns4 $uq4 1
   if [ $ret != 0 ]; then echo_i "failed"; fi
   status=$((status + ret))
 
   echo_i "checking UPDATE_RESPONSE message counts"
   ret=0
-  [ $ur4 -eq 1 ] || {
-    echo_i "ns4 $ur4 expected 1"
-    ret=1
-  }
+  check_count ns4 $ur4 1
   if [ $ret != 0 ]; then echo_i "failed"; fi
   status=$((status + ret))
 
@@ -964,109 +640,73 @@ EOF
 
   echo_i "checking UDP message counts"
   ret=0
-  [ $udp4 -eq 2 ] || {
-    echo_i "ns4 $udp4 expected 2"
-    ret=1
-  }
+  check_count ns4 $udp4 2
   if [ $ret != 0 ]; then echo_i "failed"; fi
   status=$((status + ret))
 
   echo_i "checking TCP message counts"
   ret=0
-  [ $tcp4 -eq 0 ] || {
-    echo_i "ns4 $tcp4 expected 0"
-    ret=1
-  }
+  check_count ns4 $tcp4 0
   if [ $ret != 0 ]; then echo_i "failed"; fi
   status=$((status + ret))
 
   echo_i "checking AUTH_QUERY message counts"
   ret=0
-  [ $aq4 -eq 0 ] || {
-    echo_i "ns4 $aq4 expected 0"
-    ret=1
-  }
+  check_count ns4 $aq4 0
   if [ $ret != 0 ]; then echo_i "failed"; fi
   status=$((status + ret))
 
   echo_i "checking AUTH_RESPONSE message counts"
   ret=0
-  [ $ar4 -eq 0 ] || {
-    echo_i "ns4 $ar4 expected 0"
-    ret=1
-  }
+  check_count ns4 $ar4 0
   if [ $ret != 0 ]; then echo_i "failed"; fi
   status=$((status + ret))
 
   echo_i "checking CLIENT_QUERY message counts"
   ret=0
-  [ $cq4 -eq 1 ] || {
-    echo_i "ns4 $cq4 expected 1"
-    ret=1
-  }
+  check_count ns4 $cq4 1
   if [ $ret != 0 ]; then echo_i "failed"; fi
   status=$((status + ret))
 
   echo_i "checking CLIENT_RESPONSE message counts"
   ret=0
-  [ $cr4 -eq 1 ] || {
-    echo_i "ns4 $cr4 expected 1"
-    ret=1
-  }
+  check_count ns4 $cr4 1
   if [ $ret != 0 ]; then echo_i "failed"; fi
   status=$((status + ret))
 
   echo_i "checking RESOLVER_QUERY message counts"
   ret=0
-  [ $rq4 -eq 0 ] || {
-    echo_i "ns4 $rq4 expected 0"
-    ret=1
-  }
+  check_count ns4 $rq4 0
   if [ $ret != 0 ]; then echo_i "failed"; fi
   status=$((status + ret))
 
   echo_i "checking RESOLVER_RESPONSE message counts"
   ret=0
-  [ $rr4 -eq 0 ] || {
-    echo_i "ns4 $rr4 expected 0"
-    ret=1
-  }
+  check_count ns4 $rr4 0
   if [ $ret != 0 ]; then echo_i "failed"; fi
   status=$((status + ret))
 
   echo_i "checking FORWARDER_QUERY message counts"
   ret=0
-  [ $fq4 -eq 0 ] || {
-    echo_i "ns4 $fq4 expected 0"
-    ret=1
-  }
+  check_count ns4 $fq4 0
   if [ $ret != 0 ]; then echo_i "failed"; fi
   status=$((status + ret))
 
   echo_i "checking FORWARDER_RESPONSE message counts"
   ret=0
-  [ $fr4 -eq 0 ] || {
-    echo_i "ns4 $fr4 expected 0"
-    ret=1
-  }
+  check_count ns4 $fr4 0
   if [ $ret != 0 ]; then echo_i "failed"; fi
   status=$((status + ret))
 
   echo_i "checking UPDATE_QUERY message counts"
   ret=0
-  [ $uq4 -eq 0 ] || {
-    echo_i "ns4 $uq4 expected 0"
-    ret=1
-  }
+  check_count ns4 $uq4 0
   if [ $ret != 0 ]; then echo_i "failed"; fi
   status=$((status + ret))
 
   echo_i "checking UPDATE_RESPONSE message counts"
   ret=0
-  [ $ur4 -eq 0 ] || {
-    echo_i "ns4 $ur4 expected 0"
-    ret=1
-  }
+  check_count ns4 $ur4 0
   if [ $ret != 0 ]; then echo_i "failed"; fi
   status=$((status + ret))
 fi
