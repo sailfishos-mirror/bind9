@@ -672,6 +672,8 @@ EOF
     echo_i "ns4 $rr4 expected 0"
     ret=1
   }
+  if [ $ret != 0 ]; then echo_i "failed"; fi
+  status=$((status + ret))
 
   echo_i "checking UPDATE_QUERY message counts"
   ret=0
@@ -794,6 +796,8 @@ EOF
     echo_i "ns4 $rr4 expected 0"
     ret=1
   }
+  if [ $ret != 0 ]; then echo_i "failed"; fi
+  status=$((status + ret))
 
   echo_i "checking UPDATE_QUERY message counts"
   ret=0
