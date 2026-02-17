@@ -2862,7 +2862,7 @@ resquery_send(resquery_t *query) {
 	/*
 	 * Log the outgoing query via dnstap.
 	 */
-	if ((fctx->qmessage->flags & DNS_MESSAGEFLAG_RD) != 0) {
+	if (ISFORWARDER(query->addrinfo)) {
 		dtmsgtype = DNS_DTTYPE_FQ;
 	} else {
 		dtmsgtype = DNS_DTTYPE_RQ;
@@ -9421,7 +9421,13 @@ rctx_logpacket(respctx_t *rctx) {
 	}
 	dns_compress_invalidate(&cctx);
 
-	if ((fctx->qmessage->flags & DNS_MESSAGEFLAG_RD) != 0) {
+	/*
+	 * Check if the response came from a forwarder to correctly
+	 * classify as Forward Response (FR) vs Recursive Response (RR)
+	 * for DNSTAP logging. This is more accurate than using the RD
+	 * flag which only indicates the original query intent.
+	 */
+	if (ISFORWARDER(rctx->query->addrinfo)) {
 		dtmsgtype = DNS_DTTYPE_FR;
 	} else {
 		dtmsgtype = DNS_DTTYPE_RR;
