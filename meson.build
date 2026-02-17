@@ -798,6 +798,13 @@ if doh_opt.allowed()
     endif
 endif
 
+## DNS-over-QUIC (DoQ) [IN PROGRESS, DEVELOPER MODE ONLY]
+ngtcp2_dep = null_dep
+if developer_mode
+    ngtcp2_dep = dependency('libngtcp2', required: false)
+    config.set('HAVE_LIBNGTCP2', ngtcp2_dep.found())
+endif
+
 ## GeoIP
 maxminddb_dep = null_dep
 if geoip_opt.allowed()
@@ -1655,6 +1662,7 @@ executable(
         json_c_dep,
         lmdb_dep,
         nghttp2_dep,
+        ngtcp2_dep,
         xml2_dep,
         zlib_dep,
 

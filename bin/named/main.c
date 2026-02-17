@@ -103,6 +103,10 @@
 #include <nghttp2/nghttp2.h>
 #endif
 
+#ifdef HAVE_LIBNGTCP2
+#include <ngtcp2/ngtcp2.h>
+#endif /* HAVE_LIBNGTCP2 */
+
 /* On DragonFly BSD the header does not provide jemalloc API */
 #if defined(HAVE_MALLOC_NP_H) && !defined(__DragonFly__)
 #include <malloc_np.h>
@@ -558,6 +562,11 @@ printversion(bool verbose) {
 	nginfo = nghttp2_version(1);
 	printf("linked to libnghttp2 version: %s\n", nginfo->version_str);
 #endif
+#ifdef HAVE_LIBNGTCP2
+	const ngtcp2_info *ngtcpinfo = ngtcp2_version(0);
+	printf("compiled with libngtcp2 version: %s\n", NGTCP2_VERSION);
+	printf("linked to libngtcp2 version: %s\n", ngtcpinfo->version_str);
+#endif /* HAVE_LIBNGTCP2 */
 #ifdef HAVE_LIBXML2
 	printf("compiled with libxml2 version: %s\n", LIBXML_DOTTED_VERSION);
 	printf("linked to libxml2 version: %s\n", xmlParserVersion);
