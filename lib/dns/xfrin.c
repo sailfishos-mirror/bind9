@@ -1362,7 +1362,7 @@ xfrin_start(dns_xfrin_t *xfr) {
 	primaries_timeout = isc_nm_getprimariestimeout();
 	result = dns_dispatch_createtcp(dispmgr, &xfr->sourceaddr,
 					&xfr->primaryaddr, xfr->transport,
-					DNS_DISPATCHOPT_UNSHARED, &xfr->disp);
+					DNS_DISPATCHTYPE_XFRIN, 0, &xfr->disp);
 	dns_dispatchmgr_detach(&dispmgr);
 	CHECK(result);
 
