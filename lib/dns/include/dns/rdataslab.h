@@ -41,6 +41,7 @@
  *** Imports
  ***/
 
+#include <stdalign.h>
 #include <stdbool.h>
 
 #include <isc/atomic.h>
@@ -77,14 +78,13 @@ struct dns_slabtop {
 	struct cds_list_head types_link;
 	struct cds_list_head headers;
 
-	dns_typepair_t typepair;
-
 	dns_slabtop_t *related;
 
-	/*% Used for SIEVE-LRU (cache) and changed_list (zone) */
-	ISC_LINK(struct dns_slabtop) link;
-	/*% Used for SIEVE-LRU */
+	dns_typepair_t typepair;
+
+	/*% Used for SIEVE-LRU (cache) */
 	bool visited;
+	ISC_LINK(struct dns_slabtop) link;
 };
 
 struct dns_slabheader {
@@ -94,21 +94,12 @@ struct dns_slabheader {
 	/*%
 	 * Locked by the owning node's lock.
 	 */
-	uint32_t serial;
-	union {
-		isc_stdtime_t expire;
-		dns_ttl_t     ttl;
-	};
+	isc_stdtime_t  expire;
 	dns_typepair_t typepair;
 
-	/* resigning (zone) and TTL-cleaning (cache) */
-	uint16_t      resign_lsb : 1;
-	isc_stdtime_t resign;
-	isc_heap_t   *heap;
-	unsigned int  heap_index;
-
-	/* Used for stale refresh */
-	_Atomic(uint32_t) last_refresh_fail_ts;
+	/* TTL-cleaning (cache) */
+	unsigned int heap_index;
+	isc_heap_t  *heap;
 
 	dns_slabheader_proof_t *noqname;
 	dns_slabheader_proof_t *closest;
@@ -145,11 +136,18 @@ struct dns_slabheader {
 	 */
 	unsigned char upper[32];
 
+	/* Used for stale refresh */
+	_Atomic(isc_stdtime_t) last_refresh_fail_ts;
+
+	uint16_t nitems;
+
 	/*%
 	 * Flexible member indicates the address of the raw data
-	 * following this header.
+	 * following this header.  This needs to be aligned to the
+	 * size of the pointer because we cast raw[] to slabheader
+	 * in rdataset_getheader().
 	 */
-	unsigned char raw[];
+	alignas(sizeof(void *)) unsigned char raw[];
 };
 
 enum {
@@ -237,29 +235,6 @@ dns_rdataslab_count(dns_slabheader_t *header);
  *\li	The number of records in the slab.
  */
 
-isc_result_t
-dns_rdataslab_merge(dns_slabheader_t *oheader, dns_slabheader_t *nheader,
-		    isc_mem_t *mctx, dns_rdataclass_t rdclass,
-		    dns_rdatatype_t type, unsigned int flags,
-		    uint32_t maxrrperset, dns_slabheader_t **theaderp);
-/*%<
- * Merge the slabs following 'oheader' and 'nheader'.
- */
-
-isc_result_t
-dns_rdataslab_subtract(dns_slabheader_t *mheader, dns_slabheader_t *sheader,
-		       isc_mem_t *mctx, dns_rdataclass_t rdclass,
-		       dns_rdatatype_t type, unsigned int flags,
-		       dns_slabheader_t **theaderp);
-/*%<
- * Subtract the slab following 'sheader' from the one following 'mheader'.
- * If 'exact' is true then all elements from the 'sheader' slab must exist
- * in the 'mheader' slab.
- *
- * XXX
- * valid flags are DNS_RDATASLAB_EXACT
- */
-
 bool
 dns_rdataslab_equal(dns_slabheader_t *header1, dns_slabheader_t *header2);
 /*%<
@@ -283,18 +258,6 @@ dns_rdataslab_equalx(dns_slabheader_t *header1, dns_slabheader_t *header2,
  *
  * Returns:
  *\li	true if the slabs are equal, #false otherwise.
- */
-
-void
-dns_slabheader_setownercase(dns_slabheader_t *header, const dns_name_t *name);
-/*%<
- * Store the casing of 'name', into a bitfield in 'header'.
- */
-
-void
-dns_slabheader_copycase(dns_slabheader_t *dest, dns_slabheader_t *src);
-/*%<
- * Copy the casing of 'src', into 'dest'.
  */
 
 void
