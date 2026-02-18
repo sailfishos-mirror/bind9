@@ -5780,6 +5780,8 @@ root_key_sentinel_detect(query_ctx_t *qctx) {
 isc_result_t
 ns__query_start(query_ctx_t *qctx) {
 	isc_result_t result = ISC_R_UNSET;
+	ns_client_t *client = qctx->client;
+
 	CCTRACE(ISC_LOG_DEBUG(3), "ns__query_start");
 	qctx->want_restart = false;
 	qctx->authoritative = false;
@@ -5787,6 +5789,13 @@ ns__query_start(query_ctx_t *qctx) {
 	qctx->zversion = NULL;
 	qctx->need_wildcardproof = false;
 	qctx->rpz = false;
+
+	/*
+	 * Clean existing stale options in case ns__query_start was restarted
+	 * due to the CNAME/DNAME chains.
+	 */
+	client->query.dboptions &= ~(DNS_DBFIND_STALETIMEOUT |
+				     DNS_DBFIND_STALEOK);
 
 	CALL_HOOK(NS_QUERY_START_BEGIN, qctx);
 
