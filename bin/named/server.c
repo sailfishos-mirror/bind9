@@ -8849,7 +8849,7 @@ load_configuration(const char *filename, named_server_t *server,
 	if (usev4ports != NULL) {
 		portset_fromconf(v4portset, usev4ports, true);
 	} else {
-		isc_net_getudpportrange(AF_INET, &port_low, &port_high);
+		isc_net_getportrange(AF_INET, &port_low, &port_high);
 		if (port_low == port_high) {
 			isc_portset_add(v4portset, port_low);
 		} else {
@@ -8872,7 +8872,7 @@ load_configuration(const char *filename, named_server_t *server,
 	if (usev6ports != NULL) {
 		portset_fromconf(v6portset, usev6ports, true);
 	} else {
-		isc_net_getudpportrange(AF_INET6, &port_low, &port_high);
+		isc_net_getportrange(AF_INET6, &port_low, &port_high);
 		if (port_low == port_high) {
 			isc_portset_add(v6portset, port_low);
 		} else {

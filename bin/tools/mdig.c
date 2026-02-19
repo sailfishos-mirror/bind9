@@ -2046,7 +2046,7 @@ set_source_ports(dns_dispatchmgr_t *manager) {
 		fatal("isc_portset_create (v4) failed");
 	}
 
-	isc_net_getudpportrange(AF_INET, &udpport_low, &udpport_high);
+	isc_net_getportrange(AF_INET, &udpport_low, &udpport_high);
 
 	isc_portset_addrange(v4portset, udpport_low, udpport_high);
 
@@ -2054,7 +2054,7 @@ set_source_ports(dns_dispatchmgr_t *manager) {
 	if (result != ISC_R_SUCCESS) {
 		fatal("isc_portset_create (v6) failed");
 	}
-	isc_net_getudpportrange(AF_INET6, &udpport_low, &udpport_high);
+	isc_net_getportrange(AF_INET6, &udpport_low, &udpport_high);
 
 	isc_portset_addrange(v6portset, udpport_low, udpport_high);
 
