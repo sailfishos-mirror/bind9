@@ -25,6 +25,212 @@ status=0
 n=0
 
 #
+# YWH-PGM40640-56:
+# Stale/Wrong DNS Data Served via CNAME Flag Leak.
+#
+echo_i "test server with serve-stale options set"
+
+#
+# Variant 1: local authoritative zone
+#
+
+# Initial query — populates cache, gets correct NXDOMAIN
+n=$((n + 1))
+echo_i "prime cache aliasnx.source.stale A ($n)"
+ret=0
+$DIG -p ${PORT} @10.53.0.7 aliasnx.source.stale A >dig.out.test$n || ret=1
+grep "status: NXDOMAIN" dig.out.test$n >/dev/null || ret=1
+grep "ANSWER: 1," dig.out.test$n >/dev/null || ret=1
+if [ $ret != 0 ]; then echo_i "failed"; fi
+status=$((status + ret))
+# Wait for CNAME TTL to expire
+sleep 3
+# Kill auth server — source.test becomes unreachable
+n=$((n + 1))
+echo_i "disable responses from authoritative server ($n)"
+ret=0
+$DIG -p ${PORT} @10.53.0.2 txt disable >dig.out.test$n || ret=1
+grep "ANSWER: 1," dig.out.test$n >/dev/null || ret=1
+grep "TXT.\"0\"" dig.out.test$n >/dev/null || ret=1
+if [ $ret != 0 ]; then echo_i "failed"; fi
+status=$((status + ret))
+# Query via stale CNAME — triggers the bug
+n=$((n + 1))
+echo_i "check stale aliasnx.source.stale A ($n)"
+ret=0
+$DIG -p ${PORT} @10.53.0.7 aliasnx.source.stale A >dig.out.test$n || ret=1
+grep "status: NXDOMAIN" dig.out.test$n >/dev/null || ret=1
+grep "ANSWER: 1," dig.out.test$n >/dev/null || ret=1
+if [ $ret != 0 ]; then echo_i "failed"; fi
+status=$((status + ret))
+# Restore auth server
+n=$((n + 1))
+echo_i "enable responses from authoritative server ($n)"
+ret=0
+$DIG -p ${PORT} @10.53.0.2 txt enable >dig.out.test$n || ret=1
+grep "ANSWER: 1," dig.out.test$n >/dev/null || ret=1
+grep "TXT.\"1\"" dig.out.test$n >/dev/null || ret=1
+if [ $ret != 0 ]; then echo_i "failed"; fi
+status=$((status + ret))
+
+#
+# Variant 2: stale/wrong data served
+#
+n=$((n + 1))
+echo_i "updating ns7/named.conf ($n)"
+ret=0
+cp ns7/named1.conf ns7/named.conf
+if [ $ret != 0 ]; then echo_i "failed"; fi
+status=$((status + ret))
+
+n=$((n + 1))
+echo_i "running 'rndc reload' ($n)"
+ret=0
+rndc_reload ns7 10.53.0.7
+if [ $ret != 0 ]; then echo_i "failed"; fi
+status=$((status + ret))
+# Initial query — caches both CNAME and A record
+n=$((n + 1))
+echo_i "prime cache alias.source.stale A ($n)"
+ret=0
+$DIG -p ${PORT} @10.53.0.7 alias.source.stale A >dig.out.test$n || ret=1
+grep "status: NOERROR" dig.out.test$n >/dev/null || ret=1
+grep "ANSWER: 2," dig.out.test$n >/dev/null || ret=1
+grep "alias.source.stale.*2.*IN.*CNAME.*www.target.stale." dig.out.test$n >/dev/null || ret=1
+grep "www.target.stale.*2.*IN.*A.*10.0.0.1" dig.out.test$n >/dev/null || ret=1
+if [ $ret != 0 ]; then echo_i "failed"; fi
+status=$((status + ret))
+# Wait for both TTLs to expire
+sleep 3
+# Kill source.test auth (CNAME becomes stale)
+n=$((n + 1))
+echo_i "disable responses from authoritative server ($n)"
+ret=0
+$DIG -p ${PORT} @10.53.0.2 txt disable >dig.out.test$n || ret=1
+grep "ANSWER: 1," dig.out.test$n >/dev/null || ret=1
+grep "TXT.\"0\"" dig.out.test$n >/dev/null || ret=1
+if [ $ret != 0 ]; then echo_i "failed"; fi
+status=$((status + ret))
+# Kill target auth, restart with NEW IP (10.0.0.2)
+n=$((n + 1))
+echo_i "update target authoritative server ($n)"
+ret=0
+$DIG -p ${PORT} @10.53.0.8 txt update >dig.out.test$n || ret=1
+grep "ANSWER: 1," dig.out.test$n >/dev/null || ret=1
+grep "TXT.\"update\"" dig.out.test$n >/dev/null || ret=1
+if [ $ret != 0 ]; then echo_i "failed"; fi
+status=$((status + ret))
+# Query via stale CNAME — triggers the bug
+n=$((n + 1))
+echo_i "check stale alias.source.stale A ($n)"
+ret=0
+$DIG -p ${PORT} @10.53.0.7 alias.source.stale A >dig.out.test$n || ret=1
+grep "status: NOERROR" dig.out.test$n >/dev/null || ret=1
+grep "ANSWER: 2," dig.out.test$n >/dev/null || ret=1
+grep "alias.source.stale.*30.*IN.*CNAME.*www.target.stale." dig.out.test$n >/dev/null || ret=1
+grep "www.target.stale.*2.*IN.*A.*10.0.0.2" dig.out.test$n >/dev/null || ret=1
+if [ $ret != 0 ]; then echo_i "failed"; fi
+status=$((status + ret))
+# Control: direct query for same name (no stale CNAME involved)
+n=$((n + 1))
+echo_i "check target www.target.stale A ($n)"
+ret=0
+$DIG -p ${PORT} @10.53.0.7 www.target.stale A >dig.out.test$n || ret=1
+grep "status: NOERROR" dig.out.test$n >/dev/null || ret=1
+grep "ANSWER: 1," dig.out.test$n >/dev/null || ret=1
+grep "www.target.stale.*IN.*A.*10.0.0.2" dig.out.test$n >/dev/null || ret=1
+if [ $ret != 0 ]; then echo_i "failed"; fi
+status=$((status + ret))
+# Restore auth servers
+n=$((n + 1))
+echo_i "enable responses from authoritative server ($n)"
+ret=0
+$DIG -p ${PORT} @10.53.0.2 txt enable >dig.out.test$n || ret=1
+grep "ANSWER: 1," dig.out.test$n >/dev/null || ret=1
+grep "TXT.\"1\"" dig.out.test$n >/dev/null || ret=1
+if [ $ret != 0 ]; then echo_i "failed"; fi
+status=$((status + ret))
+
+n=$((n + 1))
+echo_i "update target authoritative server ($n)"
+ret=0
+$DIG -p ${PORT} @10.53.0.8 txt restore >dig.out.test$n || ret=1
+grep "ANSWER: 1," dig.out.test$n >/dev/null || ret=1
+grep "TXT.\"restore\"" dig.out.test$n >/dev/null || ret=1
+if [ $ret != 0 ]; then echo_i "failed"; fi
+status=$((status + ret))
+
+#
+# Variant 3: recursion blocked, servfail
+#
+
+# Flush stale data
+n=$((n + 1))
+echo_i "flush stale data ($n)"
+ret=0
+$RNDCCMD 10.53.0.7 flushtree stale >/dev/null 2>&1 || ret=1
+sleep 1
+if [ $ret != 0 ]; then echo_i "failed"; fi
+status=$((status + ret))
+# Initial query — NXDOMAIN via CNAME chain through BOTH forwarders
+n=$((n + 1))
+echo_i "prime cache aliasnx.source.stale A ($n)"
+ret=0
+$DIG -p ${PORT} @10.53.0.7 aliasnx.source.stale A >dig.out.test$n || ret=1
+grep "status: NXDOMAIN" dig.out.test$n >/dev/null || ret=1
+grep "ANSWER: 1," dig.out.test$n >/dev/null || ret=1
+grep "aliasnx.source.stale.*2.*IN.*CNAME.*nonexist.target.stale." dig.out.test$n >/dev/null || ret=1
+if [ $ret != 0 ]; then echo_i "failed"; fi
+status=$((status + ret))
+# Wait for CNAME TTL to expire
+sleep 3
+# Kill source.test auth ONLY (target.test auth stays alive!)
+n=$((n + 1))
+echo_i "disable responses from authoritative server ($n)"
+ret=0
+$DIG -p ${PORT} @10.53.0.2 txt disable >dig.out.test$n || ret=1
+grep "ANSWER: 1," dig.out.test$n >/dev/null || ret=1
+grep "TXT.\"0\"" dig.out.test$n >/dev/null || ret=1
+if [ $ret != 0 ]; then echo_i "failed"; fi
+status=$((status + ret))
+# Flush target's negative cache entry (simulates cache eviction/pressure)
+n=$((n + 1))
+echo_i "flush name nonexist.target.stale ($n)"
+ret=0
+$RNDCCMD 10.53.0.7 flushname nonexist.target.stale >/dev/null 2>&1 || ret=1
+sleep 1
+if [ $ret != 0 ]; then echo_i "failed"; fi
+status=$((status + ret))
+# Verify target auth is STILL ALIVE and returns correct NXDOMAIN
+n=$((n + 1))
+echo_i "verify nonexist.target.stale A ($n)"
+ret=0
+$DIG -p ${PORT} @10.53.0.8 nonexist.target.stale A >dig.out.test$n || ret=1
+grep "status: NXDOMAIN" dig.out.test$n >/dev/null || ret=1
+grep "ANSWER: 0," dig.out.test$n >/dev/null || ret=1
+if [ $ret != 0 ]; then echo_i "failed"; fi
+status=$((status + ret))
+# Query via stale CNAME — triggers the bug
+n=$((n + 1))
+echo_i "check stale aliasnx.source.stale A ($n)"
+ret=0
+$DIG -p ${PORT} @10.53.0.7 aliasnx.source.stale A >dig.out.test$n || ret=1
+grep "status: NXDOMAIN" dig.out.test$n >/dev/null || ret=1
+grep "ANSWER: 1," dig.out.test$n >/dev/null || ret=1
+if [ $ret != 0 ]; then echo_i "failed"; fi
+status=$((status + ret))
+grep "aliasnx.source.stale.*30.*IN.*CNAME.*nonexist.target.stale." dig.out.test$n >/dev/null || ret=1
+# Restore auth server
+n=$((n + 1))
+echo_i "enable responses from authoritative server ($n)"
+ret=0
+$DIG -p ${PORT} @10.53.0.2 txt enable >dig.out.test$n || ret=1
+grep "ANSWER: 1," dig.out.test$n >/dev/null || ret=1
+grep "TXT.\"1\"" dig.out.test$n >/dev/null || ret=1
+if [ $ret != 0 ]; then echo_i "failed"; fi
+status=$((status + ret))
+
+#
 # First test server with serve-stale options set.
 #
 echo_i "test server with serve-stale options set"
