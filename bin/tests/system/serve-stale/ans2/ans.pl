@@ -75,6 +75,15 @@ my $TARGET = "target.example 9 IN A $localaddr";
 my $SHORTCNAME = "shortttl.cname.example 1 IN CNAME longttl.target.example";
 my $LONGTARGET = "longttl.target.example 600 IN A $localaddr";
 
+#
+# YWH records
+#
+my $ywhSOA = "source.stale 300 IN SOA . . 0 0 0 0 300";
+my $ywhNS = "source.stale 300 IN NS ns.source.stale";
+my $ywhA = "ns.source.stale 300 IN A $localaddr";
+my $ywhCNAME = "alias.source.stale 2 IN CNAME www.target.stale";
+my $ywhCNAMENX = "aliasnx.source.stale 2 IN CNAME nonexist.target.stale";
+
 sub reply_handler {
     my ($qname, $qclass, $qtype) = @_;
     my ($rcode, @ans, @auth, @add);
@@ -305,6 +314,34 @@ sub reply_handler {
 	    my $rr = new Net::DNS::RR($slownegSOA);
 	    push @auth, $rr;
 	}
+	$rcode = "NOERROR";
+    } elsif ($qname eq "source.stale") {
+	if ($qtype eq "SOA") {
+            my $rr = new Net::DNS::RR($ywhSOA);
+            push @ans, $rr;
+        } elsif ($qtype eq "NS") {
+            my $rr = new Net::DNS::RR($ywhNS);
+            push @ans, $rr;
+	    $rr = new Net::DNS::RR($ywhA);
+	    push @add, $rr;
+        }
+	$rcode = "NOERROR";
+    } elsif ($qname eq "ns.source.stale") {
+	if ($qtype eq "A") {
+	    my $rr = new Net::DNS::RR($ywhA);
+	    push @ans, $rr;
+	} else {
+	    my $rr = new Net::DNS::RR($ywhSOA);
+	    push @auth, $rr;
+	}
+	$rcode = "NOERROR";
+    } elsif ($qname eq "alias.source.stale") {
+        my $rr = new Net::DNS::RR($ywhCNAME);
+        push @ans, $rr;
+	$rcode = "NOERROR";
+    } elsif ($qname eq "aliasnx.source.stale") {
+        my $rr = new Net::DNS::RR($ywhCNAMENX);
+        push @ans, $rr;
 	$rcode = "NOERROR";
     } else {
         my $rr = new Net::DNS::RR($SOA);
