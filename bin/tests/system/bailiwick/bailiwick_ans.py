@@ -11,8 +11,6 @@ See the COPYRIGHT file distributed with this work for additional
 information regarding copyright ownership.
 """
 
-from typing import Optional
-
 import abc
 
 import dns.name
@@ -37,7 +35,7 @@ class ResponseSpoofer(ResponseHandler, abc.ABC):
         cls.spoofers[mode] = cls
 
     @classmethod
-    def get_spoofer(cls, mode: str) -> Optional["ResponseSpoofer"]:
+    def get_spoofer(cls, mode: str) -> "ResponseSpoofer | None":
         try:
             return cls.spoofers[mode]()
         except KeyError:
