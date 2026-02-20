@@ -9,6 +9,8 @@
 # See the COPYRIGHT file distributed with this work for additional
 # information regarding copyright ownership.
 
+# pylint: disable=unspecified-encoding,multiple-statements,use-maxsplit-arg,broad-exception-caught,f-string-without-interpolation
+
 import os
 
 import dns.rcode
