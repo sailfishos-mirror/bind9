@@ -146,20 +146,14 @@ setsourceports(isc_mem_t *mctx, dns_dispatchmgr_t *manager) {
 	if (result != ISC_R_SUCCESS) {
 		goto cleanup;
 	}
-	result = isc_net_getudpportrange(AF_INET, &udpport_low, &udpport_high);
-	if (result != ISC_R_SUCCESS) {
-		goto cleanup;
-	}
+	isc_net_getportrange(AF_INET, &udpport_low, &udpport_high);
 	isc_portset_addrange(v4portset, udpport_low, udpport_high);
 
 	result = isc_portset_create(mctx, &v6portset);
 	if (result != ISC_R_SUCCESS) {
 		goto cleanup;
 	}
-	result = isc_net_getudpportrange(AF_INET6, &udpport_low, &udpport_high);
-	if (result != ISC_R_SUCCESS) {
-		goto cleanup;
-	}
+	isc_net_getportrange(AF_INET6, &udpport_low, &udpport_high);
 	isc_portset_addrange(v6portset, udpport_low, udpport_high);
 
 	result = dns_dispatchmgr_setavailports(manager, v4portset, v6portset);
