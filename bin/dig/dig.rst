@@ -812,6 +812,29 @@ Files
 
 ``${HOME}/.digrc``
 
+Examples
+~~~~~~~~
+
+Only display the IP address(es) for example.com::
+
+   dig +short example.com
+
+Query the nameserver f.gtld-servers.net for example.com::
+
+   dig @f.gtld-servers.net example.com
+
+Look up the TXT record for example.com::
+
+   dig txt example.com
+
+Look up the hostname for an IP with reverse DNS::
+
+   dig -x 192.0.2.1
+
+Display a much shorter output with just the name, record type, TTL, and value for each answer::
+
+   dig +noall +answer example.com
+
 See Also
 ~~~~~~~~
 
