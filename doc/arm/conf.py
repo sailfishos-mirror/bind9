@@ -146,7 +146,6 @@ sys.path.append(str(Path(__file__).resolve().parent.parent / "misc"))
 # -- Project information -----------------------------------------------------
 
 project = "BIND 9"
-# pylint: disable=redefined-builtin
 copyright = "2023, Internet Systems Consortium"
 author = "Internet Systems Consortium"
 

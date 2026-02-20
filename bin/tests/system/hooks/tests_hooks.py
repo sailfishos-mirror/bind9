@@ -13,8 +13,9 @@ import glob
 import os
 import subprocess
 
-import dns
+import dns.rcode
 import pytest
+
 import isctest
 
 pytestmark = pytest.mark.extra_artifacts(["conf/*.conf"])

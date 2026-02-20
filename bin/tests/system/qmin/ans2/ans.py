@@ -11,9 +11,8 @@ See the COPYRIGHT file distributed with this work for additional
 information regarding copyright ownership.
 """
 
-from typing import AsyncGenerator
+from collections.abc import AsyncGenerator
 
-import dns.message
 import dns.name
 import dns.rcode
 import dns.rdatatype
@@ -27,7 +26,7 @@ from isctest.asyncserver import (
     ResponseAction,
 )
 
-from qmin_ans import (
+from ..qmin_ans import (
     DelayedResponseHandler,
     EntRcodeChanger,
     QueryLogHandler,

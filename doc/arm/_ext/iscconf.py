@@ -23,9 +23,8 @@ https://www.sphinx-doc.org/en/master/development/tutorials/recipe.html
 
 from collections import namedtuple
 
-from docutils.parsers.rst import Directive, directives
 from docutils import nodes
-
+from docutils.parsers.rst import Directive, directives
 from sphinx import addnodes
 from sphinx.directives import ObjectDescription
 from sphinx.domains import Domain
@@ -355,7 +354,7 @@ def domain_factory(domainname, domainlabel, todolist, grammar):
             )
 
         def get_statement_name(self, signature):
-            return "{}.{}.{}".format(domainname, "statement", signature)
+            return f"{domainname}.statement.{signature}"
 
         def add_statement(self, signature, tags, short, short_node, lineno):
             """
@@ -363,7 +362,7 @@ def domain_factory(domainname, domainlabel, todolist, grammar):
             No visible effect.
             """
             name = self.get_statement_name(signature)
-            anchor = "{}-statement-{}".format(domainname, signature)
+            anchor = f"{domainname}-statement-{signature}"
 
             new = {
                 "tags": tags,

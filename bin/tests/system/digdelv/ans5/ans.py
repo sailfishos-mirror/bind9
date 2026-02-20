@@ -9,8 +9,9 @@
 # See the COPYRIGHT file distributed with this work for additional
 # information regarding copyright ownership.
 
+from collections.abc import AsyncGenerator
+
 import logging
-from typing import AsyncGenerator, List, Optional
 
 import dns.rcode
 import dns.rdatatype
@@ -30,7 +31,7 @@ from isctest.asyncserver import (
 class ErraticAxfrHandler(ResponseHandler):
     allowed_actions = ["no-response", "partial-axfr", "complete-axfr"]
 
-    def __init__(self, actions: List[str]) -> None:
+    def __init__(self, actions: list[str]) -> None:
         self.actions = actions
         self.counter = 0
         for action in actions:
@@ -68,10 +69,10 @@ class ResponseSequenceCommand(ControlCommand):
     control_subdomain = "response-sequence"
 
     def __init__(self) -> None:
-        self._current_handler: Optional[ResponseHandler] = None
+        self._current_handler: ResponseHandler | None = None
 
     def handle(
-        self, args: List[str], server: ControllableAsyncDnsServer, qctx: QueryContext
+        self, args: list[str], server: ControllableAsyncDnsServer, qctx: QueryContext
     ) -> str:
         for action in args:
             if action not in ErraticAxfrHandler.allowed_actions:

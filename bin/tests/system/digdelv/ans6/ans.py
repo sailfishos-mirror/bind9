@@ -9,7 +9,7 @@
 # See the COPYRIGHT file distributed with this work for additional
 # information regarding copyright ownership.
 
-from typing import AsyncGenerator
+from collections.abc import AsyncGenerator
 
 import dns.opcode
 import dns.rcode
@@ -17,8 +17,8 @@ import dns.rcode
 from isctest.asyncserver import (
     AsyncDnsServer,
     DnsResponseSend,
-    ResponseHandler,
     QueryContext,
+    ResponseHandler,
 )
 
 

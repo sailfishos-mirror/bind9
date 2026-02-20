@@ -9,20 +9,21 @@
 # See the COPYRIGHT file distributed with this work for additional
 # information regarding copyright ownership.
 
-import base64
 from re import compile as Re
 
+import base64
 import os
-import pytest
-
-pytest.importorskip("cryptography")
 
 from cryptography.hazmat.primitives.asymmetric import ec
-
-import dns
-import dns.dnssec
-import dns.zone
 from dns.rdtypes.dnskeybase import Flag
+
+import dns.dnssec
+import dns.name
+import dns.rdataclass
+import dns.rdatatype
+import dns.rdtypes.ANY.RRSIG
+import dns.zone
+import pytest
 
 import isctest
 

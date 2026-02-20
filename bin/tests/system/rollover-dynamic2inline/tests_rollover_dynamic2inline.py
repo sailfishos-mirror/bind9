@@ -9,19 +9,14 @@
 # See the COPYRIGHT file distributed with this work for additional
 # information regarding copyright ownership.
 
-# pylint: disable=redefined-outer-name,unused-import
+from rollover.common import CDSS, DEFAULT_CONFIG, ROLLOVER_MARK
 
 import isctest
-from rollover.common import (
-    pytestmark,
-    alg,
-    size,
-    CDSS,
-    DEFAULT_CONFIG,
-)
+
+pytestmark = ROLLOVER_MARK
 
 
-def test_dynamic2inline(alg, size, ns3, templates):
+def test_dynamic2inline(ns3, default_algorithm, templates):
     config = DEFAULT_CONFIG
     policy = "default"
     zone = "dynamic2inline.kasp"
@@ -32,7 +27,7 @@ def test_dynamic2inline(alg, size, ns3, templates):
         "zone": zone,
         "cdss": CDSS,
         "keyprops": [
-            f"csk unlimited {alg} {size} goal:omnipresent dnskey:rumoured krrsig:rumoured zrrsig:rumoured ds:hidden",
+            f"csk unlimited {default_algorithm.number} {default_algorithm.bits} goal:omnipresent dnskey:rumoured krrsig:rumoured zrrsig:rumoured ds:hidden",
         ],
         "nextev": None,
     }

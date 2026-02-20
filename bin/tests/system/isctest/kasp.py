@@ -12,27 +12,34 @@
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from functools import total_ordering
+from pathlib import Path
+from re import compile as Re
+
 import glob
 import os
-from pathlib import Path
 import re
-from re import compile as Re
 import time
-from typing import Dict, List, Optional, Tuple, Union
 
-import dns
 import dns.dnssec
+import dns.exception
+import dns.message
+import dns.name
+import dns.rcode
+import dns.rdataclass
 import dns.rdatatype
 import dns.rrset
 import dns.tsig
+import dns.zone
+import dns.zonefile
+
+from isctest.instance import NamedInstance
+from isctest.run import EnvCmd
+from isctest.template import TrustAnchor
+from isctest.vars.algorithms import ALL_ALGORITHMS_BY_NUM, Algorithm
 
 import isctest.log
 import isctest.query
 import isctest.util
-from isctest.instance import NamedInstance
-from isctest.template import TrustAnchor
-from isctest.run import EnvCmd
-from isctest.vars.algorithms import Algorithm, ALL_ALGORITHMS_BY_NUM
 
 DEFAULT_TTL = 300
 
@@ -86,24 +93,24 @@ def Iret(config, zsk=True, ksk=False, rollover=True, smooth=True):
             sign_delay = config["signatures-validity"] - config["signatures-refresh"]
         safety_interval = config["retire-safety"]
 
-    iretKSK = timedelta(0)
+    iret_ksk = timedelta(0)
     if ksk:
         # KSK: Double-KSK Method: Iret = DprpP + TTLds
-        iretKSK = (
+        iret_ksk = (
             config["parent-propagation-delay"] + config["ds-ttl"] + safety_interval
         )
 
-    iretZSK = timedelta(0)
+    iret_zsk = timedelta(0)
     if zsk:
         # ZSK: Pre-Publication Method: Iret = Dsgn + Dprp + TTLsig
-        iretZSK = (
+        iret_zsk = (
             sign_delay
             + config["zone-propagation-delay"]
             + config["max-zone-ttl"]
             + safety_interval
         )
 
-    return max(iretKSK, iretZSK)
+    return max(iret_ksk, iret_zsk)
 
 
 @total_ordering
@@ -132,26 +139,26 @@ class KeyTimingMetadata:
     def __str__(self) -> str:
         return self.value.strftime(self.FORMAT)
 
-    def __add__(self, other: Union[timedelta, int]):
+    def __add__(self, other: timedelta | int):
         if isinstance(other, int):
             other = timedelta(seconds=other)
         result = KeyTimingMetadata.__new__(KeyTimingMetadata)
         result.value = self.value + other
         return result
 
-    def __sub__(self, other: Union[timedelta, int]):
+    def __sub__(self, other: timedelta | int):
         if isinstance(other, int):
             other = timedelta(seconds=other)
         result = KeyTimingMetadata.__new__(KeyTimingMetadata)
         result.value = self.value - other
         return result
 
-    def __iadd__(self, other: Union[timedelta, int]):
+    def __iadd__(self, other: timedelta | int):
         if isinstance(other, int):
             other = timedelta(seconds=other)
         self.value += other
 
-    def __isub__(self, other: Union[timedelta, int]):
+    def __isub__(self, other: timedelta | int):
         if isinstance(other, int):
             other = timedelta(seconds=other)
         self.value -= other
@@ -178,7 +185,7 @@ class KeyProperties:
         self,
         name: str,
         metadata: dict,
-        timing: Dict[str, KeyTimingMetadata],
+        timing: dict[str, KeyTimingMetadata],
         private: bool = True,
         legacy: bool = False,
         role: str = "csk",
@@ -186,7 +193,7 @@ class KeyProperties:
         flags: int = 257,
         keytag_min: int = 0,
         keytag_max: int = 65535,
-        offset: Union[timedelta, int] = 0,
+        offset: timedelta | int = 0,
     ):
         self.name = name
         self.key = None
@@ -217,7 +224,7 @@ class KeyProperties:
             "KSK": "yes",
             "ZSK": "yes",
         }
-        timing: Dict[str, KeyTimingMetadata] = {}
+        timing: dict[str, KeyTimingMetadata] = {}
 
         result = KeyProperties(name="DEFAULT", metadata=metadata, timing=timing)
         result.name = "DEFAULT"
@@ -314,49 +321,50 @@ class KeyProperties:
             self.timing["ZRRSIGChange"] = None
 
 
+# pylint: disable=invalid-name
 @dataclass
 class SettimeOptions:
 
-    P: Optional[str] = None
+    P: str | None = None
     """-P date/[+-]offset/none: set/unset key publication date"""
 
-    P_ds: Optional[str] = None
+    P_ds: str | None = None
     """-P ds date/[+-]offset/none: set/unset DS publication date"""
 
-    P_sync: Optional[str] = None
+    P_sync: str | None = None
     """-P sync date/[+-]offset/none: set/unset CDS and CDNSKEY publication date"""
 
-    A: Optional[str] = None
+    A: str | None = None
     """-A date/[+-]offset/none: set/unset key activation date"""
 
-    R: Optional[str] = None
+    R: str | None = None
     """-R date/[+-]offset/none: set/unset key revocation date"""
 
-    I: Optional[str] = None
+    I: str | None = None
     """-I date/[+-]offset/none: set/unset key inactivation date"""
 
-    D: Optional[str] = None
+    D: str | None = None
     """-D date/[+-]offset/none: set/unset key deletion date"""
 
-    D_ds: Optional[str] = None
+    D_ds: str | None = None
     """-D ds date/[+-]offset/none: set/unset DS deletion date"""
 
-    D_sync: Optional[str] = None
+    D_sync: str | None = None
     """-D sync date/[+-]offset/none: set/unset CDS and CDNSKEY deletion date"""
 
-    g: Optional[str] = None
+    g: str | None = None
     """-g state: set the goal state for this key"""
 
-    d: Optional[str] = None
+    d: str | None = None
     """-d state date/[+-]offset: set the DS state"""
 
-    k: Optional[str] = None
+    k: str | None = None
     """-k state date/[+-]offset: set the DNSKEY state"""
 
-    r: Optional[str] = None
+    r: str | None = None
     """-r state date/[+-]offset: set the RRSIG (KSK) state"""
 
-    z: Optional[str] = None
+    z: str | None = None
     """-z state date/[+-]offset: set the RRSIG (ZSK) state"""
 
     def __str__(self):
@@ -381,7 +389,7 @@ class Key:
     operations for KASP tests.
     """
 
-    def __init__(self, name: str, keydir: Optional[Union[str, Path]] = None):
+    def __init__(self, name: str, keydir: str | Path | None = None):
         self.name = name
         if keydir is None:
             self.keydir = Path()
@@ -396,7 +404,7 @@ class Key:
 
     def get_timing(
         self, metadata: str, must_exist: bool = True
-    ) -> Optional[KeyTimingMetadata]:
+    ) -> KeyTimingMetadata | None:
         regex = rf";\s+{metadata}:\s+(\d+).*"
         with open(self.keyfile, "r", encoding="utf-8") as file:
             for line in file:
@@ -436,7 +444,7 @@ class Key:
 
     def get_signing_state(
         self, offline_ksk=False, zsk_missing=False, smooth=False
-    ) -> Tuple[bool, bool]:
+    ) -> tuple[bool, bool]:
         """
         This returns the signing state derived from the key states, KRRSIGState
         and ZRRSIGState.
@@ -649,14 +657,10 @@ class Key:
             isctest.log.debug(f"{self.name} {key} TIMING UNEXPECTED: {value}")
         return value == "undefined"
 
-    def match_properties(self, zone, properties):
+    def _check_public_key_file(self, zone, properties):
         """
-        Check the key with given properties.
+        Check the public key file.
         """
-        # Check file existence.
-        # Noop. If file is missing then the get_metadata calls will fail.
-
-        # Check the public key file.
         role = properties.role_full()
         comment = f"This is a {role} key, keyid {self.tag}, for {zone}."
         if not isctest.util.file_contents_contain(self.keyfile, comment):
@@ -671,31 +675,45 @@ class Key:
             isctest.log.debug(f"{self.name} DNSKEY MISMATCH: expected '{dnskey}'")
             return False
 
-        # Now check the private key file.
-        if properties.private:
-            # Retrieve creation date.
-            created = self.get_metadata("Generated")
+        return True
 
-            pval = self.get_metadata("Created", file=self.privatefile)
-            if pval != created:
-                isctest.log.debug(
-                    f"{self.name} Created METADATA MISMATCH: {pval} - {created}"
-                )
-                return False
-            pval = self.get_metadata("Private-key-format", file=self.privatefile)
-            if pval != "v1.3":
-                isctest.log.debug(
-                    f"{self.name} Private-key-format METADATA MISMATCH: {pval} - v1.3"
-                )
-                return False
-            pval = self.get_metadata("Algorithm", file=self.privatefile)
-            if pval != f"{alg}":
-                isctest.log.debug(
-                    f"{self.name} Algorithm METADATA MISMATCH: {pval} - {alg}"
-                )
-                return False
+    def _check_private_key_file(self, properties):
+        """
+        Check the private key file.
+        """
+        if not properties.private:
+            return True
 
-        # Now check the key state file.
+        alg = properties.metadata["Algorithm"]
+
+        # Retrieve creation date.
+        created = self.get_metadata("Generated")
+
+        pval = self.get_metadata("Created", file=self.privatefile)
+        if pval != created:
+            isctest.log.debug(
+                f"{self.name} Created METADATA MISMATCH: {pval} - {created}"
+            )
+            return False
+        pval = self.get_metadata("Private-key-format", file=self.privatefile)
+        if pval != "v1.3":
+            isctest.log.debug(
+                f"{self.name} Private-key-format METADATA MISMATCH: {pval} - v1.3"
+            )
+            return False
+        pval = self.get_metadata("Algorithm", file=self.privatefile)
+        if pval != f"{alg}":
+            isctest.log.debug(
+                f"{self.name} Algorithm METADATA MISMATCH: {pval} - {alg}"
+            )
+            return False
+
+        return True
+
+    def _check_key_state_file(self, zone, properties):
+        """
+        Check the key state file.
+        """
         if properties.legacy:
             return True
 
@@ -726,7 +744,24 @@ class Key:
         if self.tag > properties.keytag_max:
             return False
 
-        # A match is found.
+        return True
+
+    def match_properties(self, zone, properties):
+        """
+        Check the key with given properties.
+        """
+        # Check file existence.
+        # Noop. If file is missing then the get_metadata calls will fail.
+
+        if not self._check_public_key_file(zone, properties):
+            return False
+
+        if not self._check_private_key_file(properties):
+            return False
+
+        if not self._check_key_state_file(zone, properties):
+            return False
+
         return True
 
     def match_timingmetadata(self, timings, file=None, comment=False):
@@ -1565,8 +1600,8 @@ def next_key_event_equals(server, zone, next_event):
 
 
 def keydir_to_keylist(
-    zone: Optional[str], keydir: Optional[str] = None, in_use: bool = False
-) -> List[Key]:
+    zone: str | None, keydir: str | None = None, in_use: bool = False
+) -> list[Key]:
     """
     Retrieve all keys from the key files in a directory. If 'zone' is None,
     retrieve all keys in the directory, otherwise only those matching the
@@ -1607,11 +1642,11 @@ def keydir_to_keylist(
     return [k for k in all_keys if used(k)]
 
 
-def keystr_to_keylist(keystr: str, keydir: Optional[str] = None) -> List[Key]:
+def keystr_to_keylist(keystr: str, keydir: str | None = None) -> list[Key]:
     return [Key(name, keydir) for name in keystr.split()]
 
 
-def policy_to_properties(ttl, keys: List[str]) -> List[KeyProperties]:
+def policy_to_properties(ttl, keys: list[str]) -> list[KeyProperties]:
     """
     Get the policies from a list of specially formatted strings.
     The splitted line should result in the following items:
@@ -1633,8 +1668,8 @@ def policy_to_properties(ttl, keys: List[str]) -> List[KeyProperties]:
         line = key.split()
 
         # defaults
-        metadata: Dict[str, Union[str, int]] = {}
-        timing: Dict[str, KeyTimingMetadata] = {}
+        metadata: dict[str, str | int] = {}
+        timing: dict[str, KeyTimingMetadata] = {}
         private = True
         legacy = False
         keytag_min = 0

@@ -9,22 +9,27 @@
 # See the COPYRIGHT file distributed with this work for additional
 # information regarding copyright ownership.
 
-import filecmp
-import os
 from pathlib import Path
 from re import compile as Re
+
+import filecmp
+import os
 import shutil
 import subprocess
+import sys
 import tempfile
 import time
-import sys
 
 import pytest
 
 pytest.register_assert_rewrite("isctest")
 
-import isctest
+# pylint: disable=wrong-import-position
 from isctest.vars.build import SYSTEM_TEST_DIR_GIT_PATH
+
+import isctest
+
+# pylint: enable=wrong-import-position
 
 # Silence warnings caused by passing a pytest fixture to another fixture.
 # pylint: disable=redefined-outer-name
@@ -38,9 +43,7 @@ isctest.vars.init_vars()
 
 # ----------------------- Globals definition -----------------------------
 
-XDIST_WORKER = os.environ.get("PYTEST_XDIST_WORKER", "")
 FILE_DIR = os.path.abspath(Path(__file__).parent)
-ENV_RE = Re(b"([^=]+)=(.*)")
 PRIORITY_TESTS = [
     # Tests that are scheduled first. Speeds up parallel execution.
     "rpz/",
@@ -72,25 +75,6 @@ def pytest_addoption(parser):
         default=False,
         help="don't remove the temporary test directories with artifacts",
     )
-
-
-def pytest_configure(config):
-    # Ensure this hook only runs on the main pytest instance if xdist is
-    # used to spawn other workers.
-    if not XDIST_WORKER:
-        if config.pluginmanager.has_plugin("xdist") and config.option.numprocesses:
-            # system tests depend on module scope for setup & teardown
-            # enforce use "loadscope" scheduler or disable paralelism
-            try:
-                import xdist.scheduler.loadscope  # pylint: disable=unused-import
-            except ImportError:
-                isctest.log.debug(
-                    "xdist is too old and does not have "
-                    "scheduler.loadscope, disabling parallelism"
-                )
-                config.option.dist = "no"
-            else:
-                config.option.dist = "loadscope"
 
 
 def pytest_ignore_collect(collection_path):
@@ -250,6 +234,11 @@ def control_port():
 
 
 @pytest.fixture(scope="module")
+def default_algorithm():
+    return isctest.vars.algorithms.Algorithm.default()
+
+
+@pytest.fixture(scope="module")
 def system_test_name(request):
     """Name of the system test directory."""
     path = Path(request.fspath)
@@ -276,7 +265,7 @@ def configure_algorithm_set(request):
         name = None
     else:
         name = mark.args[0]
-    isctest.vars.set_algorithm_set(name)
+    isctest.vars.algorithms.set_algorithm_set(name)
 
 
 @pytest.fixture(autouse=True)

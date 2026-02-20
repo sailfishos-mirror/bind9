@@ -10,12 +10,11 @@
 # information regarding copyright ownership.
 
 from pathlib import Path
-from typing import Dict
 
 SYSTEM_TEST_DIR_GIT_PATH = "bin/tests/system"
 
 
-def load_vars_from_build_files() -> Dict[str, str]:
+def load_vars_from_build_files() -> dict[str, str]:
     # TOP_BUILDDIR is special, it is always read from the source directory
     top_builddir_file = Path(__file__).resolve().parent / ".build_vars" / "TOP_BUILDDIR"
     if not top_builddir_file.exists():

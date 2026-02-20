@@ -9,8 +9,9 @@
 # See the COPYRIGHT file distributed with this work for additional
 # information regarding copyright ownership.
 
-import os
 from re import compile as Re
+
+import os
 import subprocess
 
 import pytest

@@ -11,10 +11,11 @@
 
 import itertools
 
-import isctest
+import dns.flags
+import dns.rrset
 import pytest
 
-import dns.rrset
+import isctest
 
 
 @pytest.mark.parametrize(

@@ -9,9 +9,9 @@
 # See the COPYRIGHT file distributed with this work for additional
 # information regarding copyright ownership.
 
-import os
 from re import compile as Re
-from typing import Optional
+
+import os
 
 from .. import log
 
@@ -22,7 +22,7 @@ OPENSSL_VARS = {
 }
 
 
-def parse_openssl_config(path: Optional[str]):
+def parse_openssl_config(path: str | None):
     if path is None or not os.path.exists(path):
         OPENSSL_VARS["SOFTHSM2_MODULE"] = None
         os.environ.pop("SOFTHSM2_MODULE", None)

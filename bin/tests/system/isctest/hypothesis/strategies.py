@@ -11,9 +11,9 @@
 # See the COPYRIGHT file distributed with this work for additional
 # information regarding copyright ownership.
 
-import collections.abc
-from typing import List, Union
 from warnings import warn
+
+import collections.abc
 
 from hypothesis.strategies import (
     binary,
@@ -27,7 +27,6 @@ from hypothesis.strategies import (
 )
 
 import dns.name
-import dns.message
 import dns.rdataclass
 import dns.rdatatype
 
@@ -39,9 +38,7 @@ def dns_names(
     draw,
     *,
     prefix: dns.name.Name = dns.name.empty,
-    suffix: Union[
-        dns.name.Name, collections.abc.Iterable[dns.name.Name]
-    ] = dns.name.root,
+    suffix: dns.name.Name | collections.abc.Iterable[dns.name.Name] = dns.name.root,
     min_labels: int = 1,
     max_labels: int = 128,
 ) -> dns.name.Name:
@@ -155,7 +152,7 @@ dns_rdatatypes_without_meta = integers(0, dns.rdatatype.OPT - 1) | integers(dns.
 @composite
 def _partition_bytes_to_labels(
     draw, remaining_bytes: int, number_of_labels: int
-) -> List[int]:
+) -> list[int]:
     two_bytes_reserved_for_label = 2
 
     # Reserve two bytes for each label

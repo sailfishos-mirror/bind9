@@ -9,12 +9,18 @@
 # See the COPYRIGHT file distributed with this work for additional
 # information regarding copyright ownership.
 
+from collections.abc import Callable
+from typing import Any
+
 import os
 import time
-from typing import Any, Callable, Optional
 
-import dns.query
+import dns.exception
+import dns.flags
 import dns.message
+import dns.query
+import dns.rcode
+import dns.rdataclass
 
 import isctest.log
 
@@ -25,11 +31,11 @@ def generic_query(
     query_func: Callable[..., Any],
     message: dns.message.Message,
     ip: str,
-    port: Optional[int] = None,
-    source: Optional[str] = None,
+    port: int | None = None,
+    source: str | None = None,
     timeout: int = QUERY_TIMEOUT,
     attempts: int = 10,
-    expected_rcode: Optional[dns.rcode.Rcode] = None,
+    expected_rcode: dns.rcode.Rcode | None = None,
     verify: bool = False,
     log_query: bool = True,
     log_response: bool = True,

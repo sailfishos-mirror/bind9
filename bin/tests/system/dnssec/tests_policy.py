@@ -10,6 +10,7 @@
 # information regarding copyright ownership.
 
 from datetime import timedelta
+
 import time
 
 from dns import rdatatype

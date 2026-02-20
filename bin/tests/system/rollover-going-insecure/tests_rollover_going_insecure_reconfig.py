@@ -9,25 +9,20 @@
 # See the COPYRIGHT file distributed with this work for additional
 # information regarding copyright ownership.
 
-# pylint: disable=redefined-outer-name,unused-import
-
 import pytest
 
-import isctest
 from rollover.common import (
-    pytestmark,
-    alg,
-    size,
     CDSS,
     DEFAULT_CONFIG,
     DURATION,
+    ROLLOVER_MARK,
     UNSIGNING_CONFIG,
 )
-from rollover.setup import (
-    configure_root,
-    configure_tld,
-    configure_going_insecure,
-)
+from rollover.setup import configure_going_insecure, configure_root, configure_tld
+
+import isctest
+
+pytestmark = ROLLOVER_MARK
 
 
 def bootstrap():
@@ -60,7 +55,7 @@ def after_servers_start(ns3, templates):
         "going-insecure-dynamic.kasp",
     ],
 )
-def test_going_insecure_reconfig_step1(zone, alg, size, ns3):
+def test_going_insecure_reconfig_step1(zone, ns3, default_algorithm):
     config = DEFAULT_CONFIG
     policy = "insecure"
     szone = f"step1.{zone}"
@@ -73,8 +68,8 @@ def test_going_insecure_reconfig_step1(zone, alg, size, ns3):
         "zone": szone,
         "cdss": CDSS,
         "keyprops": [
-            f"ksk 0 {alg} {size} goal:hidden dnskey:omnipresent krrsig:omnipresent ds:unretentive offset:{-DURATION['P10D']}",
-            f"zsk {DURATION['P60D']} {alg} {size} goal:hidden dnskey:omnipresent zrrsig:omnipresent offset:{-DURATION['P10D']}",
+            f"ksk 0 {default_algorithm.number} {default_algorithm.bits} goal:hidden dnskey:omnipresent krrsig:omnipresent ds:unretentive offset:{-DURATION['P10D']}",
+            f"zsk {DURATION['P60D']} {default_algorithm.number} {default_algorithm.bits} goal:hidden dnskey:omnipresent zrrsig:omnipresent offset:{-DURATION['P10D']}",
         ],
         # Next key event is when the DS becomes HIDDEN. This
         # happens after the# parent propagation delay plus DS TTL.
@@ -103,7 +98,7 @@ def test_going_insecure_reconfig_step1(zone, alg, size, ns3):
         "going-insecure-dynamic.kasp",
     ],
 )
-def test_going_insecure_reconfig_step2(zone, alg, size, ns3):
+def test_going_insecure_reconfig_step2(zone, ns3, default_algorithm):
     config = DEFAULT_CONFIG
     policy = "insecure"
     zone = f"step2.{zone}"
@@ -117,8 +112,8 @@ def test_going_insecure_reconfig_step2(zone, alg, size, ns3):
         "zone": zone,
         "cdss": CDSS,
         "keyprops": [
-            f"ksk 0 {alg} {size} goal:hidden dnskey:unretentive krrsig:unretentive ds:hidden offset:{-DURATION['P10D']}",
-            f"zsk {DURATION['P60D']} {alg} {size} goal:hidden dnskey:unretentive zrrsig:unretentive offset:{-DURATION['P10D']}",
+            f"ksk 0 {default_algorithm.number} {default_algorithm.bits} goal:hidden dnskey:unretentive krrsig:unretentive ds:hidden offset:{-DURATION['P10D']}",
+            f"zsk {DURATION['P60D']} {default_algorithm.number} {default_algorithm.bits} goal:hidden dnskey:unretentive zrrsig:unretentive offset:{-DURATION['P10D']}",
         ],
         # Next key event is when the DNSKEY becomes HIDDEN.
         # This happens after the propagation delay, plus DNSKEY TTL.

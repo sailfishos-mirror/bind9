@@ -9,8 +9,9 @@
 # See the COPYRIGHT file distributed with this work for additional
 # information regarding copyright ownership.
 
-# This ensures we're using a suitable hypothesis version. A newer version is
-# required for FIPS-enabled platforms.
+from . import settings, strategies
 
-from . import settings
-from . import strategies
+__all__ = [
+    "settings",
+    "strategies",
+]

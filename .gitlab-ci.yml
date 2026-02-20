@@ -383,7 +383,7 @@ stages:
       build
 
 .git-clone-bind9-qa: &git_clone_bind9-qa
-  - git clone --depth 1 https://gitlab.isc.org/isc-projects/bind9-qa.git
+  - git clone --depth 1 https://gitlab.isc.org/isc-projects/bind9-qa.git "$CI_PROJECT_DIR"/bind9-qa
 
 # change directory to the workspace before including this
 .find_python: &find_python
@@ -396,7 +396,7 @@ stages:
 
 .parse_tsan: &parse_tsan
     - *find_python
-    - find -name 'tsan.*' -exec "$PYTHON" util/parse_tsan.py {} \;
+    - find -name 'tsan.*' -exec "$PYTHON" "$CI_PROJECT_DIR"/bind9-qa/ci/parse_tsan.py {} \;
 
 .check_readline_setup: &check_readline_setup
     - if [[ -n "${WITHOUT_LIBEDIT}" ]]; then
@@ -510,7 +510,9 @@ stages:
         -F "variables[SHOTGUN_EVAL_THRESHOLD_LATENCY_PCTL_DRIFT_MIN]=$SHOTGUN_EVAL_THRESHOLD_LATENCY_PCTL_DRIFT_MIN"
         -F "variables[SHOTGUN_EVAL_THRESHOLD_LATENCY_PCTL_DRIFT_MAX]=$SHOTGUN_EVAL_THRESHOLD_LATENCY_PCTL_DRIFT_MAX"
         https://gitlab.isc.org/api/v4/projects/188/trigger/pipeline | jq .id)
-    - util/ci-wait-shotgun.py $PIPELINE_ID
+    - *git_clone_bind9-qa
+    - >
+      "$CI_PROJECT_DIR"/bind9-qa/ci/wait_shotgun.py $PIPELINE_ID
   needs:
     - job: ci-variables
       artifacts: true
@@ -531,14 +533,14 @@ stages:
     - *fips_feature_test
     - *find_pytest
     - *find_python
-    - ( if [ "${CI_DISPOSABLE_ENVIRONMENT}" = "true" ]; then sleep 3000; "$PYTHON" "${CI_PROJECT_DIR}/util/get-running-system-tests.py"; fi ) &
+    - *git_clone_bind9-qa
+    - ( if [ "${CI_DISPOSABLE_ENVIRONMENT}" = "true" ]; then sleep 3000; "$PYTHON" "${CI_PROJECT_DIR}/bind9-qa/ci/get_running_system_tests.py"; fi ) &
     - cd bin/tests/system
     - RET=0
     - >
       ("$PYTEST" --junit-xml="$CI_PROJECT_DIR"/junit_pytest.xml -n "$TEST_PARALLEL_JOBS" | tee pytest.out.txt) || RET=1
-    - *git_clone_bind9-qa
     - >
-      "$PYTHON" bind9-qa/ci/postprocess_junit_files.py "$CI_PROJECT_DIR"/junit_pytest.xml --output "$CI_PROJECT_DIR"/junit.xml
+      "$PYTHON" "$CI_PROJECT_DIR"/bind9-qa/ci/postprocess_junit_files.py "$CI_PROJECT_DIR"/junit_pytest.xml --output "$CI_PROJECT_DIR"/junit.xml
     - (exit $RET)
     - '( ! grep -F "grep: warning:" pytest.out.txt )'
     - test "$CLEAN_BUILD_ARTIFACTS_ON_SUCCESS" -eq 0 || ( cd ../../.. && ninja -C build clean >/dev/null 2>&1 )
@@ -582,13 +584,13 @@ stages:
     - export CMOCKA_MESSAGE_OUTPUT="xml"
     - export CMOCKA_XML_FILE="$(pwd)/build/meson-logs/include-cmocka-%g.junit.xml"
     - RET=0
-    - MESON_WRAPPER="$(pwd)/bind9-qa/ci/meson_retry_if_flaky.sh 2"
+    - MESON_WRAPPER="$CI_PROJECT_DIR/bind9-qa/ci/meson_retry_if_flaky.sh 2"
     # CMocka tests: Mark Meson-generated XMLs to exclude them later with --logbase, CMocka generates better ones.
     - meson test -C build --suite cmocka --wrapper "$MESON_WRAPPER" --no-rebuild --logbase "exclude-" || RET=1
     # Non-CMocka test: Use Meson-generated XMLs.
     - meson test -C build --no-suite cmocka --wrapper "$MESON_WRAPPER" --no-rebuild --logbase "include-" || RET=1
     - >
-      "$PYTHON" bind9-qa/ci/postprocess_junit_files.py build/meson-logs/include-*.junit.xml --output "$CI_PROJECT_DIR/junit.xml"
+      "$PYTHON" "$CI_PROJECT_DIR"/bind9-qa/ci/postprocess_junit_files.py build/meson-logs/include-*.junit.xml --output "$CI_PROJECT_DIR/junit.xml"
     - (exit $RET)
     - test "$CLEAN_BUILD_ARTIFACTS_ON_SUCCESS" -eq 0 || ninja -C build clean >/dev/null 2>&1
   artifacts:
@@ -622,7 +624,7 @@ stages:
     - meson compile -C build
     - *setup_interfaces
     - *git_clone_bind9-qa
-    - cd bind9-qa/respdiff
+    - cd "$CI_PROJECT_DIR"/bind9-qa/respdiff
   needs: []
   artifacts:
     paths:
@@ -669,7 +671,7 @@ vulture:
   <<: *quick_checks_job
   <<: *python_triggering_rules
   script:
-    - vulture --exclude "*ans.py,conftest.py,re_compile_checker.py,isctest" --ignore-names "after_servers_start,bootstrap,pytestmark,autouse_*" bin/tests/system/
+    - vulture
 
 ci-variables:
   <<: *quick_checks_job
@@ -687,7 +689,8 @@ ci-orphaned-anchors:
   <<: *quick_checks_job
   script:
     - *git_clone_bind9-qa
-    - bind9-qa/ci-orphaned-anchors/check-orphaned-anchors-ci.py .gitlab-ci.yml
+    - >
+      "$CI_PROJECT_DIR"/bind9-qa/ci-orphaned-anchors/check_orphaned_anchors_ci.py .gitlab-ci.yml
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
       changes:
@@ -757,7 +760,7 @@ doctest:
       "$PYTEST" --noconftest --doctest-modules --junit-xml="$CI_PROJECT_DIR/junit_doctest.xml" || RET=1
     - *git_clone_bind9-qa
     - >
-      "$PYTHON" bind9-qa/ci/postprocess_junit_files.py "$CI_PROJECT_DIR/junit_doctest.xml" --output "$CI_PROJECT_DIR/junit.xml"
+      "$PYTHON" "$CI_PROJECT_DIR"/bind9-qa/ci/postprocess_junit_files.py "$CI_PROJECT_DIR/junit_doctest.xml" --output "$CI_PROJECT_DIR/junit.xml"
     - (exit $RET)
   artifacts:
     reports:
@@ -767,12 +770,14 @@ doctest:
 pylint:
   <<: *quick_checks_job
   <<: *python_triggering_rules
-  variables:
-    PYTHONPATH: "${CI_PROJECT_DIR}/bin/tests/system"
   script:
-    - pylint --rcfile $CI_PROJECT_DIR/.pylintrc $(git ls-files '*.py' | grep -vE '(ans\.py|dangerfile\.py|^bin/tests/system/|^contrib/)')
-      # Ignore Pylint wrong-import-position error in system test to enable use of pytest.importorskip
-    - pylint --rcfile $CI_PROJECT_DIR/.pylintrc --load-plugins re_compile_checker --disable=wrong-import-position $(git ls-files 'bin/tests/system/*.py' | grep -vE '(ans\.py|vulture_ignore_list\.py)')
+    - pylint $(git ls-files '*.py')
+
+ruff:
+  <<: *quick_checks_job
+  <<: *python_triggering_rules
+  script:
+    - ruff check
 
 reuse:
   <<: *quick_checks_job
@@ -827,7 +832,8 @@ generate-stress-test-configs:
   <<: *quick_checks_job
   script:
     - *git_clone_bind9-qa
-    - bind9-qa/stress/generate-stress-test-configs.py > stress-test-configs.yml
+    - >
+      "$CI_PROJECT_DIR"/bind9-qa/stress/generate_stress_test_configs.py > stress-test-configs.yml
   artifacts:
     paths:
       - stress-test-configs.yml
@@ -835,7 +841,9 @@ generate-stress-test-configs:
 generate-tsan-stress-test-configs:
   <<: *quick_checks_job
   script:
-    - util/generate-tsan-stress-jobs.py > tsan-stress-test-configs.yml
+    - *git_clone_bind9-qa
+    - >
+      "$CI_PROJECT_DIR"/bind9-qa/ci/generate_tsan_stress_jobs.py > tsan-stress-test-configs.yml
   artifacts:
     paths:
       - tsan-stress-test-configs.yml
@@ -1073,7 +1081,7 @@ cross-version-config-tests:
       "$PYTEST" --setup-only --junit-xml="$CI_PROJECT_DIR"/junit_pytest.xml -n "${TEST_PARALLEL_JOBS:-1}" || RET=1
     - *git_clone_bind9-qa
     - >
-      "$PYTHON" bind9-qa/ci/postprocess_junit_files.py "$CI_PROJECT_DIR"/junit_pytest.xml --output "$CI_PROJECT_DIR"/junit.xml
+      "$PYTHON" "$CI_PROJECT_DIR"/bind9-qa/ci/postprocess_junit_files.py "$CI_PROJECT_DIR"/junit_pytest.xml --output "$CI_PROJECT_DIR"/junit.xml
     - (exit $RET)
   needs:
     - job: ci-variables
@@ -1976,7 +1984,8 @@ publish:
   variables:
     GIT_DEPTH: 1
   script:
-    - bind9-qa/releng/printing_press_mr.py --document "${DOCUMENT}" --metadata bind9-qa/releng/metadata.json ${FORCE_CVE_IDS:+--force-cve-ids ${FORCE_CVE_IDS}} ${FORCE_SECURITY_RELEASES:+--force-security-releases ${FORCE_SECURITY_RELEASES}}
+    - >
+      "$CI_PROJECT_DIR"/bind9-qa/releng/printing_press_mr.py --document "${DOCUMENT}" --metadata "$CI_PROJECT_DIR"/bind9-qa/releng/metadata.json ${FORCE_CVE_IDS:+--force-cve-ids ${FORCE_CVE_IDS}} ${FORCE_SECURITY_RELEASES:+--force-security-releases ${FORCE_SECURITY_RELEASES}}
   artifacts:
     paths:
       - printing-press/
@@ -2034,7 +2043,8 @@ merge-tag:
   variables:
     GIT_DEPTH: 100
   script:
-    - bind9-qa/releng/merge_tag.py --tag "$CI_COMMIT_TAG"
+    - >
+      "$CI_PROJECT_DIR"/bind9-qa/releng/merge_tag.py --tag "$CI_COMMIT_TAG"
   rules:
     - *rule_tag_open_source
   artifacts:
@@ -2047,11 +2057,13 @@ update-stable-tag:
   variables:
     GIT_DEPTH: 1
   script:
-    - bind9-qa/releng/update_stable_tag.py --tag "$CI_COMMIT_TAG"
+    - >
+      "$CI_PROJECT_DIR"/bind9-qa/releng/update_stable_tag.py --tag "$CI_COMMIT_TAG"
     # Work around https://github.com/readthedocs/readthedocs.org/issues/10838
     - sleep 300
     - rm -rf ./bind9  # remove already cloned project
-    - bind9-qa/releng/update_stable_tag.py --tag "$CI_COMMIT_TAG"
+    - >
+      "$CI_PROJECT_DIR"/bind9-qa/releng/update_stable_tag.py --tag "$CI_COMMIT_TAG"
   rules:
     - *rule_tag_open_source
   artifacts:
@@ -2085,7 +2097,8 @@ customer-git:branch:
     - *git_clone_bind9-qa
   script:
     - git checkout -b "$BRANCH"  # ensure refs/heads/$BRANCH exists; GitLab clones with detached HEAD
-    - bind9-qa/releng/push_to_customer_repository.py --branch "$BRANCH" --customer "$CUSTOMER" --force
+    - >
+      "$CI_PROJECT_DIR"/bind9-qa/releng/push_to_customer_repository.py --branch "$BRANCH" --customer "$CUSTOMER" --force
 
 customer-git:tag:
   <<: *customer_git
@@ -2098,7 +2111,8 @@ customer-git:tag:
     - *git_clone_bind9-qa
     - git clone --depth 1 "https://token:${ISC_CUSTOMERS_WRITE_TOKEN}@gitlab.isc.org/isc-customers/isc-customer-settings.git"
   script:
-    - bind9-qa/releng/push_to_customer_repository.py --tag "$CI_COMMIT_TAG" --entitlements isc-customer-settings/entitlements.yaml --force
+    - >
+      "$CI_PROJECT_DIR"/bind9-qa/releng/push_to_customer_repository.py --tag "$CI_COMMIT_TAG" --entitlements isc-customer-settings/entitlements.yaml --force
 
 # Respdiff tests
 
@@ -2169,7 +2183,7 @@ respdiff-third-party:
     - git checkout FETCH_HEAD
     - *configure
     - meson compile -C build
-    - cd bind9-qa/respdiff
+    - cd "$CI_PROJECT_DIR"/bind9-qa/respdiff
     - bash respdiff.sh -s named -q "${PWD}/100k_mixed.txt" -c 3 -w "${PWD}/rspworkdir" "${CI_PROJECT_DIR}/version-under-test" "${CI_PROJECT_DIR}/build/named"
 
 respdiff:recent-named:
@@ -2309,14 +2323,16 @@ backports:
   script:
     # CI job token is not sufficient for push operations
     - git remote get-url origin | sed -e "s/gitlab-ci-token:$CI_JOB_TOKEN/oauth2:$BIND_TEAM_WRITE_TOKEN/" | xargs git remote set-url --push origin
-    - bind9-qa/releng/backport_mr.py $CI_PROJECT_ID "$MERGE_REQUEST_ID"
+    - >
+      "$CI_PROJECT_DIR"/bind9-qa/releng/backport_mr.py $CI_PROJECT_ID "$MERGE_REQUEST_ID"
 
 merged-metadata:
   <<: *post_merge
   rules:
     - if: '$CI_PIPELINE_SOURCE == "push" && ($CI_COMMIT_REF_NAME =~ /^bind-9.[0-9]+(-sub)?$/ || $CI_COMMIT_REF_NAME =~ /^v9.[0-9]+.[0-9]+-release$/ || $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH)'
   script:
-    - bind9-qa/releng/after_merge.py "$CI_PROJECT_ID" "$MERGE_REQUEST_ID"
+    - >
+      "$CI_PROJECT_DIR"/bind9-qa/releng/after_merge.py "$CI_PROJECT_ID" "$MERGE_REQUEST_ID"
 
 auto-rebase-trigger:
   stage: postmerge

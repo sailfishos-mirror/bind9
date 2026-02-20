@@ -9,9 +9,10 @@
 # See the COPYRIGHT file distributed with this work for additional
 # information regarding copyright ownership.
 
+from re import compile as Re
+
 import hashlib
 import os
-from re import compile as Re
 import shutil
 
 import pytest
@@ -85,7 +86,6 @@ def token_init_and_cleanup():
         assert Re("Found token (.*) with matching token label") in cmd.out
 
 
-# pylint: disable-msg=too-many-locals
 @pytest.mark.parametrize(
     "alg_name,alg_type,alg_bits",
     [

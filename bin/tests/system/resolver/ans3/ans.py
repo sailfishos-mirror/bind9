@@ -11,7 +11,7 @@ See the COPYRIGHT file distributed with this work for additional
 information regarding copyright ownership.
 """
 
-from typing import AsyncGenerator
+from collections.abc import AsyncGenerator
 
 import dns.name
 import dns.rcode
@@ -25,11 +25,11 @@ from isctest.asyncserver import (
     QnameHandler,
     QnameQtypeHandler,
     QueryContext,
-    StaticResponseHandler,
     ResponseHandler,
+    StaticResponseHandler,
 )
 
-from resolver_ans import (
+from ..resolver_ans import (
     DelegationHandler,
     Gl6412AHandler,
     Gl6412Handler,

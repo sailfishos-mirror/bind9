@@ -10,6 +10,7 @@
 # information regarding copyright ownership.
 
 from datetime import timedelta
+
 import os
 import re
 import shutil
@@ -17,8 +18,10 @@ import time
 
 import pytest
 
-import isctest
 from isctest.kasp import KeyTimingMetadata
+from isctest.vars.algorithms import Algorithm
+
+import isctest
 
 pytestmark = pytest.mark.extra_artifacts(
     [
@@ -110,12 +113,17 @@ def ksr(zone, policy, action, options="", raise_on_exception=True, to_file=""):
 def check_keys(
     keys,
     lifetime,
-    alg=os.environ["DEFAULT_ALGORITHM_DST_NUMBER"],
-    size=os.environ["DEFAULT_BITS"],
+    alg=None,
+    size=None,
     offset=0,
     with_state=False,
 ):
     # Check keys that were created.
+    if alg is None:
+        alg = Algorithm.default().dst
+    if size is None:
+        size = Algorithm.default().bits
+
     num = 0
 
     now = KeyTimingMetadata.now()
@@ -501,7 +509,6 @@ def check_signedkeyresponse(
                 # collect keys that should be in this bundle
                 # collect lines that should be in this bundle
                 bundle_keys.append(key)
-                # pylint: disable=unused-variable
                 for _arg in expected_cds:
                     bundle_lines.append(lines[line_no])
                     line_no += 1

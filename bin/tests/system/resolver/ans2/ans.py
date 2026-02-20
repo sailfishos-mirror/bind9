@@ -11,13 +11,13 @@ See the COPYRIGHT file distributed with this work for additional
 information regarding copyright ownership.
 """
 
-from typing import AsyncGenerator, Tuple, Union
+from collections.abc import AsyncGenerator
 
 import dns.edns
 import dns.name
 import dns.rcode
-import dns.rrset
 import dns.rdatatype
+import dns.rrset
 
 from isctest.asyncserver import (
     AsyncDnsServer,
@@ -27,11 +27,11 @@ from isctest.asyncserver import (
     QnameHandler,
     QnameQtypeHandler,
     QueryContext,
-    StaticResponseHandler,
     ResponseHandler,
+    StaticResponseHandler,
 )
 
-from resolver_ans import (
+from ..resolver_ans import (
     DelegationHandler,
     Gl6412AHandler,
     Gl6412Handler,
@@ -54,8 +54,8 @@ class BadGoodDnameNsHandler(QnameQtypeHandler, StaticResponseHandler):
 
 
 def _cname_rrsets(
-    qname: Union[dns.name.Name, str],
-) -> Tuple[dns.rrset.RRset, dns.rrset.RRset]:
+    qname: dns.name.Name | str,
+) -> tuple[dns.rrset.RRset, dns.rrset.RRset]:
     return (
         rrset(qname, dns.rdatatype.CNAME, f"{qname}"),
         rrset(qname, dns.rdatatype.A, "1.2.3.4"),

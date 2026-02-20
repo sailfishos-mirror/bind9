@@ -9,10 +9,11 @@
 # See the COPYRIGHT file distributed with this work for additional
 # information regarding copyright ownership.
 
-import isctest
+from dns import rdatatype
 
 import pytest
-from dns import rdatatype
+
+import isctest
 
 
 @pytest.mark.parametrize(

@@ -9,24 +9,14 @@
 # See the COPYRIGHT file distributed with this work for additional
 # information regarding copyright ownership.
 
-# pylint: disable=redefined-outer-name,unused-import
-
 import pytest
 
+from rollover.common import CDSS, DEFAULT_CONFIG, DURATION, ROLLOVER_MARK
+from rollover.setup import configure_root, configure_straight2none, configure_tld
+
 import isctest
-from rollover.common import (
-    pytestmark,
-    alg,
-    size,
-    CDSS,
-    DURATION,
-    DEFAULT_CONFIG,
-)
-from rollover.setup import (
-    configure_root,
-    configure_tld,
-    configure_straight2none,
-)
+
+pytestmark = ROLLOVER_MARK
 
 
 def bootstrap():
@@ -62,7 +52,7 @@ def after_servers_start(ns3, templates):
         "going-straight-to-none-dynamic.kasp",
     ],
 )
-def test_straight2none_reconfig(zone, ns3, alg, size):
+def test_straight2none_reconfig(zone, ns3, default_algorithm):
     config = DEFAULT_CONFIG
     policy = None
 
@@ -72,7 +62,7 @@ def test_straight2none_reconfig(zone, ns3, alg, size):
         # These zones will go bogus after signatures expire, but
         # remain validly signed for now.
         "keyprops": [
-            f"csk 0 {alg} {size} goal:omnipresent dnskey:omnipresent krrsig:omnipresent zrrsig:omnipresent ds:omnipresent offset:{-DURATION['P10D']}",
+            f"csk 0 {default_algorithm.number} {default_algorithm.bits} goal:omnipresent dnskey:omnipresent krrsig:omnipresent zrrsig:omnipresent ds:omnipresent offset:{-DURATION['P10D']}",
         ],
         "nextev": None,
     }

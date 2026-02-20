@@ -13,9 +13,9 @@ import os
 
 import dns.message
 import dns.zone
+import pytest
 
 import isctest
-import pytest
 
 pytestmark = pytest.mark.extra_artifacts(
     ["ns2/copied.db", "ns2/present.db", "ns2/alternate.db"]

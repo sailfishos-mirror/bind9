@@ -9,16 +9,16 @@
 # See the COPYRIGHT file distributed with this work for additional
 # information regarding copyright ownership.
 
-import os
-
 from datetime import timedelta
 
-import dns
+import dns.rcode
+import dns.rdataclass
+import dns.rdatatype
 import pytest
 
 import isctest
 
-pytestmark = pytest.mark.extra_artifacts(
+NSEC3_MARK = pytest.mark.extra_artifacts(
     [
         "*.axfr",
         "*.created",
@@ -38,9 +38,6 @@ pytestmark = pytest.mark.extra_artifacts(
         "ns3/named-*.conf",
     ]
 )
-
-ALGORITHM = os.environ["DEFAULT_ALGORITHM_NUMBER"]
-SIZE = os.environ["DEFAULT_BITS"]
 
 default_config = {
     "dnskey-ttl": timedelta(hours=1),
@@ -123,8 +120,8 @@ def check_nsec3_case(server, params, nsec3=True):
     if "external-keys" in params:
         expected2 = isctest.kasp.policy_to_properties(ttl, keys=params["external-keys"])
         for ek in expected2:
-            ek.private = False  # noqa
-            ek.legacy = True  # noqa
+            ek.private = False
+            ek.legacy = True
         expected = expected + expected2
         assert "external-keydir" in params
         extkeys = isctest.kasp.keydir_to_keylist(zone, params["external-keydir"])

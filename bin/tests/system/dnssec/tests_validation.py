@@ -10,7 +10,7 @@
 # information regarding copyright ownership.
 
 from re import compile as Re
-import os
+
 import shutil
 import time
 
@@ -19,9 +19,10 @@ from dns.edns import EDECode
 
 import pytest
 
+from isctest.util import param
+
 import isctest
 import isctest.mark
-from isctest.util import param
 
 pytestmark = pytest.mark.extra_artifacts(
     [
@@ -121,7 +122,7 @@ def test_adflag():
     isctest.check.noadflag(res2)
 
 
-def test_secure_root(ns4):
+def test_secure_root(ns4, default_algorithm):
     # check that a query for a secure root validates
     msg = isctest.query.create(".", "KEY")
     res = isctest.query.tcp(msg, "10.53.0.4")
@@ -130,9 +131,8 @@ def test_secure_root(ns4):
 
     # check that "rndc secroots" dumps the trusted keys
     key = int(getfrom("ns1/managed.key.id"))
-    alg = os.environ["DEFAULT_ALGORITHM"]
     response = ns4.rndc("secroots -")
-    assert f"./{alg}/{key} ; static" in response.out
+    assert f"./{default_algorithm.name}/{key} ; static" in response.out
     assert len(response.out.splitlines()) == 10
 
 
