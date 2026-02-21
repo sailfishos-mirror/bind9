@@ -12,6 +12,7 @@
 # pylint: disable=redefined-outer-name,unused-import
 
 from datetime import timedelta
+
 import os
 import shutil
 
@@ -19,14 +20,11 @@ import dns
 import dns.update
 import pytest
 
+from isctest.vars.algorithms import RSASHA256
+from nsec3.common import check_auth_nsec3, check_nsec3param, pytestmark
+
 import isctest
 import isctest.mark
-from isctest.vars.algorithms import RSASHA256
-from nsec3.common import (
-    pytestmark,
-    check_auth_nsec3,
-    check_nsec3param,
-)
 
 DNSKEY_TTL = int(timedelta(hours=1).total_seconds())
 ZSK_LIFETIME = int(timedelta(days=90).total_seconds())

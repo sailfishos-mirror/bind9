@@ -25,8 +25,8 @@ from isctest.asyncserver import (
     QnameHandler,
     QnameQtypeHandler,
     QueryContext,
-    StaticResponseHandler,
     ResponseHandler,
+    StaticResponseHandler,
 )
 
 from ..resolver_ans import (

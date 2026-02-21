@@ -13,7 +13,6 @@ import os
 
 from .autoconf import AC_VARS  # type: ignore
 
-
 SYSTEM_TEST_DIR_GIT_PATH = "bin/tests/system"
 
 DIR_VARS = {

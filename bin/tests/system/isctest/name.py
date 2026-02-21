@@ -9,13 +9,13 @@
 # See the COPYRIGHT file distributed with this work for additional
 # information regarding copyright ownership.
 
-from typing import Iterable, FrozenSet
-
-import dns.name
-import dns.zone
-import dns.rdatatype
+from typing import FrozenSet, Iterable
 
 from dns.name import Name
+
+import dns.name
+import dns.rdatatype
+import dns.zone
 
 
 def prepend_label(label: str, name: Name) -> Name:

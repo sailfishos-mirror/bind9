@@ -12,5 +12,4 @@
 # This ensures we're using a suitable hypothesis version. A newer version is
 # required for FIPS-enabled platforms.
 
-from . import settings
-from . import strategies
+from . import settings, strategies

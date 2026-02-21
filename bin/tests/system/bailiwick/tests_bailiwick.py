@@ -14,11 +14,11 @@ from typing import Dict
 import time
 
 import dns.message
-
 import pytest
 
-import isctest
 from isctest.instance import NamedInstance
+
+import isctest
 
 
 @pytest.fixture(autouse=True)

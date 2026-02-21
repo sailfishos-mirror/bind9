@@ -9,9 +9,10 @@
 # See the COPYRIGHT file distributed with this work for additional
 # information regarding copyright ownership.
 
-import os
 from re import compile as Re
 from typing import Optional
+
+import os
 
 from .. import log
 

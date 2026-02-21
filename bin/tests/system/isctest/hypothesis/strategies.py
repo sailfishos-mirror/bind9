@@ -11,9 +11,10 @@
 # See the COPYRIGHT file distributed with this work for additional
 # information regarding copyright ownership.
 
-import collections.abc
 from typing import List, Union
 from warnings import warn
+
+import collections.abc
 
 from hypothesis.strategies import (
     binary,
@@ -26,8 +27,8 @@ from hypothesis.strategies import (
     sampled_from,
 )
 
-import dns.name
 import dns.message
+import dns.name
 import dns.rdataclass
 import dns.rdatatype
 

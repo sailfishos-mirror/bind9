@@ -11,11 +11,12 @@
 # See the COPYRIGHT file distributed with this work for additional
 # information regarding copyright ownership.
 
-import os
 from pathlib import Path
+
+import os
 import platform
-import socket
 import shutil
+import socket
 import subprocess
 
 import pytest

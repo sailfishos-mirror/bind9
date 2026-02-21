@@ -9,18 +9,18 @@
 # See the COPYRIGHT file distributed with this work for additional
 # information regarding copyright ownership.
 
-import base64
 from re import compile as Re
 
+import base64
 import os
-import pytest
 
 from cryptography.hazmat.primitives.asymmetric import ec
+from dns.rdtypes.dnskeybase import Flag
 
 import dns
 import dns.dnssec
 import dns.zone
-from dns.rdtypes.dnskeybase import Flag
+import pytest
 
 import isctest
 

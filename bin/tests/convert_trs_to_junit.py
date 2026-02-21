@@ -6,12 +6,12 @@
 #
 # Convert automake .trs files into JUnit format suitable for Gitlab
 
+from xml.etree import ElementTree
+from xml.etree.ElementTree import Element, SubElement
+
 import argparse
 import os
 import sys
-from xml.etree import ElementTree
-from xml.etree.ElementTree import Element
-from xml.etree.ElementTree import SubElement
 
 
 # getting explicit encoding specification right for Python 2/3 would be messy,

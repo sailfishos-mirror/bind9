@@ -11,11 +11,11 @@
 
 import os
 
-from .all import ALL
+from .. import log
 from .algorithms import init_crypto_supported, set_algorithm_set
+from .all import ALL
 from .features import init_features
 from .openssl import parse_openssl_config
-from .. import log
 
 
 def init_vars():

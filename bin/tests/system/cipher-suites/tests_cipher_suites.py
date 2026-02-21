@@ -11,9 +11,8 @@
 
 from re import compile as Re
 
-import pytest
-
 import dns.message
+import pytest
 
 import isctest
 import isctest.mark

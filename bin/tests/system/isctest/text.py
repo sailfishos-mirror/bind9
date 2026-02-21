@@ -11,10 +11,11 @@
 # See the COPYRIGHT file distributed with this work for additional
 # information regarding copyright ownership.
 
-import abc
-import re
 from re import compile as Re
 from typing import Iterator, List, Match, Optional, Pattern, TextIO, Union
+
+import abc
+import re
 
 FlexPattern = Union[str, Pattern]
 

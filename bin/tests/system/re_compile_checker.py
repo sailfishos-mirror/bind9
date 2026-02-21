@@ -14,7 +14,6 @@
 import re
 
 from astroid import nodes
-
 from pylint.checkers import BaseRawFileChecker
 from pylint.lint import PyLinter
 

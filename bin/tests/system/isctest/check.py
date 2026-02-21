@@ -9,12 +9,14 @@
 # See the COPYRIGHT file distributed with this work for additional
 # information regarding copyright ownership.
 
+from typing import List, Optional, cast
+
 import difflib
 import shutil
-from typing import cast, List, Optional
+
+from dns.edns import EDECode, EDEOption
 
 import dns.edns
-from dns.edns import EDECode, EDEOption
 import dns.flags
 import dns.message
 import dns.rcode

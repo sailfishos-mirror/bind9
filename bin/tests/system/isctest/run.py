@@ -9,11 +9,12 @@
 # See the COPYRIGHT file distributed with this work for additional
 # information regarding copyright ownership.
 
-import os
 from pathlib import Path
+from typing import List, Optional
+
+import os
 import subprocess
 import time
-from typing import List, Optional
 
 import isctest.log
 import isctest.text

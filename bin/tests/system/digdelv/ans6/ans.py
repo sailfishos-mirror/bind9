@@ -17,8 +17,8 @@ import dns.rcode
 from isctest.asyncserver import (
     AsyncDnsServer,
     DnsResponseSend,
-    ResponseHandler,
     QueryContext,
+    ResponseHandler,
 )
 
 

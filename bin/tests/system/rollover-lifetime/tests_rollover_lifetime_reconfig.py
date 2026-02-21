@@ -13,16 +13,10 @@
 
 import pytest
 
-import isctest
 from isctest.util import param
-from rollover.common import (
-    pytestmark,
-    alg,
-    size,
-    CDSS,
-    DEFAULT_CONFIG,
-    DURATION,
-)
+from rollover.common import CDSS, DEFAULT_CONFIG, DURATION, alg, pytestmark, size
+
+import isctest
 
 
 @pytest.fixture(scope="module", autouse=True)

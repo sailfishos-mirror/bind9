@@ -9,8 +9,9 @@
 # See the COPYRIGHT file distributed with this work for additional
 # information regarding copyright ownership.
 
-import logging
 from typing import AsyncGenerator, List, Optional
+
+import logging
 
 import dns.rcode
 import dns.rdatatype

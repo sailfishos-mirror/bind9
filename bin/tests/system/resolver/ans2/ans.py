@@ -15,8 +15,8 @@ from typing import AsyncGenerator, Tuple, Union
 
 import dns.name
 import dns.rcode
-import dns.rrset
 import dns.rdatatype
+import dns.rrset
 
 from isctest.asyncserver import (
     AsyncDnsServer,
@@ -26,8 +26,8 @@ from isctest.asyncserver import (
     QnameHandler,
     QnameQtypeHandler,
     QueryContext,
-    StaticResponseHandler,
     ResponseHandler,
+    StaticResponseHandler,
 )
 
 from ..resolver_ans import (

@@ -13,7 +13,6 @@ import os
 
 from .autoconf import AC_VARS  # type: ignore
 
-
 BASIC_VARS = {
     "ARPANAME": f"{AC_VARS['TOP_BUILDDIR']}/bin/tools/arpaname",
     "CDS": f"{AC_VARS['TOP_BUILDDIR']}/bin/dnssec/dnssec-cds",

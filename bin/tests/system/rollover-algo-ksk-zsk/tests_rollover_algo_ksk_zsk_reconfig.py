@@ -13,14 +13,9 @@
 
 import pytest
 
-import isctest
 from isctest.kasp import KeyTimingMetadata
 from isctest.util import param
 from rollover.common import (
-    pytestmark,
-    alg,
-    size,
-    CDSS,
     ALGOROLL_CONFIG,
     ALGOROLL_IPUB,
     ALGOROLL_IPUBC,
@@ -29,14 +24,16 @@ from rollover.common import (
     ALGOROLL_KEYTTLPROP,
     ALGOROLL_OFFSETS,
     ALGOROLL_OFFVAL,
+    CDSS,
     DURATION,
     TIMEDELTA,
+    alg,
+    pytestmark,
+    size,
 )
-from rollover.setup import (
-    configure_root,
-    configure_tld,
-    configure_algo_ksk_zsk,
-)
+from rollover.setup import configure_algo_ksk_zsk, configure_root, configure_tld
+
+import isctest
 
 CONFIG = ALGOROLL_CONFIG
 POLICY = "ecdsa256"

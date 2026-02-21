@@ -6,10 +6,11 @@
 #
 # Convert JUnit pytest output to automake .trs files
 
-import argparse
 from pathlib import Path
-import sys
 from xml.etree import ElementTree
+
+import argparse
+import sys
 
 
 def junit_to_trs(junit_xml):

@@ -15,20 +15,12 @@ from datetime import timedelta
 
 import pytest
 
-import isctest
 from isctest.kasp import Ipub, Iret
 from isctest.util import param
-from rollover.common import (
-    pytestmark,
-    alg,
-    size,
-    TIMEDELTA,
-)
-from rollover.setup import (
-    configure_root,
-    configure_tld,
-    configure_zsk_prepub,
-)
+from rollover.common import TIMEDELTA, alg, pytestmark, size
+from rollover.setup import configure_root, configure_tld, configure_zsk_prepub
+
+import isctest
 
 CONFIG = {
     "dnskey-ttl": TIMEDELTA["PT1H"],

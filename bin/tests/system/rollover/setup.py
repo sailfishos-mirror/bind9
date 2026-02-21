@@ -9,14 +9,16 @@
 # See the COPYRIGHT file distributed with this work for additional
 # information regarding copyright ownership.
 
-import shutil
 from typing import List
 
-import isctest
+import shutil
+
 from isctest.kasp import private_type_record
-from isctest.template import Nameserver, TrustAnchor, Zone
 from isctest.run import EnvCmd
+from isctest.template import Nameserver, TrustAnchor, Zone
 from rollover.common import default_algorithm
+
+import isctest
 
 
 def configure_tld(zonename: str, delegations: List[Zone]) -> Zone:
