@@ -26,7 +26,7 @@ import dns.query
 import dns.rdataclass
 import dns.rdatatype
 
-import isctest.mark  # pylint: disable=import-error
+import isctest.mark
 
 pytestmark = pytest.mark.extra_artifacts(
     [
