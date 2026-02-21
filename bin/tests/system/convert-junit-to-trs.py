@@ -7,6 +7,7 @@
 # Convert JUnit pytest output to automake .trs files
 
 import argparse
+from pathlib import Path
 import sys
 from xml.etree import ElementTree
 
@@ -57,12 +58,13 @@ def main():
     )
     parser.add_argument(
         "junit_file",
-        type=argparse.FileType("r", encoding="utf-8"),
+        type=Path,
         help="junit xml result file",
     )
     args = parser.parse_args()
 
-    junit_xml = args.junit_file.read()
+    with args.junit_file.open(encoding="utf-8") as junit_file:
+        junit_xml = junit_file.read()
     sys.exit(junit_to_trs(junit_xml))
 
 
