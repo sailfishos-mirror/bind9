@@ -2089,6 +2089,8 @@ validate_dnskey_dsset(dns_validator_t *val) {
 		}
 	}
 
+	val->validation_attempts++;
+
 	/*
 	 * Find the DNSKEY matching the DS...
 	 */
@@ -2113,6 +2115,12 @@ validate_dnskey_dsset(dns_validator_t *val) {
 						      val->name, key.algorithm,
 						      key.data, key.datalen))
 		{
+			/*
+			 * Don't count the unsupported algorithm into the
+			 * validation attempts.
+			 */
+			val->validation_attempts--;
+
 			if (val->unsupported_algorithm == 0) {
 				val->unsupported_algorithm = key.algorithm;
 				/*
@@ -2182,6 +2190,11 @@ validate_dnskey_dsset_next_done(void *arg) {
 		/* Continue validation until we have success or no more data */
 		(void)validate_helper_run(val, validate_dnskey_dsset_next);
 		return;
+	}
+
+	if (val->validation_attempts != 0) {
+		val->unsupported_algorithm = 0;
+		val->unsupported_digest = 0;
 	}
 
 	validate_dnskey_dsset_done(val, result);

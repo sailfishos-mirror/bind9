@@ -408,7 +408,7 @@ def test_private_algorithms(ns4):
         isctest.check.noerror(res1)
         isctest.check.servfail(res2)
         watcher.wait_for_line(
-            "No DNSKEY for extradsunknownoid.example/DS with PRIVATEOID"
+            "no DNSKEY matching DS"
         )
 
 
