@@ -250,7 +250,7 @@ dns_keystore_keygen(dns_keystore_t *keystore, const dns_name_t *origin,
 			return result;
 		}
 		isc_log_write(dns_lctx, DNS_LOGCATEGORY_DNSSEC,
-			      DNS_LOGMODULE_DNSSEC, ISC_LOG_ERROR,
+			      DNS_LOGMODULE_DNSSEC, ISC_LOG_DEBUG(3),
 			      "keystore: generated PKCS#11 object %s", label);
 	} else {
 		result = dst_key_generate(origin, alg, size, 0, flags,
