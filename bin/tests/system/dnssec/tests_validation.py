@@ -407,9 +407,7 @@ def test_private_algorithms(ns4):
         res2 = isctest.query.tcp(msg, "10.53.0.4")
         isctest.check.noerror(res1)
         isctest.check.servfail(res2)
-        watcher.wait_for_line(
-            "no DNSKEY matching DS"
-        )
+        watcher.wait_for_line("no DNSKEY matching DS")
 
 
 @isctest.mark.extended_ds_digest
