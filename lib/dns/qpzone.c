@@ -5347,9 +5347,12 @@ qpzone_update_rdataset(qpzonedb_t *qpdb, qpz_version_t *version,
 			rds, options, &ardataset, ctx->nsec DNS__DB_FLARG_PASS);
 		switch (result) {
 		case ISC_R_SUCCESS:
+			if (dns_rdataset_isassociated(&ardataset)) {
+				dns_rdataset_setownercase(&ardataset, name);
+			}
+			break;
 		case DNS_R_UNCHANGED:
 		case DNS_R_NXRRSET:
-			dns_rdataset_setownercase(&ardataset, name);
 			CHECK(result);
 			break;
 		default:
@@ -5373,9 +5376,12 @@ qpzone_update_rdataset(qpzonedb_t *qpdb, qpz_version_t *version,
 			  op == DNS_DIFFOP_ADDRESIGN);
 
 	if (result == ISC_R_SUCCESS && is_resign) {
-		isc_stdtime_t resign;
-		resign = dns_rdataset_minresign(&ardataset);
-		dns_db_setsigningtime((dns_db_t *)qpdb, &ardataset, resign);
+		if (dns_rdataset_isassociated(&ardataset)) {
+			isc_stdtime_t resign;
+			resign = dns_rdataset_minresign(&ardataset);
+			dns_db_setsigningtime((dns_db_t *)qpdb, &ardataset,
+					      resign);
+		}
 	}
 
 cleanup:
