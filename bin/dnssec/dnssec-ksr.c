@@ -1211,7 +1211,6 @@ sign(ksr_ctx_t *ksr) {
 		}
 
 		if (strcmp(STR(token), ";;") == 0) {
-			char bundle[KSR_LINESIZE];
 			isc_stdtime_t next_inception;
 
 			CHECK(isc_lex_gettoken(lex, opt, &token));
@@ -1245,9 +1244,8 @@ sign(ksr_ctx_t *ksr) {
 			}
 
 			/* Date and time of bundle */
-			sscanf(STR(token), "%s", bundle);
-			next_inception = strtotime(bundle, ksr->now, ksr->now,
-						   NULL);
+			next_inception = strtotime(STR(token), ksr->now,
+						   ksr->now, NULL);
 
 			if (have_bundle) {
 				/* Sign previous bundle */
