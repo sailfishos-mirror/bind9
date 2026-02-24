@@ -90,8 +90,8 @@ struct nsec3_chain_fixed {
 	 * fields declared above for each NSEC3 chain element:
 	 *
 	 * unsigned char	salt[salt_length];
-	 * unsigned char	owner[next_length];
-	 * unsigned char	next[next_length];
+	 * unsigned char	owner[next.length];
+	 * unsigned char	next[next.length];
 	 */
 };
 
@@ -394,21 +394,21 @@ record_nsec3(const vctx_t *vctx, const unsigned char *rawhash,
 	unsigned char *cp = NULL;
 	size_t len;
 
-	len = sizeof(*element) + nsec3->next_length * 2 + nsec3->salt_length;
+	len = sizeof(*element) + nsec3->next.length * 2 + nsec3->salt.length;
 
 	element = isc_mem_get(vctx->mctx, len);
 	*element = (struct nsec3_chain_fixed){
 		.hash = nsec3->hash,
-		.salt_length = nsec3->salt_length,
-		.next_length = nsec3->next_length,
+		.salt_length = nsec3->salt.length,
+		.next_length = nsec3->next.length,
 		.iterations = nsec3->iterations,
 	};
 	cp = (unsigned char *)(element + 1);
-	memmove(cp, nsec3->salt, nsec3->salt_length);
-	cp += nsec3->salt_length;
-	memmove(cp, rawhash, nsec3->next_length);
-	cp += nsec3->next_length;
-	memmove(cp, nsec3->next, nsec3->next_length);
+	memmove(cp, nsec3->salt.base, nsec3->salt.length);
+	cp += nsec3->salt.length;
+	memmove(cp, rawhash, nsec3->next.length);
+	cp += nsec3->next.length;
+	memmove(cp, nsec3->next.base, nsec3->next.length);
 	isc_heap_insert(chains, element);
 }
 
@@ -428,11 +428,11 @@ find_nsec3_match(const dns_rdata_nsec3param_t *nsec3param,
 		dns_rdataset_current(rdataset, &rdata);
 		dns_rdata_tostruct(&rdata, nsec3_match, NULL);
 		if (nsec3_match->hash == nsec3param->hash &&
-		    nsec3_match->next_length == rhsize &&
+		    nsec3_match->next.length == rhsize &&
 		    nsec3_match->iterations == nsec3param->iterations &&
-		    nsec3_match->salt_length == nsec3param->salt_length &&
-		    memcmp(nsec3_match->salt, nsec3param->salt,
-			   nsec3param->salt_length) == 0)
+		    nsec3_match->salt.length == nsec3param->salt.length &&
+		    memcmp(nsec3_match->salt.base, nsec3param->salt.base,
+			   nsec3param->salt.length) == 0)
 		{
 			return ISC_R_SUCCESS;
 		}
@@ -466,7 +466,9 @@ match_nsec3(const vctx_t *vctx, const dns_name_t *name,
 	 * Check the type list.
 	 */
 	len = dns_nsec_compressbitmap(cbm, types, maxtype);
-	if (nsec3.len != len || memcmp(cbm, nsec3.typebits, len) != 0) {
+	if (nsec3.typebits.length != len ||
+	    memcmp(cbm, nsec3.typebits.base, len) != 0)
+	{
 		dns_name_format(name, namebuf, sizeof(namebuf));
 		zoneverify_log_error(vctx,
 				     "Bad NSEC3 record for %s, bit map "
@@ -494,9 +496,9 @@ match_nsec3(const vctx_t *vctx, const dns_name_t *name,
 		RUNTIME_CHECK(result == ISC_R_SUCCESS);
 		if (nsec3.hash == nsec3param->hash &&
 		    nsec3.iterations == nsec3param->iterations &&
-		    nsec3.salt_length == nsec3param->salt_length &&
-		    memcmp(nsec3.salt, nsec3param->salt, nsec3.salt_length) ==
-			    0)
+		    nsec3.salt.length == nsec3param->salt.length &&
+		    memcmp(nsec3.salt.base, nsec3param->salt.base,
+			   nsec3.salt.length) == 0)
 		{
 			dns_name_format(name, namebuf, sizeof(namebuf));
 			zoneverify_log_error(vctx,
@@ -529,9 +531,9 @@ innsec3params(const dns_rdata_nsec3_t *nsec3, dns_rdataset_t *nsec3paramset) {
 		RUNTIME_CHECK(result == ISC_R_SUCCESS);
 		if (nsec3param.flags == 0 && nsec3param.hash == nsec3->hash &&
 		    nsec3param.iterations == nsec3->iterations &&
-		    nsec3param.salt_length == nsec3->salt_length &&
-		    memcmp(nsec3param.salt, nsec3->salt, nsec3->salt_length) ==
-			    0)
+		    nsec3param.salt.length == nsec3->salt.length &&
+		    memcmp(nsec3param.salt.base, nsec3->salt.base,
+			   nsec3->salt.length) == 0)
 		{
 			return true;
 		}
@@ -576,7 +578,7 @@ record_found(const vctx_t *vctx, const dns_name_t *name, dns_dbnode_t *node,
 		dns_rdataset_current(&rdataset, &rdata);
 		result = dns_rdata_tostruct(&rdata, &nsec3, NULL);
 		RUNTIME_CHECK(result == ISC_R_SUCCESS);
-		if (nsec3.next_length != isc_buffer_usedlength(&b)) {
+		if (nsec3.next.length != isc_buffer_usedlength(&b)) {
 			continue;
 		}
 
@@ -614,10 +616,10 @@ isoptout(const vctx_t *vctx, const dns_rdata_nsec3param_t *nsec3param,
 	size_t rhsize = sizeof(rawhash);
 
 	dns_fixedname_init(&fixed);
-	result = dns_nsec3_hashname(&fixed, rawhash, &rhsize, vctx->origin,
-				    vctx->origin, nsec3param->hash,
-				    nsec3param->iterations, nsec3param->salt,
-				    nsec3param->salt_length);
+	result = dns_nsec3_hashname(
+		&fixed, rawhash, &rhsize, vctx->origin, vctx->origin,
+		nsec3param->hash, nsec3param->iterations, nsec3param->salt.base,
+		nsec3param->salt.length);
 	if (result != ISC_R_SUCCESS) {
 		zoneverify_log_error(vctx, "dns_nsec3_hashname(): %s",
 				     isc_result_totext(result));
@@ -698,9 +700,10 @@ verifynsec3(const vctx_t *vctx, const dns_name_t *name,
 	RETERR(isoptout(vctx, &nsec3param, &optout));
 
 	dns_fixedname_init(&fixed);
-	result = dns_nsec3_hashname(
-		&fixed, rawhash, &rhsize, name, vctx->origin, nsec3param.hash,
-		nsec3param.iterations, nsec3param.salt, nsec3param.salt_length);
+	result = dns_nsec3_hashname(&fixed, rawhash, &rhsize, name,
+				    vctx->origin, nsec3param.hash,
+				    nsec3param.iterations, nsec3param.salt.base,
+				    nsec3param.salt.length);
 	if (result != ISC_R_SUCCESS) {
 		zoneverify_log_error(vctx, "dns_nsec3_hashname(): %s",
 				     isc_result_totext(result));

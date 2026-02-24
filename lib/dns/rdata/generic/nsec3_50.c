@@ -286,7 +286,7 @@ fromstruct_nsec3(ARGS_FROMSTRUCT) {
 	REQUIRE(nsec3 != NULL);
 	REQUIRE(nsec3->common.rdtype == type);
 	REQUIRE(nsec3->common.rdclass == rdclass);
-	REQUIRE(nsec3->typebits != NULL || nsec3->len == 0);
+	REQUIRE(nsec3->typebits.base != NULL || nsec3->typebits.length == 0);
 
 	UNUSED(type);
 	UNUSED(rdclass);
@@ -294,16 +294,19 @@ fromstruct_nsec3(ARGS_FROMSTRUCT) {
 	RETERR(uint8_tobuffer(nsec3->hash, target));
 	RETERR(uint8_tobuffer(nsec3->flags, target));
 	RETERR(uint16_tobuffer(nsec3->iterations, target));
-	RETERR(uint8_tobuffer(nsec3->salt_length, target));
-	RETERR(mem_tobuffer(target, nsec3->salt, nsec3->salt_length));
-	RETERR(uint8_tobuffer(nsec3->next_length, target));
-	RETERR(mem_tobuffer(target, nsec3->next, nsec3->next_length));
+	RETERR(uint8_tobuffer(nsec3->salt.length, target));
+	RETERR(mem_tobuffer(target, nsec3->salt.base, nsec3->salt.length));
+	RETERR(uint8_tobuffer(nsec3->next.length, target));
+	RETERR(mem_tobuffer(target, nsec3->next.base, nsec3->next.length));
 
-	region.base = nsec3->typebits;
-	region.length = nsec3->len;
+	region.base = nsec3->typebits.base;
+	region.length = nsec3->typebits.length;
 	RETERR(typemap_test(&region, true));
-	return mem_tobuffer(target, nsec3->typebits, nsec3->len);
+	return mem_tobuffer(target, nsec3->typebits.base,
+			    nsec3->typebits.length);
 }
+
+static void freestruct_nsec3(ARGS_FREESTRUCT);
 
 static isc_result_t
 tostruct_nsec3(ARGS_TOSTRUCT) {
@@ -322,18 +325,19 @@ tostruct_nsec3(ARGS_TOSTRUCT) {
 	nsec3->flags = uint8_consume_fromregion(&region);
 	nsec3->iterations = uint16_consume_fromregion(&region);
 
-	nsec3->salt_length = uint8_consume_fromregion(&region);
-	INSIST(nsec3->salt_length <= region.length);
-	nsec3->salt = mem_maybedup(mctx, region.base, nsec3->salt_length);
-	isc_region_consume(&region, nsec3->salt_length);
+	nsec3->salt.length = uint8_consume_fromregion(&region);
+	INSIST(nsec3->salt.length <= region.length);
+	nsec3->salt.base = mem_maybedup(mctx, region.base, nsec3->salt.length);
+	isc_region_consume(&region, nsec3->salt.length);
 
-	nsec3->next_length = uint8_consume_fromregion(&region);
-	INSIST(nsec3->next_length <= region.length);
-	nsec3->next = mem_maybedup(mctx, region.base, nsec3->next_length);
-	isc_region_consume(&region, nsec3->next_length);
+	nsec3->next.length = uint8_consume_fromregion(&region);
+	INSIST(nsec3->next.length <= region.length);
+	nsec3->next.base = mem_maybedup(mctx, region.base, nsec3->next.length);
+	isc_region_consume(&region, nsec3->next.length);
 
-	nsec3->len = region.length;
-	nsec3->typebits = mem_maybedup(mctx, region.base, region.length);
+	nsec3->typebits.length = region.length;
+	nsec3->typebits.base = mem_maybedup(mctx, region.base,
+					    nsec3->typebits.length);
 	nsec3->mctx = mctx;
 
 	return ISC_R_SUCCESS;
@@ -350,14 +354,17 @@ freestruct_nsec3(ARGS_FREESTRUCT) {
 		return;
 	}
 
-	if (nsec3->salt != NULL) {
-		isc_mem_free(nsec3->mctx, nsec3->salt);
+	if (nsec3->salt.base != NULL) {
+		isc_mem_free(nsec3->mctx, nsec3->salt.base);
+		nsec3->salt.length = 0;
 	}
-	if (nsec3->next != NULL) {
-		isc_mem_free(nsec3->mctx, nsec3->next);
+	if (nsec3->next.base != NULL) {
+		isc_mem_free(nsec3->mctx, nsec3->next.base);
+		nsec3->next.length = 0;
 	}
-	if (nsec3->typebits != NULL) {
-		isc_mem_free(nsec3->mctx, nsec3->typebits);
+	if (nsec3->typebits.base != NULL) {
+		isc_mem_free(nsec3->mctx, nsec3->typebits.base);
+		nsec3->typebits.length = 0;
 	}
 	nsec3->mctx = NULL;
 }

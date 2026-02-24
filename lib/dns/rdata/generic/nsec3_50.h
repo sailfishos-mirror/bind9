@@ -17,6 +17,7 @@
  * \brief Per RFC 5155 */
 
 #include <isc/iterated_hash.h>
+#include <isc/region.h>
 
 typedef struct dns_rdata_nsec3 {
 	dns_rdatacommon_t common;
@@ -24,12 +25,9 @@ typedef struct dns_rdata_nsec3 {
 	dns_hash_t hash;
 	unsigned char flags;
 	dns_iterations_t iterations;
-	unsigned char salt_length;
-	unsigned char next_length;
-	uint16_t len;
-	unsigned char *salt;
-	unsigned char *next;
-	unsigned char *typebits;
+	isc_region_t salt;
+	isc_region_t next;
+	isc_region_t typebits;
 } dns_rdata_nsec3_t;
 
 /*

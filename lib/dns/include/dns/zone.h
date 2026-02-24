@@ -1021,8 +1021,8 @@ dns_zone_keydone(dns_zone_t *zone, const char *data);
 
 isc_result_t
 dns_zone_setnsec3param(dns_zone_t *zone, uint8_t hash, uint8_t flags,
-		       uint16_t iter, uint8_t saltlen, unsigned char *salt,
-		       bool replace, bool resalt);
+		       uint16_t iter, isc_region_t *salt, bool replace,
+		       bool resalt);
 /*%<
  * Set the NSEC3 parameters for the zone.
  *

@@ -214,8 +214,9 @@ fromstruct_nsec3param(ARGS_FROMSTRUCT) {
 	RETERR(uint8_tobuffer(nsec3param->hash, target));
 	RETERR(uint8_tobuffer(nsec3param->flags, target));
 	RETERR(uint16_tobuffer(nsec3param->iterations, target));
-	RETERR(uint8_tobuffer(nsec3param->salt_length, target));
-	RETERR(mem_tobuffer(target, nsec3param->salt, nsec3param->salt_length));
+	RETERR(uint8_tobuffer(nsec3param->salt.length, target));
+	RETERR(mem_tobuffer(target, nsec3param->salt.base,
+			    nsec3param->salt.length));
 	return ISC_R_SUCCESS;
 }
 
@@ -236,11 +237,11 @@ tostruct_nsec3param(ARGS_TOSTRUCT) {
 	nsec3param->flags = uint8_consume_fromregion(&region);
 	nsec3param->iterations = uint16_consume_fromregion(&region);
 
-	nsec3param->salt_length = uint8_consume_fromregion(&region);
-	INSIST(nsec3param->salt_length == region.length);
-	nsec3param->salt = mem_maybedup(mctx, region.base,
-					nsec3param->salt_length);
-	isc_region_consume(&region, nsec3param->salt_length);
+	nsec3param->salt.length = uint8_consume_fromregion(&region);
+	INSIST(nsec3param->salt.length == region.length);
+	nsec3param->salt.base = mem_maybedup(mctx, region.base,
+					     nsec3param->salt.length);
+	isc_region_consume(&region, nsec3param->salt.length);
 
 	nsec3param->mctx = mctx;
 	return ISC_R_SUCCESS;
@@ -257,8 +258,9 @@ freestruct_nsec3param(ARGS_FREESTRUCT) {
 		return;
 	}
 
-	if (nsec3param->salt != NULL) {
-		isc_mem_free(nsec3param->mctx, nsec3param->salt);
+	if (nsec3param->salt.base != NULL) {
+		isc_mem_free(nsec3param->mctx, nsec3param->salt.base);
+		nsec3param->salt.length = 0;
 	}
 	nsec3param->mctx = NULL;
 }

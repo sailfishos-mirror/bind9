@@ -1242,10 +1242,10 @@ setnsec3parameters(dns_db_t *db, qpz_version_t *version) {
 				continue;
 			}
 
-			memmove(version->salt, nsec3param.salt,
-				nsec3param.salt_length);
+			memmove(version->salt, nsec3param.salt.base,
+				nsec3param.salt.length);
 			version->hash = nsec3param.hash;
-			version->salt_length = nsec3param.salt_length;
+			version->salt_length = nsec3param.salt.length;
 			version->iterations = nsec3param.iterations;
 			version->flags = nsec3param.flags;
 			version->havensec3 = true;
@@ -2722,9 +2722,9 @@ matchparams(dns_vecheader_t *header, qpz_search_t *search) {
 
 		if (nsec3.hash == search->version->hash &&
 		    nsec3.iterations == search->version->iterations &&
-		    nsec3.salt_length == search->version->salt_length &&
-		    memcmp(nsec3.salt, search->version->salt,
-			   nsec3.salt_length) == 0)
+		    nsec3.salt.length == search->version->salt_length &&
+		    memcmp(nsec3.salt.base, search->version->salt,
+			   nsec3.salt.length) == 0)
 		{
 			return true;
 		}
