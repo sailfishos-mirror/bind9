@@ -3557,7 +3557,7 @@ isstrictsubdomain(const dns_name_t *name1, const dns_name_t *name2) {
 	return namereln == dns_namereln_subdomain;
 }
 
-static unsigned int
+static size_t
 fctx_getaddresses_allowed(fetchctx_t *fctx) {
 	switch (fctx->depth) {
 	case 0:
@@ -3667,72 +3667,78 @@ fctx_getaddresses_forwarders(fetchctx_t *fctx) {
 
 static isc_result_t
 fctx_getaddresses_nameservers(fetchctx_t *fctx, isc_stdtime_t now,
-			      unsigned int stdoptions,
-			      unsigned int fetches_allowed,
+			      unsigned int stdoptions, size_t fetches_allowed,
 			      bool *need_alternatep, bool *all_spilledp) {
 	dns_rdata_ns_t ns;
 	bool have_address = false;
 	unsigned int ns_processed = 0;
-	size_t nscount = dns_rdataset_count(&fctx->nameservers);
-	size_t maxstartns = nscount > NS_PROCESSING_LIMIT ? NS_PROCESSING_LIMIT
-							  : nscount;
-	size_t startns = isc_random_uniform(maxstartns);
+	dns_rdata_t nameservers_s[NS_PROCESSING_LIMIT];
+	dns_rdata_t *nameservers[NS_PROCESSING_LIMIT];
 
-	for (size_t pass = 0; pass < 2; pass++) {
-		size_t curns = 0;
+	DNS_RDATASET_FOREACH(&fctx->nameservers) {
+		dns_rdata_t *rdata = nameservers[ns_processed] =
+			&nameservers_s[ns_processed];
 
-		DNS_RDATASET_FOREACH(&fctx->nameservers) {
-			isc_result_t result = ISC_R_SUCCESS;
-			dns_rdata_t rdata = DNS_RDATA_INIT;
-			bool overquota = false;
-			unsigned int static_stub = 0;
-			unsigned int no_fetch = 0;
+		dns_rdata_init(rdata);
 
-			if (pass == 0 && curns++ < startns) {
-				continue;
-			}
-			if (pass == 1 && curns++ >= startns) {
-				break;
-			}
+		dns_rdataset_current(&fctx->nameservers, rdata);
 
-			dns_rdataset_current(&fctx->nameservers, &rdata);
-			/*
-			 * Extract the name from the NS record.
-			 */
-			result = dns_rdata_tostruct(&rdata, &ns, NULL);
-			if (result != ISC_R_SUCCESS) {
-				continue;
-			}
-
-			if (STATICSTUB(&fctx->nameservers) &&
-			    dns_name_equal(&ns.name, fctx->domain))
-			{
-				static_stub = DNS_ADBFIND_STATICSTUB;
-			}
-
-			/*
-			 * Make sure we only launch a limited number of
-			 * outgoing fetches.
-			 */
-			if (fctx->pending_running >= fetches_allowed) {
-				no_fetch = DNS_ADBFIND_NOFETCH;
-			}
-
-			findname(fctx, &ns.name, 0,
-				 stdoptions | static_stub | no_fetch, 0, now,
-				 &overquota, need_alternatep, &have_address);
-
-			if (!overquota) {
-				*all_spilledp = false;
-			}
-
-			dns_rdata_reset(&rdata);
-			dns_rdata_freestruct(&ns);
-
-			if (++ns_processed >= NS_PROCESSING_LIMIT) {
-				break;
-			}
+		if (++ns_processed >= NS_PROCESSING_LIMIT) {
+			break;
 		}
+	}
+
+	if (ns_processed > 1 && ns_processed > fetches_allowed) {
+		/*
+		 * Skip the shuffle if:
+		 * - there's nothing to shuffle (no or one nameserver)
+		 * - there are less nameserver than allowed fetches as
+		 *   we are going to start fetches for all of them.
+		 */
+		for (size_t i = 0; i < ns_processed - 1; i++) {
+			size_t j = i + isc_random_uniform(ns_processed - i);
+
+			ISC_SWAP(nameservers[i], nameservers[j]);
+		}
+	}
+
+	for (size_t i = 0; i < ns_processed; i++) {
+		isc_result_t result = ISC_R_SUCCESS;
+		bool overquota = false;
+		unsigned int static_stub = 0;
+		unsigned int no_fetch = 0;
+		dns_rdata_t *rdata = nameservers[i];
+
+		/*
+		 * Extract the name from the NS record.
+		 */
+		result = dns_rdata_tostruct(rdata, &ns, NULL);
+		if (result != ISC_R_SUCCESS) {
+			continue;
+		}
+
+		if (STATICSTUB(&fctx->nameservers) &&
+		    dns_name_equal(&ns.name, fctx->domain))
+		{
+			static_stub = DNS_ADBFIND_STATICSTUB;
+		}
+
+		/*
+		 * Make sure we only launch a limited number of
+		 * outgoing fetches.
+		 */
+		if (fctx->pending_running >= fetches_allowed) {
+			no_fetch = DNS_ADBFIND_NOFETCH;
+		}
+
+		findname(fctx, &ns.name, 0, stdoptions | static_stub | no_fetch,
+			 0, now, &overquota, need_alternatep, &have_address);
+
+		if (!overquota) {
+			*all_spilledp = false;
+		}
+
+		dns_rdata_freestruct(&ns);
 	}
 
 	if (fctx->pending_running == 0 && !have_address) {
@@ -3794,7 +3800,7 @@ fctx_getaddresses(fetchctx_t *fctx) {
 	bool all_bad;
 	bool need_alternate = false;
 	bool all_spilled = false;
-	unsigned int fetches_allowed = 0;
+	size_t fetches_allowed = 0;
 
 	FCTXTRACE5("getaddresses", "fctx->depth=", fctx->depth);
 
