@@ -3474,6 +3474,8 @@ fctx_getaddresses(fetchctx_t *fctx) {
 	bool have_address = false;
 	unsigned int ns_processed = 0;
 	size_t fetches_allowed = 0;
+	dns_rdata_t nameservers_s[NS_PROCESSING_LIMIT];
+	dns_rdata_t *nameservers[NS_PROCESSING_LIMIT];
 
 	FCTXTRACE5("getaddresses", "fctx->depth=", fctx->depth);
 
@@ -3657,73 +3659,74 @@ normal_nses:
 		break;
 	}
 
+	for (result = dns_rdataset_first(&fctx->nameservers);
+	     result == ISC_R_SUCCESS;
+	     result = dns_rdataset_next(&fctx->nameservers))
+	{
+		dns_rdata_t *rdata = nameservers[ns_processed] =
+			&nameservers_s[ns_processed];
+
+		dns_rdata_init(rdata);
+
+		dns_rdataset_current(&fctx->nameservers, rdata);
+
+		if (++ns_processed >= NS_PROCESSING_LIMIT) {
+			break;
+		}
+	}
+
+	if (ns_processed > 1 && ns_processed > fetches_allowed) {
+		/*
+		 * Skip the shuffle if:
+		 * - there's nothing to shuffle (no or one nameserver)
+		 * - there are less nameserver than allowed fetches as
+		 *   we are going to start fetches for all of them.
+		 */
+		for (size_t i = 0; i < ns_processed - 1; i++) {
+			size_t j = i + isc_random_uniform(ns_processed - i);
+
+			ISC_SWAP(nameservers[i], nameservers[j]);
+		}
+	}
+
 	for (;;) {
-		size_t nscount = dns_rdataset_count(&fctx->nameservers);
-		size_t maxstartns = nscount > NS_PROCESSING_LIMIT
-					    ? NS_PROCESSING_LIMIT
-					    : nscount;
-		size_t startns = isc_random_uniform(maxstartns);
+		for (size_t i = 0; i < ns_processed; i++) {
+			bool overquota = false;
+			unsigned int static_stub = 0;
+			unsigned int no_fetch = 0;
+			dns_rdata_t *rdata = nameservers[i];
 
-		for (size_t pass = 0; pass < 2; pass++) {
-			size_t curns = 0;
-
-			for (result = dns_rdataset_first(&fctx->nameservers);
-			     result == ISC_R_SUCCESS;
-			     result = dns_rdataset_next(&fctx->nameservers))
-			{
-				dns_rdata_t rdata = DNS_RDATA_INIT;
-				bool overquota = false;
-				unsigned int static_stub = 0;
-				unsigned int no_fetch = 0;
-
-				if (pass == 0 && curns++ < startns) {
-					continue;
-				}
-				if (pass == 1 && curns++ >= startns) {
-					break;
-				}
-
-				dns_rdataset_current(&fctx->nameservers,
-						     &rdata);
-				/*
-				 * Extract the name from the NS record.
-				 */
-				result = dns_rdata_tostruct(&rdata, &ns, NULL);
-				if (result != ISC_R_SUCCESS) {
-					continue;
-				}
-
-				if (STATICSTUB(&fctx->nameservers) &&
-				    dns_name_equal(&ns.name, fctx->domain))
-				{
-					static_stub = DNS_ADBFIND_STATICSTUB;
-				}
-
-				/*
-				 * Make sure we only launch a limited number of
-				 * outgoing fetches.
-				 */
-				if (fctx->pending_running >= fetches_allowed) {
-					no_fetch = DNS_ADBFIND_NOFETCH;
-				}
-
-				findname(fctx, &ns.name, 0,
-					 stdoptions | static_stub | no_fetch, 0,
-					 now, &overquota, &need_alternate,
-					 &have_address);
-
-				if (!overquota) {
-					all_spilled = false;
-				}
-
-				dns_rdata_reset(&rdata);
-				dns_rdata_freestruct(&ns);
-
-				if (++ns_processed >= NS_PROCESSING_LIMIT) {
-					result = ISC_R_NOMORE;
-					break;
-				}
+			/*
+			 * Extract the name from the NS record.
+			 */
+			result = dns_rdata_tostruct(rdata, &ns, NULL);
+			if (result != ISC_R_SUCCESS) {
+				continue;
 			}
+
+			if (STATICSTUB(&fctx->nameservers) &&
+			    dns_name_equal(&ns.name, fctx->domain))
+			{
+				static_stub = DNS_ADBFIND_STATICSTUB;
+			}
+
+			/*
+			 * Make sure we only launch a limited number of
+			 * outgoing fetches.
+			 */
+			if (fctx->pending_running >= fetches_allowed) {
+				no_fetch = DNS_ADBFIND_NOFETCH;
+			}
+
+			findname(fctx, &ns.name, 0,
+				 stdoptions | static_stub | no_fetch, 0, now,
+				 &overquota, &need_alternate, &have_address);
+
+			if (!overquota) {
+				all_spilled = false;
+			}
+
+			dns_rdata_freestruct(&ns);
 		}
 
 		/*
