@@ -9,10 +9,7 @@
 # See the COPYRIGHT file distributed with this work for additional
 # information regarding copyright ownership.
 
-from isctest.asyncserver import (
-    AsyncDnsServer,
-    IgnoreAllQueries,
-)
+from isctest.asyncserver import AsyncDnsServer, IgnoreAllQueries
 
 
 def main() -> None:

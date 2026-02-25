@@ -15,29 +15,29 @@
 # https://github.com/pylint-dev/pylint/issues/10785#issuecomment-3677224217
 # pylint: disable=unreachable
 
+from collections.abc import Container, Iterable
 from dataclasses import dataclass
-import os
 from pathlib import Path
-from typing import Container, Iterable, Optional, Set, Tuple
 
-import pytest
+import os
+
+from hypothesis import assume, given
 
 import dns.dnssec
 import dns.message
 import dns.name
-import dns.query
 import dns.rcode
 import dns.rdataclass
 import dns.rdatatype
-import dns.rdtypes.ANY.RRSIG
 import dns.rdtypes.ANY.NSEC3
+import dns.rdtypes.ANY.RRSIG
 import dns.rrset
+import pytest
 
 from isctest.hypothesis.strategies import dns_names, sampled_from
+
 import isctest
 import isctest.name
-
-from hypothesis import assume, given
 
 SUFFIX = dns.name.from_text(".")
 AUTH = "10.53.0.1"
@@ -62,7 +62,7 @@ def is_related_to_any(
 
 def do_test_query(
     qname: dns.name.Name, qtype: dns.rdatatype.RdataType, server: str, named_port: int
-) -> Tuple[dns.message.QueryMessage, "NSEC3Checker"]:
+) -> tuple[dns.message.QueryMessage, "NSEC3Checker"]:
     query = dns.message.make_query(qname, qtype, use_edns=True, want_dnssec=True)
     response = isctest.query.tcp(query, server, named_port, timeout=TIMEOUT)
     isctest.check.is_response_to(response, query)
@@ -290,7 +290,7 @@ class NSEC3Params:
     algorithm: int
     flags: int
     iterations: int
-    salt: Optional[bytes]
+    salt: bytes | None
 
 
 class NSEC3Checker:
@@ -348,8 +348,8 @@ class NSEC3Checker:
         assert attrs_seen["algorithm"] is not None, f"no NSEC3 found\n{response}"
         self.params: NSEC3Params = NSEC3Params(**attrs_seen)
         self.response: dns.message.Message = response
-        self.owners_present: Set[dns.name.Name] = owners_seen
-        self.owners_used: Set[dns.name.Name] = set()
+        self.owners_present: set[dns.name.Name] = owners_seen
+        self.owners_used: set[dns.name.Name] = set()
 
     @staticmethod
     def nsec3_covers(rrset: dns.rrset.RRset, hashed_name: dns.name.Name) -> bool:

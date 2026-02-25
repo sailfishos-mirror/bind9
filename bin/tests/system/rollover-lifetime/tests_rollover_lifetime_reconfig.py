@@ -9,20 +9,14 @@
 # See the COPYRIGHT file distributed with this work for additional
 # information regarding copyright ownership.
 
-# pylint: disable=redefined-outer-name,unused-import
-
 import pytest
 
-import isctest
 from isctest.util import param
-from rollover.common import (
-    pytestmark,
-    alg,
-    size,
-    CDSS,
-    DEFAULT_CONFIG,
-    DURATION,
-)
+from rollover.common import CDSS, DEFAULT_CONFIG, DURATION, ROLLOVER_MARK
+
+import isctest
+
+pytestmark = ROLLOVER_MARK
 
 
 @pytest.fixture(scope="module", autouse=True)
@@ -49,7 +43,7 @@ def after_servers_start(ns3, templates):
         param("unlimit-lifetime", "unlimited-lifetime", 0),
     ],
 )
-def test_lifetime_reconfig(zone, policy, lifetime, alg, size, ns3):
+def test_lifetime_reconfig(zone, policy, lifetime, ns3, default_algorithm):
     config = DEFAULT_CONFIG
 
     isctest.kasp.wait_keymgr_done(ns3, f"{zone}.kasp", reconfig=True)
@@ -58,7 +52,7 @@ def test_lifetime_reconfig(zone, policy, lifetime, alg, size, ns3):
         "zone": f"{zone}.kasp",
         "cdss": CDSS,
         "keyprops": [
-            f"csk {DURATION[lifetime]} {alg} {size} goal:omnipresent dnskey:rumoured krrsig:rumoured zrrsig:rumoured ds:hidden",
+            f"csk {DURATION[lifetime]} {default_algorithm.number} {default_algorithm.bits} goal:omnipresent dnskey:rumoured krrsig:rumoured zrrsig:rumoured ds:hidden",
         ],
         "nextev": None,
     }

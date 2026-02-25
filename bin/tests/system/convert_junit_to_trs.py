@@ -6,9 +6,11 @@
 #
 # Convert JUnit pytest output to automake .trs files
 
+from pathlib import Path
+from xml.etree import ElementTree
+
 import argparse
 import sys
-from xml.etree import ElementTree
 
 
 def junit_to_trs(junit_xml):
@@ -16,7 +18,7 @@ def junit_to_trs(junit_xml):
     testcases = root.findall(".//testcase")
 
     if len(testcases) < 1:
-        print(":test-result: ERROR convert-junit-to-trs.py")
+        print(":test-result: ERROR convert_junit_to_trs.py")
         return 99
 
     has_fail = False
@@ -57,12 +59,13 @@ def main():
     )
     parser.add_argument(
         "junit_file",
-        type=argparse.FileType("r", encoding="utf-8"),
+        type=Path,
         help="junit xml result file",
     )
     args = parser.parse_args()
 
-    junit_xml = args.junit_file.read()
+    with args.junit_file.open(encoding="utf-8") as junit_file:
+        junit_xml = junit_file.read()
     sys.exit(junit_to_trs(junit_xml))
 
 

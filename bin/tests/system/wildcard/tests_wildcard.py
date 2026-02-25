@@ -31,19 +31,15 @@ Limitations - untested properties:
 # https://github.com/pylint-dev/pylint/issues/10785#issuecomment-3677224217
 # pylint: disable=unreachable
 
-import pytest
+from hypothesis import assume, example, given, settings
 
-import dns
-import dns.message
 import dns.name
-import dns.query
-import dns.rcode
 import dns.rdataclass
 import dns.rdatatype
 import dns.rrset
+import pytest
 
 from isctest.hypothesis.strategies import dns_names, dns_rdatatypes_without_meta
-from hypothesis import assume, example, given, settings
 
 import isctest.check
 import isctest.name

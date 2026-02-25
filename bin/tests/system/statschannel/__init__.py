@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 # Copyright (C) Internet Systems Consortium, Inc. ("ISC")
 #
 # SPDX-License-Identifier: MPL-2.0
@@ -11,15 +9,7 @@
 # See the COPYRIGHT file distributed with this work for additional
 # information regarding copyright ownership.
 
-import psutil
 
-for pid in psutil.pids():
-    try:
-        environ = psutil.Process(pid).environ()
-        if "PYTEST_CURRENT_TEST" in environ:
-            name = psutil.Process(pid).name()
-            print(
-                f'pytest process {name}/{pid} running: {environ["PYTEST_CURRENT_TEST"]}'
-            )
-    except (psutil.AccessDenied, psutil.NoSuchProcess):
-        pass
+import pytest
+
+pytest.register_assert_rewrite("generic")

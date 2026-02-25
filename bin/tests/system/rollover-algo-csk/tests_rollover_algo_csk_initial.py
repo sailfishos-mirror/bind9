@@ -9,24 +9,15 @@
 # See the COPYRIGHT file distributed with this work for additional
 # information regarding copyright ownership.
 
-# pylint: disable=redefined-outer-name,unused-import
-
 import pytest
 
-import isctest
 from isctest.util import param
-from rollover.common import (
-    pytestmark,
-    CDSS,
-    DURATION,
-    TIMEDELTA,
-    ALGOROLL_CONFIG,
-)
-from rollover.setup import (
-    configure_root,
-    configure_tld,
-    configure_algo_csk,
-)
+from rollover.common import ALGOROLL_CONFIG, CDSS, DURATION, ROLLOVER_MARK, TIMEDELTA
+from rollover.setup import configure_algo_csk, configure_root, configure_tld
+
+import isctest
+
+pytestmark = ROLLOVER_MARK
 
 POLICY = "csk-algoroll"
 

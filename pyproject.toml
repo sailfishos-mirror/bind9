@@ -1,0 +1,125 @@
+# Copyright (C) Internet Systems Consortium, Inc. ("ISC")
+#
+# SPDX-License-Identifier: MPL-2.0
+#
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, you can obtain one at https://mozilla.org/MPL/2.0/.
+#
+# See the COPYRIGHT file distributed with this work for additional
+# information regarding copyright ownership.
+
+[tool.pylint.basic]
+good-names-rgxs = [
+  # Allow names from KASP tests
+  "I(pub|ret)C?",
+  "T(act|pub|ret|rem|sbm)N1?",
+]
+[tool.pylint.imports]
+deprecated-modules = [
+  "dns.resolver",
+]
+[tool.pylint.messages_control]
+disable = [
+  "C0114", # missing-module-docstring
+  "C0115", # missing-class-docstring
+  "C0116", # missing-function-docstring
+  "C0301", # line-too-long, handled better by black
+  "C0302", # too-many-lines
+  "R0801", # duplicate-code
+  "R0902", # too-many-instance-attributes
+  "R0903", # too-few-public-methods
+  "R0912", # too-many-branches
+  "R0913", # too-many-arguments
+  "R0914", # too-many-locals
+  "R0915", # too-many-statements
+  "R0917", # too-many-positional-arguments
+]
+[tool.pylint.main]
+ignore-paths = [
+  ".git",
+  # Temporary directories created by the system test runner
+  # (see bin/tests/system/conftest.py:system_test_dir)
+  "bin/tests/system/.*_tmp_.*/",
+  "bin/tests/system/vulture_ignore_list.py",
+  "contrib",
+  "dangerfile.py",
+  "doc/arm/conf.py",
+  "doc/man/conf.py",
+]
+
+# Both `init-hook` and `source-roots` are needed to avoid import errors,
+# enable plugin loading and calling pylint from CI as `pylint $(git ls-files '*.py')`
+init-hook = "import sys; sys.path.extend(('bin/tests/system', 'doc/misc', 'doc/arm/_ext'));"
+source-roots = [
+  "bin/tests/system",
+  "doc/misc",
+  "doc/arm/_ext",
+]
+load-plugins = [
+  "re_compile_checker",
+  "dns_import_checker",
+]
+
+[tool.vulture]
+paths = [
+  ".",
+]
+exclude = [
+  "*ans.py",
+  "contrib",
+  "*doc/arm/_ext/*conf.py",
+  "doc/arm/conf.py",
+  "doc/man/conf.py",
+  "isctest",
+  "re_compile_checker.py",
+  "dns_import_checker.py",
+]
+ignore_decorators = [
+  "@pytest.fixture",
+]
+ignore_names = [
+  "pytest*",
+  # attributes of `isctest.kasp.KeyProperties` set but later not read in:
+  # - bin/tests/system/kasp/tests_kasp.py
+  # - bin/tests/system/multisigner/tests_multisigner.py
+  # - bin/tests/system/nsec3/common.py
+  # - bin/tests/system/rollover-multisigner/tests_rollover_multisigner.py
+  "private",
+  "legacy",
+]
+
+[tool.ruff]
+target-version = "py310"
+lint.select = [
+  # import order
+  "I",
+  # unused imports
+  "F401",
+  # sorted __all__
+  "RUF022",
+  # unnecessary `typing` imports
+  "UP006",
+  "UP007",
+  "UP035",
+  "UP045",
+  # f-strings
+  "UP031",
+  "UP032",
+]
+extend-exclude = [
+  "bin/tests/system/vulture_ignore_list.py",
+  "contrib",
+  "dangerfile.py",
+  "doc/arm/conf.py",
+  "doc/man/conf.py",
+]
+src = [
+  "bin/tests/system",
+  "doc/misc",
+  "doc/arm/_ext",
+]
+[tool.ruff.lint.isort]
+from-first = true
+lines-between-types = 1
+split-on-trailing-comma = false

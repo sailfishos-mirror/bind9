@@ -9,26 +9,21 @@
 # See the COPYRIGHT file distributed with this work for additional
 # information regarding copyright ownership.
 
-# pylint: disable=redefined-outer-name,unused-import
-
 from datetime import timedelta
 
-import isctest
 from isctest.kasp import KeyTimingMetadata
 from rollover.common import (
-    pytestmark,
-    alg,
-    size,
     KSK_CONFIG,
-    KSK_LIFETIME_POLICY,
     KSK_IPUB,
     KSK_IRET,
+    KSK_LIFETIME_POLICY,
+    ROLLOVER_MARK,
 )
-from rollover.setup import (
-    configure_root,
-    configure_tld,
-    configure_ksk_3crowd,
-)
+from rollover.setup import configure_ksk_3crowd, configure_root, configure_tld
+
+import isctest
+
+pytestmark = ROLLOVER_MARK
 
 CDSS = ["CDS (SHA-256)"]
 POLICY = "ksk-doubleksk-autosign"
@@ -54,7 +49,7 @@ def bootstrap():
     return data
 
 
-def test_rollover_ksk_three_is_a_crowd(alg, size, ns3):
+def test_rollover_ksk_three_is_a_crowd(ns3, default_algorithm):
     """Test #2375: Scheduled rollovers are happening faster than they can finish."""
     zone = "three-is-a-crowd.kasp"
 
@@ -64,9 +59,9 @@ def test_rollover_ksk_three_is_a_crowd(alg, size, ns3):
         "zone": zone,
         "cdss": CDSS,
         "keyprops": [
-            f"ksk {KSK_LIFETIME_POLICY} {alg} {size} goal:hidden dnskey:omnipresent krrsig:omnipresent ds:unretentive offset:{OFFSET1}",
-            f"ksk {KSK_LIFETIME_POLICY} {alg} {size} goal:omnipresent dnskey:omnipresent krrsig:omnipresent ds:rumoured offset:{OFFSET2}",
-            f"zsk unlimited {alg} {size} goal:omnipresent dnskey:omnipresent zrrsig:omnipresent offset:{OFFSET1}",
+            f"ksk {KSK_LIFETIME_POLICY} {default_algorithm.number} {default_algorithm.bits} goal:hidden dnskey:omnipresent krrsig:omnipresent ds:unretentive offset:{OFFSET1}",
+            f"ksk {KSK_LIFETIME_POLICY} {default_algorithm.number} {default_algorithm.bits} goal:omnipresent dnskey:omnipresent krrsig:omnipresent ds:rumoured offset:{OFFSET2}",
+            f"zsk unlimited {default_algorithm.number} {default_algorithm.bits} goal:omnipresent dnskey:omnipresent zrrsig:omnipresent offset:{OFFSET1}",
         ],
         "keyrelationships": [0, 1],
     }
@@ -87,10 +82,10 @@ def test_rollover_ksk_three_is_a_crowd(alg, size, ns3):
         "zone": zone,
         "cdss": CDSS,
         "keyprops": [
-            f"ksk {KSK_LIFETIME_POLICY} {alg} {size} goal:hidden dnskey:omnipresent krrsig:omnipresent ds:unretentive offset:{OFFSET1}",
-            f"ksk {KSK_LIFETIME_POLICY} {alg} {size} goal:hidden dnskey:omnipresent krrsig:omnipresent ds:rumoured offset:{OFFSET2}",
-            f"ksk {KSK_LIFETIME_POLICY} {alg} {size} goal:omnipresent dnskey:rumoured krrsig:rumoured ds:hidden offset:0",
-            f"zsk unlimited {alg} {size} goal:omnipresent dnskey:omnipresent zrrsig:omnipresent offset:{OFFSET1}",
+            f"ksk {KSK_LIFETIME_POLICY} {default_algorithm.number} {default_algorithm.bits} goal:hidden dnskey:omnipresent krrsig:omnipresent ds:unretentive offset:{OFFSET1}",
+            f"ksk {KSK_LIFETIME_POLICY} {default_algorithm.number} {default_algorithm.bits} goal:hidden dnskey:omnipresent krrsig:omnipresent ds:rumoured offset:{OFFSET2}",
+            f"ksk {KSK_LIFETIME_POLICY} {default_algorithm.number} {default_algorithm.bits} goal:omnipresent dnskey:rumoured krrsig:rumoured ds:hidden offset:0",
+            f"zsk unlimited {default_algorithm.number} {default_algorithm.bits} goal:omnipresent dnskey:omnipresent zrrsig:omnipresent offset:{OFFSET1}",
         ],
         "check-keytimes": False,  # checked manually with modified values
     }

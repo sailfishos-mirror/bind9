@@ -9,25 +9,16 @@
 # See the COPYRIGHT file distributed with this work for additional
 # information regarding copyright ownership.
 
-# pylint: disable=redefined-outer-name,unused-import
-
 import pytest
 
-import isctest
 from isctest.kasp import Ipub, IpubC, Iret
 from isctest.util import param
-from rollover.common import (
-    pytestmark,
-    alg,
-    size,
-    CDSS,
-    TIMEDELTA,
-)
-from rollover.setup import (
-    configure_root,
-    configure_tld,
-    configure_enable_dnssec,
-)
+from rollover.common import CDSS, ROLLOVER_MARK, TIMEDELTA
+from rollover.setup import configure_enable_dnssec, configure_root, configure_tld
+
+import isctest
+
+pytestmark = ROLLOVER_MARK
 
 CONFIG = {
     "dnskey-ttl": TIMEDELTA["PT5M"],
@@ -83,7 +74,7 @@ def bootstrap():
         param("manual"),
     ],
 )
-def test_rollover_enable_dnssec_step1(tld, alg, size, ns3):
+def test_rollover_enable_dnssec_step1(tld, default_algorithm, ns3):
     zone = f"step1.enable-dnssec.{tld}"
     policy = f"{POLICY}-{tld}"
 
@@ -114,7 +105,7 @@ def test_rollover_enable_dnssec_step1(tld, alg, size, ns3):
         "zone": zone,
         "cdss": CDSS,
         "keyprops": [
-            f"csk unlimited {alg} {size} goal:omnipresent dnskey:rumoured krrsig:rumoured zrrsig:rumoured ds:hidden offset:{OFFSETS['step1']}",
+            f"csk unlimited {default_algorithm.number} {default_algorithm.bits} goal:omnipresent dnskey:rumoured krrsig:rumoured zrrsig:rumoured ds:hidden offset:{OFFSETS['step1']}",
         ],
         # Next key event is when the DNSKEY RRset becomes OMNIPRESENT,
         # after the publication interval.
@@ -130,7 +121,7 @@ def test_rollover_enable_dnssec_step1(tld, alg, size, ns3):
         param("manual"),
     ],
 )
-def test_rollover_enable_dnssec_step2(tld, alg, size, ns3):
+def test_rollover_enable_dnssec_step2(tld, default_algorithm, ns3):
     zone = f"step2.enable-dnssec.{tld}"
     policy = f"{POLICY}-{tld}"
 
@@ -146,7 +137,7 @@ def test_rollover_enable_dnssec_step2(tld, alg, size, ns3):
         # dnskey: rumoured -> omnipresent
         # krrsig: rumoured -> omnipresent
         "keyprops": [
-            f"csk unlimited {alg} {size} goal:omnipresent dnskey:omnipresent krrsig:omnipresent zrrsig:rumoured ds:hidden offset:{OFFSETS['step2']}",
+            f"csk unlimited {default_algorithm.number} {default_algorithm.bits} goal:omnipresent dnskey:omnipresent krrsig:omnipresent zrrsig:rumoured ds:hidden offset:{OFFSETS['step2']}",
         ],
         # Next key event is when the zone signatures become OMNIPRESENT,
         # Minus the time already elapsed.
@@ -162,7 +153,7 @@ def test_rollover_enable_dnssec_step2(tld, alg, size, ns3):
         param("manual"),
     ],
 )
-def test_rollover_enable_dnssec_step3(tld, alg, size, ns3):
+def test_rollover_enable_dnssec_step3(tld, default_algorithm, ns3):
     zone = f"step3.enable-dnssec.{tld}"
     policy = f"{POLICY}-{tld}"
 
@@ -174,7 +165,7 @@ def test_rollover_enable_dnssec_step3(tld, alg, size, ns3):
             "zone": zone,
             "cdss": CDSS,
             "keyprops": [
-                f"csk unlimited {alg} {size} goal:omnipresent dnskey:omnipresent krrsig:omnipresent zrrsig:omnipresent ds:hidden offset:{OFFSETS['step3']}",
+                f"csk unlimited {default_algorithm.number} {default_algorithm.bits} goal:omnipresent dnskey:omnipresent krrsig:omnipresent zrrsig:omnipresent ds:hidden offset:{OFFSETS['step3']}",
             ],
             "manual-mode": True,
             "nextev": None,
@@ -200,7 +191,7 @@ def test_rollover_enable_dnssec_step3(tld, alg, size, ns3):
         # zrrsig: rumoured -> omnipresent
         # ds: hidden -> rumoured
         "keyprops": [
-            f"csk unlimited {alg} {size} goal:omnipresent dnskey:omnipresent krrsig:omnipresent zrrsig:omnipresent ds:rumoured offset:{OFFSETS['step3']}",
+            f"csk unlimited {default_algorithm.number} {default_algorithm.bits} goal:omnipresent dnskey:omnipresent krrsig:omnipresent zrrsig:omnipresent ds:rumoured offset:{OFFSETS['step3']}",
         ],
         # Next key event is when the DS can move to the OMNIPRESENT state.
         # This is after the retire interval.
@@ -216,7 +207,7 @@ def test_rollover_enable_dnssec_step3(tld, alg, size, ns3):
         param("manual"),
     ],
 )
-def test_rollover_enable_dnssec_step4(tld, alg, size, ns3):
+def test_rollover_enable_dnssec_step4(tld, default_algorithm, ns3):
     zone = f"step4.enable-dnssec.{tld}"
     policy = f"{POLICY}-{tld}"
 
@@ -230,7 +221,7 @@ def test_rollover_enable_dnssec_step4(tld, alg, size, ns3):
         # DS has been published long enough.
         # ds: rumoured -> omnipresent
         "keyprops": [
-            f"csk unlimited {alg} {size} goal:omnipresent dnskey:omnipresent krrsig:omnipresent zrrsig:omnipresent ds:omnipresent offset:{OFFSETS['step4']}",
+            f"csk unlimited {default_algorithm.number} {default_algorithm.bits} goal:omnipresent dnskey:omnipresent krrsig:omnipresent zrrsig:omnipresent ds:omnipresent offset:{OFFSETS['step4']}",
         ],
         # Next key event is never, the zone dnssec-policy has been
         # established. So we fall back to the default loadkeys interval.

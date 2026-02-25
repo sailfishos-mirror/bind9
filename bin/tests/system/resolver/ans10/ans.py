@@ -9,7 +9,7 @@
 # See the COPYRIGHT file distributed with this work for additional
 # information regarding copyright ownership.
 
-from typing import AsyncGenerator
+from collections.abc import AsyncGenerator
 
 import dns.rcode
 import dns.rdatatype
@@ -21,7 +21,7 @@ from isctest.asyncserver import (
     ResponseHandler,
 )
 
-from resolver_ans import rrset, soa_rrset
+from ..resolver_ans import rrset, soa_rrset
 
 
 class EdnsWithOptionsFormerrHandler(ResponseHandler):

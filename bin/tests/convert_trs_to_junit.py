@@ -6,24 +6,22 @@
 #
 # Convert automake .trs files into JUnit format suitable for Gitlab
 
+from xml.etree import ElementTree
+from xml.etree.ElementTree import Element, SubElement
+
 import argparse
 import os
 import sys
-from xml.etree import ElementTree
-from xml.etree.ElementTree import Element
-from xml.etree.ElementTree import SubElement
 
 
-# getting explicit encoding specification right for Python 2/3 would be messy,
-# so let's hope for the best
 def read_whole_text(filename):
-    with open(filename) as inf:  # pylint: disable-msg=unspecified-encoding
+    with open(filename, encoding="utf-8") as inf:
         return inf.read().strip()
 
 
 def read_trs_result(filename):
     result = None
-    with open(filename, "r") as trs:  # pylint: disable-msg=unspecified-encoding
+    with open(filename, "r", encoding="utf-8") as trs:
         for line in trs:
             items = line.split()
             if len(items) < 2:
@@ -125,7 +123,7 @@ def check_directory(path):
         os.listdir(path)
         return path
     except OSError as ex:
-        msg = "Path {} cannot be listed as a directory: {}".format(path, ex)
+        msg = f"Path {path} cannot be listed as a directory: {ex}"
         raise argparse.ArgumentTypeError(msg)
 
 

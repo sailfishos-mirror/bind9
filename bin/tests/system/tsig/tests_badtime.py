@@ -11,16 +11,14 @@
 # See the COPYRIGHT file distributed with this work for additional
 # information regarding copyright ownership.
 
-# pylint: disable=unused-variable
-
 import socket
 import time
 
-import pytest
-
 import dns.message
 import dns.query
+import dns.tsig
 import dns.tsigkeyring
+import pytest
 
 pytestmark = pytest.mark.extra_artifacts(
     [

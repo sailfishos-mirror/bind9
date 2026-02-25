@@ -9,7 +9,7 @@
 # See the COPYRIGHT file distributed with this work for additional
 # information regarding copyright ownership.
 
-from typing import AsyncGenerator
+from collections.abc import AsyncGenerator
 
 import dns.edns
 import dns.name
@@ -20,12 +20,11 @@ import dns.tsigkeyring
 
 from isctest.asyncserver import (
     AsyncDnsServer,
-    ResponseHandler,
-    DnsResponseSend,
     DnsProtocol,
+    DnsResponseSend,
     QueryContext,
+    ResponseHandler,
 )
-
 from isctest.name import prepend_label
 from isctest.vars.algorithms import ALG_VARS
 

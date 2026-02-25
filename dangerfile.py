@@ -42,7 +42,6 @@ def lines_containing(lines, string):
     return [l for l in lines if bytes(string, "utf-8") in l]
 
 
-changes_issue_or_mr_id_regex = re.compile(rb"\[(GL [#!]|RT #)[0-9]+\]")
 rdata_regex = re.compile(r"lib/dns/rdata/")
 
 # Source: https://docs.gitlab.com/user/project/issues/managing_issues/#default-closing-pattern
