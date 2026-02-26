@@ -15,6 +15,24 @@ Notes for BIND 9.21.19
 Security Fixes
 ~~~~~~~~~~~~~~
 
+- Fix a use-after-free error in ``dns_client_resolve()`` triggered by a
+  DNAME response.
+
+  This issue only affected the :iscman:`delv` tool and it has now been
+  fixed.
+
+  ISC would like to thank Vitaly Simonovich for bringing this
+  vulnerability to our attention. :gl:`#5728`
+
+- Fix a NULL pointer dereference in qp-trie cache code.
+
+  When ``RRSIG(rdtype)`` was independently cached before the RDATA for
+  the ``rdtype`` itself, :iscman:`named` would crash on the subsequent
+  query for the RDATA itself. This has been fixed.
+
+  ISC would like to thank Vitaly Simonovich for bringing this
+  vulnerability to our attention. :gl:`#5738`
+
 - Immediately remove purged ADB names and entries from the SIEVE list.
 
   Under certain circumstances, the ADB could double-count purged
@@ -61,24 +79,6 @@ Bug Fixes
   addresses are looked up. :gl:`#5695` :gl:`#5745`
 
 - Fix dnstap logging of forwarded queries. :gl:`#5724`
-
-- Fix a use-after-free error in ``dns_client_resolve()`` triggered by a
-  DNAME response.
-
-  This issue only affected the :iscman:`delv` tool and it has now been
-  fixed.
-
-  ISC would like to thank Vitaly Simonovich for bringing this
-  vulnerability to our attention. :gl:`#5728`
-
-- Fix a NULL pointer dereference in qp-trie cache code.
-
-  When ``RRSIG(rdtype)`` was independently cached before the RDATA for
-  the ``rdtype`` itself, :iscman:`named` would crash on the subsequent
-  query for the RDATA itself. This has been fixed.
-
-  ISC would like to thank Vitaly Simonovich for bringing this
-  vulnerability to our attention. :gl:`#5738`
 
 - A stale answer could have been served in case of multiple upstream
   failures when following CNAME chains. This has been fixed. :gl:`#5751`
