@@ -15,10 +15,5 @@ Notes for BIND 9.18.46
 Bug Fixes
 ~~~~~~~~~
 
-- Clear serve-stale flags when following the CNAME chains.
-
-  A stale answer could have been served in case of multiple upstream
-  failures when following the CNAME chains.  This has been fixed.
-  :gl:`#5751`
-
-
+- A stale answer could have been served in case of multiple upstream
+  failures when following CNAME chains. This has been fixed. :gl:`#5751`
