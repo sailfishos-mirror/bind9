@@ -4946,6 +4946,11 @@ configure_view(dns_view_t *view, dns_viewlist_t *viewlist, cfg_obj_t *config,
 	dns_view_setmaxqueries(view, cfg_obj_asuint32(obj));
 
 	obj = NULL;
+	result = named_config_get(maps, "max-delegation-servers", &obj);
+	INSIST(result == ISC_R_SUCCESS);
+	CHECK(dns_view_setmaxdelegationservers(view, cfg_obj_asuint32(obj)));
+
+	obj = NULL;
 	result = named_config_get(maps, "max-validations-per-fetch", &obj);
 	if (result == ISC_R_SUCCESS) {
 		dns_resolver_setmaxvalidations(view->resolver,

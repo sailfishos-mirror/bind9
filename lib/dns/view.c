@@ -2120,3 +2120,16 @@ dns_view_setmaxqueries(dns_view_t *view, uint16_t max_queries) {
 
 	view->max_queries = max_queries;
 }
+
+isc_result_t
+dns_view_setmaxdelegationservers(dns_view_t *view, uint32_t max_servers) {
+	REQUIRE(DNS_VIEW_VALID(view));
+
+	if (max_servers < 1 || max_servers > MAX_DELEGATION_SERVERS) {
+		return ISC_R_RANGE;
+	}
+
+	view->max_delegation_servers = max_servers;
+
+	return ISC_R_SUCCESS;
+}

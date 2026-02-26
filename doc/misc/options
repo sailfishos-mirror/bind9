@@ -173,6 +173,7 @@ options {
 	max-cache-size ( default | unlimited | <sizeval> | <percentage> );
 	max-cache-ttl <duration>;
 	max-clients-per-query <integer>;
+	max-delegation-servers <integer>; // experimental
 	max-ixfr-ratio ( unlimited | <percentage> );
 	max-journal-size ( default | unlimited | <sizeval> );
 	max-ncache-ttl <duration>;
@@ -566,6 +567,7 @@ view <string> [ <class> ] {
 	max-cache-size ( default | unlimited | <sizeval> | <percentage> );
 	max-cache-ttl <duration>;
 	max-clients-per-query <integer>;
+	max-delegation-servers <integer>; // experimental
 	max-ixfr-ratio ( unlimited | <percentage> );
 	max-journal-size ( default | unlimited | <sizeval> );
 	max-ncache-ttl <duration>;

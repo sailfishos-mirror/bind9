@@ -145,6 +145,7 @@ options {\n\
 					    "	max-cache-size default;\n\
 	max-cache-ttl 604800; /* 1 week */\n\
 	max-clients-per-query 100;\n\
+	max-delegation-servers 13;\n\
 	max-ncache-ttl 10800; /* 3 hours */\n\
 	max-recursion-depth 7;\n\
 	max-recursion-queries 50;\n\

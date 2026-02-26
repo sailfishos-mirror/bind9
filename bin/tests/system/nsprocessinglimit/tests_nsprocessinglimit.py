@@ -52,14 +52,14 @@ def expect_next_ip_and_query(expected_ips_and_queries, ips_and_queries):
         assert query == expected_query
 
 
-def test_selfpointedglue_nslimit(ns4):
+def check_nsprocessinglimit(ns, queries_count):
     msg = isctest.query.create("a.sub.example.tld.", "A")
-    res = isctest.query.tcp(msg, ns4.ip)
+    res = isctest.query.tcp(msg, ns.ip)
     isctest.check.servfail(res)
 
-    # The 4 formers lines are request to find sub.example2.tld NSs.
-    # The latest 20 are queries to sub.example2.tld NSs.
-    ips_and_queries = extract_dnstap(ns4, 24)
+    # The 4 formers lines are request to find sub.example.tld NSs.
+    # The latest are queries to sub.example.tld NSs.
+    ips_and_queries = extract_dnstap(ns, queries_count)
 
     # Checking the begining of the resulution
     expect_next_ip_and_query(
@@ -71,4 +71,52 @@ def test_selfpointedglue_nslimit(ns4):
         ],
         ips_and_queries,
     )
-    expect_query("a.sub.example.tld/IN/A", 20, ips_and_queries)
+    expect_query("a.sub.example.tld/IN/A", queries_count - 4, ips_and_queries)
+
+
+def test_nsprocessinglimit_default(ns4):
+    check_nsprocessinglimit(ns4, 17)
+
+
+def reconfig_maxdelegationservers(ns, templates, count):
+    templates.render(
+        "ns4/named.conf", {"maxdelegationservers": f"max-delegation-servers {count};"}
+    )
+    with ns.watch_log_from_here() as watcher:
+        ns.rndc("flush")
+        ns.rndc("reload")
+        watcher.wait_for_line("running")
+
+
+def reconfig_maxdelegationservers_failure(ns, templates, count):
+    templates.render(
+        "ns4/named.conf", {"maxdelegationservers": f"max-delegation-servers {count};"}
+    )
+    with ns.watch_log_from_here() as watcher:
+        # Reload will fail, so do not raise the exception so the config line
+        # can be checked.
+        ns.rndc("reload", raise_on_exception=False)
+        watcher.wait_for_line("reloading configuration failed: out of range")
+
+
+def test_nsprocessinglimit_13ns(ns4, templates):
+    reconfig_maxdelegationservers(ns4, templates, 13)
+    check_nsprocessinglimit(ns4, 17)
+
+
+def test_nsprocessinglimit_5ns(ns4, templates):
+    reconfig_maxdelegationservers(ns4, templates, 5)
+    check_nsprocessinglimit(ns4, 9)
+
+
+def test_nsprocessinglimit_20ns(ns4, templates):
+    reconfig_maxdelegationservers(ns4, templates, 20)
+    check_nsprocessinglimit(ns4, 24)
+
+
+def test_nsprocessinglimit_lower(ns4, templates):
+    reconfig_maxdelegationservers_failure(ns4, templates, 0)
+
+
+def test_nsprocessinglimit_upper(ns4, templates):
+    reconfig_maxdelegationservers_failure(ns4, templates, 101)
