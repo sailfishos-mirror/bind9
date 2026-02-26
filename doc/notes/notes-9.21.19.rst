@@ -99,3 +99,11 @@ Bug Fixes
   the import function might overflow. This could lead to a memory
   corruption on the stack and ultimately a server crash. This has been
   fixed. :gl:`#5758`
+
+- Return FORMERR for queries with the EDNS Client Subnet FAMILY field
+  set to 0.
+
+  :rfc:`7871` only defines families 1 (IPv4) and 2 (IPv6), and requires
+  FORMERR to be returned for all unknown families. Queries with the EDNS
+  Client Subnet FAMILY field set to 0 now elicit responses with
+  RCODE=FORMERR. :gl:`!11563`
