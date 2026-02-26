@@ -27,6 +27,7 @@ pytestmark = [
     pytest.mark.extra_artifacts(
         [
             "ns2/K*",
+            "ans5/ans.run",
             "ns2/*.jnl",
             "ns2/*.signed",
             "ns2/dsset-*",
@@ -91,6 +92,35 @@ def fetch_traffic_xml(statsip, statsport):
     return traffic
 
 
+def fetch_rtt_xml(statsip, statsport):
+    def load_counters(data):
+        out = {}
+        for counter in data.findall("counter"):
+            out[counter.attrib["name"]] = int(counter.text)
+
+        return out
+
+    r = requests.get(f"http://{statsip}:{statsport}/xml/v3", timeout=600)
+    assert r.status_code == 200
+
+    root = ET.fromstring(r.text)
+
+    default_view = None
+    for view in root.find("views").iter("view"):
+        if view.attrib["name"] == "_default":
+            default_view = view
+            break
+    assert default_view is not None
+
+    rtt = {}
+    for counters in default_view.find("rtt").findall("counters"):
+        key = counters.attrib["type"]
+        values = load_counters(counters)
+        rtt[key] = values
+
+    return rtt
+
+
 def load_timers_xml(zone, primary=True):
     name = zone.attrib["name"]
 
@@ -149,3 +179,8 @@ def test_zone_with_many_keys_xml(statsport):
 @pytest.mark.flaky(max_runs=2)
 def test_traffic_xml(statsport):
     generic.test_traffic(fetch_traffic_xml, statsip="10.53.0.2", statsport=statsport)
+
+
+@pytest.mark.flaky(max_runs=2)
+def test_rtt_xml(statsport):
+    generic.test_rtt(fetch_rtt_xml, statsip="10.53.0.4", statsport=statsport)

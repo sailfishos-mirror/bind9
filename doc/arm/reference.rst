@@ -8468,9 +8468,6 @@ Resolver Statistics Counters
 ``ValFail``
     This indicates the number of failed DNSSEC validations.
 
-``QryRTTnn``
-    This provides a frequency table on query round-trip times (RTTs). Each ``nn`` specifies the corresponding frequency. In the sequence of ``nn_1``, ``nn_2``, ..., ``nn_m``, the value of ``nn_i`` is the number of queries whose RTTs are between ``nn_(i-1)`` (inclusive) and ``nn_i`` (exclusive) milliseconds. For the sake of convenience, we define ``nn_0`` to be 0. The last entry should be represented as ``nn_m+``, which means the number of queries whose RTTs are equal to or greater than ``nn_m`` milliseconds.
-
 ``NumFetch``
     This indicates the number of active fetches.
 
@@ -8515,6 +8512,21 @@ Resolver Statistics Counters
 
 ``Priming``
     This indicates the number of priming fetches performed by the resolver.
+
+.. _resolver_rtt_stats:
+
+Resolver Queries Response Time counters
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:iscman:`named` provides query response round-trip time (RTT) counters
+(histogram) both for incoming and outgoing queries in milliseconds. Response
+times which are lower than 1ms are calculated under the ``~0`` counter.
+Response times from 1ms to 15ms are calculated under their own counters, e.g. a
+response that took 5ms to complete is calculated under the ``5`` counter.
+Response times starting from 16ms are calculated under the ``MinMS-MaxMS``
+(inclusive) range counters. For example, a response that took 18ms to complete
+is calculated under the ``18-19`` counter, and a response that took 550ms to
+complete is calculated under the ``512-575`` counter.
 
 .. _socket_stats:
 

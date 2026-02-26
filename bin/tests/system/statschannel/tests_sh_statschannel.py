@@ -14,6 +14,7 @@ import pytest
 pytestmark = pytest.mark.extra_artifacts(
     [
         "K*",
+        "ans5/ans.run",
         "bind9.xsl.1",
         "bind9.xsl.2",
         "compressed.headers",

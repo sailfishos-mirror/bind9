@@ -3678,6 +3678,8 @@ configure_view(dns_view_t *view, dns_viewlist_t *viewlist, cfg_obj_t *config,
 	const cfg_obj_t *disablelist = NULL;
 	isc_stats_t *resstats = NULL;
 	dns_stats_t *resquerystats = NULL;
+	isc_histomulti_t *resqueryinrttstats = NULL;
+	isc_histomulti_t *resqueryoutrttstats = NULL;
 	bool auto_root = false;
 	named_cache_t *nsc = NULL;
 	bool zero_no_soattl;
@@ -4259,6 +4261,9 @@ configure_view(dns_view_t *view, dns_viewlist_t *viewlist, cfg_obj_t *config,
 			dns_resolver_getstats(pview->resolver, &resstats);
 			dns_resolver_getquerystats(pview->resolver,
 						   &resquerystats);
+			dns_resolver_getqueryrttstats(pview->resolver,
+						      &resqueryinrttstats,
+						      &resqueryoutrttstats);
 			dns_view_detach(&pview);
 		}
 	}
@@ -4319,10 +4324,22 @@ configure_view(dns_view_t *view, dns_viewlist_t *viewlist, cfg_obj_t *config,
 		isc_stats_create(mctx, &resstats, dns_resstatscounter_max);
 	}
 	dns_resolver_setstats(view->resolver, resstats);
+
 	if (resquerystats == NULL) {
 		dns_rdatatypestats_create(mctx, &resquerystats);
 	}
 	dns_resolver_setquerystats(view->resolver, resquerystats);
+
+	if (resqueryinrttstats == NULL) {
+		isc_histomulti_create(mctx, DNS_RTTHISTO_SIGBITS,
+				      &resqueryinrttstats);
+	}
+	if (resqueryoutrttstats == NULL) {
+		isc_histomulti_create(mctx, DNS_RTTHISTO_SIGBITS,
+				      &resqueryoutrttstats);
+	}
+	dns_resolver_setqueryrttstats(view->resolver, resqueryinrttstats,
+				      resqueryoutrttstats);
 
 	/*
 	 * Set the ADB cache size to 1/8th of the max-cache-size or
@@ -5486,6 +5503,12 @@ cleanup:
 	}
 	if (resquerystats != NULL) {
 		dns_stats_detach(&resquerystats);
+	}
+	if (resqueryinrttstats != NULL) {
+		isc_histomulti_detach(&resqueryinrttstats);
+	}
+	if (resqueryoutrttstats != NULL) {
+		isc_histomulti_detach(&resqueryoutrttstats);
 	}
 	if (order != NULL) {
 		dns_order_detach(&order);

@@ -25,6 +25,7 @@
 #include <isc/hash.h>
 #include <isc/hashmap.h>
 #include <isc/hex.h>
+#include <isc/histo.h>
 #include <isc/list.h>
 #include <isc/log.h>
 #include <isc/loop.h>
@@ -207,7 +208,11 @@
 #define DEFAULT_QUERY_TIMEOUT (MAX_SINGLE_QUERY_TIMEOUT + 1000U)
 #endif /* ifndef DEFAULT_QUERY_TIMEOUT */
 
-/* The maximum time in seconds for the whole query to live. */
+/*
+ * The maximum time in seconds for the whole query to live.
+ *
+ * Note: if increased, DNS_RTTHISTO_MAX should also be updated.
+ */
 #ifndef MAXIMUM_QUERY_TIMEOUT
 #define MAXIMUM_QUERY_TIMEOUT 30000
 #endif /* ifndef MAXIMUM_QUERY_TIMEOUT */
@@ -598,6 +603,8 @@ struct dns_resolver {
 	isc_result_t quotaresp[2];
 	isc_stats_t *stats;
 	dns_stats_t *querystats;
+	isc_histomulti_t *queryinrttstats;
+	isc_histomulti_t *queryoutrttstats;
 
 	/* Additions for serve-stale feature. */
 	unsigned int retryinterval; /* in milliseconds */
@@ -1255,31 +1262,17 @@ fctx_cancelquery(resquery_t **queryp, isc_time_t *finish, bool no_response,
 			 * We have both the start and finish times for this
 			 * packet, so we can compute a real RTT.
 			 */
-			unsigned int rttms;
-
 			rtt = (unsigned int)isc_time_microdiff(finish,
 							       &query->start);
-			rttms = rtt / US_PER_MS;
 			factor = DNS_ADB_RTTADJDEFAULT;
 
-			if (rttms < DNS_RESOLVER_QRYRTTCLASS0) {
-				inc_stats(fctx->res,
-					  dns_resstatscounter_queryrtt0);
-			} else if (rttms < DNS_RESOLVER_QRYRTTCLASS1) {
-				inc_stats(fctx->res,
-					  dns_resstatscounter_queryrtt1);
-			} else if (rttms < DNS_RESOLVER_QRYRTTCLASS2) {
-				inc_stats(fctx->res,
-					  dns_resstatscounter_queryrtt2);
-			} else if (rttms < DNS_RESOLVER_QRYRTTCLASS3) {
-				inc_stats(fctx->res,
-					  dns_resstatscounter_queryrtt3);
-			} else if (rttms < DNS_RESOLVER_QRYRTTCLASS4) {
-				inc_stats(fctx->res,
-					  dns_resstatscounter_queryrtt4);
-			} else {
-				inc_stats(fctx->res,
-					  dns_resstatscounter_queryrtt5);
+			if (fctx->res->queryoutrttstats != NULL) {
+				const unsigned int rttms = rtt / US_PER_MS;
+				isc_histomulti_inc(
+					fctx->res->queryoutrttstats,
+					rttms < MAXIMUM_QUERY_TIMEOUT
+						? rttms
+						: MAXIMUM_QUERY_TIMEOUT);
 			}
 		} else {
 			uint32_t value;
@@ -9642,6 +9635,12 @@ dns_resolver__destroy(dns_resolver_t *res) {
 	dns_nametree_detach(&res->algorithms);
 	dns_nametree_detach(&res->digests);
 
+	if (res->queryoutrttstats != NULL) {
+		isc_histomulti_detach(&res->queryoutrttstats);
+	}
+	if (res->queryinrttstats != NULL) {
+		isc_histomulti_detach(&res->queryinrttstats);
+	}
 	if (res->querystats != NULL) {
 		dns_stats_detach(&res->querystats);
 	}
@@ -10881,6 +10880,32 @@ dns_resolver_getquerystats(dns_resolver_t *res, dns_stats_t **statsp) {
 
 	if (res->querystats != NULL) {
 		dns_stats_attach(res->querystats, statsp);
+	}
+}
+
+void
+dns_resolver_setqueryrttstats(dns_resolver_t *res, isc_histomulti_t *hmin,
+			      isc_histomulti_t *hmout) {
+	REQUIRE(VALID_RESOLVER(res));
+	REQUIRE(res->queryinrttstats == NULL);
+	REQUIRE(res->queryoutrttstats == NULL);
+
+	isc_histomulti_attach(hmin, &res->queryinrttstats);
+	isc_histomulti_attach(hmout, &res->queryoutrttstats);
+}
+
+void
+dns_resolver_getqueryrttstats(dns_resolver_t *res, isc_histomulti_t **hmpin,
+			      isc_histomulti_t **hmpout) {
+	REQUIRE(VALID_RESOLVER(res));
+	REQUIRE(hmpin == NULL || *hmpin == NULL);
+	REQUIRE(hmpout == NULL || *hmpout == NULL);
+
+	if (hmpin != NULL && res->queryinrttstats != NULL) {
+		isc_histomulti_attach(res->queryinrttstats, hmpin);
+	}
+	if (hmpout != NULL && res->queryoutrttstats != NULL) {
+		isc_histomulti_attach(res->queryoutrttstats, hmpout);
 	}
 }
 

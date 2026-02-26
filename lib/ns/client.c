@@ -325,7 +325,24 @@ client_senddone(isc_nmhandle_t *handle, isc_result_t result, void *cbarg) {
 	 */
 	client->inner.sendhandle = NULL;
 
-	if (result != ISC_R_SUCCESS) {
+	if (result == ISC_R_SUCCESS) {
+		isc_histomulti_t *hmpin = NULL;
+
+		if (client->inner.view != NULL &&
+		    client->inner.view->resolver != NULL)
+		{
+			dns_resolver_getqueryrttstats(
+				client->inner.view->resolver, &hmpin, NULL);
+		}
+		if (hmpin != NULL) {
+			const unsigned int rtt = (unsigned int)
+				isc_time_microdiff(&client->inner.tnow,
+						   &client->inner.requesttime);
+			const unsigned int rttms = rtt / US_PER_MS;
+			isc_histomulti_inc(hmpin, rttms);
+			isc_histomulti_detach(&hmpin);
+		}
+	} else {
 		if (!TCP_CLIENT(client) && result == ISC_R_MAXSIZE) {
 			ns_client_log(client, DNS_LOGCATEGORY_SECURITY,
 				      NS_LOGMODULE_CLIENT, ISC_LOG_DEBUG(3),

@@ -74,6 +74,7 @@ struct isc_histo {
 struct isc_histomulti {
 	uint magic;
 	uint size;
+	isc_refcount_t references;
 	isc_histo_t *hg[];
 };
 
@@ -386,21 +387,22 @@ isc_histomulti_create(isc_mem_t *mctx, uint sigbits, isc_histomulti_t **hmp) {
 		isc_histo_create(mctx, sigbits, &hm->hg[i]);
 	}
 
+	isc_refcount_init(&hm->references, 1);
+
 	*hmp = hm;
 }
 
-void
-isc_histomulti_destroy(isc_histomulti_t **hmp) {
-	REQUIRE(hmp != NULL);
-	REQUIRE(HISTOMULTI_VALID(*hmp));
+static void
+isc__histomulti_destroy(isc_histomulti_t *hm) {
+	REQUIRE(HISTOMULTI_VALID(hm));
 
-	isc_histomulti_t *hm = *hmp;
 	isc_mem_t *mctx = hm->hg[0]->mctx;
-	*hmp = NULL;
 
 	for (uint i = 0; i < hm->size; i++) {
 		isc_histo_destroy(&hm->hg[i]);
 	}
+
+	isc_refcount_destroy(&hm->references);
 
 	isc_mem_put(mctx, hm, STRUCT_FLEX_SIZE(hm, hg, hm->size));
 }
@@ -425,6 +427,12 @@ void
 isc_histomulti_inc(isc_histomulti_t *hm, uint64_t value) {
 	isc_histomulti_add(hm, value, 1);
 }
+
+#ifdef ISC_HISTO_TRACE
+ISC_REFCOUNT_TRACE_IMPL(isc_histomulti, isc__histomulti_destroy);
+#else
+ISC_REFCOUNT_IMPL(isc_histomulti, isc__histomulti_destroy);
+#endif /* ISC_HISTO_TRACE */
 
 /**********************************************************************/
 
