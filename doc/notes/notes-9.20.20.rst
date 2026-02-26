@@ -12,6 +12,18 @@
 Notes for BIND 9.20.20
 ----------------------
 
+Security Fixes
+~~~~~~~~~~~~~~
+
+- Fix a use-after-free error in ``dns_client_resolve()`` triggered by a
+  DNAME response.
+
+  This issue only affected the :iscman:`delv` tool and it has now been
+  fixed.
+
+  ISC would like to thank Vitaly Simonovich for bringing this
+  vulnerability to our attention. :gl:`#5728`
+
 Feature Changes
 ~~~~~~~~~~~~~~~
 
@@ -29,6 +41,12 @@ Feature Changes
 
 Bug Fixes
 ~~~~~~~~~
+
+- Fix an assertion failure triggered by non-minimal IXFRs.
+
+  Processing an IXFR that included an RRset whose contents were not
+  changed by the transfer triggered an assertion failure. This has been
+  fixed. :gl:`#5759`
 
 - Fix a crash when retrying a NOTIFY over TCP.
 
@@ -51,15 +69,6 @@ Bug Fixes
 
 - Fix dnstap logging of forwarded queries. :gl:`#5724`
 
-- Fix a use-after-free error in ``dns_client_resolve()`` triggered by a
-  DNAME response.
-
-  This issue only affected the :iscman:`delv` tool and it has now been
-  fixed.
-
-  ISC would like to thank Vitaly Simonovich for bringing this
-  vulnerability to our attention. :gl:`#5728`
-
 - A stale answer could have been served in case of multiple upstream
   failures when following CNAME chains. This has been fixed. :gl:`#5751`
 
@@ -79,9 +88,3 @@ Bug Fixes
   the import function might overflow. This could lead to a memory
   corruption on the stack and ultimately a server crash. This has been
   fixed. :gl:`#5758`
-
-- Fix an assertion failure triggered by non-minimal IXFRs.
-
-  Processing an IXFR that included an RRset whose contents were not
-  changed by the transfer triggered an assertion failure. This has been
-  fixed. :gl:`#5759`
