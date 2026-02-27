@@ -207,6 +207,12 @@ dns__zone_free(dns_zone_t *zone);
 
 bool
 dns__zone_free_check(dns_zone_t *zone);
+
+void
+dns__zone_keymgmt_initialize(void);
+
+void
+dns__zone_keymgmt_shutdown(void);
 /*
  *	Check if a zone is ready to be freed.
  *
