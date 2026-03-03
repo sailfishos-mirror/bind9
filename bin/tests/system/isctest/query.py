@@ -40,6 +40,26 @@ def generic_query(
     log_query: bool = True,
     log_response: bool = True,
 ) -> Any:
+
+    def log_querymsg(exception: Exception | None = None) -> None:
+        """
+        Helper for logging query message. Call this *after* query_func() has
+        been called, as it may modify the message, e.g. with a TSIG.
+
+        If an exception is provided, it will be logged as well.
+        """
+        nonlocal log_query
+        if log_query:
+            isctest.log.debug(
+                f"isc.query.{query_func.__name__}(): query\n{message.to_text()}"
+            )
+            log_query = False  # only log query once
+
+        if exception:
+            isctest.log.debug(
+                f"isc.query.{query_func.__name__}(): the '{exception}' exception raised"
+            )
+
     if port is None:
         if query_func.__name__ == "tls":
             port = int(os.environ["TLSPORT"])
@@ -57,28 +77,30 @@ def generic_query(
         query_args["verify"] = verify
 
     res = None
+
     for attempt in range(attempts):
         log_msg = (
             f"isc.query.{query_func.__name__}(): ip={ip}, port={port}, source={source}, "
             f"timeout={timeout}, attempts left={attempts-attempt}"
         )
-        if log_query:
-            log_msg += f"\n{message.to_text()}"
-            log_query = False  # only log query on first attempt
         isctest.log.debug(log_msg)
+
+        exc = None
         try:
             res = query_func(**query_args)
         except (dns.exception.Timeout, ConnectionRefusedError) as e:
-            isctest.log.debug(
-                f"isc.query.{query_func.__name__}(): the '{e}' exception raised"
-            )
-        else:
+            exc = e
+        finally:
+            log_querymsg(exc)
+
+        if res:
             if log_response:
                 isctest.log.debug(
                     f"isc.query.{query_func.__name__}(): response\n{res.to_text()}"
                 )
             if res.rcode() == expected_rcode or expected_rcode is None:
                 return res
+
         time.sleep(1)
 
     if expected_rcode is not None:
