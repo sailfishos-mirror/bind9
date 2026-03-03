@@ -230,7 +230,8 @@ markanswer(dns_validator_t *val, const char *where, const char *mbstext) {
  * Mark the RRsets in val->vstat with trust level secure.
  */
 static void
-marksecure(dns_validator_t *val) {
+marksecure(dns_validator_t *val, const char *where) {
+	validator_log(val, ISC_LOG_DEBUG(3), "marking as secure (%s)", where);
 	dns_rdataset_settrust(val->rdataset, dns_trust_secure);
 	if (val->sigrdataset != NULL) {
 		dns_rdataset_settrust(val->sigrdataset, dns_trust_secure);
@@ -1883,9 +1884,7 @@ validate_answer_finish(void *arg) {
 	}
 
 	if (val->result == ISC_R_SUCCESS) {
-		marksecure(val);
-		validator_log(val, ISC_LOG_DEBUG(3),
-			      "marking as secure, noqname proof not needed");
+		marksecure(val, "noqname proof not needed");
 		validate_async_done(val, val->result);
 		return;
 	}
@@ -2094,8 +2093,7 @@ validate_dnskey_dsset_done(dns_validator_t *val, isc_result_t result) {
 		/* Abort, abort, abort! */
 		break;
 	case ISC_R_SUCCESS:
-		marksecure(val);
-		validator_log(val, ISC_LOG_DEBUG(3), "marking as secure (DS)");
+		marksecure(val, "validate_dnskey (DS)");
 		break;
 	case ISC_R_NOMORE:
 		if (val->unsupported_algorithm != 0 ||
@@ -2978,9 +2976,7 @@ validate_nx(dns_validator_t *val, bool resume) {
 
 		if (FOUNDNOQNAME(val) && FOUNDCLOSEST(val) && !FOUNDOPTOUT(val))
 		{
-			validator_log(val, ISC_LOG_DEBUG(3),
-				      "marking as secure, noqname proof found");
-			marksecure(val);
+			marksecure(val, "validate_nx (noqname proof found)");
 			return ISC_R_SUCCESS;
 		} else if (FOUNDOPTOUT(val) &&
 			   dns_name_countlabels(
@@ -3034,7 +3030,8 @@ validate_nx(dns_validator_t *val, bool resume) {
 		validator_log(val, ISC_LOG_DEBUG(3),
 			      "nonexistence proof(s) found");
 		if (val->message == NULL) {
-			marksecure(val);
+			marksecure(val,
+				   "validate_nx (nonexistence proofs found)");
 		} else {
 			val->secure = true;
 		}
