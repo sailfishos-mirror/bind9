@@ -1470,11 +1470,19 @@ verify(dns_validator_t *val, dst_key_t *key, dns_rdata_t *rdata,
 	bool ignore = false;
 	dns_name_t *wild;
 
+	if (DNS_TRUST_SECURE(val->rdataset->trust)) {
+		/*
+		 * This RRset was already verified before.
+		 */
+		return ISC_R_SUCCESS;
+	}
+
 	val->attributes |= VALATTR_TRIEDVERIFY;
-	wild = dns_fixedname_initname(&fixed);
 	if (over_max_validations(val)) {
 		return ISC_R_QUOTA;
 	}
+	wild = dns_fixedname_initname(&fixed);
+
 again:
 	result = dns_dnssec_verify(val->name, val->rdataset, key, ignore,
 				   val->view->mctx, rdata, wild);
