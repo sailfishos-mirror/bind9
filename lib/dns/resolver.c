@@ -77,6 +77,8 @@
 #include <dns/validator.h>
 #include <dns/zone.h>
 
+#include "dns/view.h"
+
 #ifdef WANT_QUERYTRACE
 #define RTRACE(m)                                                       \
 	isc_log_write(DNS_LOGCATEGORY_RESOLVER, DNS_LOGMODULE_RESOLVER, \
@@ -226,13 +228,6 @@
 #ifndef DEFAULT_MAX_QUERIES
 #define DEFAULT_MAX_QUERIES 50
 #endif /* ifndef DEFAULT_MAX_QUERIES */
-
-/*
- * IP address lookups are performed for at most NS_PROCESSING_LIMIT NS RRs in
- * any NS RRset encountered, to avoid excessive resource use while processing
- * large delegations.
- */
-#define NS_PROCESSING_LIMIT 20
 
 /* Hash table for zone counters */
 #ifndef RES_DOMAIN_HASH_BITS
@@ -3665,8 +3660,9 @@ fctx_getaddresses_nameservers(fetchctx_t *fctx, isc_stdtime_t now,
 	dns_rdata_ns_t ns;
 	bool have_address = false;
 	unsigned int ns_processed = 0;
-	dns_rdata_t nameservers_s[NS_PROCESSING_LIMIT];
-	dns_rdata_t *nameservers[NS_PROCESSING_LIMIT];
+	uint32_t ns_processing_limit = fctx->res->view->max_delegation_servers;
+	static thread_local dns_rdata_t nameservers_s[MAX_DELEGATION_SERVERS];
+	static thread_local dns_rdata_t *nameservers[MAX_DELEGATION_SERVERS];
 
 	DNS_RDATASET_FOREACH(&fctx->nameservers) {
 		dns_rdata_t *rdata = nameservers[ns_processed] =
@@ -3676,7 +3672,7 @@ fctx_getaddresses_nameservers(fetchctx_t *fctx, isc_stdtime_t now,
 
 		dns_rdataset_current(&fctx->nameservers, rdata);
 
-		if (++ns_processed >= NS_PROCESSING_LIMIT) {
+		if (++ns_processed >= ns_processing_limit) {
 			break;
 		}
 	}

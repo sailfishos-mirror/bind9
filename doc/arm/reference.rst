@@ -4174,6 +4174,37 @@ Tuning
    exceed 90 seconds and is truncated to 90 seconds if set to a greater
    value.
 
+.. namedconf:statement:: max-delegation-servers
+   :tags: server
+   :short: Configure the maximum number of nameserver names considered for a delegation
+
+   When looking up remote nameservers for a delegation, the list of nameserver
+   names is sorted according to Canonical RR Ordering within an RRset (see
+   :rfc:`4034` Section 6.3), and the number of names for which :iscman:`named`
+   looks up IP addresses is capped at :any:`max-delegation-servers`.
+
+   This capped list of nameserver names is then randomly shuffled every time
+   :iscman:`named` needs additional remote addresses for those nameservers.
+   This randomized selection works around situations where the first few
+   nameserver names in the zone are unresponsive.
+
+   A limited number of outgoing DNS queries (fetches) are then sent to resolve
+   those shuffled nameserver names. The number of concurrent fetches starts at
+   3 for fetch depth 0 (the initial level where remote DNS queries begin) and
+   decreases with each deeper level. At depth 4 and below, :iscman:`named` only
+   initiates a remote fetch on an as-needed basis. This means that a new
+   outgoing DNS query is initiated only if the DNS resolver does not already have
+   existing IP addresses for any of the nameserver names in the cache.
+
+   The default and recommended value is ``13``. This limit prevents excessive
+   resource use while processing large or misconfigured delegations. The default
+   value should only be increased in controlled environments where a remote
+   attacker cannot force the resolver to perform excessive, wasteful queries.
+
+   :any:`max-delegation-servers` cannot be set to less than ``1``, as this would
+   break DNS resolution. The maximum permitted value is ``100``. Any configured
+   value outside of those bounds is rejected.
+
 .. namedconf:statement:: max-ncache-ttl
    :tags: server
    :short: Specifies the maximum retention time (in seconds) for storage of negative answers in the server's cache.

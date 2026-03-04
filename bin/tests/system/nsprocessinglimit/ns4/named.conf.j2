@@ -11,6 +11,8 @@
  * information regarding copyright ownership.
  */
 
+{% set maxdelegationservers = maxdelegationservers | default(None) %}
+
 options {
 	query-source address 10.53.0.4;
 	notify-source 10.53.0.4;
@@ -22,6 +24,9 @@ options {
 	dnssec-validation no;
 	dnstap { resolver query; };
 	dnstap-output file "dnstap.out";
+	{% if maxdelegationservers %}
+        @maxdelegationservers@
+	{% endif %}
 };
 
 zone "." {

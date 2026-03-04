@@ -2398,6 +2398,8 @@ static cfg_clausedef_t view_clauses[] = {
 	{ "max-cache-size", &cfg_type_maxcachesize, 0, NULL },
 	{ "max-cache-ttl", &cfg_type_duration, 0, NULL },
 	{ "max-clients-per-query", &cfg_type_uint32, 0, NULL },
+	{ "max-delegation-servers", &cfg_type_uint32,
+	  CFG_CLAUSEFLAG_EXPERIMENTAL, NULL },
 	{ "max-ncache-ttl", &cfg_type_duration, 0, NULL },
 	{ "max-recursion-depth", &cfg_type_uint32, 0, NULL },
 	{ "max-recursion-queries", &cfg_type_uint32, 0, NULL },

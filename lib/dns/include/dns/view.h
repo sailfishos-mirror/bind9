@@ -191,6 +191,7 @@ struct dns_view {
 	uint32_t	      sig0message_checks_limit;
 	uint32_t	      maxrrperset;
 	uint32_t	      maxtypepername;
+	uint32_t	      max_delegation_servers;
 	uint16_t	      max_queries;
 	uint8_t		      max_restarts;
 
@@ -253,6 +254,12 @@ struct dns_view {
 #define DNS_VIEWATTR_RESSHUTDOWN 0x01
 #define DNS_VIEWATTR_ADBSHUTDOWN 0x02
 #define DNS_VIEWATTR_REQSHUTDOWN 0x04
+
+/*
+ * Maximum number of the max-delegation-servers, this defines the size of the
+ * thread-local storage.
+ */
+#define MAX_DELEGATION_SERVERS 100
 
 #ifdef HAVE_LMDB
 #define DNS_LMDB_COMMON_FLAGS (MDB_CREATE | MDB_NOSUBDIR | MDB_NOLOCK)
@@ -1284,4 +1291,11 @@ dns_view_setmaxqueries(dns_view_t *view, uint16_t max_queries);
  *
  *\li	'view' is valid;
  *\li	'max_queries' is greater than 0.
+ */
+
+isc_result_t
+dns_view_setmaxdelegationservers(dns_view_t *view, uint32_t max_servers);
+/*%
+ * Set the maximum number of delegation nameservers processed when looking up
+ * their IP addresses.
  */
