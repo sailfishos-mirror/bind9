@@ -424,12 +424,12 @@ enum {
  */
 #define FIND_WANTEVENT(fn)	(((fn)->options & DNS_ADBFIND_WANTEVENT) != 0)
 #define FIND_WANTEMPTYEVENT(fn) (((fn)->options & DNS_ADBFIND_EMPTYEVENT) != 0)
-#define FIND_AVOIDFETCHES(fn)	(((fn)->options & DNS_ADBFIND_AVOIDFETCHES) != 0)
-#define FIND_STARTATZONE(fn)	(((fn)->options & DNS_ADBFIND_STARTATZONE) != 0)
-#define FIND_STATICSTUB(fn)	(((fn)->options & DNS_ADBFIND_STATICSTUB) != 0)
-#define FIND_NOVALIDATE(fn)	(((fn)->options & DNS_ADBFIND_NOVALIDATE) != 0)
-#define FIND_HAS_ADDRS(fn)	(!ISC_LIST_EMPTY((fn)->list))
-#define FIND_NOFETCH(fn)	(((fn)->options & DNS_ADBFIND_NOFETCH) != 0)
+#define FIND_AVOIDFETCHES(fn) (((fn)->options & DNS_ADBFIND_AVOIDFETCHES) != 0)
+#define FIND_STARTATZONE(fn)  (((fn)->options & DNS_ADBFIND_STARTATZONE) != 0)
+#define FIND_STATICSTUB(fn)   (((fn)->options & DNS_ADBFIND_STATICSTUB) != 0)
+#define FIND_NOVALIDATE(fn)   (((fn)->options & DNS_ADBFIND_NOVALIDATE) != 0)
+#define FIND_HAS_ADDRS(fn)    (!ISC_LIST_EMPTY((fn)->list))
+#define FIND_NOFETCH(fn)      (((fn)->options & DNS_ADBFIND_NOFETCH) != 0)
 
 #define ADBNAME_TYPE_MASK                                   \
 	(DNS_ADBFIND_STARTATZONE | DNS_ADBFIND_STATICSTUB | \
