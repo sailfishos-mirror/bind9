@@ -1554,3 +1554,5 @@ c22176c0f9a71217be9bfab00573f8f0265499af
 58791b5cfe8d6d17e05a450fb9cf72cc52472541
 # Use ControlStatementsExceptControlMacros for SpaceBeforeParens
 8f8fb10232eabcee1d78efb52623a07d6326cdb6
+# Use clang-format-22 to update formatting
+82991c78816fb9a70a171329cc1c1a4ae6dc2ebe
