@@ -89,7 +89,7 @@
 	({                                                        \
 		size_t _d;                                        \
 		bool   _overflow = ISC_OVERFLOW_MUL(a, b, &_d) || \
-				 ISC_OVERFLOW_ADD(_d, c, &_d);    \
+				   ISC_OVERFLOW_ADD(_d, c, &_d);  \
 		INSIST(!_overflow);                               \
 		_d;                                               \
 	})
