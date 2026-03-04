@@ -255,14 +255,14 @@ struct ns_client {
 #define NS_CLIENTATTR_WANTNSID	 0x00020 /*%< include nameserver ID */
 /* Obsolete: NS_CLIENTATTR_FILTER_AAAA	0x00040 */
 /* Obsolete: NS_CLIENTATTR_FILTER_AAAA_RC 0x00080 */
-#define NS_CLIENTATTR_WANTAD	   0x00100 /*%< want AD in response if possible */
-#define NS_CLIENTATTR_WANTCOOKIE   0x00200 /*%< return a COOKIE */
-#define NS_CLIENTATTR_HAVECOOKIE   0x00400 /*%< has a valid COOKIE */
-#define NS_CLIENTATTR_WANTEXPIRE   0x00800 /*%< return seconds to expire */
-#define NS_CLIENTATTR_HAVEEXPIRE   0x01000 /*%< return seconds to expire */
-#define NS_CLIENTATTR_WANTOPT	   0x02000 /*%< add opt to reply */
-#define NS_CLIENTATTR_HAVEECS	   0x04000 /*%< received an ECS option */
-#define NS_CLIENTATTR_WANTPAD	   0x08000 /*%< pad reply */
+#define NS_CLIENTATTR_WANTAD	 0x00100 /*%< want AD in response if possible */
+#define NS_CLIENTATTR_WANTCOOKIE 0x00200 /*%< return a COOKIE */
+#define NS_CLIENTATTR_HAVECOOKIE 0x00400 /*%< has a valid COOKIE */
+#define NS_CLIENTATTR_WANTEXPIRE 0x00800 /*%< return seconds to expire */
+#define NS_CLIENTATTR_HAVEEXPIRE 0x01000 /*%< return seconds to expire */
+#define NS_CLIENTATTR_WANTOPT	 0x02000 /*%< add opt to reply */
+#define NS_CLIENTATTR_HAVEECS	 0x04000 /*%< received an ECS option */
+#define NS_CLIENTATTR_WANTPAD	 0x08000 /*%< pad reply */
 #define NS_CLIENTATTR_USEKEEPALIVE 0x10000 /*%< use TCP keepalive */
 
 #define NS_CLIENTATTR_NOSETFC 0x20000 /*%< don't set servfail cache */

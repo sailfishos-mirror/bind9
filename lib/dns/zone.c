@@ -574,7 +574,7 @@ typedef enum {
 	DNS_ZONEFLG___MAX = UINT64_MAX, /* trick to make the ENUM 64-bit wide */
 } dns_zoneflg_t;
 
-#define DNS_ZONE_OPTION(z, o)	 ((atomic_load_relaxed(&(z)->options) & (o)) != 0)
+#define DNS_ZONE_OPTION(z, o) ((atomic_load_relaxed(&(z)->options) & (o)) != 0)
 #define DNS_ZONE_SETOPTION(z, o) atomic_fetch_or(&(z)->options, (o))
 #define DNS_ZONE_CLROPTION(z, o) atomic_fetch_and(&(z)->options, ~(o))
 
