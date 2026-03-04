@@ -438,14 +438,14 @@ enum {
  */
 #define FIND_WANTEVENT(fn)	(((fn)->options & DNS_ADBFIND_WANTEVENT) != 0)
 #define FIND_WANTEMPTYEVENT(fn) (((fn)->options & DNS_ADBFIND_EMPTYEVENT) != 0)
-#define FIND_AVOIDFETCHES(fn)	(((fn)->options & DNS_ADBFIND_AVOIDFETCHES) != 0)
-#define FIND_STARTATZONE(fn)	(((fn)->options & DNS_ADBFIND_STARTATZONE) != 0)
-#define FIND_STATICSTUB(fn)	(((fn)->options & DNS_ADBFIND_STATICSTUB) != 0)
-#define FIND_HINTOK(fn)		(((fn)->options & DNS_ADBFIND_HINTOK) != 0)
-#define FIND_GLUEOK(fn)		(((fn)->options & DNS_ADBFIND_GLUEOK) != 0)
-#define FIND_HAS_ADDRS(fn)	(!ISC_LIST_EMPTY((fn)->list))
-#define FIND_RETURNLAME(fn)	(((fn)->options & DNS_ADBFIND_RETURNLAME) != 0)
-#define FIND_NOFETCH(fn)	(((fn)->options & DNS_ADBFIND_NOFETCH) != 0)
+#define FIND_AVOIDFETCHES(fn) (((fn)->options & DNS_ADBFIND_AVOIDFETCHES) != 0)
+#define FIND_STARTATZONE(fn)  (((fn)->options & DNS_ADBFIND_STARTATZONE) != 0)
+#define FIND_STATICSTUB(fn)   (((fn)->options & DNS_ADBFIND_STATICSTUB) != 0)
+#define FIND_HINTOK(fn)	      (((fn)->options & DNS_ADBFIND_HINTOK) != 0)
+#define FIND_GLUEOK(fn)	      (((fn)->options & DNS_ADBFIND_GLUEOK) != 0)
+#define FIND_HAS_ADDRS(fn)    (!ISC_LIST_EMPTY((fn)->list))
+#define FIND_RETURNLAME(fn)   (((fn)->options & DNS_ADBFIND_RETURNLAME) != 0)
+#define FIND_NOFETCH(fn)      (((fn)->options & DNS_ADBFIND_NOFETCH) != 0)
 
 /*
  * These are currently used on simple unsigned ints, so they are
@@ -461,8 +461,8 @@ enum {
  * glue, and compare this to the appropriate bits set in o, to see if
  * this is ok.
  */
-#define GLUE_OK(nf, o)	   (!NAME_GLUEOK(nf) || (((o) & DNS_ADBFIND_GLUEOK) != 0))
-#define HINT_OK(nf, o)	   (!NAME_HINTOK(nf) || (((o) & DNS_ADBFIND_HINTOK) != 0))
+#define GLUE_OK(nf, o) (!NAME_GLUEOK(nf) || (((o) & DNS_ADBFIND_GLUEOK) != 0))
+#define HINT_OK(nf, o) (!NAME_HINTOK(nf) || (((o) & DNS_ADBFIND_HINTOK) != 0))
 #define GLUEHINT_OK(nf, o) (GLUE_OK(nf, o) || HINT_OK(nf, o))
 #define STARTATZONE_MATCHES(nf, o)                  \
 	(((nf)->flags & DNS_ADBFIND_STARTATZONE) == \
