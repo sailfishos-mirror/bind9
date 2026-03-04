@@ -330,8 +330,8 @@ dns_sdlz_putrr_t dns_sdlz_putrr;
  */
 
 typedef isc_result_t
-		  dns_sdlz_putsoa_t(dns_sdlzlookup_t *lookup, const char *mname,
-				    const char *rname, uint32_t serial);
+dns_sdlz_putsoa_t(dns_sdlzlookup_t *lookup, const char *mname,
+		  const char *rname, uint32_t serial);
 dns_sdlz_putsoa_t dns_sdlz_putsoa;
 /*%<
  * This function may optionally be called from the 'authority'

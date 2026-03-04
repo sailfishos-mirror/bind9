@@ -64,7 +64,7 @@ struct isc_quota {
 	struct {
 		struct cds_wfcq_head head;
 		uint8_t		     __padding[ISC_OS_CACHELINE_SIZE -
-				       sizeof(struct __cds_wfcq_head)];
+					       sizeof(struct __cds_wfcq_head)];
 		struct cds_wfcq_tail tail;
 	} jobs;
 	ISC_LINK(isc_quota_t) link;

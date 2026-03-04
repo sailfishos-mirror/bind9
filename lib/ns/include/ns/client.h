@@ -256,8 +256,8 @@ struct ns_client {
 #define NS_CLIENTATTR_WANTNSID	 0x000020 /*%< include nameserver ID */
 #define NS_CLIENTATTR_BADCOOKIE \
 	0x000040 /*%< Presented cookie is bad/out-of-date */
-#define NS_CLIENTATTR_WANTRC	      0x000080 /*%< include Report-Channel */
-#define NS_CLIENTATTR_WANTAD	      0x000100 /*%< want AD in response if possible */
+#define NS_CLIENTATTR_WANTRC 0x000080 /*%< include Report-Channel */
+#define NS_CLIENTATTR_WANTAD 0x000100 /*%< want AD in response if possible */
 #define NS_CLIENTATTR_WANTCOOKIE      0x000200 /*%< return a COOKIE */
 #define NS_CLIENTATTR_HAVECOOKIE      0x000400 /*%< has a valid COOKIE */
 #define NS_CLIENTATTR_WANTEXPIRE      0x000800 /*%< return seconds to expire */
