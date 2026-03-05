@@ -276,6 +276,9 @@ stages:
 .rule_tag_open_source: &rule_tag_open_source
   - if: '$CI_PROJECT_NAMESPACE == "isc-private" && $CI_COMMIT_TAG != null && $CI_COMMIT_TAG !~ /-S/'
 
+.rule_tag_open_source_maintenance: &rule_tag_open_source_maintenance
+  - if: '$CI_PROJECT_NAMESPACE == "isc-private" && $CI_COMMIT_TAG != null && $CI_COMMIT_TAG !~ /-S/ && $RELEASE_TYPE != "security"'
+
 .rule_tag_security: &rule_tag_security
   - if: '$CI_PROJECT_NAMESPACE == "isc-private" && $CI_COMMIT_TAG != null && $RELEASE_TYPE == "security"'
 
@@ -1864,6 +1867,85 @@ publish:
       artifacts: false
   tags:
     - smalljob
+
+# Jobs to update RPMs
+
+.rpm-build-job: &rpm_build_job
+  <<: *manual_release_job_qa
+  needs:
+    - job: publish
+      artifacts: false
+  script:
+    - >
+      "${CI_PROJECT_DIR}"/bind9-qa/releng/update_rpms.py build --service "${SERVICE}" --version "${CI_COMMIT_TAG}"
+
+.rpm-build-job-private: &rpm_build_job_private
+  <<: *manual_release_job_qa
+  needs:
+    - job: publish-private
+      artifacts: false
+  script:
+    - >
+      "${CI_PROJECT_DIR}"/bind9-qa/releng/update_rpms.py build --service "${SERVICE}" --version "${CI_COMMIT_TAG}" --base-url "$(cat "url-${CI_COMMIT_TAG}.txt")"
+
+.rpm-publish-job: &rpm_publish_job
+  <<: *manual_release_job_qa
+  script:
+    - >
+      "${CI_PROJECT_DIR}"/bind9-qa/releng/update_rpms.py publish --service "${SERVICE}" --commit "$(cat "commit.txt")"
+
+# Update Cloudsmith packages
+
+rpms-cloudsmith-build:
+  <<: *rpm_build_job
+  variables:
+    SERVICE: cloudsmith
+  rules:
+    - *rule_tag_open_source_maintenance
+  artifacts:
+    paths:
+      - commit.txt
+
+rpms-cloudsmith-build-private:
+  <<: *rpm_build_job_private
+  variables:
+    SERVICE: cloudsmith
+  rules:
+    - *rule_tag_security_or_subscription
+  artifacts:
+    paths:
+      - commit.txt
+
+# Publish Cloudsmith packages
+
+rpms-cloudsmith-publish:
+  <<: *rpm_publish_job
+  variables:
+    SERVICE: cloudsmith
+  needs:
+    - job: rpms-cloudsmith-build
+      artifacts: true
+  rules:
+    - *rule_tag_open_source_maintenance
+
+rpms-cloudsmith-publish-private:
+  <<: *rpm_publish_job
+  variables:
+    SERVICE: cloudsmith
+  needs:
+    - job: rpms-cloudsmith-build-private
+      artifacts: true
+  rules:
+    - *rule_tag_security_or_subscription
+
+# Update Copr packages
+
+rpms-copr:
+  <<: *rpm_build_job
+  variables:
+    SERVICE: copr
+  rules:
+    - *rule_tag_open_source
 
 # Setting the FORCE_CVE_IDS environment variable to a comma-separated
 # list of CVE IDs enables overriding the autodetected ones.
