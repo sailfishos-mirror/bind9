@@ -24,6 +24,11 @@
 #include "qp_p.h"
 #include "qpzone_p.h"
 
+void
+dns__zone_keymgmt_initialize(void);
+void
+dns__zone_keymgmt_shutdown(void);
+
 /***
  *** Functions
  ***/
@@ -48,6 +53,7 @@ dns__lib_initialize(void) {
 	dns__dyndb_initialize();
 	dns__qp_initialize();
 	dns__qpzone_initialize();
+	dns__zone_keymgmt_initialize();
 }
 
 void
@@ -56,6 +62,7 @@ dns__lib_shutdown(void) {
 		return;
 	}
 
+	dns__zone_keymgmt_shutdown();
 	dns__qpzone_shutdown();
 	dns__qp_shutdown();
 	dns__dyndb_shutdown();
