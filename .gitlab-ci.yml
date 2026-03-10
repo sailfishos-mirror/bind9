@@ -2050,6 +2050,11 @@ prepare-preannouncement:
 
 prepare-package-notification:
   <<: *printing_press_job
+  before_script:
+    - *git_clone_bind9-qa
+    # produce distros_git_url.txt to be immediately read by printing_press_mr.py
+    - >
+      "$CI_PROJECT_DIR"/bind9-qa/releng/manage_distros_token.py create
   variables:
     DOCUMENT: packager-notification
   rules:
