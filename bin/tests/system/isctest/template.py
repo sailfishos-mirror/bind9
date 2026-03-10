@@ -11,6 +11,7 @@
 # See the COPYRIGHT file distributed with this work for additional
 # information regarding copyright ownership.
 
+from dataclasses import dataclass
 import os
 from pathlib import Path
 from typing import Any, Dict, Optional, Union
@@ -98,3 +99,10 @@ class TemplateEngine:
         ]
         for template in templates:
             self.render(template[:-3], data)
+
+
+@dataclass
+class TrustAnchor:
+    domain: str
+    type: str
+    contents: str
