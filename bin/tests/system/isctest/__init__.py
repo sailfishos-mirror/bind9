@@ -13,6 +13,7 @@ from . import check
 from . import instance
 from . import hypothesis
 from . import query
+from . import kasp
 from . import run
 from . import template
 from . import log
