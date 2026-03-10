@@ -58,6 +58,7 @@ isc_work_enqueue(isc_loop_t *loop, isc_work_cb work_cb,
 	int r;
 
 	REQUIRE(VALID_LOOP(loop));
+	REQUIRE(isc_loop() == loop);
 	REQUIRE(work_cb != NULL);
 	REQUIRE(after_work_cb != NULL);
 

@@ -56,13 +56,8 @@ after_work_cb(void *arg) {
 }
 
 static void
-work_enqueue_cb(void *arg) {
-	UNUSED(arg);
-	uint32_t tid = isc_loopmgr_nloops(loopmgr) - 1;
-
-	isc_loop_t *loop = isc_loop_get(loopmgr, tid);
-
-	isc_work_enqueue(loop, work_cb, after_work_cb, loopmgr);
+work_enqueue_cb(void *arg ISC_ATTR_UNUSED) {
+	isc_work_enqueue(isc_loop(), work_cb, after_work_cb, NULL);
 }
 
 ISC_RUN_TEST_IMPL(isc_work_enqueue) {
