@@ -544,7 +544,7 @@ def test_reconfiguration_when_zone_transfer_is_in_the_middle_of_soa_query(ns6):
 
     isctest.log.info("Make ans6 receive queries and respond to them")
     msg = dns.message.make_query("enable.send-responses._control.", "TXT")
-    with ns6.watch_log_from_here() as watcher_transfer_started:
+    with ns6.watch_log_from_here(timeout=30) as watcher_transfer_started:
         get_response(msg, "10.53.0.9")
         isctest.log.info("Try to reload the zone from the primary")
         ns6.rndc("reload xfr-and-reconfig")
