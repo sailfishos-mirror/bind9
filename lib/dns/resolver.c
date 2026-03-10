@@ -2284,10 +2284,11 @@ fctx_query(fetchctx_t *fctx, dns_adbaddrinfo_t *addrinfo,
 			isc_log_write(
 				DNS_LOGCATEGORY_RESOLVER,
 				DNS_LOGMODULE_RESOLVER, log_level,
-				"Unable to establish a connection to %s: %s\n",
+				"Unable to establish a connection to %s: %s",
 				peerbuf, isc_result_totext(result));
 		}
 		dns_dispatch_done(&query->dispentry);
+		resquery_unref(query);
 		goto cleanup_fetch;
 	} else {
 		RUNTIME_CHECK(result == ISC_R_SUCCESS);
