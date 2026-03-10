@@ -4967,6 +4967,9 @@ cleanup_nameservers:
 	}
 
 cleanup_fetch:
+
+	dns_ede_invalidate(&fctx->edectx);
+	isc_mutex_destroy(&fctx->lock);
 	dns_resolver_detach(&fctx->res);
 	isc_mem_putanddetach(&fctx->mctx, fctx, sizeof(*fctx));
 
