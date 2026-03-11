@@ -10556,7 +10556,7 @@ listenelt_fromconfig(const cfg_obj_t *listener, const cfg_obj_t *config,
 			}
 		}
 	} else {
-		if (cfg_obj_asuint32(portobj) >= UINT16_MAX) {
+		if (cfg_obj_asuint32(portobj) > UINT16_MAX) {
 			return ISC_R_RANGE;
 		}
 		port = (in_port_t)cfg_obj_asuint32(portobj);

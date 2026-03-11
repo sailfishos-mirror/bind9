@@ -487,7 +487,7 @@ checkacl(const char *aclname, cfg_aclconfctx_t *aclctx,
 			cfg_tuple_get(aclobj, "port-transport"), "transport");
 
 		if (cfg_obj_isuint32(obj_port) &&
-		    cfg_obj_asuint32(obj_port) >= UINT16_MAX)
+		    cfg_obj_asuint32(obj_port) > UINT16_MAX)
 		{
 			cfg_obj_log(obj_port, ISC_LOG_ERROR,
 				    "port value '%u' is out of range",
@@ -1067,8 +1067,7 @@ check_listener(const cfg_obj_t *listener, const cfg_obj_t *config,
 	}
 
 	portobj = cfg_tuple_get(ltup, "port");
-	if (cfg_obj_isuint32(portobj) &&
-	    cfg_obj_asuint32(portobj) >= UINT16_MAX)
+	if (cfg_obj_isuint32(portobj) && cfg_obj_asuint32(portobj) > UINT16_MAX)
 	{
 		cfg_obj_log(portobj, ISC_LOG_ERROR,
 			    "port value '%u' is out of range",
@@ -1166,7 +1165,7 @@ check_port(const cfg_obj_t *options, const char *type, in_port_t *portp) {
 		return ISC_R_SUCCESS;
 	}
 
-	if (cfg_obj_asuint32(portobj) >= UINT16_MAX) {
+	if (cfg_obj_asuint32(portobj) > UINT16_MAX) {
 		cfg_obj_log(portobj, ISC_LOG_ERROR, "port '%u' out of range",
 			    cfg_obj_asuint32(portobj));
 		return ISC_R_RANGE;
