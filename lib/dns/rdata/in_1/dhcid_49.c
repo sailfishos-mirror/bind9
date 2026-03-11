@@ -149,6 +149,7 @@ tostruct_in_dhcid(ARGS_TOSTRUCT) {
 	dns_rdata_toregion(rdata, &region);
 
 	dhcid->dhcid = mem_maybedup(mctx, region.base, region.length);
+	dhcid->length = region.length;
 	dhcid->mctx = mctx;
 	return ISC_R_SUCCESS;
 }
