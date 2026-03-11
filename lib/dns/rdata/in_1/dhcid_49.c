@@ -153,7 +153,7 @@ tostruct_in_dhcid(ARGS_TOSTRUCT) {
 	if (dhcid->dhcid == NULL) {
 		return ISC_R_NOMEMORY;
 	}
-
+	dhcid->length = region.length;
 	dhcid->mctx = mctx;
 	return ISC_R_SUCCESS;
 }
