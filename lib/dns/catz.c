@@ -225,6 +225,9 @@ dns_catz_options_setdefault(isc_mem_t *mctx, const dns_catz_options_t *defaults,
 	}
 
 	if (defaults->zonedir != NULL) {
+		if (opts->zonedir != NULL) {
+			isc_mem_free(mctx, opts->zonedir);
+		}
 		opts->zonedir = isc_mem_strdup(mctx, defaults->zonedir);
 	}
 
