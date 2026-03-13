@@ -15,8 +15,8 @@ Notes for BIND 9.18.47
 Security Fixes
 ~~~~~~~~~~~~~~
 
-- [CVE-2026-1519] Fix unbounded NSEC3 iterations when validating
-  referrals to unsigned delegations.
+- Fix unbounded NSEC3 iterations when validating referrals to unsigned
+  delegations. :cve:`2026-1519`
 
   DNSSEC-signed zones may contain high iteration-count NSEC3 records,
   which prove that certain delegations are insecure. Previously, a
@@ -28,5 +28,3 @@ Security Fixes
 
   ISC would like to thank Samy Medjahed/Ap4sh for bringing this
   vulnerability to our attention. :gl:`#5708`
-
-
