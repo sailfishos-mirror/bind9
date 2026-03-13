@@ -7045,7 +7045,9 @@ configure_zone(const cfg_obj_t *config, const cfg_obj_t *zconfig,
 	/*
 	 * Mark whether the zone was originally added at runtime or not
 	 */
-	dns_zone_setadded(zone, added);
+	if (!modify) {
+		dns_zone_setadded(zone, added);
+	}
 
 	/*
 	 * Determine if we need to set up inline signing.
@@ -14335,7 +14337,7 @@ do_modzone(named_server_t *server, ns_cfgctx_t *cfg, dns_view_t *view,
 	dns_view_thaw(view);
 	result = configure_zone(cfg->config, zoneobj, cfg->vconfig,
 				server->mctx, view, &server->viewlist,
-				&server->kasplist, cfg->actx, true, false,
+				&server->kasplist, cfg->actx, false, false,
 				false, true);
 	dns_view_freeze(view);
 
