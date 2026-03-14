@@ -14261,7 +14261,7 @@ ns_query(dns_zone_t *zone, dns_rdataset_t *soardataset, dns_stub_t *stub) {
 	bool reqnsid;
 	uint16_t udpsize = SEND_BUFFER_SIZE;
 	isc_sockaddr_t curraddr, sourceaddr;
-	struct stub_cb_args *cb_args;
+	struct stub_cb_args *cb_args = NULL;
 
 	REQUIRE(DNS_ZONE_VALID(zone));
 	REQUIRE(LOCKED_ZONE(zone));
@@ -14479,6 +14479,9 @@ cleanup:
 	}
 	if (stub->zone != NULL) {
 		zone_idetach(&stub->zone);
+	}
+	if (cb_args != NULL) {
+		isc_mem_put(zone->mctx, cb_args, sizeof(*cb_args));
 	}
 	isc_mem_put(stub->mctx, stub, sizeof(*stub));
 	if (message != NULL) {
