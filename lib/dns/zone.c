@@ -23,6 +23,7 @@
 #include <isc/hash.h>
 #include <isc/hashmap.h>
 #include <isc/hex.h>
+#include <isc/list.h>
 #include <isc/loop.h>
 #include <isc/md.h>
 #include <isc/mutex.h>
@@ -21363,7 +21364,7 @@ checkds_isqueued(dns_zone_t *zone, dns_name_t *name, isc_sockaddr_t *addr,
 	return false;
 }
 
-static isc_result_t
+static void
 checkds_create(isc_mem_t *mctx, unsigned int flags, dns_checkds_t **checkdsp) {
 	dns_checkds_t *checkds;
 
@@ -21371,16 +21372,17 @@ checkds_create(isc_mem_t *mctx, unsigned int flags, dns_checkds_t **checkdsp) {
 
 	checkds = isc_mem_get(mctx, sizeof(*checkds));
 	*checkds = (dns_checkds_t){
+		.magic = CHECKDS_MAGIC,
 		.flags = flags,
+		.link = ISC_LINK_INITIALIZER,
+		.ns = DNS_NAME_INITEMPTY,
 	};
 
 	isc_mem_attach(mctx, &checkds->mctx);
+
 	isc_sockaddr_any(&checkds->dst);
-	dns_name_init(&checkds->ns, NULL);
-	ISC_LINK_INIT(checkds, link);
-	checkds->magic = CHECKDS_MAGIC;
+
 	*checkdsp = checkds;
-	return ISC_R_SUCCESS;
 }
 
 static void
@@ -21673,10 +21675,7 @@ checkds_send_tons(dns_checkds_t *checkds) {
 		}
 
 		newcheckds = NULL;
-		result = checkds_create(checkds->mctx, 0, &newcheckds);
-		if (result != ISC_R_SUCCESS) {
-			goto cleanup;
-		}
+		checkds_create(checkds->mctx, 0, &newcheckds);
 		zone_iattach(zone, &newcheckds->zone);
 		ISC_LIST_APPEND(newcheckds->zone->checkds_requests, newcheckds,
 				link);
@@ -21766,6 +21765,12 @@ checkds_send(dns_zone_t *zone) {
 		INSIST(isc_sockaddr_pf(&src) == isc_sockaddr_pf(&dst));
 
 		if (isc_sockaddr_disabled(&dst)) {
+			if (key != NULL) {
+				dns_tsigkey_detach(&key);
+			}
+			if (transport != NULL) {
+				dns_transport_detach(&transport);
+			}
 			goto next;
 		}
 
@@ -21790,14 +21795,7 @@ checkds_send(dns_zone_t *zone) {
 			     "parent %d",
 			     i);
 
-		result = checkds_create(zone->mctx, flags, &checkds);
-		if (result != ISC_R_SUCCESS) {
-			dns_zone_log(zone, ISC_LOG_DEBUG(3),
-				     "checkds: create DS query for "
-				     "parent %d failed",
-				     i);
-			goto next;
-		}
+		checkds_create(zone->mctx, flags, &checkds);
 		zone_iattach(zone, &checkds->zone);
 		dns_name_dup(dns_rootname, checkds->mctx, &checkds->ns);
 		checkds->src = src;
@@ -21951,13 +21949,7 @@ nsfetch_done(void *arg) {
 		if (isqueued) {
 			continue;
 		}
-		result = checkds_create(zone->mctx, 0, &checkds);
-		if (result != ISC_R_SUCCESS) {
-			dns_zone_log(zone, ISC_LOG_DEBUG(3),
-				     "checkds: checkds_create() failed: %s",
-				     isc_result_totext(result));
-			break;
-		}
+		checkds_create(zone->mctx, 0, &checkds);
 
 		if (isc_log_wouldlog(dns_lctx, ISC_LOG_DEBUG(3))) {
 			char nsnamebuf[DNS_NAME_FORMATSIZE];
