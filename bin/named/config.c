@@ -654,7 +654,7 @@ named_config_getport(const cfg_obj_t *config, const char *type,
 
 	result = named_config_get(maps, type, &portobj);
 	INSIST(result == ISC_R_SUCCESS);
-	if (cfg_obj_asuint32(portobj) >= UINT16_MAX) {
+	if (cfg_obj_asuint32(portobj) > UINT16_MAX) {
 		cfg_obj_log(portobj, ISC_LOG_ERROR, "port '%u' out of range",
 			    cfg_obj_asuint32(portobj));
 		return ISC_R_RANGE;
