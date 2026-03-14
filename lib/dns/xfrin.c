@@ -686,6 +686,9 @@ ixfr_commit(dns_xfrin_t *xfr) {
 	}
 
 cleanup:
+	if (result != ISC_R_SUCCESS) {
+		isc_mem_put(xfr->mctx, data, sizeof(*data));
+	}
 	return result;
 }
 
