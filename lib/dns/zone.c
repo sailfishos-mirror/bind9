@@ -13020,6 +13020,9 @@ zone_notify(dns_zone_t *zone, isc_time_t *now) {
 					      "could not get TLS configuration "
 					      "for zone transfer: %s",
 					      isc_result_totext(result));
+				if (key != NULL) {
+					dns_tsigkey_detach(&key);
+				}
 				goto next;
 			}
 
@@ -13033,6 +13036,12 @@ zone_notify(dns_zone_t *zone, isc_time_t *now) {
 		INSIST(isc_sockaddr_pf(&src) == isc_sockaddr_pf(&dst));
 
 		if (isc_sockaddr_disabled(&dst)) {
+			if (key != NULL) {
+				dns_tsigkey_detach(&key);
+			}
+			if (transport != NULL) {
+				dns_transport_detach(&transport);
+			}
 			goto next;
 		}
 
