@@ -222,11 +222,7 @@ main(int argc, char **argv) {
 	}
 
 	if (strcmp(argv[1], "--with-lmdb") == 0) {
-#ifdef HAVE_LMDB
 		return 0;
-#else  /* ifdef HAVE_LMDB */
-		return 1;
-#endif /* ifdef HAVE_LMDB */
 	}
 
 	if (strcmp(argv[1], "--with-libnghttp2") == 0) {

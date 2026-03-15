@@ -15,11 +15,8 @@
 
 #include <inttypes.h>
 #include <limits.h>
-#include <stdbool.h>
-
-#ifdef HAVE_LMDB
 #include <lmdb.h>
-#endif /* ifdef HAVE_LMDB */
+#include <stdbool.h>
 
 #include <isc/async.h>
 #include <isc/atomic.h>
@@ -341,7 +338,6 @@ destroy(dns_view_t *view) {
 	if (view->newzone.cleanup != NULL) {
 		view->newzone.cleanup(view);
 	}
-#ifdef HAVE_LMDB
 	if (view->newzone.dbenv != NULL) {
 		mdb_env_close((MDB_env *)view->newzone.dbenv);
 		view->newzone.dbenv = NULL;
@@ -349,7 +345,6 @@ destroy(dns_view_t *view) {
 	if (view->newzone.db != NULL) {
 		isc_mem_free(view->mctx, view->newzone.db);
 	}
-#endif /* HAVE_LMDB */
 	dns_fwdtable_destroy(&view->fwdtable);
 	dns_aclenv_detach(&view->aclenv);
 	if (view->failcache != NULL) {

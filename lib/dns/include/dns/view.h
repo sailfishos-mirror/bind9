@@ -261,7 +261,6 @@ struct dns_view {
  */
 #define MAX_DELEGATION_SERVERS 100
 
-#ifdef HAVE_LMDB
 #define DNS_LMDB_COMMON_FLAGS (MDB_CREATE | MDB_NOSUBDIR | MDB_NOLOCK)
 #ifndef __OpenBSD__
 #define DNS_LMDB_FLAGS (DNS_LMDB_COMMON_FLAGS)
@@ -272,7 +271,6 @@ struct dns_view {
  */
 #define DNS_LMDB_FLAGS (DNS_LMDB_COMMON_FLAGS | MDB_WRITEMAP)
 #endif /* __OpenBSD__ */
-#endif /* HAVE_LMDB */
 
 void
 dns_view_create(isc_mem_t *mctx, dns_dispatchmgr_t *dispmgr,

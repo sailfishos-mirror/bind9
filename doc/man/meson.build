@@ -10,7 +10,6 @@
 # information regarding copyright ownership.
 
 manrst_srcset.add(when: 'HAVE_DNSTAP', if_true: files('dnstap-read.rst'))
-manrst_srcset.add(when: 'HAVE_LMDB', if_true: files('named-nzd2nzf.rst'))
 
 manrst_srcset.add(
     files('conf.py'),
@@ -39,6 +38,7 @@ manrst_srcset.add(
         'named-compilezone.rst',
         'named-journalprint.rst',
         'named-makejournal.rst',
+        'named-nzd2nzf.rst',
         'named-rrchecker.rst',
         'named.conf.rst',
         'named.rst',
@@ -55,7 +55,6 @@ manrst_srcset.add(
 
 if fs.is_file('arpaname.1.in')
     man_srcset.add(when: 'HAVE_DNSTAP', if_true: files('dnstap-read.1.in'))
-    man_srcset.add(when: 'HAVE_LMDB', if_true: files('named-nzd2nzf.1.in'))
 
     man_srcset.add(
         files(
@@ -82,6 +81,7 @@ if fs.is_file('arpaname.1.in')
             'named-compilezone.1.in',
             'named-journalprint.1.in',
             'named-makejournal.1.in',
+            'named-nzd2nzf.1.in',
             'named-rrchecker.1.in',
             'named.8.in',
             'named.conf.5.in',
