@@ -953,7 +953,7 @@ dns_client_resolve(dns_client_t *client, const dns_name_t *name,
 	result = startresolve(client, name, rdclass, type, options,
 			      resolve_done, resarg, &resarg->trans);
 	if (result != ISC_R_SUCCESS) {
-		isc_mem_put(client->mctx, resarg, sizeof(*resarg));
+		isc_mem_putanddetach(&resarg->mctx, resarg, sizeof(*resarg));
 		return result;
 	}
 

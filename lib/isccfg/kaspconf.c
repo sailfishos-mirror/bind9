@@ -817,6 +817,7 @@ cfg_kasp_fromconfig(const cfg_obj_t *config, dns_kasp_t *default_kasp,
 						    "find keystore (%s)",
 						    isc_result_totext(result));
 				}
+				dns_kasp_key_destroy(new_key);
 				goto cleanup;
 			}
 			dns_kasp_addkey(kasp, new_key);
@@ -930,9 +931,13 @@ cfg_kasp_builtinconfig(isc_mem_t *mctx, const char *name,
 		new_key->lifetime = 0;
 		new_key->algorithm = DST_ALG_ECDSA256;
 		new_key->length = 256;
-		CHECK(dns_keystorelist_find(keystorelist,
-					    DNS_KEYSTORE_KEYDIRECTORY,
-					    &new_key->keystore));
+		result = dns_keystorelist_find(keystorelist,
+					       DNS_KEYSTORE_KEYDIRECTORY,
+					       &new_key->keystore);
+		if (result != ISC_R_SUCCESS) {
+			dns_kasp_key_destroy(new_key);
+			goto cleanup;
+		}
 		dns_kasp_addkey(kasp, new_key);
 	}
 

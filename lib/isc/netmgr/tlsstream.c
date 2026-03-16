@@ -932,6 +932,7 @@ tlslisten_acceptcb(isc_nmhandle_t *handle, isc_result_t result, void *cbarg) {
 	if (tlssock->tlsstream.tls == NULL) {
 		tlssock->closed = true;
 		isc_tlsctx_free(&tlssock->tlsstream.ctx);
+		isc__nmsocket_detach(&tlssock->server);
 		isc__nmsocket_detach(&tlssock);
 		return ISC_R_TLSERROR;
 	}

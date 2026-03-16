@@ -22,6 +22,7 @@
 #include <isc/file.h>
 #include <isc/hash.h>
 #include <isc/hex.h>
+#include <isc/list.h>
 #include <isc/log.h>
 #include <isc/loop.h>
 #include <isc/md.h>
@@ -12523,6 +12524,9 @@ zone_notify(dns_zone_t *zone, isc_time_t *now) {
 					      "could not get TLS configuration "
 					      "for zone transfer: %s",
 					      isc_result_totext(result));
+				if (key != NULL) {
+					dns_tsigkey_detach(&key);
+				}
 				goto next;
 			}
 
@@ -12536,6 +12540,12 @@ zone_notify(dns_zone_t *zone, isc_time_t *now) {
 		INSIST(isc_sockaddr_pf(&src) == isc_sockaddr_pf(&dst));
 
 		if (isc_sockaddr_disabled(&dst)) {
+			if (key != NULL) {
+				dns_tsigkey_detach(&key);
+			}
+			if (transport != NULL) {
+				dns_transport_detach(&transport);
+			}
 			goto next;
 		}
 
@@ -14252,7 +14262,7 @@ ns_query(dns_zone_t *zone, dns_rdataset_t *soardataset, dns_stub_t *stub) {
 	bool reqnsid;
 	uint16_t udpsize = SEND_BUFFER_SIZE;
 	isc_sockaddr_t curraddr, sourceaddr;
-	struct stub_cb_args *cb_args;
+	struct stub_cb_args *cb_args = NULL;
 
 	REQUIRE(DNS_ZONE_VALID(zone));
 	REQUIRE(LOCKED_ZONE(zone));
@@ -14470,6 +14480,9 @@ cleanup:
 	}
 	if (stub->zone != NULL) {
 		zone_idetach(&stub->zone);
+	}
+	if (cb_args != NULL) {
+		isc_mem_put(zone->mctx, cb_args, sizeof(*cb_args));
 	}
 	isc_mem_put(stub->mctx, stub, sizeof(*stub));
 	if (message != NULL) {
@@ -20277,7 +20290,7 @@ checkds_isqueued(dns_zone_t *zone, dns_name_t *name, isc_sockaddr_t *addr,
 	return false;
 }
 
-static isc_result_t
+static void
 checkds_create(isc_mem_t *mctx, unsigned int flags, dns_checkds_t **checkdsp) {
 	dns_checkds_t *checkds;
 
@@ -20285,16 +20298,16 @@ checkds_create(isc_mem_t *mctx, unsigned int flags, dns_checkds_t **checkdsp) {
 
 	checkds = isc_mem_get(mctx, sizeof(*checkds));
 	*checkds = (dns_checkds_t){
+		.magic = CHECKDS_MAGIC,
 		.flags = flags,
+		.link = ISC_LINK_INITIALIZER,
+		.mctx = isc_mem_ref(mctx),
+		.ns = DNS_NAME_INITEMPTY,
 	};
 
-	isc_mem_attach(mctx, &checkds->mctx);
 	isc_sockaddr_any(&checkds->dst);
-	dns_name_init(&checkds->ns);
-	ISC_LINK_INIT(checkds, link);
-	checkds->magic = CHECKDS_MAGIC;
+
 	*checkdsp = checkds;
-	return ISC_R_SUCCESS;
 }
 
 static void
@@ -20583,7 +20596,7 @@ checkds_send_tons(dns_checkds_t *checkds) {
 		}
 
 		newcheckds = NULL;
-		CHECK(checkds_create(checkds->mctx, 0, &newcheckds));
+		checkds_create(checkds->mctx, 0, &newcheckds);
 		zone_iattach(zone, &newcheckds->zone);
 		ISC_LIST_APPEND(newcheckds->zone->checkds_requests, newcheckds,
 				link);
@@ -20670,6 +20683,12 @@ checkds_send(dns_zone_t *zone) {
 		INSIST(isc_sockaddr_pf(&src) == isc_sockaddr_pf(&dst));
 
 		if (isc_sockaddr_disabled(&dst)) {
+			if (key != NULL) {
+				dns_tsigkey_detach(&key);
+			}
+			if (transport != NULL) {
+				dns_transport_detach(&transport);
+			}
 			goto next;
 		}
 
@@ -20694,14 +20713,7 @@ checkds_send(dns_zone_t *zone) {
 			     "parent %d",
 			     i);
 
-		result = checkds_create(zone->mctx, flags, &checkds);
-		if (result != ISC_R_SUCCESS) {
-			dns_zone_log(zone, ISC_LOG_DEBUG(3),
-				     "checkds: create DS query for "
-				     "parent %d failed",
-				     i);
-			goto next;
-		}
+		checkds_create(zone->mctx, flags, &checkds);
 		zone_iattach(zone, &checkds->zone);
 		dns_name_dup(dns_rootname, checkds->mctx, &checkds->ns);
 		checkds->src = src;
@@ -20871,13 +20883,7 @@ nsfetch_checkds(dns_zonefetch_t *fetch, isc_result_t eresult) {
 		if (isqueued) {
 			continue;
 		}
-		result = checkds_create(zone->mctx, 0, &checkds);
-		if (result != ISC_R_SUCCESS) {
-			dns_zone_log(zone, ISC_LOG_DEBUG(3),
-				     "checkds: checkds_create() failed: %s",
-				     isc_result_totext(result));
-			break;
-		}
+		checkds_create(zone->mctx, 0, &checkds);
 
 		if (isc_log_wouldlog(ISC_LOG_DEBUG(3))) {
 			char nsnamebuf[DNS_NAME_FORMATSIZE];
