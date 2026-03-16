@@ -2065,8 +2065,8 @@ cleanup:
 	if (msg != NULL) {
 		dns_message_detach(&msg);
 	}
-	dns_xfrin_detach(&xfr);
 	LIBDNS_XFRIN_RECV_DONE(xfr, xfr->info, result);
+	dns_xfrin_detach(&xfr);
 }
 
 static void
