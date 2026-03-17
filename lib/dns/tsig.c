@@ -1581,7 +1581,7 @@ dns_tsigkeyring_add(dns_tsigkeyring_t *ring, dns_tsigkey_t *tkey) {
 		if (tkey->generated) {
 			ISC_LIST_APPEND(ring->lru, tkey, link);
 			dns_tsigkey_ref(tkey);
-			if (ring->generated++ > DNS_TSIG_MAXGENERATEDKEYS) {
+			if (++ring->generated > DNS_TSIG_MAXGENERATEDKEYS) {
 				dns_tsigkey_t *key = ISC_LIST_HEAD(ring->lru);
 				rm_lru(key);
 				rm_hashmap(key);
