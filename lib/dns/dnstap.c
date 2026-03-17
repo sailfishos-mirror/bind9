@@ -682,6 +682,8 @@ perform_reopen(void *arg) {
 	LOCK(&env->reopen_lock);
 	env->reopen_queued = false;
 	UNLOCK(&env->reopen_lock);
+
+	dns_dtenv_detach(&env);
 }
 
 /*%
@@ -713,6 +715,7 @@ check_file_size_and_maybe_reopen(dns_dtenv_t *env) {
 	 * Send an event to roll the output file, then disallow output file
 	 * rolling until the roll we queue is completed.
 	 */
+	dns_dtenv_ref(env);
 	isc_async_run(env->loop, perform_reopen, env);
 	env->reopen_queued = true;
 
