@@ -7026,7 +7026,9 @@ configure_zone(const cfg_obj_t *config, const cfg_obj_t *zconfig,
 	/*
 	 * Mark whether the zone was originally added at runtime or not
 	 */
-	dns_zone_setadded(zone, added);
+	if (!modify) {
+		dns_zone_setadded(zone, added);
+	}
 
 	/*
 	 * Determine if we need to set up inline signing.
@@ -13863,7 +13865,7 @@ cleanup:
 
 static isc_result_t
 delete_zoneconf(dns_view_t *view, cfg_parser_t *pctx, const cfg_obj_t *config,
-		const dns_name_t *zname, nzfwriter_t nzfwriter) {
+		const dns_name_t *zname, nzfwriter_t nzfwriter, bool locked) {
 	isc_result_t result = ISC_R_NOTFOUND;
 	const cfg_listelt_t *elt = NULL;
 	const cfg_obj_t *zl = NULL;
@@ -13876,7 +13878,9 @@ delete_zoneconf(dns_view_t *view, cfg_parser_t *pctx, const cfg_obj_t *config,
 	REQUIRE(config != NULL);
 	REQUIRE(zname != NULL);
 
-	LOCK(&view->new_zone_lock);
+	if (!locked) {
+		LOCK(&view->new_zone_lock);
+	}
 
 	cfg_map_get(config, "zone", &zl);
 
@@ -13917,7 +13921,9 @@ delete_zoneconf(dns_view_t *view, cfg_parser_t *pctx, const cfg_obj_t *config,
 	}
 
 cleanup:
-	UNLOCK(&view->new_zone_lock);
+	if (!locked) {
+		UNLOCK(&view->new_zone_lock);
+	}
 	return result;
 }
 
@@ -13927,13 +13933,13 @@ do_addzone(named_server_t *server, ns_cfgctx_t *cfg, dns_view_t *view,
 	   bool redirect, isc_buffer_t **text) {
 	isc_result_t result, tresult;
 	dns_zone_t *zone = NULL;
+	bool locked = false;
 #ifndef HAVE_LMDB
 	FILE *fp = NULL;
 	bool cleanup_config = false;
 #else /* HAVE_LMDB */
 	MDB_txn *txn = NULL;
 	MDB_dbi dbi;
-	bool locked = false;
 
 	UNUSED(zoneconf);
 #endif
@@ -14080,7 +14086,7 @@ cleanup:
 	}
 	if (result != ISC_R_SUCCESS && cleanup_config) {
 		tresult = delete_zoneconf(view, cfg->add_parser,
-					  cfg->nzf_config, name, NULL);
+					  cfg->nzf_config, name, NULL, locked);
 		RUNTIME_CHECK(tresult == ISC_R_SUCCESS);
 	}
 #else  /* HAVE_LMDB */
@@ -14106,13 +14112,13 @@ do_modzone(named_server_t *server, ns_cfgctx_t *cfg, dns_view_t *view,
 	isc_result_t result, tresult;
 	dns_zone_t *zone = NULL;
 	bool added;
+	bool locked = false;
 #ifndef HAVE_LMDB
 	FILE *fp = NULL;
 	cfg_obj_t *z;
 #else  /* HAVE_LMDB */
 	MDB_txn *txn = NULL;
 	MDB_dbi dbi;
-	bool locked = false;
 #endif /* HAVE_LMDB */
 
 	/* Zone must already exist */
@@ -14175,7 +14181,7 @@ do_modzone(named_server_t *server, ns_cfgctx_t *cfg, dns_view_t *view,
 	dns_view_thaw(view);
 	result = configure_zone(cfg->config, zoneobj, cfg->vconfig, view,
 				&server->viewlist, &server->kasplist,
-				&server->keystorelist, cfg->actx, true, false,
+				&server->keystorelist, cfg->actx, false, false,
 				false, true);
 	dns_view_freeze(view);
 
@@ -14202,7 +14208,7 @@ do_modzone(named_server_t *server, ns_cfgctx_t *cfg, dns_view_t *view,
 	if (added) {
 		result = delete_zoneconf(view, cfg->add_parser, cfg->nzf_config,
 					 dns_zone_getorigin(zone),
-					 nzf_writeconf);
+					 nzf_writeconf, locked);
 		if (result != ISC_R_SUCCESS) {
 			TCHECK(putstr(text, "former zone configuration "
 					    "not deleted: "));
@@ -14216,13 +14222,13 @@ do_modzone(named_server_t *server, ns_cfgctx_t *cfg, dns_view_t *view,
 		if (cfg->vconfig == NULL) {
 			result = delete_zoneconf(
 				view, cfg->conf_parser, cfg->config,
-				dns_zone_getorigin(zone), NULL);
+				dns_zone_getorigin(zone), NULL, locked);
 		} else {
 			const cfg_obj_t *voptions = cfg_tuple_get(cfg->vconfig,
 								  "options");
 			result = delete_zoneconf(
 				view, cfg->conf_parser, voptions,
-				dns_zone_getorigin(zone), NULL);
+				dns_zone_getorigin(zone), NULL, locked);
 		}
 
 		if (result != ISC_R_SUCCESS) {
@@ -14292,6 +14298,18 @@ do_modzone(named_server_t *server, ns_cfgctx_t *cfg, dns_view_t *view,
 		TCHECK(putstr(text, zname));
 		TCHECK(putstr(text, "' reconfigured."));
 	} else {
+#ifdef HAVE_LMDB
+		CHECK(nzd_open(view, 0, &txn, &dbi));
+		CHECK(nzd_save(&txn, dbi, zone, zoneobj));
+#else  /* ifdef HAVE_LMDB */
+		result = nzf_append(view, zoneobj);
+		if (result != ISC_R_SUCCESS) {
+			TCHECK(putstr(text, "\nNew zone config not saved: "));
+			TCHECK(putstr(text, isc_result_totext(result)));
+			goto cleanup;
+		}
+#endif /* HAVE_LMDB */
+
 		TCHECK(putstr(text, "zone '"));
 		TCHECK(putstr(text, zname));
 		TCHECK(putstr(text, "' must also be reconfigured in\n"));
@@ -14504,7 +14522,7 @@ rmzone(void *arg) {
 #else  /* ifdef HAVE_LMDB */
 		result = delete_zoneconf(view, cfg->add_parser, cfg->nzf_config,
 					 dns_zone_getorigin(zone),
-					 nzf_writeconf);
+					 nzf_writeconf, false);
 		if (result != ISC_R_SUCCESS) {
 			isc_log_write(named_g_lctx, NAMED_LOGCATEGORY_GENERAL,
 				      NAMED_LOGMODULE_SERVER, ISC_LOG_ERROR,
@@ -14520,11 +14538,11 @@ rmzone(void *arg) {
 								  "options");
 			result = delete_zoneconf(
 				view, cfg->conf_parser, voptions,
-				dns_zone_getorigin(zone), NULL);
+				dns_zone_getorigin(zone), NULL, false);
 		} else {
 			result = delete_zoneconf(
 				view, cfg->conf_parser, cfg->config,
-				dns_zone_getorigin(zone), NULL);
+				dns_zone_getorigin(zone), NULL, false);
 		}
 		if (result != ISC_R_SUCCESS) {
 			isc_log_write(named_g_lctx, NAMED_LOGCATEGORY_GENERAL,
