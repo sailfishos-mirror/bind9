@@ -240,7 +240,7 @@ delete_ds(dns_qp_t *qp, dns_keytable_t *keytable, dns_keynode_t *knode,
 	result = dns_rdata_fromstruct(&dsrdata, dns_rdataclass_in,
 				      dns_rdatatype_ds, ds, &b);
 	if (result != ISC_R_SUCCESS) {
-		RWUNLOCK(&knode->rwlock, isc_rwlocktype_write);
+		RWUNLOCK(&knode->rwlock, isc_rwlocktype_read);
 		return result;
 	}
 
