@@ -332,7 +332,7 @@ destroy(dns_view_t *view) {
 	}
 #ifdef HAVE_DNSTAP
 	if (view->dtenv != NULL) {
-		dns_dt_detach(&view->dtenv);
+		dns_dtenv_detach(&view->dtenv);
 	}
 #endif /* HAVE_DNSTAP */
 	if (view->newzone.cleanup != NULL) {
