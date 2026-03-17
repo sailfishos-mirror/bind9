@@ -377,7 +377,7 @@ destroy(dns_view_t *view) {
 	}
 #ifdef HAVE_DNSTAP
 	if (view->dtenv != NULL) {
-		dns_dt_detach(&view->dtenv);
+		dns_dtenv_detach(&view->dtenv);
 	}
 #endif /* HAVE_DNSTAP */
 	dns_view_setnewzones(view, false, NULL, NULL, 0ULL);

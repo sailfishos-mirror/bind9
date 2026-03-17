@@ -118,6 +118,21 @@ struct dns_dtdata {
 };
 #endif /* HAVE_DNSTAP */
 
+#if DNS_DTENV_TRACE
+#define dns_dtenv_ref(ptr)   dns_dtenv__ref(ptr, __func__, __FILE__, __LINE__)
+#define dns_dtenv_unref(ptr) dns_dtenv__unref(ptr, __func__, __FILE__, __LINE__)
+#define dns_dtenv_attach(ptr, ptrp) \
+	dns_dtenv__attach(ptr, ptrp, __func__, __FILE__, __LINE__)
+#define dns_dtenv_detach(ptrp) \
+	dns_dtenv__detach(ptrp, __func__, __FILE__, __LINE__)
+ISC_REFCOUNT_TRACE_DECL(dns_dtenv);
+#else
+ISC_REFCOUNT_DECL(dns_dtenv);
+#endif /* DNS_DTENV_TRACE */
+/*%
+ * Reference counting for dns_dtenv
+ */
+
 isc_result_t
 dns_dt_create(isc_mem_t *mctx, dns_dtmode_t mode, const char *path,
 	      struct fstrm_iothr_options **foptp, isc_loop_t *loop,
@@ -213,36 +228,6 @@ dns_dt_setversion(dns_dtenv_t *env, const char *version);
  * Requires:
  *
  *\li	'env' is a valid dnstap environment.
- */
-
-void
-dns_dt_attach(dns_dtenv_t *source, dns_dtenv_t **destp);
-/*%<
- * Attach '*destp' to 'source', incrementing the reference counter.
- *
- * Requires:
- *
- *\li	'source' is a valid dnstap environment.
- *
- *\li	'destp' is not NULL and '*destp' is NULL.
- *
- *\li	*destp is attached to source.
- */
-
-void
-dns_dt_detach(dns_dtenv_t **envp);
-/*%<
- * Detach '*envp', decrementing the reference counter.
- *
- * Requires:
- *
- *\li	'*envp' is a valid dnstap environment.
- *
- * Ensures:
- *
- *\li	'*envp' will be destroyed when the number of references reaches zero.
- *
- *\li	'*envp' is NULL.
  */
 
 isc_result_t
