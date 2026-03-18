@@ -133,8 +133,7 @@ Currently supported commands are:
    string specified on the command line is the zone configuration text
    that would ordinarily be placed in :iscman:`named.conf`.
 
-   The configuration is saved in a file called ``viewname.nzf`` (or, if
-   :iscman:`named` is compiled with liblmdb, an LMDB database file called
+   The configuration is saved in an LMDB database file called
    ``viewname.nzd``). ``viewname`` is the name of the view, unless the view
    name contains characters that are incompatible with use as a file
    name, in which case a cryptographic hash of the view name is used

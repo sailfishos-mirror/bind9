@@ -8290,9 +8290,9 @@ apply_configuration(cfg_obj_t *effectiveconfig, cfg_obj_t *bindkeys,
 	}
 
 	/*
-	 * If we're using LMDB, we may have created newzones databases
-	 * as root, making it impossible to reopen them later after
-	 * switching to a new userid. We close them now, and reopen
+	 * We are using LMDB. This means we may have created newzones
+	 * databases as root, making it impossible to reopen them later
+	 * after switching to a new userid. We close them now, and reopen
 	 * after relinquishing privileges them.
 	 */
 	if (first_time) {
