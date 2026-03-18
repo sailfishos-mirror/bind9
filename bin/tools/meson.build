@@ -19,7 +19,6 @@ named_rrchecker_src += files('named-rrchecker.c')
 nsec3hash_src += files('nsec3hash.c')
 
 manrst_srcset.add(when: 'HAVE_DNSTAP', if_true: files('dnstap-read.rst'))
-manrst_srcset.add(when: 'HAVE_LMDB', if_true: files('named-nzd2nzf.rst'))
 manrst_srcset.add(
     files(
         'arpaname.rst',

@@ -26,7 +26,6 @@ FEATURES = {
     "LIBIDN2": "--with-libidn2",
     "LIBNGHTTP2": "--with-libnghttp2",
     "LIBXML2": "--have-libxml2",
-    "LMDB": "--with-lmdb",
     "MD5": "--md5",
     "QUERYTRACE": "--enable-querytrace",
     "RSASHA1": "--rsasha1",

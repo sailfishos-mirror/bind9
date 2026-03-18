@@ -63,7 +63,6 @@ idn_opt = get_option('idn')
 jemalloc_opt = get_option('jemalloc').disable_auto_if(sanitizer != 'none')
 leak_opt = get_option('leak-detection')
 line_opt = get_option('line')
-lmdb_opt = get_option('lmdb')
 locktype_opt = get_option('locktype')
 named_lto_opt = get_option('named-lto')
 oss_fuzz_args_opt = get_option('oss-fuzz-args')
@@ -875,13 +874,7 @@ if idn_opt.allowed()
 endif
 
 ## LMDB
-lmdb_dep = null_dep
-if lmdb_opt.allowed()
-    lmdb_dep = dependency('lmdb', required: lmdb_opt)
-    if lmdb_dep.found()
-        config.set('HAVE_LMDB', 1)
-    endif
-endif
+lmdb_dep = dependency('lmdb')
 
 ## zlib
 
@@ -1578,21 +1571,19 @@ executable(
     ],
 )
 
-if config.has('HAVE_LMDB')
-    executable(
-        'named-nzd2nzf',
-        named_nzd2nzf_src,
-        export_dynamic: true,
-        implicit_include_directories: false,
-        install: true,
-        dependencies: [
-            libdns_dep,
-            libisc_dep,
+executable(
+    'named-nzd2nzf',
+    named_nzd2nzf_src,
+    export_dynamic: true,
+    implicit_include_directories: false,
+    install: true,
+    dependencies: [
+        libdns_dep,
+        libisc_dep,
 
-            lmdb_dep,
-        ],
-    )
-endif
+        lmdb_dep,
+    ],
+)
 
 executable(
     'named-rrchecker',
