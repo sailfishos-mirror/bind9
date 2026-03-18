@@ -200,6 +200,11 @@ process_gsstkey(dns_message_t *msg, dns_name_t *name, dns_rdata_tkey_t *tkeyin,
 		if (tsigkey != NULL) {
 			dns_tsigkey_detach(&tsigkey);
 		}
+		dst_gssapi_deletectx(tctx->mctx, &gss_ctx);
+		tkeyout->error = dns_tsigerror_badkey;
+		tkey_log("process_gsstkey(): "
+			 "completed context with empty principal");
+		return ISC_R_SUCCESS;
 	} else if (tsigkey == NULL) {
 #if HAVE_GSSAPI
 		OM_uint32 gret, minor, lifetime;
