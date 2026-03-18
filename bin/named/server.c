@@ -4085,7 +4085,7 @@ configure_dnstap(const cfg_obj_t **maps, dns_view_t *view) {
 				   cfg_obj_asstring(obj));
 	}
 
-	dns_dt_attach(named_g_server->dtenv, &view->dtenv);
+	dns_dtenv_attach(named_g_server->dtenv, &view->dtenv);
 	view->dttypes = dttypes;
 
 	result = ISC_R_SUCCESS;
@@ -10613,7 +10613,7 @@ named_server_destroy(named_server_t **serverp) {
 
 #ifdef HAVE_DNSTAP
 	if (server->dtenv != NULL) {
-		dns_dt_detach(&server->dtenv);
+		dns_dtenv_detach(&server->dtenv);
 	}
 #endif /* HAVE_DNSTAP */
 

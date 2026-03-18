@@ -100,7 +100,7 @@ struct dns_dthandle {
 
 struct dns_dtenv {
 	unsigned int magic;
-	isc_refcount_t refcount;
+	isc_refcount_t references;
 
 	isc_mem_t *mctx;
 	isc_loop_t *loop;
@@ -126,9 +126,18 @@ typedef struct ioq {
 	struct fstrm_iothr_queue *ioq;
 } dt__ioq_t;
 
+static void
+destroy(dns_dtenv_t *env);
+
 static thread_local dt__ioq_t dt_ioq = { 0 };
 
 static atomic_uint_fast32_t global_generation;
+
+#if DNS_DTENV_TRACE
+ISC_REFCOUNT_TRACE_IMPL(dns_dtenv, destroy);
+#else
+ISC_REFCOUNT_IMPL(dns_dtenv, destroy);
+#endif /* DNS_DTENV_TRACE */
 
 isc_result_t
 dns_dt_create(isc_mem_t *mctx, dns_dtmode_t mode, const char *path,
@@ -160,7 +169,7 @@ dns_dt_create(isc_mem_t *mctx, dns_dtmode_t mode, const char *path,
 	isc_mem_attach(mctx, &env->mctx);
 	isc_mutex_init(&env->reopen_lock);
 	env->path = isc_mem_strdup(env->mctx, path);
-	isc_refcount_init(&env->refcount, 1);
+	isc_refcount_init(&env->references, 1);
 	isc_stats_create(env->mctx, &env->stats, dns_dnstapcounter_max);
 
 	fwopt = fstrm_writer_options_init();
@@ -444,15 +453,6 @@ dt_queue(dns_dtenv_t *env) {
 	return dt_ioq.ioq;
 }
 
-void
-dns_dt_attach(dns_dtenv_t *source, dns_dtenv_t **destp) {
-	REQUIRE(VALID_DTENV(source));
-	REQUIRE(destp != NULL && *destp == NULL);
-
-	isc_refcount_increment(&source->refcount);
-	*destp = source;
-}
-
 isc_result_t
 dns_dt_getstats(dns_dtenv_t *env, isc_stats_t **statsp) {
 	REQUIRE(VALID_DTENV(env));
@@ -496,18 +496,6 @@ destroy(dns_dtenv_t *env) {
 	}
 
 	isc_mem_putanddetach(&env->mctx, env, sizeof(*env));
-}
-
-void
-dns_dt_detach(dns_dtenv_t **envp) {
-	REQUIRE(envp != NULL && VALID_DTENV(*envp));
-	dns_dtenv_t *env = *envp;
-	*envp = NULL;
-
-	if (isc_refcount_decrement(&env->refcount) == 1) {
-		isc_refcount_destroy(&env->refcount);
-		destroy(env);
-	}
 }
 
 static isc_result_t
@@ -697,6 +685,8 @@ perform_reopen(void *arg) {
 	LOCK(&env->reopen_lock);
 	env->reopen_queued = false;
 	UNLOCK(&env->reopen_lock);
+
+	dns_dtenv_detach(&env);
 }
 
 /*%
@@ -728,6 +718,7 @@ check_file_size_and_maybe_reopen(dns_dtenv_t *env) {
 	 * Send an event to roll the output file, then disallow output file
 	 * rolling until the roll we queue is completed.
 	 */
+	dns_dtenv_ref(env);
 	isc_async_run(env->loop, perform_reopen, env);
 	env->reopen_queued = true;
 
