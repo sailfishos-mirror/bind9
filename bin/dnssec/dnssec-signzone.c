@@ -4182,6 +4182,7 @@ main(int argc, char *argv[]) {
 			    &sign_finish);
 	}
 	isc_mutex_destroy(&namelock);
+	isc_rwlock_destroy(&keylist_lock);
 
 	rcu_barrier();
 
