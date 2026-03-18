@@ -265,6 +265,14 @@ process_gsstkey(dns_message_t *msg, dns_name_t *name, dns_rdata_tkey_t *tkeyin,
 	return ISC_R_SUCCESS;
 
 cleanup:
+	/*
+	 * If dstkey was created, the GSS context was transferred to it
+	 * and will be freed when dstkey is freed.  Otherwise, we must
+	 * delete the GSS context directly to prevent a leak.
+	 */
+	if (dstkey == NULL && gss_ctx != NULL) {
+		dst_gssapi_deletectx(tctx->mctx, &gss_ctx);
+	}
 	if (tsigkey != NULL) {
 		dns_tsigkey_detach(&tsigkey);
 	}
