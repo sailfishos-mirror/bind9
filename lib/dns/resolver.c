@@ -5662,6 +5662,7 @@ validated(isc_task_t *task, isc_event_t *event) {
 
 	bucketnum = fctx->bucketnum;
 	LOCK(&res->buckets[bucketnum].lock);
+	fctx->vresult = vevent->result;
 	ISC_LIST_UNLINK(fctx->validators, vevent->validator, link);
 	fctx->validator = NULL;
 	UNLOCK(&res->buckets[bucketnum].lock);
