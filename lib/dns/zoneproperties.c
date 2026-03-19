@@ -74,7 +74,7 @@ dns_zone_setclass(dns_zone_t *zone, dns_rdataclass_t rdclass) {
 	zone_rdclass_tostr(zone, namebuf, sizeof namebuf);
 	zone->strrdclass = isc_mem_strdup(zone->mctx, namebuf);
 
-	if (inline_secure(zone)) {
+	if (dns__zone_inline_secure(zone)) {
 		dns_zone_setclass(zone->raw, rdclass);
 	}
 	UNLOCK_ZONE(zone);
@@ -197,7 +197,7 @@ dns_zone_setdbtype(dns_zone_t *zone, unsigned int dbargc,
 	}
 
 	/* Free the old list. */
-	zone_freedbargs(zone);
+	dns__zone_freedbargs(zone);
 
 	zone->db_argc = dbargc;
 	zone->db_argv = argv;
@@ -210,7 +210,7 @@ dns_zone_setview(dns_zone_t *zone, dns_view_t *view) {
 	REQUIRE(DNS_ZONE_VALID(zone));
 
 	LOCK_ZONE(zone);
-	dns_zone_setview_helper(zone, view);
+	dns__zone_setview_helper(zone, view);
 	UNLOCK_ZONE(zone);
 }
 
@@ -248,7 +248,7 @@ dns_zone_setorigin(dns_zone_t *zone, const dns_name_t *origin) {
 	zone_name_tostr(zone, namebuf, sizeof namebuf);
 	zone->strname = isc_mem_strdup(zone->mctx, namebuf);
 
-	if (inline_secure(zone)) {
+	if (dns__zone_inline_secure(zone)) {
 		dns_zone_setorigin(zone->raw, origin);
 	}
 	UNLOCK_ZONE(zone);
@@ -654,7 +654,7 @@ dns_zone_getkasp(dns_zone_t *zone) {
 	REQUIRE(DNS_ZONE_VALID(zone));
 
 	LOCK_ZONE(zone);
-	if (inline_raw(zone) && zone->secure != NULL) {
+	if (dns__zone_inline_raw(zone) && zone->secure != NULL) {
 		kasp = zone->secure->kasp;
 	} else {
 		kasp = zone->kasp;
@@ -1272,10 +1272,14 @@ zone_namerd_tostr(dns_zone_t *zone, char *buf, size_t length) {
 		isc_buffer_putstr(&buffer, "/");
 		isc_buffer_putstr(&buffer, zone->view->name);
 	}
-	if (inline_secure(zone) && 9U < isc_buffer_availablelength(&buffer)) {
+	if (dns__zone_inline_secure(zone) &&
+	    9U < isc_buffer_availablelength(&buffer))
+	{
 		isc_buffer_putstr(&buffer, " (signed)");
 	}
-	if (inline_raw(zone) && 11U < isc_buffer_availablelength(&buffer)) {
+	if (dns__zone_inline_raw(zone) &&
+	    11U < isc_buffer_availablelength(&buffer))
+	{
 		isc_buffer_putstr(&buffer, " (unsigned)");
 	}
 
@@ -1504,10 +1508,10 @@ dns_zone_setsigresigninginterval(dns_zone_t *zone, uint32_t interval) {
 
 	LOCK_ZONE(zone);
 	zone->sigresigninginterval = interval;
-	set_resigntime(zone);
+	dns__zone_set_resigntime(zone);
 	if (zone->loop != NULL) {
 		now = isc_time_now();
-		zone_settimer(zone, &now);
+		dns__zone_settimer(zone, &now);
 	}
 	UNLOCK_ZONE(zone);
 }

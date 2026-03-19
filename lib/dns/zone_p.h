@@ -763,7 +763,7 @@ dns__zone_keymgmt_shutdown(void);
  */
 
 void
-dns_zone_setview_helper(dns_zone_t *zone, dns_view_t *view);
+dns__zone_setview_helper(dns_zone_t *zone, dns_view_t *view);
 /*
  *	Helper function to associate a zone with a view.
  *
@@ -773,7 +773,7 @@ dns_zone_setview_helper(dns_zone_t *zone, dns_view_t *view);
  */
 
 bool
-inline_secure(dns_zone_t *zone);
+dns__zone_inline_secure(dns_zone_t *zone);
 /*
  *	Returns true iff this the signed side of an inline-signing zone.
  *	Caller should hold zone lock.
@@ -784,7 +784,7 @@ inline_secure(dns_zone_t *zone);
  */
 
 bool
-inline_raw(dns_zone_t *zone);
+dns__zone_inline_raw(dns_zone_t *zone);
 /*
  *	Returns true iff this the signed side of an inline-signing zone.
  *	Caller should hold zone lock.
@@ -795,7 +795,7 @@ inline_raw(dns_zone_t *zone);
  */
 
 void
-zone_freedbargs(dns_zone_t *zone);
+dns__zone_freedbargs(dns_zone_t *zone);
 /*%<
  *	Free zone dbargs.
  *
@@ -805,7 +805,7 @@ zone_freedbargs(dns_zone_t *zone);
  */
 
 void
-zone_settimer(dns_zone_t *zone, isc_time_t *now);
+dns__zone_settimer(dns_zone_t *zone, isc_time_t *now);
 /*%<
  *	Sets zone timer to 'now' time.
  *
@@ -815,7 +815,7 @@ zone_settimer(dns_zone_t *zone, isc_time_t *now);
  */
 
 void
-set_resigntime(dns_zone_t *zone);
+dns__zone_set_resigntime(dns_zone_t *zone);
 /*%<
  *	Calculates the next resign time and sets zone timer
  *	accordingly.
