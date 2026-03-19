@@ -44,6 +44,7 @@
 #include <dns/rdatatype.h>
 #include <dns/types.h>
 #include <dns/zone.h>
+#include <dns/zoneproperties.h>
 
 #include <dst/dst.h>
 

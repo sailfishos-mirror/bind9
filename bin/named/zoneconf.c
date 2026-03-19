@@ -41,7 +41,8 @@
 #include <dns/stats.h>
 #include <dns/tsig.h>
 #include <dns/view.h>
-#include <dns/zone.h>
+#include <dns/zone.h> /* WMM: remove include */
+#include <dns/zoneproperties.h>
 
 #include <ns/client.h>
 #include <ns/hooks.h>

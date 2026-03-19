@@ -71,6 +71,7 @@
 #include <dns/master.h>
 #include <dns/ssu.h>
 #include <dns/zone.h>
+#include <dns/zoneproperties.h>
 
 #include "dlz_p.h"
 

@@ -77,6 +77,7 @@
 #include <dns/tsig.h>
 #include <dns/validator.h>
 #include <dns/zone.h>
+#include <dns/zoneproperties.h>
 
 #include "dns/view.h"
 

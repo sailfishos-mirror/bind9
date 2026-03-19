@@ -46,6 +46,7 @@
 #include <dns/view.h>
 #include <dns/xfrin.h>
 #include <dns/zone.h>
+#include <dns/zoneproperties.h>
 
 #include <dst/dst.h>
 

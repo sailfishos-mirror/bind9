@@ -17,7 +17,7 @@
 
 #include <dns/fixedname.h>
 #include <dns/name.h>
-#include <dns/zone.h>
+#include <dns/zoneproperties.h>
 
 #include <isccfg/cfg.h>
 #include <isccfg/namedconf.h>

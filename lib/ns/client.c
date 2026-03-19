@@ -55,6 +55,7 @@
 #include <dns/tsig.h>
 #include <dns/view.h>
 #include <dns/zone.h>
+#include <dns/zoneproperties.h>
 
 #include <ns/client.h>
 #include <ns/interfacemgr.h>

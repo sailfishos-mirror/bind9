@@ -40,6 +40,7 @@
 #include <dns/tsig.h>
 #include <dns/view.h>
 #include <dns/zone.h>
+#include <dns/zoneproperties.h>
 #include <dns/zt.h>
 
 #include <ns/client.h>

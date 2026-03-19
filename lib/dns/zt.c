@@ -31,6 +31,7 @@
 #include <dns/rdataclass.h>
 #include <dns/view.h>
 #include <dns/zone.h>
+#include <dns/zoneproperties.h>
 #include <dns/zt.h>
 
 #define ZTMAGIC	     ISC_MAGIC('Z', 'T', 'b', 'l')

@@ -26,6 +26,7 @@
 #include <dns/stats.h>
 #include <dns/tsig.h>
 #include <dns/zone.h>
+#include <dns/zoneproperties.h>
 
 #include "zone_p.h"
 

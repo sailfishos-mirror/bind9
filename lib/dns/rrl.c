@@ -37,6 +37,7 @@
 #include <dns/rrl.h>
 #include <dns/view.h>
 #include <dns/zone.h>
+#include <dns/zoneproperties.h>
 
 static void
 log_end(dns_rrl_t *rrl, dns_rrl_entry_t *e, bool early, char *log_buf,

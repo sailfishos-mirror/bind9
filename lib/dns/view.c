@@ -61,6 +61,7 @@
 #include <dns/unreachcache.h>
 #include <dns/view.h>
 #include <dns/zone.h>
+#include <dns/zoneproperties.h>
 #include <dns/zt.h>
 
 #define DNS_VIEW_DELONLYHASH 111

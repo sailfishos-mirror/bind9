@@ -33,6 +33,7 @@
 #include <dns/db.h>
 #include <dns/lib.h>
 #include <dns/nsec3.h>
+#include <dns/zoneproperties.h>
 
 #include "zone_p.h"
 

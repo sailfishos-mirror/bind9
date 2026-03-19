@@ -38,6 +38,7 @@
 #include <dns/rdatasetiter.h>
 #include <dns/rdatastruct.h>
 #include <dns/zone.h>
+#include <dns/zoneproperties.h>
 
 #include <dst/dst.h>
 
