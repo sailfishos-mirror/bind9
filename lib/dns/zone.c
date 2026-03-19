@@ -757,6 +757,7 @@ dns__zone_free(dns_zone_t *zone) {
 bool
 dns__zone_inline_secure(dns_zone_t *zone) {
 	REQUIRE(DNS_ZONE_VALID(zone));
+	REQUIRE(LOCKED_ZONE(zone));
 	if (zone->raw != NULL) {
 		return true;
 	}
@@ -770,6 +771,7 @@ dns__zone_inline_secure(dns_zone_t *zone) {
 bool
 dns__zone_inline_raw(dns_zone_t *zone) {
 	REQUIRE(DNS_ZONE_VALID(zone));
+	REQUIRE(LOCKED_ZONE(zone));
 	if (zone->secure != NULL) {
 		return true;
 	}
@@ -1565,8 +1567,13 @@ dns__zone_loadpending(dns_zone_t *zone) {
 isc_result_t
 dns_zone_loadandthaw(dns_zone_t *zone) {
 	isc_result_t result;
+	bool inline_raw;
 
-	if (dns__zone_inline_raw(zone)) {
+	LOCK_ZONE(zone);
+	inline_raw = dns__zone_inline_raw(zone);
+	UNLOCK_ZONE(zone);
+
+	if (inline_raw) {
 		result = zone_load(zone->secure, DNS_ZONELOADFLAG_THAW, false);
 	} else {
 		/*
@@ -3183,7 +3190,8 @@ dns__zone_set_resigntime(dns_zone_t *zone) {
 	dns_db_t *db = NULL;
 	dns_typepair_t typepair;
 
-	INSIST(LOCKED_ZONE(zone));
+	REQUIRE(DNS_ZONE_VALID(zone));
+	REQUIRE(LOCKED_ZONE(zone));
 
 	/* We only re-sign zones that can be dynamically updated */
 	if (!dns_zone_isdynamic(zone, false)) {
@@ -10636,6 +10644,7 @@ zone_dump(dns_zone_t *zone, bool compact) {
 	dns_masterformat_t masterformat = dns_masterformat_none;
 	const dns_master_style_t *masterstyle = NULL;
 	dns_masterrawheader_t rawdata;
+	bool inline_secure;
 
 	/*
 	 * 'compact' MUST only be set if we are loop locked.
@@ -10676,7 +10685,11 @@ redo:
 
 	dns_master_initrawheader(&rawdata);
 
-	if (dns__zone_inline_secure(zone)) {
+	LOCK_ZONE(zone);
+	inline_secure = dns__zone_inline_secure(zone);
+	UNLOCK_ZONE(zone);
+
+	if (inline_secure) {
 		get_raw_serial(zone->raw, &rawdata);
 	}
 
@@ -10770,6 +10783,7 @@ dumptostream(dns_zone_t *zone, FILE *fd, const dns_master_style_t *style,
 	dns_dbversion_t *version = NULL;
 	dns_db_t *db = NULL;
 	dns_masterrawheader_t rawdata;
+	bool inline_secure;
 
 	REQUIRE(DNS_ZONE_VALID(zone));
 
@@ -10782,11 +10796,15 @@ dumptostream(dns_zone_t *zone, FILE *fd, const dns_master_style_t *style,
 		return DNS_R_NOTLOADED;
 	}
 
+	LOCK_ZONE(zone);
+	inline_secure = dns__zone_inline_secure(zone);
+	UNLOCK_ZONE(zone);
+
 	dns_db_currentversion(db, &version);
 	dns_master_initrawheader(&rawdata);
 	if (rawversion == 0) {
 		rawdata.flags |= DNS_MASTERRAW_COMPAT;
-	} else if (dns__zone_inline_secure(zone)) {
+	} else if (inline_secure) {
 		get_raw_serial(zone->raw, &rawdata);
 	} else if (zone->sourceserialset) {
 		rawdata.flags = DNS_MASTERRAW_SOURCESERIALSET;
