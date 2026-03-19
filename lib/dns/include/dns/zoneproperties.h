@@ -81,9 +81,6 @@ dns_zone_setorigin(dns_zone_t *zone, const dns_name_t *origin);
  * Require:
  *\li	'zone' to be a valid zone.
  *\li	'origin' to be non NULL.
- *
- * Returns:
- *\li	#ISC_R_SUCCESS
  */
 
 dns_name_t *
@@ -311,9 +308,6 @@ dns_zone_setalsonotify(dns_zone_t *zone, isc_sockaddr_t *addresses,
 /*%<
  *	Set the list of additional servers to be notified when
  *	a zone changes.	 To clear the list use 'count = 0'.
- *
- *	dns_zone_alsonotifywithkeys() allows each notify address to
- *	be associated with a TSIG key.
  *
  * Require:
  *\li	'zone' to be a valid zone.
