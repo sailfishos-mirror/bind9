@@ -1023,10 +1023,9 @@ void
 dns_zone_setqueryacl(dns_zone_t *zone, dns_acl_t *acl) {
 	REQUIRE(DNS_ZONE_VALID(zone));
 
+	dns_zone_clearqueryacl(zone);
+
 	LOCK_ZONE(zone);
-	if (zone->query_acl != NULL) {
-		dns_acl_detach(&zone->query_acl);
-	}
 	dns_acl_attach(acl, &zone->query_acl);
 	UNLOCK_ZONE(zone);
 }
@@ -1035,10 +1034,9 @@ void
 dns_zone_setqueryonacl(dns_zone_t *zone, dns_acl_t *acl) {
 	REQUIRE(DNS_ZONE_VALID(zone));
 
+	dns_zone_clearqueryonacl(zone);
+
 	LOCK_ZONE(zone);
-	if (zone->queryon_acl != NULL) {
-		dns_acl_detach(&zone->queryon_acl);
-	}
 	dns_acl_attach(acl, &zone->queryon_acl);
 	UNLOCK_ZONE(zone);
 }
@@ -1047,10 +1045,9 @@ void
 dns_zone_setupdateacl(dns_zone_t *zone, dns_acl_t *acl) {
 	REQUIRE(DNS_ZONE_VALID(zone));
 
+	dns_zone_clearupdateacl(zone);
+
 	LOCK_ZONE(zone);
-	if (zone->update_acl != NULL) {
-		dns_acl_detach(&zone->update_acl);
-	}
 	dns_acl_attach(acl, &zone->update_acl);
 	UNLOCK_ZONE(zone);
 }
@@ -1059,10 +1056,9 @@ void
 dns_zone_setforwardacl(dns_zone_t *zone, dns_acl_t *acl) {
 	REQUIRE(DNS_ZONE_VALID(zone));
 
+	dns_zone_clearforwardacl(zone);
+
 	LOCK_ZONE(zone);
-	if (zone->forward_acl != NULL) {
-		dns_acl_detach(&zone->forward_acl);
-	}
 	dns_acl_attach(acl, &zone->forward_acl);
 	UNLOCK_ZONE(zone);
 }
@@ -1071,10 +1067,9 @@ void
 dns_zone_setxfracl(dns_zone_t *zone, dns_acl_t *acl) {
 	REQUIRE(DNS_ZONE_VALID(zone));
 
+	dns_zone_clearxfracl(zone);
+
 	LOCK_ZONE(zone);
-	if (zone->xfr_acl != NULL) {
-		dns_acl_detach(&zone->xfr_acl);
-	}
 	dns_acl_attach(acl, &zone->xfr_acl);
 	UNLOCK_ZONE(zone);
 }
