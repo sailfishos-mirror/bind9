@@ -142,6 +142,30 @@
 #endif /* !defined(caa_container_of_check_null) */
 /* clang-format on */
 
+/*
+ * Override rcu_cmpxchg_pointer and rcu_xchg_pointer to use acquire/release
+ * ordering.  The liburcu defaults use CMM_RELAXED on the CAS failure path,
+ * which means the returned pointer has no ordering guarantees — reading
+ * fields through it is a data race on weakly-ordered architectures.
+ *
+ * Using __ATOMIC_ACQ_REL for success (release for the publisher, acquire
+ * for the next reader) and __ATOMIC_ACQUIRE for failure (so the losing
+ * thread sees the winner's writes) fixes this and is also natively visible
+ * to ThreadSanitizer.
+ */
+#undef rcu_cmpxchg_pointer
+#define rcu_cmpxchg_pointer(p, old, _new)                                      \
+	__extension__({                                                        \
+		__typeof__(*(p)) ___old = (old);                               \
+		(void)__atomic_compare_exchange_n((p), &___old, (_new), false, \
+						  __ATOMIC_ACQ_REL,            \
+						  __ATOMIC_ACQUIRE);           \
+		___old;                                                        \
+	})
+
+#undef rcu_xchg_pointer
+#define rcu_xchg_pointer(p, v) __atomic_exchange_n((p), (v), __ATOMIC_ACQ_REL)
+
 #ifdef __SANITIZE_THREAD__
 
 /*
@@ -169,4 +193,4 @@
 #undef _CMM_STORE_SHARED
 #define _CMM_STORE_SHARED(x, v) CMM_STORE_SHARED(x, v)
 
-#endif
+#endif /* __SANITIZE_THREAD__ */
