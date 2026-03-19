@@ -95,15 +95,6 @@ dns_zone_getorigin(dns_zone_t *zone);
  *\li	'zone' to be a valid zone.
  */
 
-dns_rdataclass_t
-dns_zone_getrdclass(dns_zone_t *zone);
-/*%<
- *	Returns the value of the rdclass.
- *
- * Require:
- *\li	'zone' to be a valid zone.
- */
-
 void
 dns_zone_setfile(dns_zone_t *zone, const char *file, const char *initial_file,
 		 dns_masterformat_t format, const dns_master_style_t *style);
@@ -1078,18 +1069,6 @@ dns_zone_getkeydirectory(dns_zone_t *zone);
  *	Pointer to null-terminated file name, or NULL.
  */
 
-isc_result_t
-dns_zone_setstatistics(dns_zone_t *zone, bool on);
-/*%<
- * This function is obsoleted by dns_zone_setrequeststats().
- */
-
-uint64_t *
-dns_zone_getstatscounters(dns_zone_t *zone);
-/*%<
- * This function is obsoleted by dns_zone_getrequeststats().
- */
-
 void
 dns_zone_setstats(dns_zone_t *zone, isc_stats_t *stats);
 /*%<
@@ -1470,16 +1449,6 @@ dns_zone_getstatlevel(dns_zone_t *zone);
 /*%
  * Set and get the statistics reporting level for the zone;
  * full, terse, or none.
- */
-
-isc_mem_t *
-dns_zone_getmem(dns_zone_t *zone);
-/**<
- * \brief Return memory context associated with the zone.
- *
- * \param zone valid dns_zone_t object.
- *
- * \return memory context associated with the zone
  */
 
 unsigned int

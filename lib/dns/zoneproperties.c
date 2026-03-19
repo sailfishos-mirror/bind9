@@ -1402,13 +1402,6 @@ dns_zone_getorigin(dns_zone_t *zone) {
 	return &zone->origin;
 }
 
-dns_rdataclass_t
-dns_zone_getrdclass(dns_zone_t *zone) {
-	REQUIRE(DNS_ZONE_VALID(zone));
-
-	return zone->rdclass;
-}
-
 void
 dns_zone_setidlein(dns_zone_t *zone, uint32_t idlein) {
 	REQUIRE(DNS_ZONE_VALID(zone));
@@ -1558,25 +1551,6 @@ dns_zone_getxfrintime(dns_zone_t *zone) {
 	UNLOCK_ZONE(zone);
 
 	return xfrintime;
-}
-
-isc_result_t
-dns_zone_setstatistics(dns_zone_t *zone, bool on) {
-	/*
-	 * This function is obsoleted.
-	 */
-	UNUSED(zone);
-	UNUSED(on);
-	return ISC_R_NOTIMPLEMENTED;
-}
-
-uint64_t *
-dns_zone_getstatscounters(dns_zone_t *zone) {
-	/*
-	 * This function is obsoleted.
-	 */
-	UNUSED(zone);
-	return NULL;
 }
 
 void
@@ -1989,11 +1963,6 @@ dns_zone_getstatlevel(dns_zone_t *zone) {
 	REQUIRE(DNS_ZONE_VALID(zone));
 
 	return zone->statlevel;
-}
-
-isc_mem_t *
-dns_zone_getmem(dns_zone_t *zone) {
-	return zone->mctx;
 }
 
 unsigned int

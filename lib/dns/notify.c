@@ -216,7 +216,7 @@ notify_createmessage(dns_notify_t *notify, dns_message_t **messagep) {
 
 	message->opcode = dns_opcode_notify;
 	message->flags |= DNS_MESSAGEFLAG_AA;
-	message->rdclass = dns_zone_getrdclass(notify->zone);
+	message->rdclass = dns_zone_getclass(notify->zone);
 
 	dns_message_gettempname(message, &tempname);
 	dns_message_gettemprdataset(message, &temprdataset);
@@ -225,8 +225,7 @@ notify_createmessage(dns_notify_t *notify, dns_message_t **messagep) {
 	 * Make question.
 	 */
 	dns_name_clone(dns_zone_getorigin(notify->zone), tempname);
-	dns_rdataset_makequestion(temprdataset,
-				  dns_zone_getrdclass(notify->zone),
+	dns_rdataset_makequestion(temprdataset, dns_zone_getclass(notify->zone),
 				  dns_rdatatype_soa);
 	ISC_LIST_APPEND(tempname->list, temprdataset, link);
 	dns_message_addname(message, tempname, DNS_SECTION_QUESTION);
@@ -649,7 +648,7 @@ notify_isself(dns_notify_t *notify, isc_sockaddr_t *dst) {
 		return false;
 	}
 	isself = (isselffunc)(view, key, &src, dst,
-			      dns_zone_getrdclass(notify->zone), isselfarg);
+			      dns_zone_getclass(notify->zone), isselfarg);
 	if (key != NULL) {
 		dns_tsigkey_detach(&key);
 	}
