@@ -1411,25 +1411,25 @@ dns_zone_getserialupdatemethod(dns_zone_t *zone);
  * \li	'zone' to be valid.
  */
 
-isc_result_t
+void
 dns_zone_getloadtime(dns_zone_t *zone, isc_time_t *loadtime);
 /*%
  * Return the time when the zone was last loaded.
  */
 
-isc_result_t
+void
 dns_zone_getrefreshtime(dns_zone_t *zone, isc_time_t *refreshtime);
 /*%
  * Return the time when the (secondary) zone will need to be refreshed.
  */
 
-isc_result_t
+void
 dns_zone_getexpiretime(dns_zone_t *zone, isc_time_t *expiretime);
 /*%
  * Return the time when the (secondary) zone will expire.
  */
 
-isc_result_t
+void
 dns_zone_getrefreshkeytime(dns_zone_t *zone, isc_time_t *refreshkeytime);
 /*%
  * Return the time of the next scheduled DNSSEC key event.

@@ -1442,7 +1442,7 @@ zone_xmlrender(dns_zone_t *zone, void *arg) {
 	 * primary zones, only include the loaded time.  For secondary zones,
 	 * also include the expire and refresh times.
 	 */
-	CHECK(dns_zone_getloadtime(zone, &timestamp));
+	dns_zone_getloadtime(zone, &timestamp);
 
 	isc_time_formatISO8601(&timestamp, buf, 64);
 	TRY0(xmlTextWriterStartElement(writer, ISC_XMLCHAR "loaded"));
@@ -1450,13 +1450,13 @@ zone_xmlrender(dns_zone_t *zone, void *arg) {
 	TRY0(xmlTextWriterEndElement(writer));
 
 	if (dns_zone_gettype(zone) == dns_zone_secondary) {
-		CHECK(dns_zone_getexpiretime(zone, &timestamp));
+		dns_zone_getexpiretime(zone, &timestamp);
 		isc_time_formatISO8601(&timestamp, buf, 64);
 		TRY0(xmlTextWriterStartElement(writer, ISC_XMLCHAR "expires"));
 		TRY0(xmlTextWriterWriteString(writer, ISC_XMLCHAR buf));
 		TRY0(xmlTextWriterEndElement(writer));
 
-		CHECK(dns_zone_getrefreshtime(zone, &timestamp));
+		dns_zone_getrefreshtime(zone, &timestamp);
 		isc_time_formatISO8601(&timestamp, buf, 64);
 		TRY0(xmlTextWriterStartElement(writer, ISC_XMLCHAR "refresh"));
 		TRY0(xmlTextWriterWriteString(writer, ISC_XMLCHAR buf));
@@ -2530,18 +2530,18 @@ zone_jsonrender(dns_zone_t *zone, void *arg) {
 	 * zones, also include the expire and refresh times.
 	 */
 
-	CHECK(dns_zone_getloadtime(zone, &timestamp));
+	dns_zone_getloadtime(zone, &timestamp);
 
 	isc_time_formatISO8601(&timestamp, buf, 64);
 	json_object_object_add(zoneobj, "loaded", json_object_new_string(buf));
 
 	if (dns_zone_gettype(zone) == dns_zone_secondary) {
-		CHECK(dns_zone_getexpiretime(zone, &timestamp));
+		dns_zone_getexpiretime(zone, &timestamp);
 		isc_time_formatISO8601(&timestamp, buf, 64);
 		json_object_object_add(zoneobj, "expires",
 				       json_object_new_string(buf));
 
-		CHECK(dns_zone_getrefreshtime(zone, &timestamp));
+		dns_zone_getrefreshtime(zone, &timestamp);
 		isc_time_formatISO8601(&timestamp, buf, 64);
 		json_object_object_add(zoneobj, "refresh",
 				       json_object_new_string(buf));

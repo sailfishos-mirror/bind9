@@ -1907,7 +1907,7 @@ dns_zone_getserialupdatemethod(dns_zone_t *zone) {
 	return zone->updatemethod;
 }
 
-isc_result_t
+void
 dns_zone_getloadtime(dns_zone_t *zone, isc_time_t *loadtime) {
 	REQUIRE(DNS_ZONE_VALID(zone));
 	REQUIRE(loadtime != NULL);
@@ -1915,10 +1915,9 @@ dns_zone_getloadtime(dns_zone_t *zone, isc_time_t *loadtime) {
 	LOCK_ZONE(zone);
 	*loadtime = zone->loadtime;
 	UNLOCK_ZONE(zone);
-	return ISC_R_SUCCESS;
 }
 
-isc_result_t
+void
 dns_zone_getexpiretime(dns_zone_t *zone, isc_time_t *expiretime) {
 	REQUIRE(DNS_ZONE_VALID(zone));
 	REQUIRE(expiretime != NULL);
@@ -1926,10 +1925,9 @@ dns_zone_getexpiretime(dns_zone_t *zone, isc_time_t *expiretime) {
 	LOCK_ZONE(zone);
 	*expiretime = zone->expiretime;
 	UNLOCK_ZONE(zone);
-	return ISC_R_SUCCESS;
 }
 
-isc_result_t
+void
 dns_zone_getrefreshtime(dns_zone_t *zone, isc_time_t *refreshtime) {
 	REQUIRE(DNS_ZONE_VALID(zone));
 	REQUIRE(refreshtime != NULL);
@@ -1937,10 +1935,9 @@ dns_zone_getrefreshtime(dns_zone_t *zone, isc_time_t *refreshtime) {
 	LOCK_ZONE(zone);
 	*refreshtime = zone->refreshtime;
 	UNLOCK_ZONE(zone);
-	return ISC_R_SUCCESS;
 }
 
-isc_result_t
+void
 dns_zone_getrefreshkeytime(dns_zone_t *zone, isc_time_t *refreshkeytime) {
 	REQUIRE(DNS_ZONE_VALID(zone));
 	REQUIRE(refreshkeytime != NULL);
@@ -1948,7 +1945,6 @@ dns_zone_getrefreshkeytime(dns_zone_t *zone, isc_time_t *refreshkeytime) {
 	LOCK_ZONE(zone);
 	*refreshkeytime = zone->refreshkeytime;
 	UNLOCK_ZONE(zone);
-	return ISC_R_SUCCESS;
 }
 
 void
