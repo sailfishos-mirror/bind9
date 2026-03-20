@@ -373,7 +373,6 @@ delete_expired(void *arg) {
 	isc_result_t result;
 	dns_qp_t *qp = NULL;
 	void *pval = NULL;
-	bool flushnode = false;
 
 	REQUIRE(VALID_NTATABLE(ntatable));
 
@@ -387,16 +386,11 @@ delete_expired(void *arg) {
 	dns_qpmulti_write(table, &qp);
 	result = dns_qp_getname(qp, &nta->name, DNS_DBNAMESPACE_NORMAL, &pval,
 				NULL);
-	if (result == ISC_R_SUCCESS &&
-	    CMM_LOAD_SHARED(((dns__nta_t *)pval)->expiry) ==
-		    CMM_LOAD_SHARED(nta->expiry))
-	{
+	if (result == ISC_R_SUCCESS && nta == pval) {
 		char nb[DNS_NAME_FORMATSIZE];
 		dns_name_format(&nta->name, nb, sizeof(nb));
 		isc_log_write(DNS_LOGCATEGORY_DNSSEC, DNS_LOGMODULE_NTA,
 			      ISC_LOG_INFO, "deleting expired NTA at %s", nb);
-
-		flushnode = true;
 
 		result = dns_qp_deletename(qp, &nta->name,
 					   DNS_DBNAMESPACE_NORMAL, NULL, NULL);
@@ -406,9 +400,6 @@ delete_expired(void *arg) {
 	}
 	dns_qp_compact(qp, DNS_QPGC_MAYBE);
 	dns_qpmulti_commit(table, &qp);
-	if (flushnode) {
-		dns_view_flushnode(view, &nta->name, true);
-	}
 unlock:
 	rcu_read_unlock();
 	dns__nta_detach(&nta);
@@ -423,15 +414,16 @@ dns_ntatable_covered(dns_ntatable_t *ntatable, isc_stdtime_t now,
 	bool answer = false;
 	dns_qpread_t qpr;
 	void *pval = NULL;
+	bool flushnode = false;
 
 	REQUIRE(VALID_NTATABLE(ntatable));
 	REQUIRE(dns_name_isabsolute(name));
 
 	rcu_read_lock();
+	dns_view_t *view = rcu_dereference(ntatable->view);
 	dns_qpmulti_t *table = rcu_dereference(ntatable->table);
-	if (table == NULL) {
-		rcu_read_unlock();
-		return false;
+	if (view == NULL || table == NULL) {
+		goto unlock;
 	}
 
 	dns_qpmulti_query(table, &qpr);
@@ -462,6 +454,7 @@ dns_ntatable_covered(dns_ntatable_t *ntatable, isc_stdtime_t now,
 		/* NTA is expired */
 		dns__nta_ref(nta);
 		dns_ntatable_ref(nta->ntatable);
+		flushnode = true;
 		isc_async_run(nta->loop, delete_expired, nta);
 		goto done;
 	}
@@ -469,6 +462,11 @@ dns_ntatable_covered(dns_ntatable_t *ntatable, isc_stdtime_t now,
 	answer = true;
 done:
 	dns_qpread_destroy(table, &qpr);
+
+	if (nta != NULL && flushnode) {
+		dns_view_flushnode(view, &nta->name, true);
+	}
+unlock:
 	rcu_read_unlock();
 
 	return answer;
