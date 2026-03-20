@@ -5335,9 +5335,9 @@ validated(void *arg) {
 	addrinfo = valarg->addrinfo;
 
 	message = val->message;
-	fctx->vresult = val->result;
 
 	LOCK(&fctx->lock);
+	fctx->vresult = val->result;
 	ISC_LIST_UNLINK(fctx->validators, val, link);
 	fctx->validator = NULL;
 	UNLOCK(&fctx->lock);
