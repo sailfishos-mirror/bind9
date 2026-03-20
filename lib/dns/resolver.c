@@ -5658,7 +5658,6 @@ validated(isc_task_t *task, isc_event_t *event) {
 	valarg->message = NULL;
 
 	vevent = (dns_validatorevent_t *)event;
-	fctx->vresult = vevent->result;
 
 	bucketnum = fctx->bucketnum;
 	LOCK(&res->buckets[bucketnum].lock);
