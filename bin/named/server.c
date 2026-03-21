@@ -14434,8 +14434,11 @@ do_modzone(named_server_t *server, ns_cfgctx_t *cfg, dns_view_t *view,
 
 #ifndef HAVE_LMDB
 	/* Store the new zone configuration; also in NZF if applicable */
-	DE_CONST(zoneobj, z);
-	CHECK(cfg_parser_mapadd(cfg->add_parser, cfg->nzf_config, z, "zone"));
+	if (cfg->nzf_config != NULL) {
+		DE_CONST(zoneobj, z);
+		CHECK(cfg_parser_mapadd(cfg->add_parser, cfg->nzf_config, z,
+					"zone"));
+	}
 #endif /* HAVE_LMDB */
 
 	if (added) {
