@@ -300,8 +300,8 @@ dns_ntatable_add(dns_ntatable_t *ntatable, const dns_name_t *name, bool force,
 		 isc_stdtime_t now, uint32_t lifetime) {
 	isc_result_t result = ISC_R_SUCCESS;
 	dns__nta_t *nta = NULL;
+	dns__nta_t *old_nta = NULL;
 	dns_qp_t *qp = NULL;
-	void *pval = NULL;
 
 	REQUIRE(VALID_NTATABLE(ntatable));
 
@@ -317,17 +317,15 @@ dns_ntatable_add(dns_ntatable_t *ntatable, const dns_name_t *name, bool force,
 	result = dns_qp_insert(qp, nta, 0);
 	switch (result) {
 	case ISC_R_EXISTS:
-		result = dns_qp_getname(qp, &nta->name, &pval, NULL);
-		if (result == ISC_R_SUCCESS) {
-			/*
-			 * an NTA already existed: throw away the
-			 * new one and update the old one.
-			 */
-			dns__nta_detach(&nta); /* for nta_create */
-			nta = pval;
-			break;
-		}
-		/* update the NTA's timer as if it were new */
+		result = dns_qp_deletename(qp, name, (void *)&old_nta, NULL);
+		RUNTIME_CHECK(result == ISC_R_SUCCESS);
+
+		dns__nta_shutdown(old_nta);
+		dns__nta_detach(&old_nta);
+
+		result = dns_qp_insert(qp, nta, 0);
+		RUNTIME_CHECK(result == ISC_R_SUCCESS);
+
 		FALLTHROUGH;
 	case ISC_R_SUCCESS:
 		nta->expiry = now + lifetime;
@@ -375,31 +373,18 @@ delete_expired(void *arg) {
 	isc_result_t result;
 	dns_qp_t *qp = NULL;
 	void *pval = NULL;
-	dns_view_t *view = NULL;
 
 	REQUIRE(VALID_NTATABLE(ntatable));
 
 	RWLOCK(&ntatable->rwlock, isc_rwlocktype_write);
 	dns_qpmulti_write(ntatable->table, &qp);
 	result = dns_qp_getname(qp, &nta->name, &pval, NULL);
-	if (result == ISC_R_SUCCESS &&
-	    ((dns__nta_t *)pval)->expiry == nta->expiry && !nta->shuttingdown)
-	{
+	if (result == ISC_R_SUCCESS && pval == nta && !nta->shuttingdown) {
 		char nb[DNS_NAME_FORMATSIZE];
 		dns_name_format(&nta->name, nb, sizeof(nb));
 		isc_log_write(dns_lctx, DNS_LOGCATEGORY_DNSSEC,
 			      DNS_LOGMODULE_NTA, ISC_LOG_INFO,
 			      "deleting expired NTA at %s", nb);
-
-		/*
-		 * Delay the flushing to avoid lock-order-inversion, as
-		 * dns_view_flushnode()->dns_adb_flushnames() locks 'adbname',
-		 * and it can cause a problem e.g. in dns_ntatable_covered() in
-		 * another thread called by the resolver (also involving 'fctx'
-		 * lock), or in dns_ntatable_shutdown() (also involving 'view'
-		 * lock).
-		 */
-		dns_view_weakattach(ntatable->view, &view);
 
 		dns_qp_deletename(qp, &nta->name, NULL, NULL);
 		dns__nta_shutdown(nta);
@@ -408,10 +393,6 @@ delete_expired(void *arg) {
 	dns_qp_compact(qp, DNS_QPGC_MAYBE);
 	dns_qpmulti_commit(ntatable->table, &qp);
 	RWUNLOCK(&ntatable->rwlock, isc_rwlocktype_write);
-	if (view != NULL) {
-		dns_view_flushnode(view, &nta->name, true);
-		dns_view_weakdetach(&view);
-	}
 	dns__nta_detach(&nta);
 	dns_ntatable_detach(&ntatable);
 }
