@@ -327,7 +327,7 @@ dns_rdata_apl_first(dns_rdata_in_apl_t *apl) {
 	/*
 	 * If no APL return ISC_R_NOMORE.
 	 */
-	if (apl->apl == NULL) {
+	if (apl->apl == NULL || apl->apl_len == 0) {
 		return ISC_R_NOMORE;
 	}
 
