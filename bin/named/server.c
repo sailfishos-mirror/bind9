@@ -14269,9 +14269,11 @@ do_modzone(named_server_t *server, ns_cfgctx_t *cfg, dns_view_t *view,
 	bool added;
 	bool exclusive = false;
 	bool locked = false;
+	const cfg_obj_t *options = NULL;
+	cfg_obj_t *z;
+	cfg_obj_t *o;
 #ifndef HAVE_LMDB
 	FILE *fp = NULL;
-	cfg_obj_t *z;
 #else  /* HAVE_LMDB */
 	MDB_txn *txn = NULL;
 	MDB_dbi dbi;
@@ -14377,17 +14379,13 @@ do_modzone(named_server_t *server, ns_cfgctx_t *cfg, dns_view_t *view,
 
 	if (!added) {
 		if (cfg->vconfig == NULL) {
-			result = delete_zoneconf(
-				view, cfg->conf_parser, cfg->config,
-				dns_zone_getorigin(zone), NULL, locked);
+			options = cfg->config;
 		} else {
-			const cfg_obj_t *voptions = cfg_tuple_get(cfg->vconfig,
-								  "options");
-			result = delete_zoneconf(
-				view, cfg->conf_parser, voptions,
-				dns_zone_getorigin(zone), NULL, locked);
+			options = cfg_tuple_get(cfg->vconfig, "options");
 		}
-
+		result = delete_zoneconf(view, cfg->conf_parser, options,
+					 dns_zone_getorigin(zone), NULL,
+					 locked);
 		if (result != ISC_R_SUCCESS) {
 			TCHECK(putstr(text, "former zone configuration "
 					    "not deleted: "));
@@ -14458,6 +14456,10 @@ do_modzone(named_server_t *server, ns_cfgctx_t *cfg, dns_view_t *view,
 		TCHECK(putstr(text, zname));
 		TCHECK(putstr(text, "' reconfigured."));
 	} else {
+		DE_CONST(zoneobj, z);
+		DE_CONST(options, o);
+		CHECK(cfg_parser_mapadd(cfg->conf_parser, o, z, "zone"));
+
 		TCHECK(putstr(text, "zone '"));
 		TCHECK(putstr(text, zname));
 		TCHECK(putstr(text, "' must also be reconfigured in\n"));
