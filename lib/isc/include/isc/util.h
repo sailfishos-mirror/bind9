@@ -43,6 +43,13 @@
  *** General Macros.
  ***/
 
+#define MOVE_OWNERSHIP(source)                             \
+	({                                                 \
+		__typeof__(source) __ownership = (source); \
+		(source) = NULL;                           \
+		__ownership;                               \
+	})
+
 /*%
  * Legacy way how to hide unused function arguments, don't use in
  * the new code, rather use the ISC_ATTR_UNUSED macro that expands
@@ -56,12 +63,6 @@
  * \endcode
  */
 #define UNUSED(x) (void)(x)
-
-#if __GNUC__ >= 8 && !defined(__clang__)
-#define ISC_NONSTRING __attribute__((nonstring))
-#else /* if __GNUC__ >= 8 && !defined(__clang__) */
-#define ISC_NONSTRING
-#endif /* __GNUC__ */
 
 /*%
  * The opposite: silent warnings about stored values which are never read.
