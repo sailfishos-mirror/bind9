@@ -12332,7 +12332,8 @@ do_modzone(named_server_t *server, dns_view_t *view, dns_name_t *name,
 	isc_result_t result, tresult;
 	dns_zone_t *zone = NULL;
 	const cfg_obj_t *voptions = NULL;
-	bool added;
+	const cfg_obj_t *options = NULL;
+	bool added, modded;
 	MDB_txn *txn = NULL;
 	MDB_dbi dbi;
 
@@ -12358,6 +12359,7 @@ do_modzone(named_server_t *server, dns_view_t *view, dns_name_t *name,
 	}
 
 	added = dns_zone_getadded(zone);
+	modded = dns_zone_getmodded(zone);
 	dns_zone_detach(&zone);
 
 	isc_loopmgr_pause();
@@ -12413,17 +12415,16 @@ do_modzone(named_server_t *server, dns_view_t *view, dns_name_t *name,
 		CHECK(dns_view_findzone(view, name, DNS_ZTFIND_EXACT, &zone));
 	}
 
-	if (!added) {
+	if (!added && !modded) {
 		if (view->newzone.vconfig == NULL) {
-			result = delete_zoneconf(view, server->effectiveconfig,
-						 dns_zone_getorigin(zone));
+			options = server->effectiveconfig;
 		} else {
-			voptions = cfg_tuple_get(server->effectiveconfig,
-						 "options");
-			result = delete_zoneconf(view, voptions,
-						 dns_zone_getorigin(zone));
+			options = cfg_tuple_get(server->effectiveconfig,
+						"options");
 		}
 
+		result = delete_zoneconf(view, options,
+					 dns_zone_getorigin(zone));
 		if (result != ISC_R_SUCCESS) {
 			TCHECK(putstr(text, "former zone configuration "
 					    "not deleted: "));
@@ -12475,11 +12476,16 @@ do_modzone(named_server_t *server, dns_view_t *view, dns_name_t *name,
 		TCHECK(putstr(text, zname));
 		TCHECK(putstr(text, "' reconfigured."));
 	} else {
+		CHECK(nzd_open(view, 0, &txn, &dbi));
+		CHECK(nzd_save(&txn, dbi, zone, zoneobj));
+
 		TCHECK(putstr(text, "zone '"));
 		TCHECK(putstr(text, zname));
 		TCHECK(putstr(text, "' must also be reconfigured in\n"));
 		TCHECK(putstr(text, "named.conf to make changes permanent."));
 	}
+
+	dns_zone_setmodded(zone, true);
 
 cleanup:
 	if (txn != NULL) {
@@ -12659,17 +12665,17 @@ rmzone(void *arg) {
 	}
 
 	if (!added) {
+		const cfg_obj_t *voptions;
+
 		if (view->newzone.vconfig != NULL) {
-			const cfg_obj_t *voptions =
-				cfg_tuple_get(view->newzone.vconfig, "options");
-			result = delete_zoneconf(view, voptions,
-						 dns_zone_getorigin(zone));
+			voptions = cfg_tuple_get(view->newzone.vconfig,
+						 "options");
 		} else {
-			result = delete_zoneconf(view,
-						 dz->server->effectiveconfig,
-						 dns_zone_getorigin(zone));
+			voptions = dz->server->effectiveconfig;
 		}
 
+		result = delete_zoneconf(view, voptions,
+					 dns_zone_getorigin(zone));
 		if (result != ISC_R_SUCCESS) {
 			isc_log_write(NAMED_LOGCATEGORY_GENERAL,
 				      NAMED_LOGMODULE_SERVER, ISC_LOG_ERROR,
