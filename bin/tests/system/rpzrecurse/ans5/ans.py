@@ -21,7 +21,6 @@ from isctest.asyncserver import (
     AsyncDnsServer,
     DnsResponseSend,
     QueryContext,
-    ResponseDrop,
     ResponseHandler,
 )
 
@@ -40,19 +39,27 @@ class ReplyA(ResponseHandler):
         yield DnsResponseSend(qctx.response)
 
 
-class IgnoreNs(ResponseHandler):
+class DelayNs(ResponseHandler):
     def match(self, qctx: QueryContext) -> bool:
         return qctx.qtype == dns.rdatatype.NS
 
     async def get_responses(
         self, qctx: QueryContext
-    ) -> AsyncGenerator[ResponseDrop, None]:
-        yield ResponseDrop()
+    ) -> AsyncGenerator[DnsResponseSend, None]:
+        ns_rrset = dns.rrset.from_text(
+            "foo.child.example.tld.",
+            300,
+            qctx.qclass,
+            dns.rdatatype.NS,
+            "ns5.foo.",
+        )
+        qctx.response.answer.append(ns_rrset)
+        yield DnsResponseSend(qctx.response, delay=1)
 
 
 def main() -> None:
     server = AsyncDnsServer(default_aa=True, default_rcode=dns.rcode.NOERROR)
-    server.install_response_handlers(ReplyA(), IgnoreNs())
+    server.install_response_handlers(ReplyA(), DelayNs())
     server.run()
 
 

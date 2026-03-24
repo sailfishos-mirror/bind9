@@ -3067,14 +3067,14 @@ rpz_rrset_find(ns_client_t *client, dns_name_t *name, dns_rdatatype_t type,
 	       unsigned int options, dns_rpz_type_t rpz_type, dns_db_t **dbp,
 	       dns_dbversion_t *version, dns_rdataset_t **rdatasetp,
 	       bool resuming) {
-	dns_rpz_st_t *st;
-	bool is_zone;
-	dns_dbnode_t *node;
-	dns_fixedname_t fixed;
-	dns_name_t *found;
 	isc_result_t result;
+	dns_rpz_st_t *st = NULL;
+	dns_dbnode_t *node = NULL;
+	dns_fixedname_t fixed;
+	dns_name_t *found = dns_fixedname_initname(&fixed);
 	dns_clientinfomethods_t cm;
 	dns_clientinfo_t ci;
+	bool is_zone;
 
 	CTRACE(ISC_LOG_DEBUG(3), "rpz_rrset_find");
 
@@ -3109,29 +3109,23 @@ rpz_rrset_find(ns_client_t *client, dns_name_t *name, dns_rdatatype_t type,
 	if (*dbp != NULL) {
 		is_zone = false;
 	} else {
-		dns_zone_t *zone;
+		dns_zone_t *zone = NULL;
 
 		version = NULL;
-		zone = NULL;
 		result = query_getdb(client, name, type,
 				     (dns_getdb_options_t){ 0 }, &zone, dbp,
 				     &version, &is_zone);
+		if (zone != NULL) {
+			dns_zone_detach(&zone);
+		}
 		if (result != ISC_R_SUCCESS) {
 			rpz_log_fail(client, DNS_RPZ_ERROR_LEVEL, name,
 				     rpz_type, "rpz_rrset_find(2)", result);
 			st->m.policy = DNS_RPZ_POLICY_ERROR;
-			if (zone != NULL) {
-				dns_zone_detach(&zone);
-			}
 			return result;
-		}
-		if (zone != NULL) {
-			dns_zone_detach(&zone);
 		}
 	}
 
-	node = NULL;
-	found = dns_fixedname_initname(&fixed);
 	dns_clientinfomethods_init(&cm, ns_client_sourceip);
 	dns_clientinfo_init(&ci, client, NULL);
 	result = dns_db_findext(*dbp, name, version, type, options,
@@ -3140,14 +3134,19 @@ rpz_rrset_find(ns_client_t *client, dns_name_t *name, dns_rdatatype_t type,
 	if (result == DNS_R_DELEGATION && is_zone && USECACHE(client)) {
 		/*
 		 * Try the cache if we're authoritative for an
-		 * ancestor but not the domain itself.
+		 * ancestor but not the domain itself. DELEGATION or
+		 * NOTFOUND indicates that we should recurse, if
+		 * nsip-wait-recurse or nsdname-wait-recurse are
+		 * enabled.
 		 */
 		rpz_clean(NULL, dbp, &node, rdatasetp);
-		version = NULL;
 		dns_db_attach(client->inner.view->cachedb, dbp);
-		result = dns_db_findext(*dbp, name, version, type, 0,
+		result = dns_db_findext(*dbp, name, NULL, type, 0,
 					client->inner.now, &node, found, &cm,
 					&ci, *rdatasetp, NULL);
+		if (result == ISC_R_NOTFOUND) {
+			result = DNS_R_DELEGATION;
+		}
 	}
 	rpz_clean(NULL, dbp, &node, NULL);
 	if (result == DNS_R_DELEGATION) {
@@ -3158,13 +3157,11 @@ rpz_rrset_find(ns_client_t *client, dns_name_t *name, dns_rdatatype_t type,
 		 */
 		if (rpz_type == DNS_RPZ_TYPE_IP) {
 			result = DNS_R_NXRRSET;
-		} else if (!client->inner.view->rpzs->p.nsip_wait_recurse ||
-			   (!client->inner.view->rpzs->p.nsdname_wait_recurse &&
+		} else if ((client->inner.view->rpzs->p.nsip_wait_recurse &&
+			    rpz_type == DNS_RPZ_TYPE_NSIP) ||
+			   (client->inner.view->rpzs->p.nsdname_wait_recurse &&
 			    rpz_type == DNS_RPZ_TYPE_NSDNAME))
 		{
-			query_rpzfetch(client, name, type);
-			result = DNS_R_NXRRSET;
-		} else {
 			dns_name_copy(name, st->r_name);
 			result = ns_query_recurse(client, type, st->r_name,
 						  NULL, NULL, resuming);
@@ -3172,6 +3169,9 @@ rpz_rrset_find(ns_client_t *client, dns_name_t *name, dns_rdatatype_t type,
 				st->state |= DNS_RPZ_RECURSING;
 				result = DNS_R_DELEGATION;
 			}
+		} else {
+			query_rpzfetch(client, name, type);
+			result = DNS_R_NXRRSET;
 		}
 	}
 	return result;
