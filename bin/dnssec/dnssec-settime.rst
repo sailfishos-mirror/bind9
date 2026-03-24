@@ -21,7 +21,7 @@ dnssec-settime: set the key timing metadata for a DNSSEC key
 Synopsis
 ~~~~~~~~
 
-:program:`dnssec-settime` [**-f**] [**-K** directory] [**-L** ttl] [**-P** date/offset] [**-P** ds date/offset] [**-P** sync date/offset] [**-A** date/offset] [**-R** date/offset] [**-I** date/offset] [**-D** date/offset] [**-D** ds date/offset] [**-D** sync date/offset] [**-S** key] [**-i** interval] [**-h**] [**-V**] [**-v** level] {keyfile} [**-s**] [**-g** state] [**-d** state date/offset] [**-k** state date/offset] [**-r** state date/offset] [**-z** state date/offset]
+:program:`dnssec-settime` [**-K** directory] [**-L** ttl] [**-P** date/offset] [**-P** ds date/offset] [**-P** sync date/offset] [**-A** date/offset] [**-R** date/offset] [**-I** date/offset] [**-D** date/offset] [**-D** ds date/offset] [**-D** sync date/offset] [**-S** key] [**-i** interval] [**-h**] [**-V**] [**-v** level] {keyfile} [**-s**] [**-g** state] [**-d** state date/offset] [**-k** state date/offset] [**-r** state date/offset] [**-z** state date/offset]
 
 Description
 ~~~~~~~~~~~
@@ -60,16 +60,6 @@ purposes.
 
 Options
 ~~~~~~~
-
-.. option:: -f
-
-   This option forces an update of an old-format key with no metadata fields. Without
-   this option, :program:`dnssec-settime` fails when attempting to update a
-   legacy key. With this option, the key is recreated in the new
-   format, but with the original key data retained. The key's creation
-   date is set to the present time. If no other values are
-   specified, then the key's publication and activation dates are also
-   set to the present time.
 
 .. option:: -K directory
 

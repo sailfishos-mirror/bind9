@@ -21,7 +21,7 @@ dnssec-keygen: DNSSEC key generation tool
 Synopsis
 ~~~~~~~~
 
-:program:`dnssec-keygen` [**-3**] [**-A** date/offset] [**-a** algorithm] [**-b** keysize] [**-C**] [**-c** class] [**-D** date/offset] [**-D** sync date/offset] [**-f** flag] [**-F**] [**-G**] [**-h**] [**-I** date/offset] [**-i** interval] [**-K** directory] [**-k** policy] [**-L** ttl] [**-l** file] [**-M** tag_min:tag_max] [**-P** date/offset] [**-P** sync date/offset] [**-p** protocol] [**-q**] [**-R** date/offset] [**-S** key] [**-s** strength] [**-T** rrtype] [**-V**] [**-v** level] {name}
+:program:`dnssec-keygen` [**-3**] [**-A** date/offset] [**-a** algorithm] [**-b** keysize] [**-c** class] [**-D** date/offset] [**-D** sync date/offset] [**-f** flag] [**-F**] [**-G**] [**-h**] [**-I** date/offset] [**-i** interval] [**-K** directory] [**-k** policy] [**-L** ttl] [**-l** file] [**-M** tag_min:tag_max] [**-P** date/offset] [**-P** sync date/offset] [**-p** protocol] [**-q**] [**-R** date/offset] [**-S** key] [**-s** strength] [**-T** rrtype] [**-V**] [**-v** level] {name}
 
 Description
 ~~~~~~~~~~~
@@ -75,15 +75,6 @@ Options
    defaults. For example, RSA keys for use as DNSSEC zone-signing keys
    have a default size of 1024 bits; RSA keys for use as key-signing
    keys (KSKs, generated with :option:`-f KSK <-f>`) default to 2048 bits.
-
-.. option:: -C
-
-   This option enables compatibility mode, which generates an old-style key, without any timing
-   metadata. By default, :program:`dnssec-keygen` includes the key's
-   creation date in the metadata stored with the private key; other
-   dates may be set there as well, including publication date, activation date,
-   etc. Keys that include this data may be incompatible with older
-   versions of BIND; the :option:`-C` option suppresses them.
 
 .. option:: -c class
 

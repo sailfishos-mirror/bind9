@@ -431,27 +431,6 @@ check_keyversion(dst_key_t *key, char *keystr) {
 	}
 }
 
-void
-set_keyversion(dst_key_t *key) {
-	int major, minor;
-	dst_key_getprivateformat(key, &major, &minor);
-	INSIST(major <= DST_MAJOR_VERSION);
-
-	if (major != DST_MAJOR_VERSION || minor != DST_MINOR_VERSION) {
-		dst_key_setprivateformat(key, DST_MAJOR_VERSION,
-					 DST_MINOR_VERSION);
-	}
-
-	/*
-	 * If the key is from a version older than 1.3, set
-	 * set the creation date
-	 */
-	if (major < 1 || (major == 1 && minor <= 2)) {
-		isc_stdtime_t now = isc_stdtime_now();
-		dst_key_settime(key, DST_TIME_CREATED, now);
-	}
-}
-
 bool
 key_collision(dst_key_t *dstkey, dns_name_t *name, const char *dir,
 	      isc_mem_t *mctx, uint16_t min, uint16_t max, bool *exact) {

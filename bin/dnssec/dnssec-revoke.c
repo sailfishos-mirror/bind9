@@ -179,11 +179,7 @@ main(int argc, char **argv) {
 		fprintf(stderr, "%s: %s\n", isc_commandline_progname, keystr);
 	}
 
-	if (force) {
-		set_keyversion(key);
-	} else {
-		check_keyversion(key, keystr);
-	}
+	check_keyversion(key, keystr);
 
 	flags = dst_key_flags(key);
 	if ((flags & DNS_KEYFLAG_REVOKE) == 0) {
