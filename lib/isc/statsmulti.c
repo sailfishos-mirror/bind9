@@ -84,33 +84,18 @@ isc_statsmulti_create(isc_mem_t *mctx, isc_statsmulti_t **statsp,
 	*statsp = stats;
 }
 
-void
-isc_statsmulti_attach(isc_statsmulti_t *stats, isc_statsmulti_t **statsp) {
+static void
+isc__statsmulti_destroy(isc_statsmulti_t *stats) {
 	REQUIRE(ISC_STATSMULTI_VALID(stats));
-	REQUIRE(statsp != NULL && *statsp == NULL);
 
-	isc_refcount_increment(&stats->references);
-	*statsp = stats;
+	size_t alloc_size = stats->per_thread_capacity *
+			    stats->num_threads_plus_one *
+			    sizeof(isc_atomic_statscounter_t);
+	isc_mem_put(stats->mctx, stats->counters, alloc_size);
+	isc_mem_putanddetach(&stats->mctx, stats, sizeof(*stats));
 }
 
-void
-isc_statsmulti_detach(isc_statsmulti_t **statsp) {
-	isc_statsmulti_t *stats;
-
-	REQUIRE(statsp != NULL && ISC_STATSMULTI_VALID(*statsp));
-
-	stats = *statsp;
-	*statsp = NULL;
-
-	if (isc_refcount_decrement(&stats->references) == 1) {
-		isc_refcount_destroy(&stats->references);
-		size_t alloc_size = stats->per_thread_capacity *
-				    stats->num_threads_plus_one *
-				    sizeof(isc_atomic_statscounter_t);
-		isc_mem_put(stats->mctx, stats->counters, alloc_size);
-		isc_mem_putanddetach(&stats->mctx, stats, sizeof(*stats));
-	}
-}
+ISC_REFCOUNT_IMPL(isc_statsmulti, isc__statsmulti_destroy);
 
 void
 isc_statsmulti_increment(isc_statsmulti_t *stats, isc_statscounter_t counter) {

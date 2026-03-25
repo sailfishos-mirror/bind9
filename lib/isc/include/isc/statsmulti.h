@@ -17,6 +17,7 @@
 
 #include <inttypes.h>
 
+#include <isc/refcount.h>
 #include <isc/types.h>
 
 typedef struct isc_statsmulti isc_statsmulti_t; /*%< Statistics Multi */
@@ -44,25 +45,7 @@ isc_statsmulti_create(isc_mem_t *mctx, isc_statsmulti_t **statsp,
  *\li	'statsp' != NULL && '*statsp' == NULL.
  */
 
-void
-isc_statsmulti_attach(isc_statsmulti_t *stats, isc_statsmulti_t **statsp);
-/*%<
- * Attach to a statistics set.
- *
- * Requires:
- *\li	'stats' is a valid isc_statsmulti_t.
- *
- *\li	'statsp' != NULL && '*statsp' == NULL
- */
-
-void
-isc_statsmulti_detach(isc_statsmulti_t **statsp);
-/*%<
- * Detaches from the statistics set.
- *
- * Requires:
- *\li	'statsp' != NULL and '*statsp' is a valid isc_statsmulti_t.
- */
+ISC_REFCOUNT_DECL(isc_statsmulti);
 
 void
 isc_statsmulti_increment(isc_statsmulti_t *stats, isc_statscounter_t counter);
