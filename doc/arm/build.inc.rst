@@ -69,7 +69,7 @@ in a nonstandard location adjust ``PKG_CONFIG_PATH`` or use the option
 ``--pkg-config-path``.
 
 To use a PKCS#11 hardware service module for cryptographic operations,
-PKCS#11 Provider (https://github.com/latchset/pkcs11-provider/tree/main)
+PKCS#11 Provider (https://github.com/openssl-projects/pkcs11-provider/tree/main)
 must be compiled, configured and used directly in the OpenSSL 3.x.
 
 The Userspace RCU library ``liburcu`` (https://liburcu.org/) is used
