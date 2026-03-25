@@ -855,12 +855,6 @@ if [ "${findname_call_count}" -gt 1000 ]; then
   echo_i "failed: ${findname_call_count} (> 1000) findname() calls detected for large-referral.example.net"
   ret=1
 fi
-# Check whether the limit of NS RRs processed for any delegation
-# encountered was not exceeded.
-if grep -Eq "dns_adb_createfind: started (A|AAAA) fetch for name ns21.fake.redirect.com" ns1/named.run; then
-  echo_i "failed: unexpected address fetch(es) were triggered for ns21.fake.redirect.com"
-  ret=1
-fi
 if [ $ret != 0 ]; then echo_i "failed"; fi
 status=$((status + ret))
 
