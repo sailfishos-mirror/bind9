@@ -420,7 +420,8 @@ dns_tkey_processquery(dns_message_t *msg, dns_tkeyctx_t *tctx,
 		/*
 		 * A delete operation uses the fully specified qname.
 		 */
-		CHECK(process_deletetkey(signer, qname, &tkeyin, &tkeyout,
+		keyname = qname;
+		CHECK(process_deletetkey(signer, keyname, &tkeyin, &tkeyout,
 					 ring));
 		break;
 	case DNS_TKEYMODE_GSSAPI:
@@ -463,6 +464,10 @@ dns_tkey_processquery(dns_message_t *msg, dns_tkeyctx_t *tctx,
 		result = DNS_R_NOTIMP;
 		goto cleanup;
 	default:
+		/*
+		 * For unrecognized modes also use the fully specified qname.
+		 */
+		keyname = qname;
 		tkeyout.error = dns_tsigerror_badmode;
 	}
 
