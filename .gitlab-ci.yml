@@ -1947,10 +1947,15 @@ publish-private:
 
 publish:
   <<: *signer_ssh_job
+  before_script:
+    - TODAY="$(date +%Y-%m-%d)"
+    - SCHEDULED_PUBLICATION="$(curl -m 5 -s "https://gitlab.isc.org/isc-projects/bind9-qa/-/raw/main/releng/metadata.json" | jq -r ".schedule.public")"
+    - if [ -z "${FORCE_PUBLICATION}" ] && [ "${TODAY}" != "${SCHEDULED_PUBLICATION}" ]; then echo "Unscheduled publication denied; publication is scheduled for ${SCHEDULED_PUBLICATION}"; exit 1; fi
   variables:
     SSH_SCRIPT_CLIENT: |-
       ssh "${STAGING_USER_ACTIONS}@${STAGING_HOST}" "publish ${CI_COMMIT_TAG}"
   after_script:
+    - *git_clone_bind9-qa
     - if [ "${CI_JOB_STATUS}" = "success" ]; then "$CI_PROJECT_DIR"/bind9-qa/releng/manage_distros_token.py delete; fi
   artifacts:
     paths:
@@ -1988,7 +1993,7 @@ publish:
   <<: *manual_release_job_qa
   needs:
     - job: publish-private
-      artifacts: false
+      artifacts: true
   script:
     - >
       "${CI_PROJECT_DIR}"/bind9-qa/releng/update_rpms.py build --service "${SERVICE}" --version "${CI_COMMIT_TAG}" --base-url "$(cat "url-${CI_COMMIT_TAG}.txt")"
@@ -2010,6 +2015,7 @@ rpms-cloudsmith-build:
   artifacts:
     paths:
       - commit.txt
+    expire_in: "1 month"
 
 rpms-cloudsmith-build-private:
   <<: *rpm_build_job_private
@@ -2020,6 +2026,7 @@ rpms-cloudsmith-build-private:
   artifacts:
     paths:
       - commit.txt
+    expire_in: "1 month"
 
 # Publish Cloudsmith packages
 
@@ -2159,6 +2166,10 @@ merge-tag:
   <<: *manual_release_job_qa
   variables:
     GIT_DEPTH: 100
+  needs:
+    # TODO: if necessary, update job name after pushing tags from within CI is implemented
+    - job: publish
+      artifacts: false
   script:
     - >
       "$CI_PROJECT_DIR"/bind9-qa/releng/merge_tag.py --tag "$CI_COMMIT_TAG"
@@ -2173,6 +2184,10 @@ update-stable-tag:
   <<: *manual_release_job_qa
   variables:
     GIT_DEPTH: 1
+  needs:
+    # TODO: if necessary, update job name after pushing tags from within CI is implemented
+    - job: publish
+      artifacts: false
   script:
     - >
       "$CI_PROJECT_DIR"/bind9-qa/releng/update_stable_tag.py --tag "$CI_COMMIT_TAG"
