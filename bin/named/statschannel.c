@@ -370,7 +370,6 @@ init_desc(void) {
 	SET_NSSTATDESC(updatebadprereq,
 		       "updates rejected due to prerequisite failure",
 		       "UpdateBadPrereq");
-	SET_NSSTATDESC(recursclients, "recursing clients", "RecursClients");
 	SET_NSSTATDESC(dns64, "queries answered by DNS64", "DNS64");
 	SET_NSSTATDESC(ratedropped, "responses dropped for rate limits",
 		       "RateDropped");
@@ -463,6 +462,8 @@ init_desc(void) {
 				"TCPConnHighWater");
 	SET_NSHIGHWATERSTATDESC(recursive, "Recursive clients high-water",
 				"RecursHighwater");
+	SET_NSHIGHWATERSTATDESC(recursclients, "recursing clients",
+				"RecursClients");
 
 	INSIST(i == ns_highwater_max);
 

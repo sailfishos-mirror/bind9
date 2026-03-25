@@ -2609,13 +2609,12 @@ recursionquotatype_attach(ns_client_t *client, bool soft_limit) {
 		return result;
 	}
 
-	ns_stats_increment(client->manager->sctx->nsstats,
-			   ns_statscounter_recursclients);
-	isc_statscounter_t recurscount = ns_stats_get_counter(
-		client->manager->sctx->nsstats, ns_statscounter_recursclients);
-
-	ns_stats_update_if_greater(client->manager->sctx->nshighwaterstats,
-				   ns_highwater_recursive, recurscount);
+	isc_statscounter_t recurscount =
+		isc_stats_increment(client->manager->sctx->nshighwaterstats,
+				    ns_highwater_recursclients) +
+		1;
+	isc_stats_update_if_greater(client->manager->sctx->nshighwaterstats,
+				    ns_highwater_recursive, recurscount);
 
 	return result;
 }
@@ -2633,8 +2632,8 @@ recursionquotatype_attach_soft(ns_client_t *client) {
 static void
 recursionquotatype_detach(ns_client_t *client) {
 	isc_quota_release(&client->manager->sctx->recursionquota);
-	ns_stats_decrement(client->manager->sctx->nsstats,
-			   ns_statscounter_recursclients);
+	isc_stats_decrement(client->manager->sctx->nshighwaterstats,
+			    ns_highwater_recursclients);
 }
 
 static void
