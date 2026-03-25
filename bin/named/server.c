@@ -24,6 +24,8 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#include <dns/acl.h>
+
 #ifdef HAVE_DNSTAP
 #include <fstrm.h>
 #endif
@@ -272,10 +274,10 @@ struct zonelistentry {
  * asynchronously.
  */
 typedef struct matching_view_ctx {
-	isc_netaddr_t *srcaddr;
-	isc_netaddr_t *destaddr;
+	isc_netaddr_t srcaddr;
+	isc_netaddr_t destaddr;
 	dns_message_t *message;
-	dns_aclenv_t *env;
+	dns_aclenv_t *aclenv;
 	ns_server_t *sctx;
 	isc_loop_t *loop;
 	isc_job_cb cb;
@@ -9208,6 +9210,8 @@ get_matching_view_done(void *cbarg) {
 
 	mvctx->cb(mvctx->cbarg);
 
+	dns_aclenv_detach(&mvctx->aclenv);
+
 	if (mvctx->quota_result == ISC_R_SUCCESS) {
 		isc_quota_release(&mvctx->sctx->sig0checksquota);
 	}
@@ -9249,10 +9253,10 @@ get_matching_view_continue(void *cbarg, isc_result_t result) {
 		tsig = dns_tsigkey_identity(mvctx->message->tsigkey);
 	}
 
-	if (dns_acl_allowed(mvctx->srcaddr, tsig, mvctx->view->matchclients,
-			    mvctx->env) &&
-	    dns_acl_allowed(mvctx->destaddr, tsig,
-			    mvctx->view->matchdestinations, mvctx->env) &&
+	if (dns_acl_allowed(&mvctx->srcaddr, tsig, mvctx->view->matchclients,
+			    mvctx->aclenv) &&
+	    dns_acl_allowed(&mvctx->destaddr, tsig,
+			    mvctx->view->matchdestinations, mvctx->aclenv) &&
 	    !(mvctx->view->matchrecursiveonly &&
 	      (mvctx->message->flags & DNS_MESSAGEFLAG_RD) == 0))
 	{
@@ -9324,9 +9328,9 @@ get_matching_view(isc_netaddr_t *srcaddr, isc_netaddr_t *destaddr,
 
 	matching_view_ctx_t *mvctx = isc_mem_get(message->mctx, sizeof(*mvctx));
 	*mvctx = (matching_view_ctx_t){
-		.srcaddr = srcaddr,
-		.destaddr = destaddr,
-		.env = env,
+		.srcaddr = *srcaddr,
+		.destaddr = *destaddr,
+		.aclenv = dns_aclenv_ref(env),
 		.cb = cb,
 		.cbarg = cbarg,
 		.sigresult = sigresult,
