@@ -14113,6 +14113,7 @@ do_modzone(named_server_t *server, ns_cfgctx_t *cfg, dns_view_t *view,
 	dns_zone_t *zone = NULL;
 	bool added;
 	bool locked = false;
+	const cfg_obj_t *options = NULL;
 #ifndef HAVE_LMDB
 	FILE *fp = NULL;
 	cfg_obj_t *z;
@@ -14220,17 +14221,13 @@ do_modzone(named_server_t *server, ns_cfgctx_t *cfg, dns_view_t *view,
 
 	if (!added) {
 		if (cfg->vconfig == NULL) {
-			result = delete_zoneconf(
-				view, cfg->conf_parser, cfg->config,
-				dns_zone_getorigin(zone), NULL, locked);
+			options = cfg->config;
 		} else {
-			const cfg_obj_t *voptions = cfg_tuple_get(cfg->vconfig,
-								  "options");
-			result = delete_zoneconf(
-				view, cfg->conf_parser, voptions,
-				dns_zone_getorigin(zone), NULL, locked);
+			options = cfg_tuple_get(cfg->vconfig, "options");
 		}
-
+		result = delete_zoneconf(view, cfg->conf_parser, options,
+					 dns_zone_getorigin(zone), NULL,
+					 locked);
 		if (result != ISC_R_SUCCESS) {
 			TCHECK(putstr(text, "former zone configuration "
 					    "not deleted: "));
@@ -14277,8 +14274,11 @@ do_modzone(named_server_t *server, ns_cfgctx_t *cfg, dns_view_t *view,
 
 #ifndef HAVE_LMDB
 	/* Store the new zone configuration; also in NZF if applicable */
-	z = UNCONST(zoneobj);
-	CHECK(cfg_parser_mapadd(cfg->add_parser, cfg->nzf_config, z, "zone"));
+	if (cfg->nzf_config != NULL) {
+		z = UNCONST(zoneobj);
+		CHECK(cfg_parser_mapadd(cfg->add_parser, cfg->nzf_config, z,
+					"zone"));
+	}
 #endif /* HAVE_LMDB */
 
 	if (added) {
@@ -14298,17 +14298,8 @@ do_modzone(named_server_t *server, ns_cfgctx_t *cfg, dns_view_t *view,
 		TCHECK(putstr(text, zname));
 		TCHECK(putstr(text, "' reconfigured."));
 	} else {
-#ifdef HAVE_LMDB
-		CHECK(nzd_open(view, 0, &txn, &dbi));
-		CHECK(nzd_save(&txn, dbi, zone, zoneobj));
-#else  /* ifdef HAVE_LMDB */
-		result = nzf_append(view, zoneobj);
-		if (result != ISC_R_SUCCESS) {
-			TCHECK(putstr(text, "\nNew zone config not saved: "));
-			TCHECK(putstr(text, isc_result_totext(result)));
-			goto cleanup;
-		}
-#endif /* HAVE_LMDB */
+		CHECK(cfg_parser_mapadd(cfg->conf_parser, UNCONST(options),
+					UNCONST(zoneobj), "zone"));
 
 		TCHECK(putstr(text, "zone '"));
 		TCHECK(putstr(text, zname));
