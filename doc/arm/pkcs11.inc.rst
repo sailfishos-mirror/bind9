@@ -26,7 +26,7 @@ is specific to the HSM to be controlled.
 BIND 9 accesses PKCS#11 libraries via OpenSSL Providers. The provider for
 OpenSSL 3 and newer is `pkcs11-provider`_.
 
-.. _`pkcs11-provider`: https://github.com/latchset/pkcs11-provider
+.. _`pkcs11-provider`: https://github.com/openssl-projects/pkcs11-provider
 
 In both cases the extension is dynamically loaded into OpenSSL and the HSM is
 operated indirectly; any cryptographic operations not supported by the HSM can
@@ -87,7 +87,7 @@ The canonical documentation for configuring pkcs11-provider is in the
 `provider-pkcs11.7`_ manual page, but a copy of a working configuration is
 provided here for convenience:
 
-.. _`provider-pkcs11.7`: https://github.com/latchset/pkcs11-provider/blob/main/docs/provider-pkcs11.7.md
+.. _`provider-pkcs11.7`: https://github.com/openssl-projects/pkcs11-provider/blob/main/docs/provider-pkcs11.7.md
 
 In this example, we use a custom copy of OpenSSL configuration,
 driven by an environment variable called OPENSSL_CONF. First, copy the
@@ -131,7 +131,7 @@ Add the following lines at the bottom of the file:
    module = <PATHTO>/pkcs11.so
    pkcs11-module-path = <FULL_PATH_TO_HSM_MODULE>
    # bind uses the digest+sign api. this is broken with the default load behaviour,
-   # but works with early load. see: https://github.com/latchset/pkcs11-provider/issues/266
+   # but works with early load. see: https://github.com/openssl-projects/pkcs11-provider/issues/266
    pkcs11-module-load-behavior = early
    # no-deinit quirk is needed if you use softhsm2
    #pkcs11-module-quirks = no-deinit
