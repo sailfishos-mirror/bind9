@@ -2515,7 +2515,7 @@ ns__client_tcpconn(isc_nmhandle_t *handle, isc_result_t result, void *arg) {
 	}
 
 	tcpquota = isc_quota_getused(&sctx->tcpquota);
-	ns_stats_update_if_greater(sctx->nsstats, ns_statscounter_tcphighwater,
+	ns_stats_update_if_greater(sctx->nshighwaterstats, ns_highwater_tcp,
 				   tcpquota);
 
 	return ISC_R_SUCCESS;

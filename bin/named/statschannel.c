@@ -140,6 +140,7 @@ user_zonetype(dns_zone_t *zone) {
  * below so that they'll be less susceptible to counter name changes.
  */
 static const char *nsstats_desc[ns_statscounter_max];
+static const char *nshighwaterstats_desc[ns_highwater_max];
 static const char *resstats_desc[dns_resstatscounter_max];
 static const char *adbstats_desc[dns_adbstats_max];
 static const char *zonestats_desc[dns_zonestatscounter_max];
@@ -153,6 +154,7 @@ static const char *dnstapstats_desc[dns_dnstapcounter_max];
 static const char *gluecachestats_desc[dns_gluecachestatscounter_max];
 #if defined(EXTENDED_STATS)
 static const char *nsstats_xmldesc[ns_statscounter_max];
+static const char *nshighwaterstats_xmldesc[ns_highwater_max];
 static const char *resstats_xmldesc[dns_resstatscounter_max];
 static const char *adbstats_xmldesc[dns_adbstats_max];
 static const char *zonestats_xmldesc[dns_zonestatscounter_max];
@@ -167,18 +169,19 @@ static const char *gluecachestats_xmldesc[dns_gluecachestatscounter_max];
 static const char *queryrttinstats_xmldesc[dns_queryrttcounter_in_max];
 static const char *queryrttoutstats_xmldesc[dns_queryrttcounter_in_max];
 #else /* if defined(EXTENDED_STATS) */
-#define nsstats_xmldesc		NULL
-#define resstats_xmldesc	NULL
-#define adbstats_xmldesc	NULL
-#define zonestats_xmldesc	NULL
-#define sockstats_xmldesc	NULL
-#define dnssecstats_xmldesc	NULL
-#define udpinsizestats_xmldesc	NULL
-#define udpoutsizestats_xmldesc NULL
-#define tcpinsizestats_xmldesc	NULL
-#define tcpoutsizestats_xmldesc NULL
-#define dnstapstats_xmldesc	NULL
-#define gluecachestats_xmldesc	NULL
+#define nsstats_xmldesc		 NULL
+#define nshighwaterstats_xmldesc NULL
+#define resstats_xmldesc	 NULL
+#define adbstats_xmldesc	 NULL
+#define zonestats_xmldesc	 NULL
+#define sockstats_xmldesc	 NULL
+#define dnssecstats_xmldesc	 NULL
+#define udpinsizestats_xmldesc	 NULL
+#define udpoutsizestats_xmldesc	 NULL
+#define tcpinsizestats_xmldesc	 NULL
+#define tcpoutsizestats_xmldesc	 NULL
+#define dnstapstats_xmldesc	 NULL
+#define gluecachestats_xmldesc	 NULL
 #endif /* EXTENDED_STATS */
 
 #define TRY0(a)                       \
@@ -194,6 +197,7 @@ static const char *queryrttoutstats_xmldesc[dns_queryrttcounter_in_max];
  * nsstats_desc[nsstats_index[0]] will be the description that is shown first.
  */
 static int nsstats_index[ns_statscounter_max];
+static int nshighwaterstats_index[ns_highwater_max];
 static int resstats_index[dns_resstatscounter_max];
 static int adbstats_index[dns_adbstats_max];
 static int zonestats_index[dns_zonestatscounter_max];
@@ -328,8 +332,6 @@ init_desc(void) {
 	SET_NSSTATDESC(invalidsig, "requests with invalid signature",
 		       "ReqBadSIG");
 	SET_NSSTATDESC(requesttcp, "TCP requests received", "ReqTCP");
-	SET_NSSTATDESC(tcphighwater, "TCP connection high-water",
-		       "TCPConnHighWater");
 	SET_NSSTATDESC(authrej, "auth queries rejected", "AuthQryRej");
 	SET_NSSTATDESC(recurserej, "recursive queries rejected", "RecQryRej");
 	SET_NSSTATDESC(xfrrej, "transfer requests rejected", "XfrRej");
@@ -368,9 +370,6 @@ init_desc(void) {
 	SET_NSSTATDESC(updatebadprereq,
 		       "updates rejected due to prerequisite failure",
 		       "UpdateBadPrereq");
-	SET_NSSTATDESC(recurshighwater, "Recursive clients high-water",
-		       "RecursHighwater");
-	SET_NSSTATDESC(recursclients, "recursing clients", "RecursClients");
 	SET_NSSTATDESC(dns64, "queries answered by DNS64", "DNS64");
 	SET_NSSTATDESC(ratedropped, "responses dropped for rate limits",
 		       "RateDropped");
@@ -439,6 +438,34 @@ init_desc(void) {
 	SET_NSSTATDESC(updatequota, "Update quota exceeded", "UpdateQuota");
 
 	INSIST(i == ns_statscounter_max);
+
+	/* Initialize highwater statistics */
+	for (i = 0; i < ns_highwater_max; i++) {
+		nshighwaterstats_desc[i] = NULL;
+	}
+#if defined(EXTENDED_STATS)
+	for (i = 0; i < ns_highwater_max; i++) {
+		nshighwaterstats_xmldesc[i] = NULL;
+	}
+#endif /* if defined(EXTENDED_STATS) */
+
+#define SET_NSHIGHWATERSTATDESC(counterid, desc, xmldesc)                  \
+	do {                                                               \
+		set_desc(ns_highwater_##counterid, ns_highwater_max, desc, \
+			 nshighwaterstats_desc, xmldesc,                   \
+			 nshighwaterstats_xmldesc);                        \
+		nshighwaterstats_index[i++] = ns_highwater_##counterid;    \
+	} while (0)
+
+	i = 0;
+	SET_NSHIGHWATERSTATDESC(tcp, "TCP connection high-water",
+				"TCPConnHighWater");
+	SET_NSHIGHWATERSTATDESC(recursive, "Recursive clients high-water",
+				"RecursHighwater");
+	SET_NSHIGHWATERSTATDESC(recursclients, "recursing clients",
+				"RecursClients");
+
+	INSIST(i == ns_highwater_max);
 
 	/* Initialize resolver statistics */
 	for (i = 0; i < dns_resstatscounter_max; i++) {
@@ -738,6 +765,9 @@ init_desc(void) {
 	for (i = 0; i < ns_statscounter_max; i++) {
 		INSIST(nsstats_desc[i] != NULL);
 	}
+	for (i = 0; i < ns_highwater_max; i++) {
+		INSIST(nshighwaterstats_desc[i] != NULL);
+	}
 	for (i = 0; i < dns_resstatscounter_max; i++) {
 		INSIST(resstats_desc[i] != NULL);
 	}
@@ -866,6 +896,25 @@ dump_stats(isc_stats_t *stats, isc_statsformat_t type, void *arg,
 
 	memset(values, 0, sizeof(values[0]) * ncounters);
 	isc_stats_dump(stats, generalstat_dump, &dumparg, options);
+
+	return dump_counters(type, arg, category, desc, ncounters, indices,
+			     values, options);
+}
+
+static isc_result_t
+dump_statsmulti(isc_statsmulti_t *stats, isc_statsformat_t type, void *arg,
+		const char *category, const char **desc, int ncounters,
+		int *indices, uint64_t *values, int options) {
+	stats_dumparg_t dumparg;
+	unsigned int multioptions = 0;
+
+	dumparg.type = type;
+	dumparg.ncounters = ncounters;
+	dumparg.counterindices = indices;
+	dumparg.countervalues = values;
+
+	memset(values, 0, sizeof(values[0]) * ncounters);
+	isc_statsmulti_dump(stats, generalstat_dump, &dumparg, multioptions);
 
 	return dump_counters(type, arg, category, desc, ncounters, indices,
 			     values, options);
@@ -1416,7 +1465,7 @@ zone_xmlrender(dns_zone_t *zone, void *arg) {
 	if (statlevel == dns_zonestat_full) {
 		isc_stats_t *zonestats;
 		isc_stats_t *gluecachestats;
-		dns_stats_t *rcvquerystats;
+		isc_statsmulti_t *rcvquerystats;
 		dns_stats_t *dnssecsignstats;
 		uint64_t nsstat_values[ns_statscounter_max];
 		uint64_t gluecachestats_values[dns_gluecachestatscounter_max];
@@ -1901,10 +1950,18 @@ generatexml(named_server_t *server, uint32_t flags, int *buflen,
 		TRY0(xmlTextWriterWriteAttribute(writer, ISC_XMLCHAR "type",
 						 ISC_XMLCHAR "nsstat"));
 
-		CHECK(dump_stats(ns_stats_get(server->sctx->nsstats),
+		CHECK(dump_statsmulti(server->sctx->nsstats,
+				      isc_statsformat_xml, writer, NULL,
+				      nsstats_xmldesc, ns_statscounter_max,
+				      nsstats_index, nsstat_values,
+				      ISC_STATSMULTIDUMP_VERBOSE));
+
+		/* Add highwater stats to the same nsstat section */
+		uint64_t nshighwaterstat_values[ns_highwater_max];
+		CHECK(dump_stats(server->sctx->nshighwaterstats,
 				 isc_statsformat_xml, writer, NULL,
-				 nsstats_xmldesc, ns_statscounter_max,
-				 nsstats_index, nsstat_values,
+				 nshighwaterstats_xmldesc, ns_highwater_max,
+				 nshighwaterstats_index, nshighwaterstat_values,
 				 ISC_STATSDUMP_VERBOSE));
 
 		TRY0(xmlTextWriterEndElement(writer)); /* /nsstat */
@@ -2086,7 +2143,7 @@ generatexml(named_server_t *server, uint32_t flags, int *buflen,
 					  STATS_XML_XFRINS)) != 0))
 	{
 		isc_stats_t *istats = NULL;
-		dns_stats_t *dstats = NULL;
+		isc_statsmulti_t *dstats = NULL;
 		dns_adb_t *adb = NULL;
 		isc_histomulti_t *hmpin = NULL, *hmpout = NULL;
 
@@ -2127,7 +2184,7 @@ generatexml(named_server_t *server, uint32_t flags, int *buflen,
 						&dumparg, 0);
 			CHECK(dumparg.result);
 		}
-		dns_stats_detach(&dstats);
+		isc_statsmulti_detach(&dstats);
 		TRY0(xmlTextWriterEndElement(writer));
 
 		/* <resstats> */
@@ -2492,7 +2549,7 @@ zone_jsonrender(dns_zone_t *zone, void *arg) {
 	if (statlevel == dns_zonestat_full) {
 		isc_stats_t *zonestats;
 		isc_stats_t *gluecachestats;
-		dns_stats_t *rcvquerystats;
+		isc_statsmulti_t *rcvquerystats;
 		dns_stats_t *dnssecsignstats;
 		uint64_t nsstat_values[ns_statscounter_max];
 		uint64_t gluecachestats_values[dns_gluecachestatscounter_max];
@@ -3027,10 +3084,22 @@ generatejson(named_server_t *server, size_t *msglen, const char **msg,
 		dumparg.result = ISC_R_SUCCESS;
 		dumparg.arg = counters;
 
-		result = dump_stats(ns_stats_get(server->sctx->nsstats),
+		result = dump_statsmulti(server->sctx->nsstats,
+					 isc_statsformat_json, counters, NULL,
+					 nsstats_xmldesc, ns_statscounter_max,
+					 nsstats_index, nsstat_values, 0);
+		if (result != ISC_R_SUCCESS) {
+			json_object_put(counters);
+			goto cleanup;
+		}
+
+		/* Add highwater stats to the same nsstats section */
+		uint64_t nshighwaterstat_values[ns_highwater_max];
+		result = dump_stats(server->sctx->nshighwaterstats,
 				    isc_statsformat_json, counters, NULL,
-				    nsstats_xmldesc, ns_statscounter_max,
-				    nsstats_index, nsstat_values, 0);
+				    nshighwaterstats_xmldesc, ns_highwater_max,
+				    nshighwaterstats_index,
+				    nshighwaterstat_values, 0);
 		if (result != ISC_R_SUCCESS) {
 			json_object_put(counters);
 			goto cleanup;
@@ -3160,7 +3229,7 @@ generatejson(named_server_t *server, size_t *msglen, const char **msg,
 
 			if ((flags & STATS_JSON_SERVER) != 0) {
 				json_object *res = NULL;
-				dns_stats_t *dstats = NULL;
+				isc_statsmulti_t *dstats = NULL;
 				isc_stats_t *istats = NULL;
 
 				res = json_object_new_object();
@@ -3209,18 +3278,19 @@ generatejson(named_server_t *server, size_t *msglen, const char **msg,
 
 					json_object_object_add(res, "qtypes",
 							       counters);
-					dns_stats_detach(&dstats);
+					isc_statsmulti_detach(&dstats);
 				}
 
-				dstats = dns_db_getrrsetstats(view->cachedb);
-				if (dstats != NULL) {
+				dns_stats_t *rrsetstats =
+					dns_db_getrrsetstats(view->cachedb);
+				if (rrsetstats != NULL) {
 					counters = json_object_new_object();
 					CHECKMEM(counters);
 
 					dumparg.arg = counters;
 					dumparg.result = ISC_R_SUCCESS;
 					dns_rdatasetstats_dump(
-						dstats, rdatasetstats_dump,
+						rrsetstats, rdatasetstats_dump,
 						&dumparg, 0);
 					if (dumparg.result != ISC_R_SUCCESS) {
 						json_object_put(counters);
@@ -4099,7 +4169,7 @@ named_stats_dump(named_server_t *server, FILE *fp) {
 
 	fprintf(fp, "++ Outgoing Queries ++\n");
 	ISC_LIST_FOREACH(server->viewlist, view, link) {
-		dns_stats_t *dstats = NULL;
+		isc_statsmulti_t *dstats = NULL;
 		dns_resolver_getquerystats(view->resolver, &dstats);
 		if (dstats == NULL) {
 			continue;
@@ -4110,13 +4180,19 @@ named_stats_dump(named_server_t *server, FILE *fp) {
 			fprintf(fp, "[View: %s]\n", view->name);
 		}
 		dns_rdatatypestats_dump(dstats, rdtypestat_dump, &dumparg, 0);
-		dns_stats_detach(&dstats);
+		isc_statsmulti_detach(&dstats);
 	}
 
 	fprintf(fp, "++ Name Server Statistics ++\n");
-	(void)dump_stats(ns_stats_get(server->sctx->nsstats),
-			 isc_statsformat_file, fp, NULL, nsstats_desc,
-			 ns_statscounter_max, nsstats_index, nsstat_values, 0);
+	(void)dump_statsmulti(server->sctx->nsstats, isc_statsformat_file, fp,
+			      NULL, nsstats_desc, ns_statscounter_max,
+			      nsstats_index, nsstat_values, 0);
+
+	/* Add highwater stats to the same Name Server Statistics section */
+	uint64_t nshighwaterstat_values[ns_highwater_max];
+	(void)dump_stats(server->sctx->nshighwaterstats, isc_statsformat_file,
+			 fp, NULL, nshighwaterstats_desc, ns_highwater_max,
+			 nshighwaterstats_index, nshighwaterstat_values, 0);
 
 	fprintf(fp, "++ Zone Maintenance Statistics ++\n");
 	(void)dump_stats(server->zonestats, isc_statsformat_file, fp, NULL,

@@ -17,6 +17,7 @@
 
 #include <isc/mem.h>
 #include <isc/stats.h>
+#include <isc/statsmulti.h>
 
 #include <ns/types.h>
 
@@ -66,91 +67,94 @@ enum {
 	ns_statscounter_updatefail = 34,
 	ns_statscounter_updatebadprereq = 35,
 
-	ns_statscounter_recursclients = 36,
+	ns_statscounter_dns64 = 36,
 
-	ns_statscounter_dns64 = 37,
+	ns_statscounter_ratedropped = 37,
+	ns_statscounter_rateslipped = 38,
 
-	ns_statscounter_ratedropped = 38,
-	ns_statscounter_rateslipped = 39,
+	ns_statscounter_rpz_rewrites = 39,
 
-	ns_statscounter_rpz_rewrites = 40,
+	ns_statscounter_udp = 40,
+	ns_statscounter_tcp = 41,
 
-	ns_statscounter_udp = 41,
-	ns_statscounter_tcp = 42,
+	ns_statscounter_nsidopt = 42,
+	ns_statscounter_expireopt = 43,
+	ns_statscounter_otheropt = 44,
+	ns_statscounter_ecsopt = 45,
+	ns_statscounter_padopt = 46,
+	ns_statscounter_keepaliveopt = 47,
+	ns_statscounter_zoneversionopt = 48,
 
-	ns_statscounter_nsidopt = 43,
-	ns_statscounter_expireopt = 44,
-	ns_statscounter_otheropt = 45,
-	ns_statscounter_ecsopt = 46,
-	ns_statscounter_padopt = 47,
-	ns_statscounter_keepaliveopt = 48,
-	ns_statscounter_zoneversionopt = 49,
+	ns_statscounter_nxdomainredirect = 49,
+	ns_statscounter_nxdomainredirect_rlookup = 50,
 
-	ns_statscounter_nxdomainredirect = 50,
-	ns_statscounter_nxdomainredirect_rlookup = 51,
+	ns_statscounter_cookiein = 51,
+	ns_statscounter_cookiebadsize = 52,
+	ns_statscounter_cookiebadtime = 53,
+	ns_statscounter_cookienomatch = 54,
+	ns_statscounter_cookiematch = 55,
+	ns_statscounter_cookienew = 56,
+	ns_statscounter_badcookie = 57,
 
-	ns_statscounter_cookiein = 52,
-	ns_statscounter_cookiebadsize = 53,
-	ns_statscounter_cookiebadtime = 54,
-	ns_statscounter_cookienomatch = 55,
-	ns_statscounter_cookiematch = 56,
-	ns_statscounter_cookienew = 57,
-	ns_statscounter_badcookie = 58,
+	ns_statscounter_nxdomainsynth = 58,
+	ns_statscounter_nodatasynth = 59,
+	ns_statscounter_wildcardsynth = 60,
 
-	ns_statscounter_nxdomainsynth = 59,
-	ns_statscounter_nodatasynth = 60,
-	ns_statscounter_wildcardsynth = 61,
+	ns_statscounter_trystale = 61,
+	ns_statscounter_usedstale = 62,
 
-	ns_statscounter_trystale = 62,
-	ns_statscounter_usedstale = 63,
+	ns_statscounter_prefetch = 63,
+	ns_statscounter_keytagopt = 64,
 
-	ns_statscounter_prefetch = 64,
-	ns_statscounter_keytagopt = 65,
+	ns_statscounter_reclimitdropped = 65,
 
-	ns_statscounter_tcphighwater = 66,
+	ns_statscounter_updatequota = 66,
+	ns_statscounter_dot = 67,
+	ns_statscounter_doh = 68,
+	ns_statscounter_dohplain = 69,
 
-	ns_statscounter_reclimitdropped = 67,
+	ns_statscounter_proxyudp = 70,
+	ns_statscounter_proxytcp = 71,
+	ns_statscounter_proxydot = 72,
+	ns_statscounter_proxydoh = 73,
+	ns_statscounter_proxydohplain = 74,
+	ns_statscounter_encryptedproxydot = 75,
+	ns_statscounter_encryptedproxydoh = 76,
 
-	ns_statscounter_updatequota = 68,
+	ns_statscounter_max = 77,
+};
 
-	ns_statscounter_recurshighwater = 69,
+/*%
+ * Highwater statistics counters. Used as isc_statscounter_t values
+ * for the separate highwater stats structure.
+ */
+enum {
+	ns_highwater_tcp = 0,
+	ns_highwater_recursive = 1,
+	ns_highwater_recursclients = 2,
 
-	ns_statscounter_dot = 70,
-	ns_statscounter_doh = 71,
-	ns_statscounter_dohplain = 72,
-
-	ns_statscounter_proxyudp = 73,
-	ns_statscounter_proxytcp = 74,
-	ns_statscounter_proxydot = 75,
-	ns_statscounter_proxydoh = 76,
-	ns_statscounter_proxydohplain = 77,
-	ns_statscounter_encryptedproxydot = 78,
-	ns_statscounter_encryptedproxydoh = 79,
-
-	ns_statscounter_max = 80,
+	ns_highwater_max = 3,
 };
 
 void
-ns_stats_attach(ns_stats_t *stats, ns_stats_t **statsp);
+ns_stats_create(isc_mem_t *mctx, isc_statsmulti_t **statsp,
+		isc_stats_t **hwstatsp);
 
 void
-ns_stats_detach(ns_stats_t **statsp);
+ns_stats_increment(isc_statsmulti_t *stats, isc_statscounter_t counter);
 
 void
-ns_stats_create(isc_mem_t *mctx, int ncounters, ns_stats_t **statsp);
-
-isc_statscounter_t
-ns_stats_increment(ns_stats_t *stats, isc_statscounter_t counter);
+ns_stats_decrement(isc_statsmulti_t *stats, isc_statscounter_t counter);
 
 void
-ns_stats_decrement(ns_stats_t *stats, isc_statscounter_t counter);
-
-isc_stats_t *
-ns_stats_get(ns_stats_t *stats);
-
-void
-ns_stats_update_if_greater(ns_stats_t *stats, isc_statscounter_t counter,
+ns_stats_update_if_greater(isc_stats_t *hwstats, isc_statscounter_t counter,
 			   isc_statscounter_t value);
 
 isc_statscounter_t
-ns_stats_get_counter(ns_stats_t *stats, isc_statscounter_t counter);
+ns_stats_get_counter(isc_statsmulti_t *stats, isc_statscounter_t counter);
+
+isc_statscounter_t
+ns_stats_get_highwater(isc_stats_t *hwstats, isc_statscounter_t counter);
+
+void
+ns_stats_reset_highwater(isc_stats_t *hwstats, isc_statscounter_t counter);

@@ -933,9 +933,9 @@ run_hookasync_test(const ns__query_hookasync_test_params_t *test) {
 		/* Confirm necessary cleanup has been performed. */
 		INSIST(qctx->client->query.hookasyncctx == NULL);
 		INSIST(qctx->client->inner.state == NS_CLIENTSTATE_WORKING);
-		INSIST(ns_stats_get_counter(
-			       qctx->client->manager->sctx->nsstats,
-			       ns_statscounter_recursclients) == 0);
+		INSIST(isc_stats_get_counter(
+			       qctx->client->manager->sctx->nshighwaterstats,
+			       ns_highwater_recursclients) == 0);
 		INSIST(!ISC_LINK_LINKED(qctx->client, inner.rlink));
 		if (!test->do_cancel) {
 			/*
