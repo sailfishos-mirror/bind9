@@ -77,8 +77,6 @@
 #define ADB_STALE_MARGIN 1800
 #endif /* ifndef ADB_STALE_MARGIN */
 
-#define DNS_ADB_MINADBSIZE (1024U * 1024U) /*%< 1 Megabyte */
-
 typedef ISC_LIST(dns_adbname_t) dns_adbnamelist_t;
 typedef struct dns_adbnamehook dns_adbnamehook_t;
 typedef ISC_LIST(dns_adbnamehook_t) dns_adbnamehooklist_t;
@@ -2258,8 +2256,6 @@ dns_adb_dump(dns_adb_t *adb, FILE *f) {
 		return;
 	}
 
-	cleanup_names(adb, now);
-	cleanup_entries(adb, now);
 	dump_adb(adb, f, false, now);
 
 	rcu_read_unlock();
@@ -2293,7 +2289,19 @@ dump_adb(dns_adb_t *adb, FILE *f, bool debug, isc_stdtime_t now) {
 	 */
 	dns_adbname_t *adbname = NULL;
 	cds_lfht_for_each_entry(adb->names_ht, &iter, adbname, ht_node) {
+		dns_adbname_ref(adbname);
 		LOCK(&adbname->lock);
+
+		/*
+		 * Lazily expire stale name hooks and names while dumping.
+		 */
+		maybe_expire_namehooks(adbname, now);
+		if (maybe_expire_name(adbname, now)) {
+			UNLOCK(&adbname->lock);
+			dns_adbname_detach(&adbname);
+			continue;
+		}
+
 		/*
 		 * Dump the names
 		 */
@@ -2320,17 +2328,25 @@ dump_adb(dns_adb_t *adb, FILE *f, bool debug, isc_stdtime_t now) {
 			print_find_list(f, adbname);
 		}
 		UNLOCK(&adbname->lock);
+		dns_adbname_detach(&adbname);
 	}
 
 	dns_adbentry_t *adbentry = NULL;
 
 	fprintf(f, ";\n; Unassociated entries\n;\n");
 	cds_lfht_for_each_entry(adb->entries_ht, &iter, adbentry, ht_node) {
+		dns_adbentry_ref(adbentry);
 		LOCK(&adbentry->lock);
+		if (maybe_expire_entry(adbentry, now)) {
+			UNLOCK(&adbentry->lock);
+			dns_adbentry_detach(&adbentry);
+			continue;
+		}
 		if (ISC_LIST_EMPTY(adbentry->nhs)) {
 			dump_entry(f, adb, adbentry, debug, now);
 		}
 		UNLOCK(&adbentry->lock);
+		dns_adbentry_detach(&adbentry);
 	}
 }
 

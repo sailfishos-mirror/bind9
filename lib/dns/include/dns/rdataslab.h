@@ -45,7 +45,6 @@
 #include <stdbool.h>
 
 #include <isc/atomic.h>
-#include <isc/heap.h>
 #include <isc/stdtime.h>
 #include <isc/urcu.h>
 
@@ -96,10 +95,6 @@ struct dns_slabheader {
 	 */
 	isc_stdtime_t  expire;
 	dns_typepair_t typepair;
-
-	/* TTL-cleaning (cache) */
-	unsigned int heap_index;
-	isc_heap_t  *heap;
 
 	dns_slabheader_proof_t *noqname;
 	dns_slabheader_proof_t *closest;
@@ -191,10 +186,8 @@ dns_rdataslab_fromrdataset(dns_rdataset_t *rdataset, isc_mem_t *mctx,
  *
  * dns_rdataslab_fromrdataset() allocates space for a dns_slabheader object
  * and the memory needed for a raw slab, and partially initializes
- * it, setting the type, trust, and TTL fields to match rdataset->type,
- * rdataset->covers, rdataset->trust, and rdataset->ttl.  (Note that the
- * last field needs to be overridden when used in the cache database,
- * since cache headers use an expire time instead of a TTL.)
+ * it, setting the type, and trust fields to match rdataset->type,
+ * rdataset->covers, and rdataset->trust.
  *
  * Requires:
  *\li	'rdataset' is valid.

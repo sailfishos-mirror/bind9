@@ -52,6 +52,12 @@
 
 #include <dns/types.h>
 
+/*
+ * DNS_CACHE_MINSIZE is how many bytes is the floor for
+ * dns_cache_setcachesize().
+ */
+#define DNS_CACHE_MINSIZE UINT64_C(2 * 1024 * 1024) /*%< Bytes. 2 MB */
+
 /***
  ***	Functions
  ***/
@@ -130,7 +136,7 @@ dns_cache_getname(dns_cache_t *cache);
 void
 dns_cache_setcachesize(dns_cache_t *cache, size_t size);
 /*%<
- * Set the maximum cache size.  0 means unlimited.
+ * Set the maximum cache size.
  */
 
 size_t
