@@ -203,6 +203,7 @@ struct update_event {
 	dns_zone_t *zone;
 	isc_result_t result;
 	dns_message_t *answer;
+	dns_ssutable_t *ssutable;
 	unsigned int *maxbytype;
 	size_t maxbytypelen;
 };
@@ -1850,9 +1851,9 @@ send_update_event(ns_client_t *client, dns_zone_t *zone) {
 		sizeof(*event));
 	event->zone = zone;
 	event->result = ISC_R_SUCCESS;
-	event->maxbytype = maxbytype;
+	event->ssutable = MOVE_OWNERSHIP(ssutable);
+	event->maxbytype = MOVE_OWNERSHIP(maxbytype);
 	event->maxbytypelen = maxbytypelen;
-	maxbytype = NULL;
 
 	INSIST(client->nupdates == 0);
 	client->nupdates++;
@@ -2840,6 +2841,7 @@ update_action(isc_task_t *task, isc_event_t *event) {
 	update_event_t *uev = (update_event_t *)event;
 	dns_zone_t *zone = uev->zone;
 	ns_client_t *client = (ns_client_t *)event->ev_arg;
+	dns_ssutable_t *ssutable = uev->ssutable;
 	unsigned int *maxbytype = uev->maxbytype;
 	size_t update = 0, maxbytypelen = uev->maxbytypelen;
 	isc_result_t result;
@@ -2854,7 +2856,6 @@ update_action(isc_task_t *task, isc_event_t *event) {
 	dns_message_t *request = client->message;
 	dns_rdataclass_t zoneclass;
 	dns_name_t *zonename = NULL;
-	dns_ssutable_t *ssutable = NULL;
 	dns_fixedname_t tmpnamefixed;
 	dns_name_t *tmpname = NULL;
 	dns_zoneopt_t options;
@@ -2874,7 +2875,6 @@ update_action(isc_task_t *task, isc_event_t *event) {
 	CHECK(dns_zone_getdb(zone, &db));
 	zonename = dns_db_origin(db);
 	zoneclass = dns_db_class(db);
-	dns_zone_getssutable(zone, &ssutable);
 	options = dns_zone_getoptions(zone);
 
 	/*
