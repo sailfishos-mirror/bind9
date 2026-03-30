@@ -1452,6 +1452,8 @@ selfsigned_dnskey(dns_validator_t *val) {
 					dst_key_free(&dstkey);
 					return ISC_R_QUOTA;
 				}
+				consume_validation(val);
+
 				result = dns_dnssec_verify(
 					name, rdataset, dstkey, true,
 					val->view->maxbits, mctx, &sigrdata,
@@ -1461,11 +1463,10 @@ selfsigned_dnskey(dns_validator_t *val) {
 				case DNS_R_SIGEXPIRED:
 					/*
 					 * Temporal errors don't count towards
-					 * max validations nor max fails.
+					 * max fails.
 					 */
 					break;
 				case ISC_R_SUCCESS:
-					consume_validation(val);
 					/*
 					 * The key with the REVOKE flag has
 					 * self signed the RRset so it is no
@@ -1474,7 +1475,6 @@ selfsigned_dnskey(dns_validator_t *val) {
 					dns_view_untrust(val->view, name, &key);
 					break;
 				default:
-					consume_validation(val);
 					if (over_max_fails(val)) {
 						dst_key_free(&dstkey);
 						return ISC_R_QUOTA;
@@ -1515,7 +1515,7 @@ verify(dns_validator_t *val, dst_key_t *key, dns_rdata_t *rdata,
 	isc_result_t result;
 	dns_fixedname_t fixed;
 	bool ignore = false;
-	dns_name_t *wild;
+	dns_name_t *wild = dns_fixedname_initname(&fixed);
 
 	if (DNS_TRUST_SECURE(val->rdataset->trust)) {
 		/*
@@ -1528,7 +1528,7 @@ verify(dns_validator_t *val, dst_key_t *key, dns_rdata_t *rdata,
 	if (over_max_validations(val)) {
 		return ISC_R_QUOTA;
 	}
-	wild = dns_fixedname_initname(&fixed);
+	consume_validation(val);
 
 again:
 	result = dns_dnssec_verify(val->name, val->rdataset, key, ignore,
@@ -1579,8 +1579,7 @@ again:
 	case DNS_R_SIGFUTURE:
 	case DNS_R_SIGEXPIRED:
 		/*
-		 * Temporal errors don't count towards max validations nor max
-		 * fails.
+		 * Temporal errors don't count towards max fails.
 		 */
 		validator_addede(val,
 				 result == DNS_R_SIGEXPIRED
@@ -1589,10 +1588,8 @@ again:
 				 NULL);
 		break;
 	case ISC_R_SUCCESS:
-		consume_validation(val);
 		break;
 	default:
-		consume_validation(val);
 		if (over_max_fails(val)) {
 			result = ISC_R_QUOTA;
 			break;
