@@ -17,9 +17,10 @@ Security Fixes
 
 - Fix crash when reconfiguring zone update policy during active updates.
 
-  Fixed a crash that could occur when running rndc reconfig to change a
-  zone's update policy (e.g., from allow-update to update-policy) while
-  DNS UPDATE requests were being processed for that zone.
+  We fixed a crash that could occur when running :option:`rndc reconfig`
+  to change a zone's update policy (e.g., from :any:`allow-update` to
+  :any:`update-policy`) while DNS UPDATE requests were being processed
+  for that zone.
 
   ISC would like to thank Vitaly Simonovich for bringing this issue to
   our attention. :gl:`#5817`
@@ -27,20 +28,16 @@ Security Fixes
 Bug Fixes
 ~~~~~~~~~
 
-- Fix a crash triggered by rndc modzone on zone from configuration file.
+- Fix a crash triggered by :option:`rndc modzone` on a zone from a
+  configuration file.
 
-  Calling `rndc modzone` on a zone that was configured in the
-  configuration file caused a crash. This has been fixed.
+  Calling :option:`rndc modzone` on a zone that was configured in the
+  configuration file caused a crash. This has been fixed. :gl:`#5800`
 
-  ISC would like to thank Nathan Reilly for reporting this. :gl:`#5800`
+- Fix a crash triggered by :option:`rndc modzone` on zone that already
+  existed in NZF file.
 
-- Fix a crash triggered by rndc modzone on zone that already existed in
-  NZF file.
-
-  Calling `rndc modzone` didn't work properly for a zone hat was
-  configured in  the configuration file. It could crash if BIND 9 was
-  built without LMDB or if  there was already an NZF file for the zone.
-  In addition, `rndc modzone` failed in subsequent attempts. These
-  problems are now fixed. :gl:`#5826`
-
-
+  Calling :option:`rndc modzone` didn't work properly for a zone that
+  was configured in the configuration file. It could crash if BIND 9 was
+  built without LMDB or if there was already an NZF file for the zone.
+  This has been fixed. :gl:`#5826`
