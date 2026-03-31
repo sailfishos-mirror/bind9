@@ -99,12 +99,6 @@ Bug Fixes
   these tasks, ensuring they execute on their designated threads and
   preventing the crashes. :gl:`#4882`
 
-- Fix NTA (Negative Trust Anchor) expiration issue.
-
-  When a configured NTA for a name expired, any possibly cached data for
-  the name (with an "insecure" DNSSEC validation result) was not flushed
-  from the resolver's cache. This has been fixed. :gl:`#5747`
-
 - Count temporal problems with DNSSEC validation as attempts.
 
   After the KeyTrap vulnerability :cve:`2023-50387`, any temporal
