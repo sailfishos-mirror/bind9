@@ -80,13 +80,6 @@ Bug Fixes
   tasks, ensuring they execute on their designated threads and
   preventing the crashes. :gl:`#4882` :gl:`!11684`
 
-- Fix NTA (Negative Trust Anchor) expiration issue. ``c009a48ed55``
-
-  When a configured NTA for a name expired, any possibly cached data for
-  the name (with "insecure" DNSSEC validation result) was not flushed
-  from the resolver's cache. This has been fixed. :gl:`#5747`
-  :gl:`!11715`
-
 - Count temporal problems with DNSSEC validation as attempts.
   ``e4399fc6b26``
 
