@@ -875,10 +875,11 @@ dns_db_getsize(dns_db_t *db, dns_dbversion_t *version, uint64_t *records,
 }
 
 isc_result_t
-dns_db_setsigningtime(dns_db_t *db, dns_rdataset_t *rdataset,
-		      isc_stdtime_t resign) {
+dns_db_setsigningtime(dns_db_t *db, dns_dbnode_t *node,
+		      dns_rdataset_t *rdataset, isc_stdtime_t resign) {
 	if (db->methods->setsigningtime != NULL) {
-		return (db->methods->setsigningtime)(db, rdataset, resign);
+		return (db->methods->setsigningtime)(db, node, rdataset,
+						     resign);
 	}
 	return ISC_R_NOTIMPLEMENTED;
 }
@@ -1043,7 +1044,8 @@ dns_db_setgluecachestats(dns_db_t *db, isc_stats_t *stats) {
 }
 
 isc_result_t
-dns_db_addglue(dns_db_t *db, dns_dbversion_t *version, dns_rdataset_t *rdataset,
+dns_db_addglue(dns_db_t *db, dns_dbversion_t *version,
+	       const dns_name_t *owner_name, dns_rdataset_t *rdataset,
 	       dns_message_t *msg) {
 	REQUIRE(DNS_DB_VALID(db));
 	REQUIRE((db->attributes & DNS_DBATTR_CACHE) == 0);
@@ -1052,7 +1054,7 @@ dns_db_addglue(dns_db_t *db, dns_dbversion_t *version, dns_rdataset_t *rdataset,
 	REQUIRE(rdataset->type == dns_rdatatype_ns);
 
 	if (db->methods->addglue != NULL) {
-		(db->methods->addglue)(db, version, rdataset, msg);
+		(db->methods->addglue)(db, version, owner_name, rdataset, msg);
 
 		return ISC_R_SUCCESS;
 	}
