@@ -186,13 +186,6 @@ Bug Fixes
   makes the operations natively visible to ThreadSanitizer. :gl:`#5182`
   :gl:`!11719`
 
-- Fix NTA (Negative Trust Anchor) expiration issue. ``7be7dbb7b3d``
-
-  When a configured NTA for a name expired, any possibly cached data for
-  the name (with "insecure" DNSSEC validation result) was not flushed
-  from the resolver's cache. This has been fixed. :gl:`#5747`
-  :gl:`!11597`
-
 - Count temporal problems with DNSSEC validation as attempts.
   ``3b9ad92cddd``
 
