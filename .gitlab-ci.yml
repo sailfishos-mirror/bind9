@@ -1093,7 +1093,6 @@ cross-version-config-tests:
     untracked: true
     expire_in: "1 day"
     when: always
-  allow_failure: true  # GL!11446
 
 # Jobs for regular GCC builds on Alpine Linux 3.23 (amd64)
 
