@@ -178,15 +178,6 @@ process_gsstkey(dns_message_t *msg, dns_name_t *name, dns_rdata_tkey_t *tkeyin,
 		return ISC_R_SUCCESS;
 	}
 
-	/*
-	 * XXXDCL need to check for key expiry per 4.1.1
-	 * XXXDCL need a way to check fully established, perhaps w/key_flags
-	 */
-	result = dns_tsigkey_find(&tsigkey, name, &tkeyin->algorithm, ring);
-	if (result == ISC_R_SUCCESS) {
-		gss_ctx = dst_key_getgssctx(tsigkey->key);
-	}
-
 	intoken = (isc_region_t){ tkeyin->key, tkeyin->keylen };
 	result = dst_gssapi_acceptctx(tctx->gssapi_keytab, &intoken, &outtoken,
 				      &gss_ctx, principal, tctx->mctx);
@@ -209,6 +200,11 @@ process_gsstkey(dns_message_t *msg, dns_name_t *name, dns_rdata_tkey_t *tkeyin,
 		if (tsigkey != NULL) {
 			dns_tsigkey_detach(&tsigkey);
 		}
+		dst_gssapi_deletectx(tctx->mctx, &gss_ctx);
+		tkeyout->error = dns_tsigerror_badkey;
+		tkey_log("process_gsstkey(): "
+			 "completed context with empty principal");
+		return ISC_R_SUCCESS;
 	} else if (tsigkey == NULL) {
 #if HAVE_GSSAPI
 		OM_uint32 gret, minor, lifetime;
@@ -269,6 +265,14 @@ process_gsstkey(dns_message_t *msg, dns_name_t *name, dns_rdata_tkey_t *tkeyin,
 	return ISC_R_SUCCESS;
 
 cleanup:
+	/*
+	 * If dstkey was created, the GSS context was transferred to it
+	 * and will be freed when dstkey is freed.  Otherwise, we must
+	 * delete the GSS context directly to prevent a leak.
+	 */
+	if (dstkey == NULL && gss_ctx != NULL) {
+		dst_gssapi_deletectx(tctx->mctx, &gss_ctx);
+	}
 	if (tsigkey != NULL) {
 		dns_tsigkey_detach(&tsigkey);
 	}
@@ -430,10 +434,26 @@ dns_tkey_processquery(dns_message_t *msg, dns_tkeyctx_t *tctx,
 
 		result = dns_tsigkey_find(&tsigkey, keyname, NULL, ring);
 		if (result == ISC_R_SUCCESS) {
-			tkeyout.error = dns_tsigerror_badname;
-			dns_tsigkey_detach(&tsigkey);
-			break;
-		} else if (result == ISC_R_NOTFOUND) {
+			/*
+			 * RFC 3645 Section 4.1.1: if the key exists
+			 * but has expired, delete it and allow
+			 * re-negotiation.  We use BADKEY rather than
+			 * BADNAME to avoid creating an oracle for key
+			 * name enumeration.
+			 */
+			if (tsigkey->inception != tsigkey->expire &&
+			    tsigkey->expire <= isc_stdtime_now())
+			{
+				dns_tsigkey_delete(tsigkey);
+				dns_tsigkey_detach(&tsigkey);
+				result = ISC_R_NOTFOUND;
+			} else {
+				tkeyout.error = dns_tsigerror_badkey;
+				dns_tsigkey_detach(&tsigkey);
+				break;
+			}
+		}
+		if (result == ISC_R_NOTFOUND || tsigkey == NULL) {
 			CHECK(process_gsstkey(msg, keyname, &tkeyin, tctx,
 					      &tkeyout, ring));
 			break;

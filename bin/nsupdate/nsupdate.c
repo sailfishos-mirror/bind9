@@ -209,6 +209,7 @@ static isc_sockaddr_t *kserver = NULL;
 static char *realm = NULL;
 static char servicename[DNS_NAME_FORMATSIZE];
 static dns_name_t *keyname;
+static char *user_tkey_name = NULL;
 typedef struct nsu_gssinfo {
 	dns_message_t *msg;
 	isc_sockaddr_t *addr;
@@ -2327,6 +2328,21 @@ do_next_command(char *cmdline) {
 #endif /* HAVE_GSSAPI */
 		return STATUS_MORE;
 	}
+	if (strcasecmp(word, "tkeyname") == 0) {
+#if HAVE_GSSAPI
+		if (user_tkey_name != NULL) {
+			isc_mem_free(isc_g_mctx, user_tkey_name);
+		}
+
+		word = nsu_strsep(&cmdline, " \t\r\n");
+		if (word != NULL && *word != 0) {
+			user_tkey_name = isc_mem_strdup(isc_g_mctx, word);
+		}
+#else  /* HAVE_GSSAPI */
+		fprintf(stderr, "gsstsig not supported\n");
+#endif /* HAVE_GSSAPI */
+		return STATUS_MORE;
+	}
 	if (strcasecmp(word, "oldgsstsig") == 0) {
 #if HAVE_GSSAPI
 		usegsstsig = true;
@@ -3089,10 +3105,14 @@ start_gssrequest(dns_name_t *primary) {
 
 	keyname = dns_fixedname_initname(&fkname);
 
-	isc_nonce_buf(&val, sizeof(val));
-
-	result = snprintf(mykeystr, sizeof(mykeystr), "%u.sig-%s", val,
-			  namestr);
+	if (user_tkey_name != NULL) {
+		result = snprintf(mykeystr, sizeof(mykeystr), "%s",
+				  user_tkey_name);
+	} else {
+		isc_nonce_buf(&val, sizeof(val));
+		result = snprintf(mykeystr, sizeof(mykeystr), "%u.sig-%s", val,
+				  namestr);
+	}
 	RUNTIME_CHECK(result <= sizeof(mykeystr));
 
 	isc_buffer_init(&buf, mykeystr, strlen(mykeystr));
@@ -3437,6 +3457,9 @@ cleanup(void) {
 	}
 	if (realm != NULL) {
 		isc_mem_free(isc_g_mctx, realm);
+	}
+	if (user_tkey_name != NULL) {
+		isc_mem_free(isc_g_mctx, user_tkey_name);
 	}
 	if (dns_name_dynamic(&tmpzonename)) {
 		dns_name_free(&tmpzonename, isc_g_mctx);
