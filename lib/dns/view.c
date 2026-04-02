@@ -1140,19 +1140,14 @@ dns_view_bestzonecut(dns_view_t *view, const dns_name_t *name,
 		     unsigned int options, bool usehints, bool usecache,
 		     dns_delegset_t **delegsetp) {
 	isc_result_t result;
-	dns_rdataset_t rdatasetdata = DNS_RDATASET_INIT;
-	dns_rdataset_t *rdataset = NULL;
+	dns_rdataset_t rdataset = DNS_RDATASET_INIT;
 
 	REQUIRE(DNS_VIEW_VALID(view));
 	REQUIRE(view->frozen);
-
-	if (delegsetp != NULL) {
-		REQUIRE(*delegsetp == NULL);
-		rdataset = &rdatasetdata;
-	}
+	REQUIRE(delegsetp == NULL || *delegsetp == NULL);
 
 	result = bestzonecut_zone(view, name, fname, dcname, now, options,
-				  rdataset);
+				  &rdataset);
 
 	if (result == DNS_R_NXDOMAIN && usecache) {
 		/*
@@ -1167,14 +1162,14 @@ dns_view_bestzonecut(dns_view_t *view, const dns_name_t *name,
 		 * cache can have a more precise delegation.
 		 */
 		bestzonecut_zoneorcache(view, name, fname, dcname, now, options,
-					rdataset, delegsetp);
+					&rdataset, delegsetp);
 	}
 
 	/*
 	 * No local zone nor cache match. Last attempt with the hints.
 	 */
 	if (result == DNS_R_NXDOMAIN && usehints) {
-		result = bestzonecut_hints(view, fname, dcname, now, rdataset);
+		result = bestzonecut_hints(view, fname, dcname, now, &rdataset);
 	}
 
 	if (result != ISC_R_SUCCESS) {
@@ -1190,10 +1185,10 @@ dns_view_bestzonecut(dns_view_t *view, const dns_name_t *name,
 		 * the same, and this avoid adding extra code here to extract
 		 * A/AAAA rdataset if any.
 		 */
-		dns_delegset_fromnsrdataset(rdataset, delegsetp);
+		dns_delegset_fromnsrdataset(&rdataset, delegsetp);
 	}
 
-	dns_rdataset_cleanup(rdataset);
+	dns_rdataset_cleanup(&rdataset);
 	return result;
 }
 
