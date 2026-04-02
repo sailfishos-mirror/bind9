@@ -50,3 +50,17 @@ zone "present" {
 	file "present.db";
 	initial-file "example.db";
 };
+
+template secondary {
+	type secondary;
+	primaries { 10.53.0.1; };
+	file "$name.db";
+};
+
+zone "extra1" {
+	template secondary;
+};
+
+zone "extra2" {
+	template secondary;
+};

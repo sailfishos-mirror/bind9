@@ -57,6 +57,7 @@
 #include <dns/rrl.h>
 #include <dns/secalg.h>
 #include <dns/ssu.h>
+#include <dns/zoneproperties.h>
 
 #include <dst/dst.h>
 
@@ -74,7 +75,9 @@
 static in_port_t dnsport = 53;
 
 static isc_result_t
-fileexist(const cfg_obj_t *obj, isc_symtab_t *symtab, bool writeable);
+fileexist(const cfg_obj_t *obj, const dns_name_t *zonename,
+	  const char *viewname, const char *typename, isc_symtab_t *symtab,
+	  bool writeable, isc_mem_t *mctx);
 
 static isc_result_t
 keydirexist(const cfg_obj_t *zcgf, const char *optname, dns_name_t *zname,
@@ -4186,7 +4189,9 @@ isccfg_check_zoneconf(const cfg_obj_t *zconfig, const cfg_obj_t *voptions,
 			    ztype == CFG_ZONE_MIRROR || ddns ||
 			    has_dnssecpolicy))
 		{
-			tresult = fileexist(fileobj, files, true);
+			tresult = fileexist(fileobj, zname, viewname,
+					    dns_zonetype_name(ztype), files,
+					    true, mctx);
 			if (tresult != ISC_R_SUCCESS && result == ISC_R_SUCCESS)
 			{
 				result = tresult;
@@ -4195,7 +4200,9 @@ isccfg_check_zoneconf(const cfg_obj_t *zconfig, const cfg_obj_t *voptions,
 			   (ztype == CFG_ZONE_PRIMARY ||
 			    ztype == CFG_ZONE_HINT))
 		{
-			tresult = fileexist(fileobj, files, false);
+			tresult = fileexist(fileobj, zname, viewname,
+					    dns_zonetype_name(ztype), files,
+					    false, mctx);
 			if (tresult != ISC_R_SUCCESS && result == ISC_R_SUCCESS)
 			{
 				result = tresult;
@@ -4396,20 +4403,33 @@ typedef enum symtab_file_type {
 } symtab_file_type_t;
 
 static isc_result_t
-fileexist(const cfg_obj_t *obj, isc_symtab_t *symtab, bool writeable) {
+fileexist(const cfg_obj_t *obj, const dns_name_t *zonename,
+	  const char *viewname, const char *typename, isc_symtab_t *symtab,
+	  bool writeable, isc_mem_t *mctx) {
 	isc_result_t result_ro, result_w;
 	isc_symvalue_t symvalue_ro, symvalue_w;
-	unsigned int line;
-	const char *file;
+	const char *filename = cfg_obj_asstring(obj);
+	char buf[PATH_MAX];
+
+	/*
+	 * If the filename contains '$' or "%' characters, it's probably
+	 * a template file and should not be tested for uniqueness.
+	 */
+	if (strpbrk(filename, "%$") != NULL) {
+		isc_buffer_t b;
+		isc_buffer_init(&b, buf, sizeof(buf));
+		dns_zone_expandzonefile(&b, filename, zonename, viewname,
+					typename);
+		filename = buf;
+	}
 
 	/*
 	 * Since symtab doesn't let us query the file type, we need to query
 	 * twice. Once per type.
 	 */
-	result_ro = isc_symtab_lookup(symtab, cfg_obj_asstring(obj), READ_ONLY,
+	result_ro = isc_symtab_lookup(symtab, filename, READ_ONLY,
 				      &symvalue_ro);
-	result_w = isc_symtab_lookup(symtab, cfg_obj_asstring(obj), WRITEABLE,
-				     &symvalue_w);
+	result_w = isc_symtab_lookup(symtab, filename, WRITEABLE, &symvalue_w);
 
 	bool found_read_only = result_ro == ISC_R_SUCCESS;
 	bool found_writable = result_w == ISC_R_SUCCESS;
@@ -4423,8 +4443,8 @@ fileexist(const cfg_obj_t *obj, isc_symtab_t *symtab, bool writeable) {
 						  ? symvalue_ro
 						  : symvalue_w;
 
-		file = cfg_obj_file(symvalue.as_cpointer);
-		line = cfg_obj_line(symvalue.as_cpointer);
+		const char *file = cfg_obj_file(symvalue.as_cpointer);
+		unsigned int line = cfg_obj_line(symvalue.as_cpointer);
 		cfg_obj_log(obj, ISC_LOG_ERROR,
 			    "writeable file '%s': already in use: "
 			    "%s:%u",
@@ -4439,9 +4459,12 @@ fileexist(const cfg_obj_t *obj, isc_symtab_t *symtab, bool writeable) {
 		isc_symvalue_t symvalue =
 			(isc_symvalue_t){ .as_cpointer = obj };
 		symtab_file_type_t type = writeable ? WRITEABLE : READ_ONLY;
-		isc_result_t result =
-			isc_symtab_define(symtab, cfg_obj_asstring(obj), type,
-					  symvalue, isc_symexists_reject);
+		char *key = isc_mem_strdup(mctx, filename);
+		isc_result_t result = isc_symtab_define(
+			symtab, key, type, symvalue, isc_symexists_reject);
+		if (result == ISC_R_EXISTS) {
+			isc_mem_free(mctx, key);
+		}
 		return result;
 	}
 }
@@ -6205,7 +6228,7 @@ isccfg_check_namedconf(const cfg_obj_t *config, unsigned int flags,
 	 * case sensitive. This will prevent people using FOO.DB and foo.db
 	 * on case sensitive file systems but that shouldn't be a major issue.
 	 */
-	isc_symtab_create(mctx, NULL, NULL, false, &files);
+	isc_symtab_create(mctx, freekey, mctx, false, &files);
 	isc_symtab_create(mctx, freekey, mctx, false, &keydirs);
 	isc_symtab_create(mctx, freekey, mctx, true, &inview);
 
