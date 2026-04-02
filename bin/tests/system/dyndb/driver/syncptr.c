@@ -42,6 +42,7 @@
 #include <dns/name.h>
 #include <dns/view.h>
 #include <dns/zone.h>
+#include <dns/zoneproperties.h>
 
 #include "instance.h"
 #include "util.h"

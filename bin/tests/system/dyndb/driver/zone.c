@@ -40,6 +40,7 @@
 #include <dns/dyndb.h>
 #include <dns/view.h>
 #include <dns/zone.h>
+#include <dns/zoneproperties.h>
 
 #include "instance.h"
 #include "log.h"

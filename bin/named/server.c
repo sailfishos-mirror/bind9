@@ -103,6 +103,7 @@
 #include <dns/ttl.h>
 #include <dns/view.h>
 #include <dns/zone.h>
+#include <dns/zoneproperties.h>
 #include <dns/zt.h>
 
 #include <dst/dst.h>
@@ -6281,7 +6282,7 @@ configure_zone(const cfg_obj_t *config, const cfg_obj_t *zconfig,
 	if (inline_signing) {
 		dns_zone_getraw(zone, &raw);
 		if (raw == NULL) {
-			dns_zone_create(&raw, dns_zone_getmem(zone),
+			dns_zone_create(&raw, dns_zone_getmctx(zone),
 					dns_zone_gettid(zone));
 			dns_zone_setorigin(raw, origin);
 			dns_zone_setview(raw, view);

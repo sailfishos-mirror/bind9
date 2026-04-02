@@ -29,6 +29,7 @@
 
 #include <dns/lib.h>
 #include <dns/view.h>
+#include <dns/zoneproperties.h>
 
 #include <tests/dns.h>
 

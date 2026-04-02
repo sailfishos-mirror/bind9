@@ -20,6 +20,7 @@
 #include <dns/view.h>
 #include <dns/zone.h>
 #include <dns/zonefetch.h>
+#include <dns/zoneproperties.h>
 
 #include "zone_p.h"
 
