@@ -24,6 +24,5 @@ typedef struct dns_rdata_nsec3param {
 	dns_hash_t hash;
 	unsigned char flags; /* DNS_NSEC3FLAG_* */
 	dns_iterations_t iterations;
-	unsigned char salt_length;
-	unsigned char *salt;
+	isc_region_t salt;
 } dns_rdata_nsec3param_t;

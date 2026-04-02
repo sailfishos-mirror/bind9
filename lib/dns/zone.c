@@ -2956,9 +2956,10 @@ zone_addnsec3chain(dns_zone_t *zone, dns_rdata_nsec3param_t *nsec3param) {
 	nsec3chain->nsec3param.hash = nsec3param->hash;
 	nsec3chain->nsec3param.iterations = nsec3param->iterations;
 	nsec3chain->nsec3param.flags = nsec3param->flags;
-	nsec3chain->nsec3param.salt_length = nsec3param->salt_length;
-	memmove(nsec3chain->salt, nsec3param->salt, nsec3param->salt_length);
-	nsec3chain->nsec3param.salt = nsec3chain->salt;
+	nsec3chain->nsec3param.salt.length = nsec3param->salt.length;
+	memmove(nsec3chain->salt, nsec3param->salt.base,
+		nsec3param->salt.length);
+	nsec3chain->nsec3param.salt.base = nsec3chain->salt;
 	nsec3chain->seen_nsec = false;
 	nsec3chain->delete_nsec = false;
 	nsec3chain->save_delete_nsec = false;
@@ -3018,10 +3019,10 @@ zone_addnsec3chain(dns_zone_t *zone, dns_rdata_nsec3param_t *nsec3param) {
 		    (current->nsec3param.hash == nsec3param->hash) &&
 		    (current->nsec3param.iterations ==
 		     nsec3param->iterations) &&
-		    (current->nsec3param.salt_length ==
-		     nsec3param->salt_length) &&
-		    memcmp(current->nsec3param.salt, nsec3param->salt,
-			   nsec3param->salt_length) == 0)
+		    (current->nsec3param.salt.length ==
+		     nsec3param->salt.length) &&
+		    memcmp(current->nsec3param.salt.base, nsec3param->salt.base,
+			   nsec3param->salt.length) == 0)
 		{
 			current->done = true;
 		}
@@ -6846,9 +6847,9 @@ fixup_nsec3param(dns_db_t *db, dns_dbversion_t *ver, dns_nsec3chain_t *chain,
 		if (nsec3param.hash != chain->nsec3param.hash ||
 		    (active && nsec3param.flags != 0) ||
 		    nsec3param.iterations != chain->nsec3param.iterations ||
-		    nsec3param.salt_length != chain->nsec3param.salt_length ||
-		    memcmp(nsec3param.salt, chain->nsec3param.salt,
-			   nsec3param.salt_length))
+		    nsec3param.salt.length != chain->nsec3param.salt.length ||
+		    memcmp(nsec3param.salt.base, chain->nsec3param.salt.base,
+			   nsec3param.salt.length))
 		{
 			/*
 			 * If the SOA minimum is different to the current TTL,
@@ -6881,10 +6882,11 @@ fixup_nsec3param(dns_db_t *db, dns_dbversion_t *ver, dns_nsec3chain_t *chain,
 			    (active && nsec3param.flags != 0) ||
 			    nsec3param.iterations !=
 				    chain->nsec3param.iterations ||
-			    nsec3param.salt_length !=
-				    chain->nsec3param.salt_length ||
-			    memcmp(nsec3param.salt, chain->nsec3param.salt,
-				   nsec3param.salt_length))
+			    nsec3param.salt.length !=
+				    chain->nsec3param.salt.length ||
+			    memcmp(nsec3param.salt.base,
+				   chain->nsec3param.salt.base,
+				   nsec3param.salt.length))
 			{
 				CHECK(update_one_rr(db, ver, diff,
 						    DNS_DIFFOP_ADD, name, ttl,
@@ -6932,9 +6934,9 @@ try_private:
 		     (nsec3param.flags & DNS_NSEC3FLAG_INITIAL) != 0) ||
 		    nsec3param.hash != chain->nsec3param.hash ||
 		    nsec3param.iterations != chain->nsec3param.iterations ||
-		    nsec3param.salt_length != chain->nsec3param.salt_length ||
-		    memcmp(nsec3param.salt, chain->nsec3param.salt,
-			   nsec3param.salt_length))
+		    nsec3param.salt.length != chain->nsec3param.salt.length ||
+		    memcmp(nsec3param.salt.base, chain->nsec3param.salt.base,
+			   nsec3param.salt.length))
 		{
 			continue;
 		}
@@ -7024,8 +7026,9 @@ deletematchingnsec3(dns_db_t *db, dns_dbversion_t *ver, dns_dbnode_t *node,
 		CHECK(dns_rdata_tostruct(&rdata, &nsec3, NULL));
 		if (nsec3.hash != param->hash ||
 		    nsec3.iterations != param->iterations ||
-		    nsec3.salt_length != param->salt_length ||
-		    memcmp(nsec3.salt, param->salt, nsec3.salt_length))
+		    nsec3.salt.length != param->salt.length ||
+		    memcmp(nsec3.salt.base, param->salt.base,
+			   nsec3.salt.length))
 		{
 			continue;
 		}
@@ -7094,8 +7097,9 @@ need_nsec_chain(dns_db_t *db, dns_dbversion_t *ver,
 		 */
 		if (myparam.hash == param->hash &&
 		    myparam.iterations == param->iterations &&
-		    myparam.salt_length == param->salt_length &&
-		    !memcmp(myparam.salt, param->salt, myparam.salt_length))
+		    myparam.salt.length == param->salt.length &&
+		    !memcmp(myparam.salt.base, param->salt.base,
+			    myparam.salt.length))
 		{
 			continue;
 		}
@@ -20826,7 +20830,7 @@ rss_post(void *arg) {
 		unsigned char saltbuf[255];
 		isc_buffer_t b;
 
-		param.salt = NULL;
+		param.salt = (isc_region_t){ .base = NULL };
 		result = dns__zone_lookup_nsec3param(zone, &np->rdata, &param,
 						     saltbuf, np->resalt);
 		if (result == ISC_R_SUCCESS) {
@@ -20843,13 +20847,13 @@ rss_post(void *arg) {
 			goto cleanup;
 		}
 
-		INSIST(param.salt != NULL);
+		INSIST(param.salt.base != NULL);
 
 		/* Update NSEC3 parameters. */
 		np->rdata.hash = param.hash;
 		np->rdata.flags = param.flags;
 		np->rdata.iterations = param.iterations;
-		np->rdata.salt_length = param.salt_length;
+		np->rdata.salt.length = param.salt.length;
 		np->rdata.salt = param.salt;
 
 		isc_buffer_init(&b, nbuf, sizeof(nbuf));
@@ -21067,12 +21071,12 @@ dns__zone_lookup_nsec3param(dns_zone_t *zone, dns_rdata_nsec3param_t *lookup,
 		if (nsec3param.iterations != lookup->iterations) {
 			continue;
 		}
-		if (nsec3param.salt_length != lookup->salt_length) {
+		if (nsec3param.salt.length != lookup->salt.length) {
 			continue;
 		}
-		if (lookup->salt != NULL) {
-			if (memcmp(nsec3param.salt, lookup->salt,
-				   lookup->salt_length) != 0)
+		if (lookup->salt.base != NULL) {
+			if (memcmp(nsec3param.salt.base, lookup->salt.base,
+				   lookup->salt.length) != 0)
 			{
 				continue;
 			}
@@ -21082,7 +21086,6 @@ dns__zone_lookup_nsec3param(dns_zone_t *zone, dns_rdata_nsec3param_t *lookup,
 		param->hash = nsec3param.hash;
 		param->flags = nsec3param.flags;
 		param->iterations = nsec3param.iterations;
-		param->salt_length = nsec3param.salt_length;
 		param->salt = nsec3param.salt;
 		break;
 	}
@@ -21093,7 +21096,6 @@ setparam:
 		param->hash = lookup->hash;
 		param->flags = lookup->flags;
 		param->iterations = lookup->iterations;
-		param->salt_length = lookup->salt_length;
 		param->salt = lookup->salt;
 	}
 
@@ -21101,31 +21103,31 @@ setparam:
 		CHECK(result);
 	}
 
-	if (param->salt_length == 0) {
-		param->salt = (unsigned char *)"-";
-	} else if (resalt || param->salt == NULL) {
+	if (param->salt.length == 0) {
+		param->salt.base = (unsigned char *)"-";
+	} else if (resalt || param->salt.base == NULL) {
 		unsigned char *newsalt;
 		unsigned char salttext[255 * 2 + 1];
 		do {
 			/* Generate a new salt. */
 			result = dns_nsec3_generate_salt(saltbuf,
-							 param->salt_length);
+							 param->salt.length);
 			if (result != ISC_R_SUCCESS) {
 				break;
 			}
 			newsalt = saltbuf;
-			salt2text(newsalt, param->salt_length, salttext,
+			salt2text(newsalt, param->salt.length, salttext,
 				  sizeof(salttext));
 			dnssec_log(zone, ISC_LOG_INFO, "generated salt: %s",
 				   salttext);
 			/* Check for salt conflict. */
-			if (param->salt != NULL &&
-			    memcmp(newsalt, param->salt, param->salt_length) ==
-				    0)
+			if (param->salt.base != NULL &&
+			    memcmp(newsalt, param->salt.base,
+				   param->salt.length) == 0)
 			{
 				result = ISC_R_SUCCESS;
 			} else {
-				param->salt = newsalt;
+				param->salt.base = newsalt;
 				result = DNS_R_NSEC3RESALT;
 			}
 		} while (result == ISC_R_SUCCESS);
@@ -21170,8 +21172,8 @@ cleanup:
  */
 isc_result_t
 dns_zone_setnsec3param(dns_zone_t *zone, uint8_t hash, uint8_t flags,
-		       uint16_t iter, uint8_t saltlen, unsigned char *salt,
-		       bool replace, bool resalt) {
+		       uint16_t iter, isc_region_t *salt, bool replace,
+		       bool resalt) {
 	isc_result_t result = ISC_R_SUCCESS;
 	dns_rdata_nsec3param_t param, lookup;
 	dns_rdata_t nrdata = DNS_RDATA_INIT;
@@ -21195,9 +21197,8 @@ dns_zone_setnsec3param(dns_zone_t *zone, uint8_t hash, uint8_t flags,
 		lookup.hash = hash;
 		lookup.flags = flags;
 		lookup.iterations = iter;
-		lookup.salt_length = saltlen;
-		lookup.salt = salt;
-		param.salt = NULL;
+		lookup.salt = *salt;
+		param.salt = (isc_region_t){ .base = NULL };
 		result = dns__zone_lookup_nsec3param(zone, &lookup, &param,
 						     saltbuf, resalt);
 		if (result == ISC_R_SUCCESS) {
@@ -21208,7 +21209,7 @@ dns_zone_setnsec3param(dns_zone_t *zone, uint8_t hash, uint8_t flags,
 		 * Schedule lookup if lookup above failed (may happen if
 		 * zone db is NULL for example).
 		 */
-		do_lookup = (param.salt == NULL) ? true : false;
+		do_lookup = (param.salt.base == NULL) ? true : false;
 	}
 
 	npe = isc_mem_get(zone->mctx, sizeof(*npe));
@@ -21236,7 +21237,7 @@ dns_zone_setnsec3param(dns_zone_t *zone, uint8_t hash, uint8_t flags,
 		 */
 		isc_buffer_init(&b, nbuf, sizeof(nbuf));
 
-		if (param.salt != NULL) {
+		if (param.salt.base != NULL) {
 			CHECK(dns_rdata_fromstruct(&nrdata, zone->rdclass,
 						   dns_rdatatype_nsec3param,
 						   &param, &b));
@@ -21250,16 +21251,16 @@ dns_zone_setnsec3param(dns_zone_t *zone, uint8_t hash, uint8_t flags,
 
 		if (isc_log_wouldlog(ISC_LOG_DEBUG(3))) {
 			unsigned char salttext[255 * 2 + 1];
-			if (param.salt != NULL) {
-				salt2text(param.salt, param.salt_length,
+			if (param.salt.base != NULL) {
+				salt2text(param.salt.base, param.salt.length,
 					  salttext, sizeof(salttext));
 			}
 			dnssec_log(zone, ISC_LOG_DEBUG(3),
 				   "setnsec3param:nsec3 %u %u %u %u:%s",
 				   param.hash, param.flags, param.iterations,
-				   param.salt_length,
-				   param.salt == NULL ? "unknown"
-						      : (char *)salttext);
+				   param.salt.length,
+				   param.salt.base == NULL ? "unknown"
+							   : (char *)salttext);
 		}
 	}
 

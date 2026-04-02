@@ -1639,11 +1639,14 @@ named_zone_configure(const cfg_obj_t *config, const cfg_obj_t *vconfig,
 				result = dns_zone_setnsec3param(
 					zone, 1, dns_kasp_nsec3flags(kasp),
 					dns_kasp_nsec3iter(kasp),
-					dns_kasp_nsec3saltlen(kasp), NULL, true,
-					false);
+					&(isc_region_t){
+						.length = dns_kasp_nsec3saltlen(
+							kasp),
+					},
+					true, false);
 			} else {
 				result = dns_zone_setnsec3param(
-					zone, 0, 0, 0, 0, NULL, true, false);
+					zone, 0, 0, 0, NULL, true, false);
 			}
 			INSIST(result == ISC_R_SUCCESS);
 

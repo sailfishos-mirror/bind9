@@ -1887,8 +1887,8 @@ addnsec3param(const unsigned char *salt, size_t salt_len,
 	nsec3param.flags = 0;
 	nsec3param.hash = unknownalg ? DNS_NSEC3_UNKNOWNALG : dns_hash_sha1;
 	nsec3param.iterations = iterations;
-	nsec3param.salt_length = (unsigned char)salt_len;
-	nsec3param.salt = UNCONST(salt);
+	nsec3param.salt.length = (unsigned char)salt_len;
+	nsec3param.salt.base = UNCONST(salt);
 
 	isc_buffer_init(&b, nsec3parambuf, sizeof(nsec3parambuf));
 	result = dns_rdata_fromstruct(&rdata, gclass, dns_rdatatype_nsec3param,
@@ -2045,8 +2045,8 @@ nsec3clean(dns_name_t *name, dns_dbnode_t *node, unsigned int hashalg,
 		check_result(result, "dns_rdata_tostruct");
 		if (exists && nsec3.hash == hashalg &&
 		    nsec3.iterations == iterations &&
-		    nsec3.salt_length == salt_len &&
-		    isc_safe_memequal(nsec3.salt, salt, salt_len))
+		    nsec3.salt.length == salt_len &&
+		    isc_safe_memequal(nsec3.salt.base, salt, salt_len))
 		{
 			continue;
 		}

@@ -12996,8 +12996,9 @@ named_server_signing(named_server_t *server, isc_lex_t *lex,
 	bool resalt = false;
 	uint32_t serial = 0;
 	char keystr[DNS_SECALG_FORMATSIZE + 7]; /* <5-digit keyid>/<alg> */
-	unsigned short hash = 0, flags = 0, iter = 0, saltlen = 0;
-	unsigned char salt[255];
+	unsigned short hash = 0, flags = 0, iter = 0;
+	isc_region_t salt = { 0 };
+	unsigned char saltbuf[255];
 	const char *ptr;
 	size_t n;
 	bool kasp = false;
@@ -13081,14 +13082,15 @@ named_server_signing(named_server_t *server, isc_lex_t *lex,
 				 * 5155 (64 bits). It should be made
 				 * configurable.
 				 */
-				saltlen = 8;
+				salt.length = 8;
 				resalt = true;
 			} else if (strcmp(ptr, "-") != 0) {
 				isc_buffer_t buf;
 
-				isc_buffer_init(&buf, salt, sizeof(salt));
+				isc_buffer_init(&buf, saltbuf, sizeof(saltbuf));
 				CHECK(isc_hex_decodestring(ptr, &buf));
-				saltlen = isc_buffer_usedlength(&buf);
+				salt.base = saltbuf;
+				salt.length = isc_buffer_usedlength(&buf);
 			}
 		}
 	} else if (strcasecmp(ptr, "-serial") == 0) {
@@ -13116,9 +13118,9 @@ named_server_signing(named_server_t *server, isc_lex_t *lex,
 		(void)putstr(text, "request queued");
 		(void)putnull(text);
 	} else if (chain && !kasp) {
-		CHECK(dns_zone_setnsec3param(
-			zone, (uint8_t)hash, (uint8_t)flags, iter,
-			(uint8_t)saltlen, salt, true, resalt));
+		CHECK(dns_zone_setnsec3param(zone, (uint8_t)hash,
+					     (uint8_t)flags, iter, &salt, true,
+					     resalt));
 		(void)putstr(text, "nsec3param request queued");
 		(void)putnull(text);
 	} else if (setserial) {

@@ -95,8 +95,7 @@ make_nsec3(nsec3_testcase_t *testcase, dns_rdata_t *private,
 	params.common.rdtype = dns_rdatatype_nsec3param;
 	params.hash = testcase->hash;
 	params.iterations = testcase->iterations;
-	params.salt = sp;
-	params.salt_length = slen;
+	params.salt = (isc_region_t){ .base = sp, .length = slen };
 
 	params.flags = testcase->flags;
 	if (testcase->remove) {

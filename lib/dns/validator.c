@@ -336,7 +336,7 @@ trynsec3:
 			if (nsec3.hash != 1) {
 				continue;
 			}
-			if (nsec3.next_length > NSEC3_MAX_HASH_LENGTH) {
+			if (nsec3.next.length > NSEC3_MAX_HASH_LENGTH) {
 				continue;
 			}
 			/*
@@ -352,8 +352,9 @@ trynsec3:
 				return ISC_R_SUCCESS;
 			}
 			length = isc_iterated_hash(
-				hash, nsec3.hash, nsec3.iterations, nsec3.salt,
-				nsec3.salt_length, name->ndata, name->length);
+				hash, nsec3.hash, nsec3.iterations,
+				nsec3.salt.base, nsec3.salt.length, name->ndata,
+				name->length);
 			if (length != isc_buffer_usedlength(&buffer)) {
 				continue;
 			}
@@ -370,12 +371,13 @@ trynsec3:
 			/*
 			 * Does this optout span cover the name?
 			 */
-			scope = memcmp(owner, nsec3.next, nsec3.next_length);
+			scope = memcmp(owner, nsec3.next.base,
+				       nsec3.next.length);
 			if ((scope < 0 && order > 0 &&
-			     memcmp(hash, nsec3.next, length) < 0) ||
+			     memcmp(hash, nsec3.next.base, length) < 0) ||
 			    (scope >= 0 &&
 			     (order > 0 ||
-			      memcmp(hash, nsec3.next, length) < 0)))
+			      memcmp(hash, nsec3.next.base, length) < 0)))
 			{
 				dns_rdataset_disassociate(&set);
 				return ISC_R_SUCCESS;

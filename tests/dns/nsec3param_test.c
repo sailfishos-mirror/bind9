@@ -79,14 +79,16 @@ copy_params(nsec3param_rdata_test_params_t from, dns_rdata_nsec3param_t *to,
 	to->hash = from.hash;
 	to->flags = from.flags;
 	to->iterations = from.iterations;
-	to->salt_length = from.salt_length;
 	if (from.salt == NULL) {
-		to->salt = NULL;
+		to->salt = (isc_region_t){ .base = NULL,
+					   .length = from.salt_length };
 	} else if (strcmp(from.salt, "-") == 0) {
-		to->salt = (unsigned char *)"-";
+		to->salt = (isc_region_t){ .base = (unsigned char *)"-",
+					   .length = 0 };
 	} else {
 		decode_salt(from.salt, saltbuf, saltlen);
-		to->salt = saltbuf;
+		to->salt = (isc_region_t){ .base = saltbuf,
+					   .length = from.salt_length };
 	}
 }
 
@@ -143,10 +145,11 @@ nsec3param_change_test(const nsec3param_change_test_params_t *test) {
 	assert_int_equal(param.hash, expect.hash);
 	assert_int_equal(param.flags, expect.flags);
 	assert_int_equal(param.iterations, expect.iterations);
-	assert_int_equal(param.salt_length, expect.salt_length);
-	assert_non_null(param.salt);
-	if (expect.salt != NULL) {
-		int ret = memcmp(param.salt, expect.salt, expect.salt_length);
+	assert_int_equal(param.salt.length, expect.salt.length);
+	assert_non_null(param.salt.base);
+	if (expect.salt.base != NULL) {
+		int ret = memcmp(param.salt.base, expect.salt.base,
+				 expect.salt.length);
 		assert_true(ret == 0);
 	} else {
 		/*
@@ -156,7 +159,7 @@ nsec3param_change_test(const nsec3param_change_test_params_t *test) {
 		unsigned char salt[SALTLEN];
 		int ret;
 		decode_salt(SALT, salt, SALTLEN);
-		ret = memcmp(param.salt, salt, SALTLEN);
+		ret = memcmp(param.salt.base, salt, SALTLEN);
 		assert_false(ret == 0);
 	}
 
