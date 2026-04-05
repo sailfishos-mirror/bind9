@@ -77,6 +77,7 @@ foreach unit : dns_tests
                 meson.project_source_root() / 'bin' / 'tests' / 'system' / 'geoip2' / 'data',
             ),
         ],
+        sources: default_sanitize_options,
         dependencies: [
             libisc_dep,
             libdns_dep,
@@ -95,6 +96,7 @@ foreach unit : dns_tests
         unit,
         test_bin,
         depends: master_data,
+        env: test_env,
         suite: ['dns', 'cmocka'],
         timeout: 300,
         workdir: meson.current_source_dir(),
