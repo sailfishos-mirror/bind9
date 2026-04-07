@@ -245,9 +245,9 @@ validator_done(dns_validator_t *val, isc_result_t result) {
 }
 
 /*%
- * The isdelegation() function is called as part of seeking the DS record.
- * Look in the NSEC or NSEC3 record returned from a DS query to see if the
- * record has the NS bitmap set. If so, we are at a delegation point.
+ * The is_insecure_referral() function is called as part of seeking the DS
+ * record. Look in the NSEC or NSEC3 record returned from a DS query to see if
+ * the record has the NS bitmap set. If so, we are at a delegation point.
  *
  * If the response contains NSEC3 records with too high iterations, we cannot
  * (or rather we are not going to) validate the insecurity proof. Instead we
@@ -255,15 +255,16 @@ validator_done(dns_validator_t *val, isc_result_t result) {
  * the delegation.
  *
  * Returns:
- *\li	#ISC_R_SUCCESS	the NS bitmap was set in the NSEC or NSEC3 record, or
- *			the NSEC3 covers the name (in case of opt-out), or
- *			we cannot validate the insecurity proof and are going
- *			to treat the message as isnecure.
- *\li	#ISC_R_NOTFOUND the NS bitmap was not set,
+ *\li	#true  the NS bitmap was set in the NSEC or NSEC3 record, or
+ *	       the NSEC3 covers the name (in case of opt-out), or
+ *	       we cannot validate the insecurity proof and are going
+ *	       to treat the message as insecure.
+ *\li	#false the NS bitmap was not set.
  */
-static isc_result_t
-isdelegation(dns_validator_t *val, dns_name_t *name, dns_rdataset_t *rdataset,
-	     isc_result_t dbresult, const char *caller) {
+static bool
+is_insecure_referral(dns_validator_t *val, dns_name_t *name,
+		     dns_rdataset_t *rdataset, isc_result_t dbresult,
+		     const char *caller) {
 	dns_fixedname_t fixed;
 	dns_label_t hashlabel;
 	dns_name_t nsec3name;
@@ -290,7 +291,7 @@ isdelegation(dns_validator_t *val, dns_name_t *name, dns_rdataset_t *rdataset,
 			goto trynsec3;
 		}
 		if (result != ISC_R_SUCCESS) {
-			return ISC_R_NOTFOUND;
+			return false;
 		}
 	}
 
@@ -304,7 +305,7 @@ isdelegation(dns_validator_t *val, dns_name_t *name, dns_rdataset_t *rdataset,
 		found = dns_nsec_typepresent(&rdata, dns_rdatatype_ns);
 	}
 	dns_rdataset_disassociate(&set);
-	return found ? ISC_R_SUCCESS : ISC_R_NOTFOUND;
+	return found;
 
 trynsec3:
 	/*
@@ -349,7 +350,7 @@ trynsec3:
 					      "%s: too many iterations",
 					      caller);
 				dns_rdataset_disassociate(&set);
-				return ISC_R_SUCCESS;
+				return true;
 			}
 			length = isc_iterated_hash(
 				hash, nsec3.hash, nsec3.iterations,
@@ -363,7 +364,7 @@ trynsec3:
 				found = dns_nsec3_typepresent(&rdata,
 							      dns_rdatatype_ns);
 				dns_rdataset_disassociate(&set);
-				return found ? ISC_R_SUCCESS : ISC_R_NOTFOUND;
+				return found;
 			}
 			if ((nsec3.flags & DNS_NSEC3FLAG_OPTOUT) == 0) {
 				continue;
@@ -380,12 +381,12 @@ trynsec3:
 			      memcmp(hash, nsec3.next.base, length) < 0)))
 			{
 				dns_rdataset_disassociate(&set);
-				return ISC_R_SUCCESS;
+				return true;
 			}
 		}
 		dns_rdataset_disassociate(&set);
 	}
-	return found ? ISC_R_SUCCESS : ISC_R_NOTFOUND;
+	return found;
 }
 
 static void
@@ -621,10 +622,10 @@ fetch_callback_ds(void *arg) {
 			break;
 		case DNS_R_NXRRSET:
 		case DNS_R_NCACHENXRRSET:
-			result = isdelegation(val, resp->foundname,
-					      &val->frdataset, eresult,
-					      "fetch_callback_ds");
-			if (result == ISC_R_SUCCESS) {
+			if (is_insecure_referral(val, resp->foundname,
+						 &val->frdataset, eresult,
+						 "fetch_callback_ds"))
+			{
 				/*
 				 * Failed to find a DS while trying to prove
 				 * insecurity. If this is a zone cut, that
@@ -741,9 +742,9 @@ validator_callback_ds(void *arg) {
 		if ((val->attributes & VALATTR_INSECURITY) != 0 &&
 		    val->frdataset.covers == dns_rdatatype_ds &&
 		    NEGATIVE(&val->frdataset) &&
-		    isdelegation(val, name, &val->frdataset,
-				 DNS_R_NCACHENXRRSET,
-				 "validator_callback_ds") == ISC_R_SUCCESS)
+		    is_insecure_referral(val, name, &val->frdataset,
+					 DNS_R_NCACHENXRRSET,
+					 "validator_callback_ds"))
 		{
 			result = markanswer(val, "validator_callback_ds");
 		} else if ((val->attributes & VALATTR_INSECURITY) != 0) {
@@ -3314,9 +3315,9 @@ seek_ds(dns_validator_t *val, isc_result_t *resp) {
 			return ISC_R_COMPLETE;
 		}
 
-		result = isdelegation(val, tname, &val->frdataset, result,
-				      "seek_ds");
-		if (result == ISC_R_SUCCESS) {
+		if (is_insecure_referral(val, tname, &val->frdataset, result,
+					 "seek_ds"))
+		{
 			*resp = markanswer(val, "seek_ds (3)");
 			return ISC_R_COMPLETE;
 		}
