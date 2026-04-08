@@ -36,6 +36,7 @@
 #include <dns/transport.h>
 #include <dns/view.h>
 #include <dns/xfrin.h>
+#include <dns/zonemgr.h>
 #include <dns/zoneproperties.h>
 #include <dns/zt.h>
 
@@ -4294,9 +4295,9 @@ named_stats_dump(named_server_t *server, FILE *fp) {
 
 	fprintf(fp, "++ Per Zone Query Statistics ++\n");
 	zone = NULL;
-	for (result = dns_zone_first(server->zonemgr, &zone);
-	     result == ISC_R_SUCCESS;
-	     next = NULL, result = dns_zone_next(zone, &next), zone = next)
+	for (result = dns_zonemgr_first_zone(server->zonemgr, &zone);
+	     result == ISC_R_SUCCESS; next = NULL,
+	    result = dns_zonemgr_next_zone(zone, &next), zone = next)
 	{
 		isc_stats_t *zonestats = dns_zone_getrequeststats(zone);
 		if (zonestats != NULL) {
@@ -4323,9 +4324,9 @@ named_stats_dump(named_server_t *server, FILE *fp) {
 
 	fprintf(fp, "++ Per Zone Glue Cache Statistics ++\n");
 	zone = NULL;
-	for (result = dns_zone_first(server->zonemgr, &zone);
-	     result == ISC_R_SUCCESS;
-	     next = NULL, result = dns_zone_next(zone, &next), zone = next)
+	for (result = dns_zonemgr_first_zone(server->zonemgr, &zone);
+	     result == ISC_R_SUCCESS; next = NULL,
+	    result = dns_zonemgr_next_zone(zone, &next), zone = next)
 	{
 		isc_stats_t *gluecachestats = dns_zone_getgluecachestats(zone);
 		if (gluecachestats != NULL) {
