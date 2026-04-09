@@ -40,10 +40,10 @@ confidential!
   - [ ] [:link:][step_earliest_prepare]  **(Support)** Prepare "earliest" notification text
   - [ ] [:link:][step_earliest_send]     **(Support)** Update "earliest" notification ticket in support portal Earliest queue which will notify earliest customers
   - [ ] [:link:][step_advisory_mr]       **(Support)** Create a merge request for the Security Advisory and include all readily available information in it
-  - [ ] [:link:][step_reproducer_mr]     **(SwEng)** Prepare a private merge request containing a system test reproducing the problem
+  - [ ] [:link:][step_reproducer]        **(SwEng)** Prepare a private merge request containing a system test reproducing the problem
   - [ ] [:link:][step_notify_support]    **(SwEng)** Notify Support when a reproducer is ready
   - [ ] [:link:][step_code_analysis]     **(SwEng)** Prepare a detailed explanation of the code flow triggering the problem
-  - [ ] [:link:][step_fix_mr]            **(SwEng)** Prepare a private merge request with the fix
+  - [ ] [:link:][step_fix]               **(SwEng)** Prepare a fix and push it as a separate commit to the merge request with the reproducer
   - [ ] [:link:][step_review_fix]        **(SwEng)** Ensure the merge request with the fix is reviewed and has no outstanding discussions
   - [ ] [:link:][step_review_docs]       **(Support)** Review the documentation changes introduced by the merge request with the fix
   - [ ] [:link:][step_backports]         **(SwEng)** Prepare backports of the merge request addressing the problem for all affected (and still maintained) branches of a given product
@@ -54,12 +54,11 @@ confidential!
 ### Earlier Than T-5
 
   - [ ] [:link:][step_merge_fixes]       **(QA)** Merge the CVE fixes in CVE identifier order
-  - [ ] [:link:][step_patches]           **(QA)** Prepare a standalone patch for the last stable release of each affected (and still maintained) product branch
   - [ ] [:link:][step_evn_releases]      **(QA)** Prepare EVN releases (as outlined in the Release Checklist)
 
 ### At T-5
 
-  - [ ] [:link:][step_evn_links]         **(Marketing)** (BIND 9 only) Update the BIND -S information document in the support portal with download links to the new versions
+  - [ ] [:link:][step_evn_links]         **(Marketing)** (BIND 9 only) Update the BIND -S [ticket](https://techsupport.isc.org/Ticket/Display.html?id=23796) in the support portal with download links to the new versions
   - [ ] [:link:][step_evn_send_t_5]      **(Support)** Notify eligible customers by adding a ticket to the 5-Day queue in RT with the text of the advisory (earliest, and T-5)
   - [ ] [:link:][step_preannouncement]   **(Marketing)** Send a pre-announcement email to the appropriate *-announce* mailing list to alert users that the upcoming release will include security fixes
 
@@ -85,10 +84,6 @@ confidential!
   - [ ] [:link:][step_evn_clear]         **(Support)** Update the tickets in the EVN queues in RT that the embargo is lifted
   - [ ] [:link:][step_customers]         **(Marketing)** Ensure that a ticket has been sent in the appropriate announce queue in RT to notify customers that the release is published (as outlined in the release checklist)
 
-### After Public Disclosure
-
-  - [ ] [:link:][step_regression]        **(QA)** Merge a regression test reproducing the bug into all affected (and still maintained) branches
-
 [step_deputy]:            https://gitlab.isc.org/isc-private/isc-wiki/-/wikis/Security-Incident-Handling-Checklist-Explanations#pick-a-deputy-incident-manager
 [step_respond]:           https://gitlab.isc.org/isc-private/isc-wiki/-/wikis/Security-Incident-Handling-Checklist-Explanations#respond-to-the-bug-reporter
 [step_public_mrs]:        https://gitlab.isc.org/isc-private/isc-wiki/-/wikis/Security-Incident-Handling-Checklist-Explanations#ensure-there-are-no-public-merge-requests-which-inadvertently-disclose-the-issue
@@ -100,10 +95,10 @@ confidential!
 [step_earliest_prepare]:  https://gitlab.isc.org/isc-private/isc-wiki/-/wikis/Security-Incident-Handling-Checklist-Explanations#prepare-earliest-notification-text
 [step_earliest_send]:     https://gitlab.isc.org/isc-private/isc-wiki/-/wikis/Security-Incident-Handling-Checklist-Explanations#update-earliest-notification-ticket-in-support-portal-earliest-queue-which-will-notify-earliest-customers
 [step_advisory_mr]:       https://gitlab.isc.org/isc-private/isc-wiki/-/wikis/Security-Incident-Handling-Checklist-Explanations#create-a-merge-request-for-the-security-advisory-and-include-all-readily-available-information-in-it
-[step_reproducer_mr]:     https://gitlab.isc.org/isc-private/isc-wiki/-/wikis/Security-Incident-Handling-Checklist-Explanations#prepare-a-private-merge-request-containing-a-system-test-reproducing-the-problem
+[step_reproducer]:        https://gitlab.isc.org/isc-private/isc-wiki/-/wikis/Security-Incident-Handling-Checklist-Explanations#prepare-a-private-merge-request-containing-a-system-test-reproducing-the-problem
 [step_notify_support]:    https://gitlab.isc.org/isc-private/isc-wiki/-/wikis/Security-Incident-Handling-Checklist-Explanations#notify-support-when-a-reproducer-is-ready
 [step_code_analysis]:     https://gitlab.isc.org/isc-private/isc-wiki/-/wikis/Security-Incident-Handling-Checklist-Explanations#prepare-a-detailed-explanation-of-the-code-flow-triggering-the-problem
-[step_fix_mr]:            https://gitlab.isc.org/isc-private/isc-wiki/-/wikis/Security-Incident-Handling-Checklist-Explanations#prepare-a-private-merge-request-with-the-fix
+[step_fix]:               https://gitlab.isc.org/isc-private/isc-wiki/-/wikis/Security-Incident-Handling-Checklist-Explanations#prepare-a-fix-and-push-it-as-a-separate-commit-to-the-merge-request-with-the-reproducer
 [step_review_fix]:        https://gitlab.isc.org/isc-private/isc-wiki/-/wikis/Security-Incident-Handling-Checklist-Explanations#ensure-the-merge-request-with-the-fix-is-reviewed-and-has-no-outstanding-discussions
 [step_review_docs]:       https://gitlab.isc.org/isc-private/isc-wiki/-/wikis/Security-Incident-Handling-Checklist-Explanations#review-the-documentation-changes-introduced-by-the-merge-request-with-the-fix
 [step_backports]:         https://gitlab.isc.org/isc-private/isc-wiki/-/wikis/Security-Incident-Handling-Checklist-Explanations#prepare-backports-of-the-merge-request-addressing-the-problem-for-all-affected-and-still-maintained-branches-of-a-given-product
@@ -111,9 +106,8 @@ confidential!
 [step_meta_issue]:        https://gitlab.isc.org/isc-private/isc-wiki/-/wikis/Security-Incident-Handling-Checklist-Explanations#create-or-update-the-private-issue-containing-links-to-fixes--reproducers-for-all-cves-fixed-in-a-given-release-cycle
 [step_coordinate_check]:  https://gitlab.isc.org/isc-private/isc-wiki/-/wikis/Security-Incident-Handling-Checklist-Explanations#make-sure-other-vendors-are-able-to-release-on-the-date-that-was-previously-agreed-upon
 [step_merge_fixes]:       https://gitlab.isc.org/isc-private/isc-wiki/-/wikis/Security-Incident-Handling-Checklist-Explanations#merge-the-cve-fixes-in-cve-identifier-order
-[step_patches]:           https://gitlab.isc.org/isc-private/isc-wiki/-/wikis/Security-Incident-Handling-Checklist-Explanations#prepare-a-standalone-patch-for-the-last-stable-release-of-each-affected-and-still-maintained-product-branch
 [step_evn_releases]:      https://gitlab.isc.org/isc-private/isc-wiki/-/wikis/Security-Incident-Handling-Checklist-Explanations#prepare-evn-releases-as-outlined-in-the-release-checklist
-[step_evn_links]:         https://gitlab.isc.org/isc-private/isc-wiki/-/wikis/Security-Incident-Handling-Checklist-Explanations#bind-9-only-update-the-bind--s-information-document-in-the-support-portal-with-download-links-to-the-new-versions
+[step_evn_links]:         https://gitlab.isc.org/isc-private/isc-wiki/-/wikis/Security-Incident-Handling-Checklist-Explanations#bind-9-only-update-the-bind--s-ticket-in-the-support-portal-with-download-links-to-the-new-versions
 [step_evn_send_t_5]:      https://gitlab.isc.org/isc-private/isc-wiki/-/wikis/Security-Incident-Handling-Checklist-Explanations#notify-eligible-customers-by-adding-a-ticket-to-the-5-day-queue-in-rt-with-the-text-of-the-advisory-earliest-and-t-5
 [step_preannouncement]:   https://gitlab.isc.org/isc-private/isc-wiki/-/wikis/Security-Incident-Handling-Checklist-Explanations#send-a-pre-announcement-email-to-the-appropriate--announce-mailing-list-to-alert-users-that-the-upcoming-release-will-include-security-fixes
 [step_evn_send_t_3]:      https://gitlab.isc.org/isc-private/isc-wiki/-/wikis/Security-Incident-Handling-Checklist-Explanations#notify-eligible-customers-by-adding-a-ticket-to-the-3-day-queue-in-rt-with-the-text-of-the-advisory-t-3
@@ -129,6 +123,5 @@ confidential!
 [step_embargo_end]:       https://gitlab.isc.org/isc-private/isc-wiki/-/wikis/Security-Incident-Handling-Checklist-Explanations#inform-original-reporter-if-external-that-the-security-disclosure-process-is-complete
 [step_evn_clear]:         https://gitlab.isc.org/isc-private/isc-wiki/-/wikis/Security-Incident-Handling-Checklist-Explanations#update-the-tickets-in-the-evn-queues-in-rt-that-the-embargo-is-lifted
 [step_customers]:         https://gitlab.isc.org/isc-private/isc-wiki/-/wikis/Security-Incident-Handling-Checklist-Explanations#ensure-that-a-ticket-has-been-sent-in-the-appropriate-announce-queue-in-rt-to-notify-customers-that-the-release-is-published-as-outlined-in-the-release-checklist
-[step_regression]:        https://gitlab.isc.org/isc-private/isc-wiki/-/wikis/Security-Incident-Handling-Checklist-Explanations#merge-a-regression-test-reproducing-the-bug-into-all-affected-and-still-maintained-branches
 
 /confidential
