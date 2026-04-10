@@ -21,7 +21,12 @@
 #include <dns/name.h>
 #include <dns/types.h>
 
-#define DNS_NSEC_BUFFERSIZE (DNS_NAME_MAXWIRE + 8192 + 512)
+/*
+ * max compressed bitmap size:
+ * 256 windows * (window number + window length + bitmap (max 256 bits))
+ */
+#define DNS_NSEC_MAXCBMSIZE (256 * ((256 / 8) + 2))
+#define DNS_NSEC_BUFFERSIZE (DNS_NAME_MAXWIRE + DNS_NSEC_MAXCBMSIZE)
 
 isc_result_t
 dns_nsec_buildrdata(dns_db_t *db, dns_dbversion_t *version, dns_dbnode_t *node,
