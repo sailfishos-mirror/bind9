@@ -91,13 +91,12 @@ foreach unit : isc_test
     )
 
     suites = ['isc', 'cmocka']
-    env = environment()
     timeout = 300
     if unit in flaky_isc_test
         suites += 'flaky'
         # Pass FLAKY and TIMEOUT to the test wrapper so it can retry appropriately
-        env.set('FLAKY', '1')
-        env.set('TIMEOUT', timeout.to_string())
+        test_env.set('FLAKY', '1')
+        test_env.set('TIMEOUT', timeout.to_string())
     endif
     test(
         unit,
