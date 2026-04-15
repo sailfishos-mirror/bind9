@@ -11,6 +11,8 @@
 
 from pathlib import Path
 
+import sys
+
 SYSTEM_TEST_DIR_GIT_PATH = "bin/tests/system"
 
 
@@ -52,6 +54,17 @@ def load_vars_from_build_files() -> dict[str, str]:
         var_file = var_dir / var
         if var_file.exists():
             build_vars[var] = var_file.read_text(encoding="utf-8").strip()
+
+    # When running inside a virtualenv, prefer the virtualenv's interpreter
+    # over the path baked in by meson.
+    # This is needed because meson is configured to prefer specific versions
+    # (e.g. python3.12 and python3.11) by default to properly detect the
+    # right python interpreter in CI - this is undesirable when running
+    # in a virtualenv as it can lead to the system tests using the system
+    # versions of Python dependencies defeating the purpose of the virtual
+    # environment.
+    if sys.prefix != sys.base_prefix:
+        build_vars["PYTHON"] = sys.executable
 
     return build_vars
 
