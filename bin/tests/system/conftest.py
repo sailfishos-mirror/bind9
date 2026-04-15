@@ -402,6 +402,11 @@ def system_test_dir(request, system_test_name, expected_artifacts):
     # Log which binaries are used for the test(s)
     isctest.log.info("testing binaries from: %s", os.environ.get("TOP_BUILDDIR"))
 
+    # Log what Python interpreter is used to run the test(s)
+    isctest.log.info(
+        "using Python interpreter at: %s to run the test(s)", os.environ.get("PYTHON")
+    )
+
     # System tests are meant to be executed from their directory - switch to it.
     old_cwd = os.getcwd()
     os.chdir(testdir)
