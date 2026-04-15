@@ -18,7 +18,13 @@ import pytest
 import isctest
 
 pytestmark = pytest.mark.extra_artifacts(
-    ["ns2/copied.db", "ns2/present.db", "ns2/alternate.db"]
+    [
+        "ns2/copied.db",
+        "ns2/present.db",
+        "ns2/alternate.db",
+        "ns2/extra1.db",
+        "ns2/extra2.db",
+    ]
 )
 
 

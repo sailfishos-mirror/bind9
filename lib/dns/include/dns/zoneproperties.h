@@ -1557,3 +1557,36 @@ dns_zone_getkeystores(dns_zone_t *zone);
  * Get the keystores pointer, it should never be NULL once the server is
  * initialized.
  */
+
+void
+dns_zone_expandzonefile(isc_buffer_t *b, const char *filename,
+			const dns_name_t *zonename, const char *viewname,
+			const char *typename);
+/*%<
+ * Expands the zone file name ('filename') using the inputs
+ * 'zonename', 'viewname' and 'typename'.  The expanded file name
+ * is stored in the buffer 'b'.  The follow expansions are available:
+ *
+ *    - $name or "%s" to the zone name, in lowercase
+ *    - $type or "%t" to the zone type
+ *    - $view or "%v" to the view name
+ *    - $char1 or "%1" to the first character of the zone name
+ *    - $char2 or "%2" to the second character of the zone name (or a dot if
+ *      there is no second character)
+ *    - $char3 or "%3" to the third character of the zone name (or a dot if
+ *      there is no third character)
+ *    - $label1 or "%z" to the toplevel domain of the zone (or a dot if it is
+ *      the TLD)
+ *    - $label2 or "%y" to the next label under the toplevel domain (or a dot if
+ *      there is no next label)
+ *    - $label2 or "%x" to the next-next label under the toplevel domain (or a
+ *      dot if there is no next-next label)
+ *
+ * If 'viewname' is NULL, it is treated as an empty string.
+ *
+ * Requires:
+ *  \li  'b' to be non NULL.
+ *  \li  'filename' to be non NULL.
+ *  \li  'zonename' to be a valid name.
+ *  \li  'typename' to be non NULL.
+ */
