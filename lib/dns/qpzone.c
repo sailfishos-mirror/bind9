@@ -2544,11 +2544,13 @@ again:
 	LOCK(&qpdb->heap->lock);
 	elem = isc_heap_element(qpdb->heap->heap, 1);
 
-	if (elem != NULL && qpzone_get_lock(elem->node) != nlock) {
+	isc_rwlock_t *new_nlock = (elem != NULL) ? qpzone_get_lock(elem->node)
+						 : NULL;
+	if (new_nlock != NULL && new_nlock != nlock) {
 		UNLOCK(&qpdb->heap->lock);
 		NODE_UNLOCK(nlock, &nlocktype);
 
-		nlock = qpzone_get_lock(elem->node);
+		nlock = new_nlock;
 		goto again;
 	}
 
