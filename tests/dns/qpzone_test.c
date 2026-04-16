@@ -387,6 +387,22 @@ ISC_RUN_TEST_IMPL(setownercase) {
 	assert_true(dns_name_caseequal(name1, name2));
 }
 
+ISC_RUN_TEST_IMPL(resign_sooner_values) {
+	dns_typepair_t soa = DNS_SIGTYPEPAIR(dns_rdatatype_soa);
+	dns_typepair_t other = DNS_SIGTYPEPAIR(dns_rdatatype_a);
+
+	UNUSED(state);
+
+	assert_true(resign_sooner_values(10, other, 20, other));
+	assert_false(resign_sooner_values(20, other, 10, other));
+
+	assert_true(resign_sooner_values(10, other, 10, soa));
+	assert_false(resign_sooner_values(10, soa, 10, other));
+
+	assert_false(resign_sooner_values(10, soa, 10, soa));
+	assert_false(resign_sooner_values(10, other, 10, other));
+}
+
 ISC_RUN_TEST_IMPL(diffop_add_sub) {
 	isc_result_t result;
 	dns_db_t *db = NULL;
@@ -503,6 +519,7 @@ ISC_RUN_TEST_IMPL(diffop_addresign) {
 ISC_TEST_LIST_START
 ISC_TEST_ENTRY(ownercase)
 ISC_TEST_ENTRY(setownercase)
+ISC_TEST_ENTRY(resign_sooner_values)
 ISC_TEST_ENTRY(diffop_add_sub)
 ISC_TEST_ENTRY(diffop_addresign)
 ISC_TEST_LIST_END

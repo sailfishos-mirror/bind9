@@ -637,13 +637,16 @@ qpdb_destroy(dns_db_t *arg) {
 /*%
  * Compare resign times with SOA priority logic.
  * Returns true if lhs should be resigned sooner than rhs.
+ * When resign times are equal, non-SOA RRsets sort before the SOA RRset.
  */
 static bool
-resign_sooner_values(int64_t lhs_resign, int64_t rhs_resign,
-		     dns_typepair_t rhs_typepair) {
+resign_sooner_values(int64_t lhs_resign, dns_typepair_t lhs_typepair,
+		     int64_t rhs_resign, dns_typepair_t rhs_typepair) {
+	bool lhs_is_soa = lhs_typepair == DNS_SIGTYPEPAIR(dns_rdatatype_soa);
+	bool rhs_is_soa = rhs_typepair == DNS_SIGTYPEPAIR(dns_rdatatype_soa);
+
 	return lhs_resign < rhs_resign ||
-	       (lhs_resign == rhs_resign &&
-		rhs_typepair == DNS_SIGTYPEPAIR(dns_rdatatype_soa));
+	       (lhs_resign == rhs_resign && lhs_is_soa < rhs_is_soa);
 }
 
 /*%
@@ -655,9 +658,9 @@ resign_sooner(void *v1, void *v2) {
 	qpz_resign_t *elem1 = v1;
 	qpz_resign_t *elem2 = v2;
 
-	return resign_sooner_values(elem1->header->resign,
-				    elem2->header->resign,
-				    elem2->header->typepair);
+	return resign_sooner_values(
+		elem1->header->resign, elem1->header->typepair,
+		elem2->header->resign, elem2->header->typepair);
 }
 
 /*%
@@ -1993,6 +1996,7 @@ add(qpzonedb_t *qpdb, qpznode_t *node, const dns_name_t *nodename,
 				if (loading && RESIGN(newheader) &&
 				    RESIGN(header) &&
 				    resign_sooner_values(header->resign,
+							 header->typepair,
 							 newheader->resign,
 							 newheader->typepair))
 				{
@@ -2482,13 +2486,14 @@ setsigningtime(dns_db_t *db, dns_dbnode_t *dbnode, dns_rdataset_t *rdataset,
 
 			header->resign = new_resign;
 
-			if (resign_sooner_values(new_resign, old_resign,
-						 header->typepair))
+			if (resign_sooner_values(new_resign, header->typepair,
+						 old_resign, header->typepair))
 			{
 				isc_heap_increased(qpdb->heap->heap,
 						   found_elem->heap_index);
-			} else if (resign_sooner_values(old_resign, new_resign,
-							header->typepair))
+			} else if (resign_sooner_values(
+					   old_resign, header->typepair,
+					   new_resign, header->typepair))
 			{
 				isc_heap_decreased(qpdb->heap->heap,
 						   found_elem->heap_index);
