@@ -177,7 +177,8 @@ path = [
 	"doc/misc/options",
 	"doc/misc/rndc.grammar",
 	"sonar-project.properties",
-	"tests/bench/names.csv"
+	"tests/bench/names.csv",
+	"dtrace/*"
 ]
 precedence = "aggregate"
 SPDX-FileCopyrightText = "Internet Systems Consortium, Inc. (\"ISC\")"
