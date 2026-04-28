@@ -21,6 +21,7 @@ path = [
 	"**/**.saved",
 	"**/**.zonelist",
 	"**/**dig.out**",
+	"**/root.hint*",
 	"**/Makefile",
 	"**/Makefile.**",
 	"**/testdata/**",
