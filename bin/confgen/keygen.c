@@ -14,6 +14,7 @@
 /*! \file */
 
 #include "keygen.h"
+#include <ctype.h>
 #include <stdarg.h>
 #include <stdlib.h>
 
@@ -84,6 +85,26 @@ alg_bits(dns_secalg_t alg) {
 		return 512;
 	default:
 		return 0;
+	}
+}
+
+/*%
+ * Reject key names that would not embed safely into a named.conf
+ * 'key "<name>" { ... };' clause. Allowed: alphanumerics, '.', '-', '_'.
+ */
+void
+validate_keyname(const char *keyname) {
+	if (keyname == NULL || keyname[0] == '\0') {
+		fatal("key name must not be empty");
+	}
+	for (const char *p = keyname; *p != '\0'; p++) {
+		unsigned char c = (unsigned char)*p;
+		if (!isalnum(c) && c != '.' && c != '-' && c != '_') {
+			fatal("key name '%s' contains invalid character; "
+			      "only alphanumerics, '.', '-', and '_' are "
+			      "allowed",
+			      keyname);
+		}
 	}
 }
 

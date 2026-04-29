@@ -21,6 +21,9 @@
 #include <dns/secalg.h>
 
 void
+validate_keyname(const char *keyname);
+
+void
 generate_key(isc_mem_t *mctx, dns_secalg_t alg, int keysize,
 	     isc_buffer_t *key_txtbuffer);
 
