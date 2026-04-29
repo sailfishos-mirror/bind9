@@ -288,8 +288,9 @@ isc_file_truncate(const char *filename, off_t size);
 isc_result_t
 isc_file_safecreate(const char *filename, FILE **fp);
 /*%<
- * Open 'filename' for writing, truncating if necessary.  Ensure that
- * if it existed it was a normal file.  If creating the file, ensure
+ * Open 'filename' for writing, truncating if necessary.  If 'filename'
+ * exists it must be a regular file; symbolic links (and any other
+ * non-regular file types) are rejected.  If creating the file, ensure
  * that only the owner can read/write it.
  */
 

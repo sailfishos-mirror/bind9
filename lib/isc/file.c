@@ -92,6 +92,20 @@ file_stats(const char *file, struct stat *stats) {
 }
 
 static isc_result_t
+file_lstats(const char *file, struct stat *stats) {
+	isc_result_t result = ISC_R_SUCCESS;
+
+	REQUIRE(file != NULL);
+	REQUIRE(stats != NULL);
+
+	if (lstat(file, stats) != 0) {
+		result = isc__errno2result(errno);
+	}
+
+	return result;
+}
+
+static isc_result_t
 fd_stats(int fd, struct stat *stats) {
 	isc_result_t result = ISC_R_SUCCESS;
 
@@ -607,14 +621,14 @@ isc_file_safecreate(const char *filename, FILE **fp) {
 	REQUIRE(filename != NULL);
 	REQUIRE(fp != NULL && *fp == NULL);
 
-	result = file_stats(filename, &sb);
+	result = file_lstats(filename, &sb);
 	if (result == ISC_R_SUCCESS) {
-		if ((sb.st_mode & S_IFREG) == 0) {
+		if (!S_ISREG(sb.st_mode)) {
 			return ISC_R_INVALIDFILE;
 		}
-		flags = O_WRONLY | O_TRUNC;
+		flags = O_WRONLY | O_TRUNC | O_NOFOLLOW;
 	} else if (result == ISC_R_FILENOTFOUND) {
-		flags = O_WRONLY | O_CREAT | O_EXCL;
+		flags = O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW;
 	} else {
 		return result;
 	}

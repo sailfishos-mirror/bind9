@@ -89,6 +89,34 @@ ISC_RUN_TEST_IMPL(isc_file_sanitize) {
 	unlink(F(SHA));
 }
 
+/* test that isc_file_safecreate refuses to follow symlinks */
+ISC_RUN_TEST_IMPL(isc_file_safecreate_symlink) {
+	char target[] = "safecreate_target.XXXXXX";
+	char link[] = "safecreate_link.XXXXXX";
+	int fd;
+	FILE *fp = NULL;
+	isc_result_t result;
+
+	UNUSED(state);
+
+	fd = mkstemp(target);
+	assert_int_not_equal(fd, -1);
+	close(fd);
+
+	fd = mkstemp(link);
+	assert_int_not_equal(fd, -1);
+	close(fd);
+	unlink(link);
+	assert_return_code(symlink(target, link), 0);
+
+	result = isc_file_safecreate(link, &fp);
+	assert_int_equal(result, ISC_R_INVALIDFILE);
+	assert_null(fp);
+
+	unlink(link);
+	unlink(target);
+}
+
 /* test filename templates */
 ISC_RUN_TEST_IMPL(isc_file_template) {
 	isc_result_t result;
@@ -135,6 +163,7 @@ ISC_RUN_TEST_IMPL(isc_file_template) {
 ISC_TEST_LIST_START
 
 ISC_TEST_ENTRY(isc_file_sanitize)
+ISC_TEST_ENTRY(isc_file_safecreate_symlink)
 ISC_TEST_ENTRY(isc_file_template)
 
 ISC_TEST_LIST_END
