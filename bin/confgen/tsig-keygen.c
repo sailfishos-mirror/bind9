@@ -212,6 +212,8 @@ main(int argc, char **argv) {
 		}
 	}
 
+	validate_keyname(keyname);
+
 	isc_buffer_init(&key_txtbuffer, &key_txtsecret, sizeof(key_txtsecret));
 
 	generate_key(isc_g_mctx, alg, keysize, &key_txtbuffer);

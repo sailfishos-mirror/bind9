@@ -207,6 +207,8 @@ main(int argc, char **argv) {
 		usage(EXIT_FAILURE);
 	}
 
+	validate_keyname(keyname);
+
 	if (alg == DST_ALG_HMACMD5) {
 		fprintf(stderr, "warning: use of hmac-md5 for RNDC keys "
 				"is deprecated; hmac-sha256 is now "
