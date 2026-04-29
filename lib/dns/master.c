@@ -1145,17 +1145,6 @@ load_text(dns_loadctx_t *lctx) {
 				   0)
 			{
 				COMMITALL;
-				if ((lctx->options & DNS_MASTER_NOINCLUDE) != 0)
-				{
-					(callbacks->error)(callbacks,
-							   "%s: %s:%lu: "
-							   "$INCLUDE not "
-							   "allowed",
-							   "dns_master_load",
-							   source, line);
-					result = DNS_R_REFUSED;
-					goto insist_and_cleanup;
-				}
 				if (ttl_offset != 0) {
 					(callbacks->error)(callbacks,
 							   "%s: %s:%lu: "

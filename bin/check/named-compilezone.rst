@@ -41,6 +41,16 @@ Running :program:`named-checkzone` on the input prior to compiling will
 ensure that the zone compiles with the default requirements of
 :iscman:`named`.
 
+.. warning::
+
+   :program:`named-compilezone` must not be run on zone text from an
+   untrusted source. Zone files may contain ``$INCLUDE`` directives,
+   which cause the parser to read arbitrary files readable by the
+   invoking user; fragments of those files can leak through parser
+   error messages. Run the tool only on zone text whose author you
+   trust, or under a dedicated unprivileged user with no access to
+   sensitive files.
+
 Options
 ~~~~~~~
 

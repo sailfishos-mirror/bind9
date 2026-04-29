@@ -31,7 +31,6 @@
 #define DNS_MASTER_MANYERRORS                                               \
 	0x00000002			/*%< Continue processing on errors. \
 					 */
-#define DNS_MASTER_NOINCLUDE 0x00000004 /*%< Disallow $INCLUDE directives. */
 #define DNS_MASTER_ZONE	     0x00000008 /*%< Loading a zone master file. */
 #define DNS_MASTER_HINT	     0x00000010 /*%< Loading a hint master file. */
 #define DNS_MASTER_SECONDARY 0x00000020 /*%< Secondary master file. */
