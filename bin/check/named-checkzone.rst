@@ -33,6 +33,16 @@ performs the same checks as :iscman:`named` does when loading a zone. This
 makes :program:`named-checkzone` useful for checking zone files before
 configuring them into a name server.
 
+.. warning::
+
+   :program:`named-checkzone` must not be run on zone text from an
+   untrusted source. Zone files may contain ``$INCLUDE`` directives,
+   which cause the parser to read arbitrary files readable by the
+   invoking user; fragments of those files can leak through parser
+   error messages. Run the tool only on zone text whose author you
+   trust, or under a dedicated unprivileged user with no access to
+   sensitive files.
+
 Options
 ~~~~~~~
 
